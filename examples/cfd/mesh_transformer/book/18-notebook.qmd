@@ -7030,3 +7030,49 @@ GeoTransolver's error correlates with that distance (ρ ≥ 0.5) and ISLA's
 does not (ρ ≤ 0.2); a shared correlation would instead say the difficulty is
 intrinsic and the decorrelation above comes from something else. It costs a
 CPU job over 180 surfaces and is queued behind the running arms.
+
+## 2026-09-07 — Seen versus unseen geometries at 35 cases: GeoTransolver gains nothing from having trained on a geometry (0.390 vs 0.392); ISLA gains 15% — the local-interpolation hypothesis is falsified {#sec-nb-seen-unseen}
+
+**Setting.** The nested data-efficiency splits are random case samples, not
+geometry hold-outs: the 180 shared validation cases span 118 geometries,
+and at the 35-case rung 22 of those geometries also appear in the training
+set (at other angles of attack), covering 34 validation cases; at 210 cases,
+79 geometries and 116 validation cases are "seen". The 35-case stratum
+was already in the data-efficiency chapter's stratification
+(@sec-nb-strat35); what this entry adds is the 210-case rung and the reading
+in the light of the per-case decorrelation (@sec-nb-hilift-percase), for
+which the split is a discriminator without any geometry-distance
+computation: if
+GeoTransolver at small data interpolates locally in geometry space, its error
+on validation cases whose geometry it has trained on should be well below its
+error on geometries it has never seen.
+
+**What we saw** (results/hilift_seen_vs_unseen_geometry_2026-09-07.json;
+two-seed mean pressure relative L2 per case, then mean over the cases in
+each group):
+
+| rung | group | cases (geometries) | ISLA | GeoTransolver | GeoTransolver / ISLA |
+|---|---|---|---|---|---|
+| 35 | geometry seen in training | 34 (22) | 0.123 | 0.390 | 3.2 |
+| 35 | geometry unseen | 146 (96) | 0.142 | 0.392 | 2.8 |
+| 210 | geometry seen | 116 (79) | 0.066 | 0.158 | 2.4 |
+| 210 | geometry unseen | 64 (39) | 0.061 | 0.159 | 2.6 |
+
+**GeoTransolver's error is identical on seen and unseen geometries** (ratio
+unseen/seen 1.01 at both rungs). ISLA is 15% better on seen geometries at
+35 cases (1.15) and indifferent at 210 (0.93).
+
+**Reading.** Having trained on a geometry at other angles does not help
+GeoTransolver at all at 35 or 210 cases, so its small-data failure is not
+memorization or local interpolation in geometry space; it is closer to not
+having learned the geometry dependence of the pressure field at these data
+sizes, with its per-case error set by something other than the geometry
+(the single-angle result, where GeoTransolver is 5.0x behind once the angle
+of attack carries no information, points the same way). ISLA does exploit
+the seen geometries at 35 cases, as a model that has learned a
+geometry-to-pressure map should, and no longer needs to by 210. The
+nearest-training-geometry Chamfer test proposed above would now test a
+falsified premise for GeoTransolver and is withdrawn; the open question is
+what does set GeoTransolver's per-case error at small data, since it is
+neither the case's intrinsic difficulty (@sec-nb-hilift-percase) nor
+geometry novelty.

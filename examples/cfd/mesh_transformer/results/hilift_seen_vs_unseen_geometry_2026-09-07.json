@@ -1,0 +1,48 @@
+{
+ "35": {
+  "example_id": "00003_geo_LHC001_AoA_16_domain_LHC001_AoA_16",
+  "seen_geometry": {
+   "n_cases": 34,
+   "n_geometries": 22,
+   "isla_mean": 0.1232,
+   "isla_median": 0.1088,
+   "gt_mean": 0.3902,
+   "gt_median": 0.3934,
+   "gt_over_isla": 3.17
+  },
+  "unseen_geometry": {
+   "n_cases": 146,
+   "n_geometries": 96,
+   "isla_mean": 0.1416,
+   "isla_median": 0.1217,
+   "gt_mean": 0.3923,
+   "gt_median": 0.3893,
+   "gt_over_isla": 2.77
+  },
+  "gt_unseen_over_seen": 1.01,
+  "isla_unseen_over_seen": 1.15
+ },
+ "210": {
+  "example_id": "00003_geo_LHC001_AoA_16_domain_LHC001_AoA_16",
+  "seen_geometry": {
+   "n_cases": 116,
+   "n_geometries": 79,
+   "isla_mean": 0.066,
+   "isla_median": 0.0509,
+   "gt_mean": 0.1582,
+   "gt_median": 0.1541,
+   "gt_over_isla": 2.4
+  },
+  "unseen_geometry": {
+   "n_cases": 64,
+   "n_geometries": 39,
+   "isla_mean": 0.0614,
+   "isla_median": 0.0505,
+   "gt_mean": 0.1594,
+   "gt_median": 0.1577,
+   "gt_over_isla": 2.6
+  },
+  "gt_unseen_over_seen": 1.01,
+  "isla_unseen_over_seen": 0.93
+ }
+}

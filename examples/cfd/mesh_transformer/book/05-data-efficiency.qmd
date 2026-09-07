@@ -295,7 +295,13 @@ print(": The same models stratified by whether the validation geometry appears a
 
 Neither collapse happens. On the 146 never-seen geometries ISLA is 3.0x
 ahead; seeing a geometry at another angle helps ISLA by 15% and
-GeoTransolver not at all. At 18°, ISLA interpolates smoothly between its
+GeoTransolver not at all, and at 210 cases GeoTransolver is again identical
+on seen and unseen geometries (0.158 against 0.159) while ISLA no longer
+needs to have seen one (0.066 against 0.061;
+results/hilift_seen_vs_unseen_geometry_2026-09-07.json). Together with the
+per-case decorrelation of @tbl-hilift-percase-rho, this rules out
+memorization or local interpolation in geometry space as GeoTransolver's
+small-data behaviour: it does not exploit the geometries it has seen. At 18°, ISLA interpolates smoothly between its
 16° and 20° errors (0.135 → 0.167 → 0.186) and stays 2.5x ahead. The
 advantage is uniform — 2.2x to 4.3x at every angle — and largest in
 attached flow (4°–12°), where ISLA's error is 0.09–0.10 against 0.33–0.39
