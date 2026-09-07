@@ -6286,3 +6286,37 @@ training-set size — with GeoTransolver's lanes still evaluating. The
 GeoTransolver lr 3e-3 steel-man at the single angle
 (@sec-nb-w2f-launch) is training. Neither can rescue the hypothesis; both
 bound the size of the effect.
+
+## 2026-09-07 — Preregistered: geometry extrapolation on the `deflection` split — does ISLA's geometry generalization carry across a geometry-parameter boundary? {#sec-nb-deflection-prereg}
+
+**Why.** The single-angle verdict (@sec-nb-w2d-single-angle) locates
+ISLA's small-data advantage in generalizing across high-lift geometries.
+Every out-of-distribution test so far crossed a *flow-regime* boundary
+(angle of attack, stall), where no architecture generalizes. The
+dataset's `deflection` split crosses a *geometry* boundary instead: it
+sorts the 180 geometries by mean flap-and-slat deflection, trains and
+validates on the lower 80% (1,260 train / 180 val cases, all angles) and
+tests on the 36 most aggressive high-lift settings (360 cases, sealed). If
+ISLA's edge is geometry generalization, this is the axis on which an
+architecture-carried out-of-distribution result would appear first.
+
+**Arm H (4 lanes, `highlift/hl_wave2_aga.sbatch` rows 36–39).** ISLA and
+GeoTransolver, frozen protocol (lr 1e-3 both, 500 epochs, 10,000 tokens,
+2 seeds), trained on `deflection_train`, in-regime validation on
+`deflection_val`. The sealed `deflection_test` is evaluated exactly once
+per checkpoint with the inference configuration of the earlier sealed
+tests (resolution 10,000, validation-identical sampling seed), after
+training completes and after this entry is committed; no reruns.
+
+**Predictions in readout units** (pressure rel-L2; d = test / val).
+In-regime: both near their full-split values (ISLA ≈ GeoTransolver ≈
+0.04–0.05; GeoTransolver/ISLA within 0.9–1.15). Out of regime: if ISLA's
+geometry generalization carries across the boundary, **ISLA's test error
+≤ 0.7 × GeoTransolver's** with both d values well below the ≈10 seen on
+the flow-regime axes (prediction: d ≤ 4 for ISLA). **Falsifier:** ISLA's
+test error ≥ 0.9 × GeoTransolver's, or d ≥ 8 for both — then geometry
+extrapolation behaves like regime extrapolation and coverage governs it
+too. A GeoTransolver test error ≤ 0.7 × ISLA's would invert the reading
+(GeoTransolver extrapolates geometry better) and is recorded as such.
+Absolute test errors are reported alongside d because the ratio rewards a
+higher in-regime floor (@sec-nb-hl-sealed-test).
