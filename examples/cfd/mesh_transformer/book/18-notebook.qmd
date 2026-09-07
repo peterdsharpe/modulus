@@ -6006,6 +6006,28 @@ which is exactly what a sample-complexity carrier (a coupling the
 baselines must learn from data and MT2 gets for free) would produce,
 and what the INV transplant (@sec-nb-inv-prereg) tests directly.
 
+**Addendum — the reference predictors, computed** (from the stored
+per-point predictions and labels of the seed-42 evaluations, gauge
+pressure p − p_inf, geometric mean over the 180 cases;
+`highlift/mean_predictor.py` → `results/hilift_reference_predictors_35_2026-09-06.json`).
+Predicting the freestream pressure everywhere scores 1.00 by
+definition; the dataset-mean constant 0.94; each case's own mean (an
+oracle constant) 0.93. On the same scale GeoTransolver scores 0.63,
+Transolver 0.68 and MT2 0.25. The median per-case correlation between
+predicted and true pressure is 0.76 (GeoTransolver), 0.69 (Transolver)
+and **0.97 (MT2)**; the worst decile is 0.69 / 0.60 / 0.93. So reading
+(iii) above is too strong as written: at 35 cases the baselines *have*
+learned something — about 1.5x better than a constant, explaining
+roughly half the pointwise variance — while MT2 is 4x better than a
+constant and explains 93%. The flatness of the baselines' error
+across angles and geometries reflects a model that captures the
+coarse, case-independent pressure pattern (suction over the wing,
+stagnation at the leading edge) and little of the case-to-case
+variation that the angle and the geometry drive; MT2 captures most of
+that variation. (The recipe's headline metric uses a different
+normalization, so 0.25 here corresponds to 0.138 there; ratios between
+rows, not the absolute values, are the comparable quantities.)
+
 **Bearing on W2-F.** The unseen-geometry prediction (ratios within 0.1
 of the same-size rung) is already met at this rung on the 146-case
 subset; W2-F's own lanes remain the clean test because the `geometry`

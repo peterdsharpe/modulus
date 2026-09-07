@@ -1,0 +1,1286 @@
+{
+ "dataset_mean_pressure": 174.0340096613256,
+ "n_cases": 180,
+ "per_case": {
+  "00003_geo_LHC001_AoA_16_domain_LHC001_AoA_16": {
+   "const_dataset_mean": 0.9192727871392615,
+   "const_case_mean": 0.9114128713102603,
+   "corr_mt2": 0.947886105212745,
+   "corr_gt": 0.7793137135249351,
+   "corr_transolver": 0.6990801338283065
+  },
+  "00014_geo_LHC002_AoA_18_domain_LHC002_AoA_18": {
+   "const_dataset_mean": 0.9430829013850535,
+   "const_case_mean": 0.9389297956796111,
+   "corr_mt2": 0.9733602019486153,
+   "corr_gt": 0.7054648869982627,
+   "corr_transolver": 0.5867994434856398
+  },
+  "00018_geo_LHC002_AoA_6_domain_LHC002_AoA_6": {
+   "const_dataset_mean": 1.014972869578023,
+   "const_case_mean": 0.9591278573274173,
+   "corr_mt2": 0.9508613345947825,
+   "corr_gt": 0.807821693040515,
+   "corr_transolver": 0.8059150271681937
+  },
+  "00038_geo_LHC004_AoA_6_domain_LHC004_AoA_6": {
+   "const_dataset_mean": 1.059788262186356,
+   "const_case_mean": 0.9687551179718693,
+   "corr_mt2": 0.9599987146150961,
+   "corr_gt": 0.8342588354834499,
+   "corr_transolver": 0.8189385442028057
+  },
+  "00039_geo_LHC004_AoA_8_domain_LHC004_AoA_8": {
+   "const_dataset_mean": 0.99113940014415,
+   "const_case_mean": 0.9598952600968419,
+   "corr_mt2": 0.9641912963519763,
+   "corr_gt": 0.806097052548364,
+   "corr_transolver": 0.7730007224960241
+  },
+  "00047_geo_LHC005_AoA_4_domain_LHC005_AoA_4": {
+   "const_dataset_mean": 0.9713289348312314,
+   "const_case_mean": 0.945705601347166,
+   "corr_mt2": 0.9562991325596408,
+   "corr_gt": 0.8237356896440623,
+   "corr_transolver": 0.8107840672407673
+  },
+  "00053_geo_LHC006_AoA_16_domain_LHC006_AoA_16": {
+   "const_dataset_mean": 0.9284604237558423,
+   "const_case_mean": 0.9201399233271367,
+   "corr_mt2": 0.9772042862769115,
+   "corr_gt": 0.7736282173632807,
+   "corr_transolver": 0.6832579837034041
+  },
+  "00066_geo_LHC007_AoA_22_domain_LHC007_AoA_22": {
+   "const_dataset_mean": 1.016002551769707,
+   "const_case_mean": 0.9669992967875002,
+   "corr_mt2": 0.929374269682458,
+   "corr_gt": 0.7049860608595621,
+   "corr_transolver": 0.6442051173085931
+  },
+  "00084_geo_LHC009_AoA_18_domain_LHC009_AoA_18": {
+   "const_dataset_mean": 0.955217028041618,
+   "const_case_mean": 0.9551481695066303,
+   "corr_mt2": 0.951159296804333,
+   "corr_gt": 0.7095313799512771,
+   "corr_transolver": 0.6083652398802778
+  },
+  "00086_geo_LHC009_AoA_22_domain_LHC009_AoA_22": {
+   "const_dataset_mean": 0.9772165269402225,
+   "const_case_mean": 0.9672486810259004,
+   "corr_mt2": 0.7645702815876334,
+   "corr_gt": 0.6774470260949276,
+   "corr_transolver": 0.5884844146974719
+  },
+  "00114_geo_LHC012_AoA_18_domain_LHC012_AoA_18": {
+   "const_dataset_mean": 0.9422574176608964,
+   "const_case_mean": 0.941096372443146,
+   "corr_mt2": 0.9691251041229733,
+   "corr_gt": 0.7124966190297182,
+   "corr_transolver": 0.5995877779730773
+  },
+  "00132_geo_LHC014_AoA_14_domain_LHC014_AoA_14": {
+   "const_dataset_mean": 0.91986541619266,
+   "const_case_mean": 0.9197901315149335,
+   "corr_mt2": 0.9469318726090586,
+   "corr_gt": 0.8023132475736642,
+   "corr_transolver": 0.7542667826373204
+  },
+  "00191_geo_LHC020_AoA_12_domain_LHC020_AoA_12": {
+   "const_dataset_mean": 0.9227884945896894,
+   "const_case_mean": 0.9209144907283288,
+   "corr_mt2": 0.9629367107218311,
+   "corr_gt": 0.7945046009044281,
+   "corr_transolver": 0.7366978717411282
+  },
+  "00202_geo_LHC021_AoA_14_domain_LHC021_AoA_14": {
+   "const_dataset_mean": 0.9414424442994693,
+   "const_case_mean": 0.9316403678049835,
+   "corr_mt2": 0.9737858971590325,
+   "corr_gt": 0.6888363651281101,
+   "corr_transolver": 0.6046212398362707
+  },
+  "00204_geo_LHC021_AoA_18_domain_LHC021_AoA_18": {
+   "const_dataset_mean": 0.9384484435661826,
+   "const_case_mean": 0.937779941590081,
+   "corr_mt2": 0.9102241946800537,
+   "corr_gt": 0.7230278553527013,
+   "corr_transolver": 0.6324094536131551
+  },
+  "00213_geo_LHC022_AoA_16_domain_LHC022_AoA_16": {
+   "const_dataset_mean": 0.9415581030935074,
+   "const_case_mean": 0.9324041721424249,
+   "corr_mt2": 0.9746239924671304,
+   "corr_gt": 0.7037320071941361,
+   "corr_transolver": 0.5985612128727295
+  },
+  "00214_geo_LHC022_AoA_18_domain_LHC022_AoA_18": {
+   "const_dataset_mean": 0.932951399054147,
+   "const_case_mean": 0.9329338087844805,
+   "corr_mt2": 0.8988610368486692,
+   "corr_gt": 0.7680053137108318,
+   "corr_transolver": 0.6699579801421918
+  },
+  "00224_geo_LHC023_AoA_18_domain_LHC023_AoA_18": {
+   "const_dataset_mean": 0.930692987054146,
+   "const_case_mean": 0.930641970696506,
+   "corr_mt2": 0.9336691509123649,
+   "corr_gt": 0.7872106610382984,
+   "corr_transolver": 0.6899466570542008
+  },
+  "00233_geo_LHC024_AoA_16_domain_LHC024_AoA_16": {
+   "const_dataset_mean": 0.9249523043678037,
+   "const_case_mean": 0.9167207903770056,
+   "corr_mt2": 0.9746877895186195,
+   "corr_gt": 0.7815668624510319,
+   "corr_transolver": 0.6900313718692987
+  },
+  "00261_geo_LHC027_AoA_12_domain_LHC027_AoA_12": {
+   "const_dataset_mean": 0.9277298065995336,
+   "const_case_mean": 0.9215593528730802,
+   "corr_mt2": 0.9835525227310401,
+   "corr_gt": 0.7632259581418752,
+   "corr_transolver": 0.691691066112546
+  },
+  "00264_geo_LHC027_AoA_18_domain_LHC027_AoA_18": {
+   "const_dataset_mean": 0.9390559677622248,
+   "const_case_mean": 0.9390283599807835,
+   "corr_mt2": 0.9171578579377964,
+   "corr_gt": 0.7323260504082897,
+   "corr_transolver": 0.6410913009394679
+  },
+  "00292_geo_LHC030_AoA_14_domain_LHC030_AoA_14": {
+   "const_dataset_mean": 0.9299700890666829,
+   "const_case_mean": 0.920147590828661,
+   "corr_mt2": 0.9764637936883152,
+   "corr_gt": 0.7489039478691015,
+   "corr_transolver": 0.6571529860534506
+  },
+  "00309_geo_LHC031_AoA_8_domain_LHC031_AoA_8": {
+   "const_dataset_mean": 0.9984654049527201,
+   "const_case_mean": 0.9566422351824103,
+   "corr_mt2": 0.9663194907898514,
+   "corr_gt": 0.829370859932114,
+   "corr_transolver": 0.7990147470614517
+  },
+  "00315_geo_LHC032_AoA_20_domain_LHC032_AoA_20": {
+   "const_dataset_mean": 0.9393411482784744,
+   "const_case_mean": 0.9384868766977433,
+   "corr_mt2": 0.9529180235216208,
+   "corr_gt": 0.7308732490537462,
+   "corr_transolver": 0.6300444617321824
+  },
+  "00317_geo_LHC032_AoA_4_domain_LHC032_AoA_4": {
+   "const_dataset_mean": 0.9961194406031246,
+   "const_case_mean": 0.9479335813507247,
+   "corr_mt2": 0.9597473981244453,
+   "corr_gt": 0.7998252191980076,
+   "corr_transolver": 0.7898995312709186
+  },
+  "00322_geo_LHC033_AoA_14_domain_LHC033_AoA_14": {
+   "const_dataset_mean": 0.9218472251556763,
+   "const_case_mean": 0.9208851173959699,
+   "corr_mt2": 0.9764824365111584,
+   "corr_gt": 0.7959850918162241,
+   "corr_transolver": 0.7371246767027043
+  },
+  "00337_geo_LHC034_AoA_4_domain_LHC034_AoA_4": {
+   "const_dataset_mean": 0.9887034729538878,
+   "const_case_mean": 0.9251538873054186,
+   "corr_mt2": 0.9703386054172175,
+   "corr_gt": 0.7749275836099169,
+   "corr_transolver": 0.7742948902715151
+  },
+  "00346_geo_LHC035_AoA_22_domain_LHC035_AoA_22": {
+   "const_dataset_mean": 0.9505476876667127,
+   "const_case_mean": 0.9474413481716992,
+   "corr_mt2": 0.9220060998748032,
+   "corr_gt": 0.7222190361221857,
+   "corr_transolver": 0.6545513474588653
+  },
+  "00354_geo_LHC036_AoA_18_domain_LHC036_AoA_18": {
+   "const_dataset_mean": 0.929004321178347,
+   "const_case_mean": 0.9198677612209639,
+   "corr_mt2": 0.9658824442779772,
+   "corr_gt": 0.7476090423282165,
+   "corr_transolver": 0.6496034854540093
+  },
+  "00364_geo_LHC037_AoA_18_domain_LHC037_AoA_18": {
+   "const_dataset_mean": 0.9469157077168312,
+   "const_case_mean": 0.9463585839431752,
+   "corr_mt2": 0.9679922088130996,
+   "corr_gt": 0.6575096505560947,
+   "corr_transolver": 0.5573875410724419
+  },
+  "00369_geo_LHC037_AoA_8_domain_LHC037_AoA_8": {
+   "const_dataset_mean": 0.9278016198807955,
+   "const_case_mean": 0.9260571990549027,
+   "corr_mt2": 0.9768316571761023,
+   "corr_gt": 0.7876589673049257,
+   "corr_transolver": 0.7422366968303844
+  },
+  "00370_geo_LHC038_AoA_10_domain_LHC038_AoA_10": {
+   "const_dataset_mean": 0.9404965845415294,
+   "const_case_mean": 0.9368722019559675,
+   "corr_mt2": 0.9825497793610695,
+   "corr_gt": 0.7938121301160607,
+   "corr_transolver": 0.7416350488508593
+  },
+  "00376_geo_LHC038_AoA_22_domain_LHC038_AoA_22": {
+   "const_dataset_mean": 0.946138532447328,
+   "const_case_mean": 0.9414325754495413,
+   "corr_mt2": 0.9466047898665592,
+   "corr_gt": 0.6925843080313124,
+   "corr_transolver": 0.6019191641316876
+  },
+  "00378_geo_LHC038_AoA_6_domain_LHC038_AoA_6": {
+   "const_dataset_mean": 1.0207023355149916,
+   "const_case_mean": 0.9448917617728666,
+   "corr_mt2": 0.9721212453524951,
+   "corr_gt": 0.8320666496465011,
+   "corr_transolver": 0.8127455316298278
+  },
+  "00384_geo_LHC039_AoA_18_domain_LHC039_AoA_18": {
+   "const_dataset_mean": 0.9423151263959513,
+   "const_case_mean": 0.9381543705501737,
+   "corr_mt2": 0.9736555989028713,
+   "corr_gt": 0.7122180922119685,
+   "corr_transolver": 0.595931003991404
+  },
+  "00393_geo_LHC040_AoA_16_domain_LHC040_AoA_16": {
+   "const_dataset_mean": 0.9384740174952569,
+   "const_case_mean": 0.9268451069283208,
+   "corr_mt2": 0.8891358687927621,
+   "corr_gt": 0.6850072740084253,
+   "corr_transolver": 0.5807143549389397
+  },
+  "00405_geo_LHC041_AoA_20_domain_LHC041_AoA_20": {
+   "const_dataset_mean": 0.9314523665669634,
+   "const_case_mean": 0.9294446420560984,
+   "corr_mt2": 0.9565761924552375,
+   "corr_gt": 0.7394307186753093,
+   "corr_transolver": 0.6629617233915384
+  },
+  "00427_geo_LHC043_AoA_4_domain_LHC043_AoA_4": {
+   "const_dataset_mean": 1.143453145222283,
+   "const_case_mean": 0.9451741281383464,
+   "corr_mt2": 0.9547797952243872,
+   "corr_gt": 0.686136879391338,
+   "corr_transolver": 0.6970770127571927
+  },
+  "00435_geo_LHC044_AoA_20_domain_LHC044_AoA_20": {
+   "const_dataset_mean": 0.9403028108513753,
+   "const_case_mean": 0.9378319683390651,
+   "corr_mt2": 0.9677136647573947,
+   "corr_gt": 0.6808122170941444,
+   "corr_transolver": 0.591590753300705
+  },
+  "00439_geo_LHC044_AoA_8_domain_LHC044_AoA_8": {
+   "const_dataset_mean": 0.9072850450181832,
+   "const_case_mean": 0.9071377939430242,
+   "corr_mt2": 0.9720106755892657,
+   "corr_gt": 0.8437965523058081,
+   "corr_transolver": 0.8088802937168984
+  },
+  "00455_geo_LHC046_AoA_20_domain_LHC046_AoA_20": {
+   "const_dataset_mean": 0.9374740272293951,
+   "const_case_mean": 0.9283937095001938,
+   "corr_mt2": 0.9522750623381013,
+   "corr_gt": 0.7011683722049787,
+   "corr_transolver": 0.5978604624538161
+  },
+  "00475_geo_LHC048_AoA_20_domain_LHC048_AoA_20": {
+   "const_dataset_mean": 0.9677101410371781,
+   "const_case_mean": 0.9464609644424055,
+   "corr_mt2": 0.9546584379699901,
+   "corr_gt": 0.73810911529395,
+   "corr_transolver": 0.6806771512353931
+  },
+  "00501_geo_LHC051_AoA_12_domain_LHC051_AoA_12": {
+   "const_dataset_mean": 0.9270724064635445,
+   "const_case_mean": 0.922646642669659,
+   "corr_mt2": 0.9837025823620716,
+   "corr_gt": 0.7554462615100038,
+   "corr_transolver": 0.6863910212945838
+  },
+  "00513_geo_LHC052_AoA_16_domain_LHC052_AoA_16": {
+   "const_dataset_mean": 0.936449486165287,
+   "const_case_mean": 0.9249046321032549,
+   "corr_mt2": 0.9768643818915852,
+   "corr_gt": 0.7135028436199278,
+   "corr_transolver": 0.6274920859116923
+  },
+  "00526_geo_LHC053_AoA_22_domain_LHC053_AoA_22": {
+   "const_dataset_mean": 0.9480911947963413,
+   "const_case_mean": 0.9437931160453543,
+   "corr_mt2": 0.9578793259416549,
+   "corr_gt": 0.6980768326217266,
+   "corr_transolver": 0.5934450800045045
+  },
+  "00532_geo_LHC054_AoA_14_domain_LHC054_AoA_14": {
+   "const_dataset_mean": 0.9272079190598964,
+   "const_case_mean": 0.9178940966736548,
+   "corr_mt2": 0.9851663047201091,
+   "corr_gt": 0.757498208804291,
+   "corr_transolver": 0.6730456556739098
+  },
+  "00547_geo_LHC055_AoA_4_domain_LHC055_AoA_4": {
+   "const_dataset_mean": 1.0875240438892833,
+   "const_case_mean": 0.9461544699932721,
+   "corr_mt2": 0.7942549954830594,
+   "corr_gt": 0.4725506156736448,
+   "corr_transolver": 0.4936993319767233
+  },
+  "00568_geo_LHC057_AoA_6_domain_LHC057_AoA_6": {
+   "const_dataset_mean": 0.9132279461167894,
+   "const_case_mean": 0.9078789230208841,
+   "corr_mt2": 0.9601115472682407,
+   "corr_gt": 0.7725280368854867,
+   "corr_transolver": 0.7672175446154871
+  },
+  "00569_geo_LHC057_AoA_8_domain_LHC057_AoA_8": {
+   "const_dataset_mean": 0.9069564813082434,
+   "const_case_mean": 0.9059646856893846,
+   "corr_mt2": 0.9700532423063779,
+   "corr_gt": 0.8155763129653747,
+   "corr_transolver": 0.7993345420111729
+  },
+  "00580_geo_LHC059_AoA_10_domain_LHC059_AoA_10": {
+   "const_dataset_mean": 0.9179464981995509,
+   "const_case_mean": 0.917941755469071,
+   "corr_mt2": 0.9864657598499981,
+   "corr_gt": 0.8334072199226841,
+   "corr_transolver": 0.7808938698840476
+  },
+  "00581_geo_LHC059_AoA_12_domain_LHC059_AoA_12": {
+   "const_dataset_mean": 0.9229810310949066,
+   "const_case_mean": 0.9204152578014556,
+   "corr_mt2": 0.9851116391415194,
+   "corr_gt": 0.7877583385259534,
+   "corr_transolver": 0.7255561721350225
+  },
+  "00592_geo_LHC060_AoA_14_domain_LHC060_AoA_14": {
+   "const_dataset_mean": 0.9378808917244877,
+   "const_case_mean": 0.9370772565667281,
+   "corr_mt2": 0.9507540461769506,
+   "corr_gt": 0.7252886303500687,
+   "corr_transolver": 0.6612882348463401
+  },
+  "00603_geo_LHC061_AoA_16_domain_LHC061_AoA_16": {
+   "const_dataset_mean": 0.9195991792353051,
+   "const_case_mean": 0.9168564302357656,
+   "corr_mt2": 0.9726275285315431,
+   "corr_gt": 0.7803482785390635,
+   "corr_transolver": 0.6958811555474111
+  },
+  "00611_geo_LHC062_AoA_12_domain_LHC062_AoA_12": {
+   "const_dataset_mean": 0.9384592771109713,
+   "const_case_mean": 0.9384018258717509,
+   "corr_mt2": 0.9864020705241847,
+   "corr_gt": 0.7510670191540706,
+   "corr_transolver": 0.6904980212710015
+  },
+  "00612_geo_LHC062_AoA_14_domain_LHC062_AoA_14": {
+   "const_dataset_mean": 0.943943309414979,
+   "const_case_mean": 0.9418866627568495,
+   "corr_mt2": 0.9828501776986043,
+   "corr_gt": 0.7038837548056948,
+   "corr_transolver": 0.6390435814583046
+  },
+  "00624_geo_LHC063_AoA_18_domain_LHC063_AoA_18": {
+   "const_dataset_mean": 0.9306666907066993,
+   "const_case_mean": 0.9236516912893853,
+   "corr_mt2": 0.9713373652357608,
+   "corr_gt": 0.740013757489378,
+   "corr_transolver": 0.6454322275423464
+  },
+  "00630_geo_LHC064_AoA_10_domain_LHC064_AoA_10": {
+   "const_dataset_mean": 0.9303246708988216,
+   "const_case_mean": 0.9199089731219696,
+   "corr_mt2": 0.9725186905140584,
+   "corr_gt": 0.8488411200211381,
+   "corr_transolver": 0.8182671162917512
+  },
+  "00639_geo_LHC064_AoA_8_domain_LHC064_AoA_8": {
+   "const_dataset_mean": 0.96696267586897,
+   "const_case_mean": 0.9282947545714277,
+   "corr_mt2": 0.9628280370757415,
+   "corr_gt": 0.8266821069579736,
+   "corr_transolver": 0.8277971496560714
+  },
+  "00659_geo_LHC066_AoA_8_domain_LHC066_AoA_8": {
+   "const_dataset_mean": 0.9703744330363208,
+   "const_case_mean": 0.9408951876364152,
+   "corr_mt2": 0.9772882357109592,
+   "corr_gt": 0.8493210756850383,
+   "corr_transolver": 0.8190629993316015
+  },
+  "00661_geo_LHC067_AoA_12_domain_LHC067_AoA_12": {
+   "const_dataset_mean": 0.9195448206149294,
+   "const_case_mean": 0.9121212514145198,
+   "corr_mt2": 0.9845665415306152,
+   "corr_gt": 0.7964737617583499,
+   "corr_transolver": 0.719942446272467
+  },
+  "00666_geo_LHC067_AoA_22_domain_LHC067_AoA_22": {
+   "const_dataset_mean": 0.9345216458382829,
+   "const_case_mean": 0.933423295095273,
+   "corr_mt2": 0.9348830470090792,
+   "corr_gt": 0.7439211861824202,
+   "corr_transolver": 0.643382633565387
+  },
+  "00675_geo_LHC068_AoA_20_domain_LHC068_AoA_20": {
+   "const_dataset_mean": 0.9325011859989921,
+   "const_case_mean": 0.9324996729976791,
+   "corr_mt2": 0.9782641459309931,
+   "corr_gt": 0.7604668264584517,
+   "corr_transolver": 0.6820403776470968
+  },
+  "00681_geo_LHC069_AoA_12_domain_LHC069_AoA_12": {
+   "const_dataset_mean": 0.9283355671061685,
+   "const_case_mean": 0.9228463050623699,
+   "corr_mt2": 0.9862728713833668,
+   "corr_gt": 0.7517381484472838,
+   "corr_transolver": 0.6749065035668365
+  },
+  "00703_geo_LHC071_AoA_16_domain_LHC071_AoA_16": {
+   "const_dataset_mean": 0.916302617702236,
+   "const_case_mean": 0.9096815760737139,
+   "corr_mt2": 0.9779361118548467,
+   "corr_gt": 0.7999675649796971,
+   "corr_transolver": 0.7148968029484032
+  },
+  "00704_geo_LHC071_AoA_18_domain_LHC071_AoA_18": {
+   "const_dataset_mean": 0.924551424979009,
+   "const_case_mean": 0.9114060142521458,
+   "corr_mt2": 0.9764110097856039,
+   "corr_gt": 0.7747874619239531,
+   "corr_transolver": 0.6693707768116518
+  },
+  "00707_geo_LHC071_AoA_4_domain_LHC071_AoA_4": {
+   "const_dataset_mean": 1.0263795902777297,
+   "const_case_mean": 0.9347742661096144,
+   "corr_mt2": 0.9307724777469305,
+   "corr_gt": 0.6732101566242316,
+   "corr_transolver": 0.677177923839454
+  },
+  "00719_geo_LHC072_AoA_8_domain_LHC072_AoA_8": {
+   "const_dataset_mean": 0.9301359944005666,
+   "const_case_mean": 0.9192894303232939,
+   "corr_mt2": 0.9640057974353365,
+   "corr_gt": 0.820684913253842,
+   "corr_transolver": 0.7989165083565329
+  },
+  "00736_geo_LHC074_AoA_22_domain_LHC074_AoA_22": {
+   "const_dataset_mean": 0.943377638837508,
+   "const_case_mean": 0.9416846358136127,
+   "corr_mt2": 0.9715169537542826,
+   "corr_gt": 0.7118120152089654,
+   "corr_transolver": 0.6134603676722851
+  },
+  "00742_geo_LHC075_AoA_14_domain_LHC075_AoA_14": {
+   "const_dataset_mean": 0.9330652167293098,
+   "const_case_mean": 0.9169155086282729,
+   "corr_mt2": 0.9710397954482773,
+   "corr_gt": 0.720575896885358,
+   "corr_transolver": 0.6370948118717809
+  },
+  "00745_geo_LHC075_AoA_20_domain_LHC075_AoA_20": {
+   "const_dataset_mean": 0.9476790458546425,
+   "const_case_mean": 0.9404210620503388,
+   "corr_mt2": 0.8804130102377156,
+   "corr_gt": 0.7296323835990148,
+   "corr_transolver": 0.6683738230782936
+  },
+  "00756_geo_LHC076_AoA_22_domain_LHC076_AoA_22": {
+   "const_dataset_mean": 0.9363499089185121,
+   "const_case_mean": 0.9245426634361296,
+   "corr_mt2": 0.9499662704888989,
+   "corr_gt": 0.7147762915339967,
+   "corr_transolver": 0.6197501133909851
+  },
+  "00758_geo_LHC076_AoA_6_domain_LHC076_AoA_6": {
+   "const_dataset_mean": 1.0039296145408472,
+   "const_case_mean": 0.9318926806537804,
+   "corr_mt2": 0.9611614390644422,
+   "corr_gt": 0.7785687846988596,
+   "corr_transolver": 0.7814746108286
+  },
+  "00762_geo_LHC077_AoA_14_domain_LHC077_AoA_14": {
+   "const_dataset_mean": 0.9126209547485432,
+   "const_case_mean": 0.9062515922345296,
+   "corr_mt2": 0.9495060180639622,
+   "corr_gt": 0.7756278238493566,
+   "corr_transolver": 0.7182631471491818
+  },
+  "00768_geo_LHC077_AoA_6_domain_LHC077_AoA_6": {
+   "const_dataset_mean": 0.9208752331386937,
+   "const_case_mean": 0.915249285870374,
+   "corr_mt2": 0.9398159298022635,
+   "corr_gt": 0.7305262157165423,
+   "corr_transolver": 0.7312435609537282
+  },
+  "00786_geo_LHC079_AoA_22_domain_LHC079_AoA_22": {
+   "const_dataset_mean": 0.9583166739081843,
+   "const_case_mean": 0.9416289425395841,
+   "corr_mt2": 0.8702551851540578,
+   "corr_gt": 0.7278984811770468,
+   "corr_transolver": 0.6592027949405878
+  },
+  "00795_geo_LHC080_AoA_20_domain_LHC080_AoA_20": {
+   "const_dataset_mean": 0.9303845515659691,
+   "const_case_mean": 0.9182541231773633,
+   "corr_mt2": 0.9615928938684396,
+   "corr_gt": 0.7304675593606128,
+   "corr_transolver": 0.6187423182316837
+  },
+  "00796_geo_LHC080_AoA_22_domain_LHC080_AoA_22": {
+   "const_dataset_mean": 0.9359072989669223,
+   "const_case_mean": 0.9319634850080146,
+   "corr_mt2": 0.9704624511967459,
+   "corr_gt": 0.7008935882793533,
+   "corr_transolver": 0.6240089177163736
+  },
+  "00799_geo_LHC080_AoA_8_domain_LHC080_AoA_8": {
+   "const_dataset_mean": 0.9212383860163167,
+   "const_case_mean": 0.915212676471453,
+   "corr_mt2": 0.9616788223422519,
+   "corr_gt": 0.8196918021262095,
+   "corr_transolver": 0.8089042296011969
+  },
+  "00809_geo_LHC081_AoA_8_domain_LHC081_AoA_8": {
+   "const_dataset_mean": 0.908990085098947,
+   "const_case_mean": 0.9086926583147603,
+   "corr_mt2": 0.9558651883884811,
+   "corr_gt": 0.8230640611692516,
+   "corr_transolver": 0.7895835615571881
+  },
+  "00816_geo_LHC082_AoA_22_domain_LHC082_AoA_22": {
+   "const_dataset_mean": 0.9425495925524419,
+   "const_case_mean": 0.9395083585317727,
+   "corr_mt2": 0.9653837017072304,
+   "corr_gt": 0.6599903706532195,
+   "corr_transolver": 0.5771807856673004
+  },
+  "00821_geo_LHC083_AoA_12_domain_LHC083_AoA_12": {
+   "const_dataset_mean": 0.9039333767120643,
+   "const_case_mean": 0.8957357321937572,
+   "corr_mt2": 0.9775359264727792,
+   "corr_gt": 0.8185071089792008,
+   "corr_transolver": 0.7503033829185307
+  },
+  "00825_geo_LHC083_AoA_20_domain_LHC083_AoA_20": {
+   "const_dataset_mean": 0.9342710753057729,
+   "const_case_mean": 0.923531383079373,
+   "corr_mt2": 0.9635054060286256,
+   "corr_gt": 0.730970527192419,
+   "corr_transolver": 0.6178901209045937
+  },
+  "00847_geo_LHC085_AoA_4_domain_LHC085_AoA_4": {
+   "const_dataset_mean": 0.9577791035747372,
+   "const_case_mean": 0.9233665343681874,
+   "corr_mt2": 0.952977206288594,
+   "corr_gt": 0.7027634048748886,
+   "corr_transolver": 0.7012095523662885
+  },
+  "00862_geo_LHC087_AoA_14_domain_LHC087_AoA_14": {
+   "const_dataset_mean": 0.9272974116092619,
+   "const_case_mean": 0.9166963842580976,
+   "corr_mt2": 0.9862563283014711,
+   "corr_gt": 0.7471085437468188,
+   "corr_transolver": 0.6563813356283942
+  },
+  "00864_geo_LHC087_AoA_18_domain_LHC087_AoA_18": {
+   "const_dataset_mean": 0.9377149848016507,
+   "const_case_mean": 0.9218827783073482,
+   "corr_mt2": 0.9533064887812847,
+   "corr_gt": 0.7072154594228247,
+   "corr_transolver": 0.5774600510616408
+  },
+  "00878_geo_LHC088_AoA_6_domain_LHC088_AoA_6": {
+   "const_dataset_mean": 0.9472769100427493,
+   "const_case_mean": 0.9255557802819355,
+   "corr_mt2": 0.9752313837932943,
+   "corr_gt": 0.8599664367695738,
+   "corr_transolver": 0.836536607666151
+  },
+  "00910_geo_LHC092_AoA_10_domain_LHC092_AoA_10": {
+   "const_dataset_mean": 0.9161503844205917,
+   "const_case_mean": 0.9152591108867849,
+   "corr_mt2": 0.98513524803521,
+   "corr_gt": 0.8195737187613709,
+   "corr_transolver": 0.7655547542592624
+  },
+  "00928_geo_LHC093_AoA_6_domain_LHC093_AoA_6": {
+   "const_dataset_mean": 0.9276900363884043,
+   "const_case_mean": 0.9214172764228344,
+   "corr_mt2": 0.9805762704087172,
+   "corr_gt": 0.8237448899031518,
+   "corr_transolver": 0.8026196543141884
+  },
+  "00939_geo_LHC094_AoA_8_domain_LHC094_AoA_8": {
+   "const_dataset_mean": 0.9514057691639383,
+   "const_case_mean": 0.9298269152033665,
+   "corr_mt2": 0.9694814666349661,
+   "corr_gt": 0.7906928911326706,
+   "corr_transolver": 0.7793080147776011
+  },
+  "00954_geo_LHC096_AoA_18_domain_LHC096_AoA_18": {
+   "const_dataset_mean": 0.9322916874315663,
+   "const_case_mean": 0.9315087886197252,
+   "corr_mt2": 0.9701766307710217,
+   "corr_gt": 0.7131789637294704,
+   "corr_transolver": 0.6137947504776133
+  },
+  "00959_geo_LHC096_AoA_8_domain_LHC096_AoA_8": {
+   "const_dataset_mean": 0.9441629844016711,
+   "const_case_mean": 0.9326350509449023,
+   "corr_mt2": 0.978520138344715,
+   "corr_gt": 0.8285808455431045,
+   "corr_transolver": 0.776271803268663
+  },
+  "00961_geo_LHC097_AoA_12_domain_LHC097_AoA_12": {
+   "const_dataset_mean": 0.9294331641380689,
+   "const_case_mean": 0.9251631482155199,
+   "corr_mt2": 0.9879578085617592,
+   "corr_gt": 0.7500951078585028,
+   "corr_transolver": 0.6819140128155204
+  },
+  "00997_geo_LHC100_AoA_4_domain_LHC100_AoA_4": {
+   "const_dataset_mean": 1.0094714820059547,
+   "const_case_mean": 0.9365890234120764,
+   "corr_mt2": 0.9645830061280282,
+   "corr_gt": 0.7581050093006187,
+   "corr_transolver": 0.7281450844044299
+  },
+  "01020_geo_LHC103_AoA_10_domain_LHC103_AoA_10": {
+   "const_dataset_mean": 0.9234599801461343,
+   "const_case_mean": 0.9192470030261043,
+   "corr_mt2": 0.9388003728849343,
+   "corr_gt": 0.7351934369823464,
+   "corr_transolver": 0.735064153787637
+  },
+  "01026_geo_LHC103_AoA_22_domain_LHC103_AoA_22": {
+   "const_dataset_mean": 0.9364368250714115,
+   "const_case_mean": 0.9334415080903827,
+   "corr_mt2": 0.9058761125812165,
+   "corr_gt": 0.746754401384832,
+   "corr_transolver": 0.6767683129709886
+  },
+  "01036_geo_LHC104_AoA_22_domain_LHC104_AoA_22": {
+   "const_dataset_mean": 0.9375280164774339,
+   "const_case_mean": 0.9247373626195498,
+   "corr_mt2": 0.9464660443778863,
+   "corr_gt": 0.6945328747661217,
+   "corr_transolver": 0.5876081341883116
+  },
+  "01051_geo_LHC106_AoA_12_domain_LHC106_AoA_12": {
+   "const_dataset_mean": 0.9580822892271234,
+   "const_case_mean": 0.9424103864114949,
+   "corr_mt2": 0.9652476953352953,
+   "corr_gt": 0.7674102285210145,
+   "corr_transolver": 0.7592875893740155
+  },
+  "01054_geo_LHC106_AoA_18_domain_LHC106_AoA_18": {
+   "const_dataset_mean": 0.9281611219517263,
+   "const_case_mean": 0.9281404946384362,
+   "corr_mt2": 0.968239267052676,
+   "corr_gt": 0.7831581226217977,
+   "corr_transolver": 0.6872898932453689
+  },
+  "01055_geo_LHC106_AoA_20_domain_LHC106_AoA_20": {
+   "const_dataset_mean": 0.9253728259236798,
+   "const_case_mean": 0.9249256075017122,
+   "corr_mt2": 0.9520069783337091,
+   "corr_gt": 0.7751110504316615,
+   "corr_transolver": 0.6748727102608266
+  },
+  "01058_geo_LHC106_AoA_6_domain_LHC106_AoA_6": {
+   "const_dataset_mean": 1.0990119213792553,
+   "const_case_mean": 0.9514248152997774,
+   "corr_mt2": 0.9278296386776544,
+   "corr_gt": 0.6737595667691564,
+   "corr_transolver": 0.6924315463683437
+  },
+  "01067_geo_LHC107_AoA_4_domain_LHC107_AoA_4": {
+   "const_dataset_mean": 0.970266485151806,
+   "const_case_mean": 0.9336357280275841,
+   "corr_mt2": 0.94652830396553,
+   "corr_gt": 0.7897334729650207,
+   "corr_transolver": 0.7618674421560182
+  },
+  "01074_geo_LHC108_AoA_18_domain_LHC108_AoA_18": {
+   "const_dataset_mean": 0.9389072436905452,
+   "const_case_mean": 0.9264677044356058,
+   "corr_mt2": 0.9709189124505224,
+   "corr_gt": 0.7071157889273005,
+   "corr_transolver": 0.5781717876716522
+  },
+  "01077_geo_LHC108_AoA_4_domain_LHC108_AoA_4": {
+   "const_dataset_mean": 1.0103577767276317,
+   "const_case_mean": 0.9319804011242685,
+   "corr_mt2": 0.9652384086117933,
+   "corr_gt": 0.8122295970739773,
+   "corr_transolver": 0.7984295036668836
+  },
+  "01096_geo_LHC110_AoA_22_domain_LHC110_AoA_22": {
+   "const_dataset_mean": 0.9446707013855302,
+   "const_case_mean": 0.9391632170193245,
+   "corr_mt2": 0.9716948450199774,
+   "corr_gt": 0.7426760338584775,
+   "corr_transolver": 0.6451762222239329
+  },
+  "01123_geo_LHC113_AoA_16_domain_LHC113_AoA_16": {
+   "const_dataset_mean": 0.937203180560383,
+   "const_case_mean": 0.9364501804819778,
+   "corr_mt2": 0.9771063648349452,
+   "corr_gt": 0.7433314793210897,
+   "corr_transolver": 0.6898172970638751
+  },
+  "01124_geo_LHC113_AoA_18_domain_LHC113_AoA_18": {
+   "const_dataset_mean": 0.9513629375964783,
+   "const_case_mean": 0.9469050656073837,
+   "corr_mt2": 0.9729419801507111,
+   "corr_gt": 0.7004604152240145,
+   "corr_transolver": 0.6193824359631365
+  },
+  "01129_geo_LHC113_AoA_8_domain_LHC113_AoA_8": {
+   "const_dataset_mean": 0.9290457597566868,
+   "const_case_mean": 0.9284230675069461,
+   "corr_mt2": 0.9831122140340754,
+   "corr_gt": 0.7904034105946864,
+   "corr_transolver": 0.7428540008373317
+  },
+  "01152_geo_LHC116_AoA_14_domain_LHC116_AoA_14": {
+   "const_dataset_mean": 0.9187339141290546,
+   "const_case_mean": 0.915154000694338,
+   "corr_mt2": 0.9776318879002829,
+   "corr_gt": 0.7908447943539098,
+   "corr_transolver": 0.7302577653879408
+  },
+  "01160_geo_LHC117_AoA_10_domain_LHC117_AoA_10": {
+   "const_dataset_mean": 0.9248747293547875,
+   "const_case_mean": 0.9187928424782342,
+   "corr_mt2": 0.9751603488339454,
+   "corr_gt": 0.7251074713906315,
+   "corr_transolver": 0.663726260519277
+  },
+  "01172_geo_LHC118_AoA_14_domain_LHC118_AoA_14": {
+   "const_dataset_mean": 0.935219119259289,
+   "const_case_mean": 0.9334233582506019,
+   "corr_mt2": 0.950380812830085,
+   "corr_gt": 0.715640953278353,
+   "corr_transolver": 0.6377727158195283
+  },
+  "01183_geo_LHC119_AoA_16_domain_LHC119_AoA_16": {
+   "const_dataset_mean": 0.9418263611198207,
+   "const_case_mean": 0.9329926833283805,
+   "corr_mt2": 0.9738900089918248,
+   "corr_gt": 0.6920839742108155,
+   "corr_transolver": 0.5969306631711139
+  },
+  "01193_geo_LHC120_AoA_16_domain_LHC120_AoA_16": {
+   "const_dataset_mean": 0.9289805381585048,
+   "const_case_mean": 0.9137655524452498,
+   "corr_mt2": 0.9658143301230758,
+   "corr_gt": 0.7207873946755465,
+   "corr_transolver": 0.6240597575582206
+  },
+  "01199_geo_LHC120_AoA_8_domain_LHC120_AoA_8": {
+   "const_dataset_mean": 0.9110092861688338,
+   "const_case_mean": 0.9105152419021865,
+   "corr_mt2": 0.9657444460340855,
+   "corr_gt": 0.8296936387444628,
+   "corr_transolver": 0.7963839825473324
+  },
+  "01211_geo_LHC122_AoA_12_domain_LHC122_AoA_12": {
+   "const_dataset_mean": 0.9354847882217412,
+   "const_case_mean": 0.9337430860433273,
+   "corr_mt2": 0.9858187469487067,
+   "corr_gt": 0.7178495653223288,
+   "corr_transolver": 0.6390085584081829
+  },
+  "01219_geo_LHC122_AoA_8_domain_LHC122_AoA_8": {
+   "const_dataset_mean": 0.9523491166615655,
+   "const_case_mean": 0.9385374904851215,
+   "corr_mt2": 0.983171317536411,
+   "corr_gt": 0.817960116664304,
+   "corr_transolver": 0.7780778755530001
+  },
+  "01220_geo_LHC123_AoA_10_domain_LHC123_AoA_10": {
+   "const_dataset_mean": 0.9076820322535206,
+   "const_case_mean": 0.9075817689263722,
+   "corr_mt2": 0.9723343605353036,
+   "corr_gt": 0.8356292168791065,
+   "corr_transolver": 0.7906292219230965
+  },
+  "01227_geo_LHC123_AoA_4_domain_LHC123_AoA_4": {
+   "const_dataset_mean": 0.963080703421528,
+   "const_case_mean": 0.9289137159789035,
+   "corr_mt2": 0.9738651936731164,
+   "corr_gt": 0.7674993507337373,
+   "corr_transolver": 0.7588850535751713
+  },
+  "01230_geo_LHC124_AoA_10_domain_LHC124_AoA_10": {
+   "const_dataset_mean": 0.9239300099466131,
+   "const_case_mean": 0.9212888986919541,
+   "corr_mt2": 0.985466836613849,
+   "corr_gt": 0.7550554391906477,
+   "corr_transolver": 0.7060258625186717
+  },
+  "01238_geo_LHC124_AoA_6_domain_LHC124_AoA_6": {
+   "const_dataset_mean": 0.9396188787453297,
+   "const_case_mean": 0.9305866072416539,
+   "corr_mt2": 0.9767986607267043,
+   "corr_gt": 0.8374347241314858,
+   "corr_transolver": 0.79720005026071
+  },
+  "01245_geo_LHC125_AoA_20_domain_LHC125_AoA_20": {
+   "const_dataset_mean": 0.9749153683974351,
+   "const_case_mean": 0.9537052176721633,
+   "corr_mt2": 0.8547055432963886,
+   "corr_gt": 0.7269480552134353,
+   "corr_transolver": 0.6486002169737574
+  },
+  "01247_geo_LHC125_AoA_4_domain_LHC125_AoA_4": {
+   "const_dataset_mean": 0.9956363241084744,
+   "const_case_mean": 0.935849901157847,
+   "corr_mt2": 0.9799953712921399,
+   "corr_gt": 0.8603880150709281,
+   "corr_transolver": 0.8434508734819779
+  },
+  "01261_geo_LHC127_AoA_12_domain_LHC127_AoA_12": {
+   "const_dataset_mean": 0.9100576007102185,
+   "const_case_mean": 0.9090091620285451,
+   "corr_mt2": 0.978992267222623,
+   "corr_gt": 0.8355122755425738,
+   "corr_transolver": 0.7814024034012671
+  },
+  "01274_geo_LHC128_AoA_18_domain_LHC128_AoA_18": {
+   "const_dataset_mean": 0.9343660953844886,
+   "const_case_mean": 0.9330208510988476,
+   "corr_mt2": 0.9418275888031782,
+   "corr_gt": 0.7556222884305792,
+   "corr_transolver": 0.6804042995485037
+  },
+  "01278_geo_LHC128_AoA_6_domain_LHC128_AoA_6": {
+   "const_dataset_mean": 1.018097687912966,
+   "const_case_mean": 0.9441061419274405,
+   "corr_mt2": 0.9765059741419805,
+   "corr_gt": 0.8480708205156442,
+   "corr_transolver": 0.8301821754963112
+  },
+  "01294_geo_LHC130_AoA_18_domain_LHC130_AoA_18": {
+   "const_dataset_mean": 0.9369915423552148,
+   "const_case_mean": 0.9368707661845955,
+   "corr_mt2": 0.9014893424404853,
+   "corr_gt": 0.6984179868833287,
+   "corr_transolver": 0.6068367161983648
+  },
+  "01295_geo_LHC130_AoA_20_domain_LHC130_AoA_20": {
+   "const_dataset_mean": 0.9497394734461965,
+   "const_case_mean": 0.9440460145207158,
+   "corr_mt2": 0.9153052700264516,
+   "corr_gt": 0.7250440419784094,
+   "corr_transolver": 0.6604559296958082
+  },
+  "01297_geo_LHC130_AoA_4_domain_LHC130_AoA_4": {
+   "const_dataset_mean": 0.981051957019606,
+   "const_case_mean": 0.9361689021721712,
+   "corr_mt2": 0.9462135267523288,
+   "corr_gt": 0.8149132037958132,
+   "corr_transolver": 0.7949405319919732
+  },
+  "01298_geo_LHC130_AoA_6_domain_LHC130_AoA_6": {
+   "const_dataset_mean": 0.9380723642774714,
+   "const_case_mean": 0.9247440057678293,
+   "corr_mt2": 0.9718661967109623,
+   "corr_gt": 0.8506729797246942,
+   "corr_transolver": 0.8206313281690464
+  },
+  "01304_geo_LHC131_AoA_18_domain_LHC131_AoA_18": {
+   "const_dataset_mean": 0.940224423008415,
+   "const_case_mean": 0.9401807440267551,
+   "corr_mt2": 0.9700636733652354,
+   "corr_gt": 0.7019635935283939,
+   "corr_transolver": 0.6197328004852303
+  },
+  "01316_geo_LHC132_AoA_22_domain_LHC132_AoA_22": {
+   "const_dataset_mean": 0.9382991075948717,
+   "const_case_mean": 0.9281319212137579,
+   "corr_mt2": 0.9361918731992338,
+   "corr_gt": 0.7079543180487199,
+   "corr_transolver": 0.595721491925169
+  },
+  "01332_geo_LHC134_AoA_14_domain_LHC134_AoA_14": {
+   "const_dataset_mean": 0.9187285626701802,
+   "const_case_mean": 0.9158187451415976,
+   "corr_mt2": 0.9616342824187458,
+   "corr_gt": 0.7969192467776525,
+   "corr_transolver": 0.733604132555834
+  },
+  "01394_geo_LHC140_AoA_18_domain_LHC140_AoA_18": {
+   "const_dataset_mean": 0.9399899219875818,
+   "const_case_mean": 0.9390913920387914,
+   "corr_mt2": 0.9740862994127921,
+   "corr_gt": 0.7046566724438853,
+   "corr_transolver": 0.6179957212551161
+  },
+  "01396_geo_LHC140_AoA_22_domain_LHC140_AoA_22": {
+   "const_dataset_mean": 0.9606505171278396,
+   "const_case_mean": 0.9539811532462028,
+   "corr_mt2": 0.9590462206985256,
+   "corr_gt": 0.6502935736262606,
+   "corr_transolver": 0.5641044421106411
+  },
+  "01397_geo_LHC140_AoA_4_domain_LHC140_AoA_4": {
+   "const_dataset_mean": 0.9674718704933134,
+   "const_case_mean": 0.93167206617451,
+   "corr_mt2": 0.9721718630522728,
+   "corr_gt": 0.767930876939651,
+   "corr_transolver": 0.746195146400758
+  },
+  "01398_geo_LHC140_AoA_6_domain_LHC140_AoA_6": {
+   "const_dataset_mean": 0.939243122362252,
+   "const_case_mean": 0.9277034249516077,
+   "corr_mt2": 0.9790434839439748,
+   "corr_gt": 0.7829871321013765,
+   "corr_transolver": 0.757867864447486
+  },
+  "01399_geo_LHC140_AoA_8_domain_LHC140_AoA_8": {
+   "const_dataset_mean": 0.9281602362046149,
+   "const_case_mean": 0.92723885974097,
+   "corr_mt2": 0.9800823689130116,
+   "corr_gt": 0.7759789713971098,
+   "corr_transolver": 0.7325661608892363
+  },
+  "01406_geo_LHC141_AoA_22_domain_LHC141_AoA_22": {
+   "const_dataset_mean": 0.9448218108402667,
+   "const_case_mean": 0.9435043414501539,
+   "corr_mt2": 0.9762510645125875,
+   "corr_gt": 0.6762436145922468,
+   "corr_transolver": 0.5839366665871872
+  },
+  "01409_geo_LHC141_AoA_8_domain_LHC141_AoA_8": {
+   "const_dataset_mean": 0.9111753605795245,
+   "const_case_mean": 0.9108290803292158,
+   "corr_mt2": 0.9665378242710616,
+   "corr_gt": 0.7728770490932475,
+   "corr_transolver": 0.7525260736762412
+  },
+  "01432_geo_LHC144_AoA_14_domain_LHC144_AoA_14": {
+   "const_dataset_mean": 0.9346802706776787,
+   "const_case_mean": 0.9257925987938086,
+   "corr_mt2": 0.9821746169381932,
+   "corr_gt": 0.7241968682282532,
+   "corr_transolver": 0.6521280157745701
+  },
+  "01445_geo_LHC145_AoA_20_domain_LHC145_AoA_20": {
+   "const_dataset_mean": 0.9819490800025227,
+   "const_case_mean": 0.9524944846355924,
+   "corr_mt2": 0.903570837278907,
+   "corr_gt": 0.735721999024238,
+   "corr_transolver": 0.670298703054798
+  },
+  "01464_geo_LHC147_AoA_18_domain_LHC147_AoA_18": {
+   "const_dataset_mean": 0.9272811510967723,
+   "const_case_mean": 0.9264994913370527,
+   "corr_mt2": 0.9589746011732514,
+   "corr_gt": 0.7940453545199387,
+   "corr_transolver": 0.696391697524007
+  },
+  "01470_geo_LHC148_AoA_10_domain_LHC148_AoA_10": {
+   "const_dataset_mean": 0.9264678431237432,
+   "const_case_mean": 0.9236298892047142,
+   "corr_mt2": 0.9666578282553503,
+   "corr_gt": 0.8216407476083396,
+   "corr_transolver": 0.7827371059481156
+  },
+  "01475_geo_LHC148_AoA_20_domain_LHC148_AoA_20": {
+   "const_dataset_mean": 0.9361943795980313,
+   "const_case_mean": 0.9299618654668578,
+   "corr_mt2": 0.9375136210098953,
+   "corr_gt": 0.6907778047238347,
+   "corr_transolver": 0.5900878979100646
+  },
+  "01481_geo_LHC149_AoA_12_domain_LHC149_AoA_12": {
+   "const_dataset_mean": 0.9054308661438144,
+   "const_case_mean": 0.9028088441662955,
+   "corr_mt2": 0.9693692603466046,
+   "corr_gt": 0.829831902686786,
+   "corr_transolver": 0.7787612941843165
+  },
+  "01485_geo_LHC149_AoA_20_domain_LHC149_AoA_20": {
+   "const_dataset_mean": 0.926447060824119,
+   "const_case_mean": 0.9138232779465026,
+   "corr_mt2": 0.9529329968634737,
+   "corr_gt": 0.753076681794278,
+   "corr_transolver": 0.6505096357404108
+  },
+  "01487_geo_LHC149_AoA_4_domain_LHC149_AoA_4": {
+   "const_dataset_mean": 0.9326090127205613,
+   "const_case_mean": 0.9182918724176445,
+   "corr_mt2": 0.9420736261400323,
+   "corr_gt": 0.7022363529635357,
+   "corr_transolver": 0.6981402394626378
+  },
+  "01496_geo_LHC150_AoA_22_domain_LHC150_AoA_22": {
+   "const_dataset_mean": 0.9396081051966019,
+   "const_case_mean": 0.9391257981892669,
+   "corr_mt2": 0.9815542439928101,
+   "corr_gt": 0.7019973128536713,
+   "corr_transolver": 0.609216586685864
+  },
+  "01523_geo_LHC153_AoA_16_domain_LHC153_AoA_16": {
+   "const_dataset_mean": 0.9446332651701534,
+   "const_case_mean": 0.9391091284286643,
+   "corr_mt2": 0.9795726370779642,
+   "corr_gt": 0.686957154593905,
+   "corr_transolver": 0.6011002672941625
+  },
+  "01526_geo_LHC153_AoA_22_domain_LHC153_AoA_22": {
+   "const_dataset_mean": 0.9518759952360827,
+   "const_case_mean": 0.945727098289292,
+   "corr_mt2": 0.9397100876927494,
+   "corr_gt": 0.681462850288661,
+   "corr_transolver": 0.577053137752547
+  },
+  "01530_geo_LHC154_AoA_10_domain_LHC154_AoA_10": {
+   "const_dataset_mean": 0.9186823503192506,
+   "const_case_mean": 0.9179823151470818,
+   "corr_mt2": 0.9662906435684868,
+   "corr_gt": 0.7360261987755701,
+   "corr_transolver": 0.7268193432637403
+  },
+  "01537_geo_LHC154_AoA_4_domain_LHC154_AoA_4": {
+   "const_dataset_mean": 0.9544476022493327,
+   "const_case_mean": 0.9259198201455805,
+   "corr_mt2": 0.9298564375653482,
+   "corr_gt": 0.6083412560608211,
+   "corr_transolver": 0.6207369259507091
+  },
+  "01541_geo_LHC155_AoA_12_domain_LHC155_AoA_12": {
+   "const_dataset_mean": 0.9071065464950782,
+   "const_case_mean": 0.9003313479668833,
+   "corr_mt2": 0.9692557403297817,
+   "corr_gt": 0.8099172423623112,
+   "corr_transolver": 0.7475488620588892
+  },
+  "01553_geo_LHC156_AoA_16_domain_LHC156_AoA_16": {
+   "const_dataset_mean": 0.9457419328356454,
+   "const_case_mean": 0.9361619275868905,
+   "corr_mt2": 0.9700300554709631,
+   "corr_gt": 0.6764530172062954,
+   "corr_transolver": 0.5764628674790141
+  },
+  "01554_geo_LHC156_AoA_18_domain_LHC156_AoA_18": {
+   "const_dataset_mean": 0.9382653499975951,
+   "const_case_mean": 0.9373988223622206,
+   "corr_mt2": 0.9072496552068545,
+   "corr_gt": 0.7223742432486511,
+   "corr_transolver": 0.6381891673400113
+  },
+  "01573_geo_LHC158_AoA_16_domain_LHC158_AoA_16": {
+   "const_dataset_mean": 0.9284658650770014,
+   "const_case_mean": 0.9284507577132743,
+   "corr_mt2": 0.9796598260565937,
+   "corr_gt": 0.7832495365635465,
+   "corr_transolver": 0.7015474890020574
+  },
+  "01580_geo_LHC159_AoA_10_domain_LHC159_AoA_10": {
+   "const_dataset_mean": 0.911411286794303,
+   "const_case_mean": 0.9111072168235338,
+   "corr_mt2": 0.9701225332644707,
+   "corr_gt": 0.8500857860386182,
+   "corr_transolver": 0.813529529839521
+  },
+  "01591_geo_LHC160_AoA_12_domain_LHC160_AoA_12": {
+   "const_dataset_mean": 0.9309527161509581,
+   "const_case_mean": 0.9263992178400012,
+   "corr_mt2": 0.9800441276040762,
+   "corr_gt": 0.8445465312470086,
+   "corr_transolver": 0.8028286224761251
+  },
+  "01592_geo_LHC160_AoA_14_domain_LHC160_AoA_14": {
+   "const_dataset_mean": 0.9254303625062955,
+   "const_case_mean": 0.925416940946182,
+   "corr_mt2": 0.981258182381222,
+   "corr_gt": 0.8242447426735101,
+   "corr_transolver": 0.761857659202367
+  },
+  "01613_geo_LHC162_AoA_16_domain_LHC162_AoA_16": {
+   "const_dataset_mean": 0.9445421863203453,
+   "const_case_mean": 0.9390743028203129,
+   "corr_mt2": 0.9801201586032432,
+   "corr_gt": 0.6743310584979132,
+   "corr_transolver": 0.5873261037291956
+  },
+  "01618_geo_LHC162_AoA_6_domain_LHC162_AoA_6": {
+   "const_dataset_mean": 1.0119583885744123,
+   "const_case_mean": 0.9438138334275503,
+   "corr_mt2": 0.9783962638445202,
+   "corr_gt": 0.8507738174654976,
+   "corr_transolver": 0.8350434896681271
+  },
+  "01626_geo_LHC163_AoA_22_domain_LHC163_AoA_22": {
+   "const_dataset_mean": 0.9313164121714187,
+   "const_case_mean": 0.931228060556634,
+   "corr_mt2": 0.8689784578600804,
+   "corr_gt": 0.7416568047841875,
+   "corr_transolver": 0.6418683836530799
+  },
+  "01634_geo_LHC164_AoA_18_domain_LHC164_AoA_18": {
+   "const_dataset_mean": 0.9200215396043189,
+   "const_case_mean": 0.909625893902185,
+   "corr_mt2": 0.9688258565565536,
+   "corr_gt": 0.7785713609929666,
+   "corr_transolver": 0.6649882179343722
+  },
+  "01636_geo_LHC164_AoA_22_domain_LHC164_AoA_22": {
+   "const_dataset_mean": 0.9361199788422118,
+   "const_case_mean": 0.9214770529789195,
+   "corr_mt2": 0.9458072998601622,
+   "corr_gt": 0.704028365389377,
+   "corr_transolver": 0.5846495332384811
+  },
+  "01638_geo_LHC164_AoA_6_domain_LHC164_AoA_6": {
+   "const_dataset_mean": 0.9309502008141018,
+   "const_case_mean": 0.916208755818122,
+   "corr_mt2": 0.9619164003777858,
+   "corr_gt": 0.789040357656326,
+   "corr_transolver": 0.7819075097236755
+  },
+  "01646_geo_LHC165_AoA_22_domain_LHC165_AoA_22": {
+   "const_dataset_mean": 0.9497062338559591,
+   "const_case_mean": 0.9418009673939102,
+   "corr_mt2": 0.91971676642121,
+   "corr_gt": 0.7375238588803384,
+   "corr_transolver": 0.6656024506329972
+  },
+  "01654_geo_LHC166_AoA_18_domain_LHC166_AoA_18": {
+   "const_dataset_mean": 0.9458007447295252,
+   "const_case_mean": 0.9419883338769726,
+   "corr_mt2": 0.9073784628887471,
+   "corr_gt": 0.7260326754533096,
+   "corr_transolver": 0.6547720374782864
+  },
+  "01661_geo_LHC167_AoA_12_domain_LHC167_AoA_12": {
+   "const_dataset_mean": 0.9076484603427855,
+   "const_case_mean": 0.907344762944572,
+   "corr_mt2": 0.9744122131035927,
+   "corr_gt": 0.8394120074539267,
+   "corr_transolver": 0.7942208662615953
+  },
+  "01670_geo_LHC168_AoA_10_domain_LHC168_AoA_10": {
+   "const_dataset_mean": 0.9450881331930988,
+   "const_case_mean": 0.9277212832257007,
+   "corr_mt2": 0.9626995072968849,
+   "corr_gt": 0.8042173277201025,
+   "corr_transolver": 0.8013134009635433
+  },
+  "01684_geo_LHC169_AoA_18_domain_LHC169_AoA_18": {
+   "const_dataset_mean": 0.9196096058471752,
+   "const_case_mean": 0.9135555001769312,
+   "corr_mt2": 0.9653789203596657,
+   "corr_gt": 0.7943051213034401,
+   "corr_transolver": 0.6964715269929165
+  },
+  "01688_geo_LHC169_AoA_6_domain_LHC169_AoA_6": {
+   "const_dataset_mean": 0.9402072028323412,
+   "const_case_mean": 0.9169877466623595,
+   "corr_mt2": 0.9572339529643964,
+   "corr_gt": 0.7635294639336441,
+   "corr_transolver": 0.7676023299530659
+  },
+  "01690_geo_LHC170_AoA_10_domain_LHC170_AoA_10": {
+   "const_dataset_mean": 0.9300325352855904,
+   "const_case_mean": 0.9287498693522209,
+   "corr_mt2": 0.9836493055422819,
+   "corr_gt": 0.7389989805617072,
+   "corr_transolver": 0.6792746440004997
+  },
+  "01696_geo_LHC170_AoA_22_domain_LHC170_AoA_22": {
+   "const_dataset_mean": 0.9529072930759092,
+   "const_case_mean": 0.9450189202580448,
+   "corr_mt2": 0.966256613930473,
+   "corr_gt": 0.7035139249850317,
+   "corr_transolver": 0.6179109117005964
+  },
+  "01721_geo_LHC173_AoA_12_domain_LHC173_AoA_12": {
+   "const_dataset_mean": 0.9242276682867577,
+   "const_case_mean": 0.9220447596536595,
+   "corr_mt2": 0.9827952790599732,
+   "corr_gt": 0.7827494687890622,
+   "corr_transolver": 0.7193379859143398
+  },
+  "01727_geo_LHC173_AoA_4_domain_LHC173_AoA_4": {
+   "const_dataset_mean": 1.037784961702777,
+   "const_case_mean": 0.9429423523668765,
+   "corr_mt2": 0.965829310733003,
+   "corr_gt": 0.8317762966383192,
+   "corr_transolver": 0.8322817966959111
+  },
+  "01748_geo_LHC175_AoA_6_domain_LHC175_AoA_6": {
+   "const_dataset_mean": 0.9326346806006316,
+   "const_case_mean": 0.9177629786530261,
+   "corr_mt2": 0.9654725937922881,
+   "corr_gt": 0.7954431300334787,
+   "corr_transolver": 0.7890967450801615
+  },
+  "01759_geo_LHC176_AoA_8_domain_LHC176_AoA_8": {
+   "const_dataset_mean": 0.974871628238339,
+   "const_case_mean": 0.9403046381182841,
+   "corr_mt2": 0.9797600176524351,
+   "corr_gt": 0.8499275683405364,
+   "corr_transolver": 0.8147749356448464
+  },
+  "01776_geo_LHC178_AoA_22_domain_LHC178_AoA_22": {
+   "const_dataset_mean": 0.9281264819643368,
+   "const_case_mean": 0.9281257765982878,
+   "corr_mt2": 0.9411214087563312,
+   "corr_gt": 0.7290231225460463,
+   "corr_transolver": 0.6256423024408277
+  },
+  "01778_geo_LHC178_AoA_6_domain_LHC178_AoA_6": {
+   "const_dataset_mean": 0.9230535882615322,
+   "const_case_mean": 0.91467569394697,
+   "corr_mt2": 0.9687883516219031,
+   "corr_gt": 0.8455907985890838,
+   "corr_transolver": 0.8227947082027299
+  },
+  "01794_geo_LHC180_AoA_18_domain_LHC180_AoA_18": {
+   "const_dataset_mean": 0.9188347037268031,
+   "const_case_mean": 0.9106329626413925,
+   "corr_mt2": 0.963827952060579,
+   "corr_gt": 0.7877041142572626,
+   "corr_transolver": 0.6852897586443552
+  },
+  "01799_geo_LHC180_AoA_8_domain_LHC180_AoA_8": {
+   "const_dataset_mean": 0.9157073101201545,
+   "const_case_mean": 0.9122573119917124,
+   "corr_mt2": 0.968067103462573,
+   "corr_gt": 0.8005731864872087,
+   "corr_transolver": 0.7833491217182256
+  }
+ },
+ "summary": {
+  "const_p_inf_rel_l2_gmean": 1.0,
+  "const_dataset_mean_rel_l2_gmean": 0.9445305611812551,
+  "const_case_mean_rel_l2_gmean": 0.929342950425341,
+  "model_rel_l2_gmean": {
+   "mt2": 0.25313706411120823,
+   "gt": 0.6326304238960382,
+   "transolver": 0.6778693986340633
+  },
+  "model_corr_median": {
+   "mt2": 0.9671857465063725,
+   "gt": 0.7555342749702916,
+   "transolver": 0.688553595154622
+  },
+  "model_corr_q10": {
+   "mt2": 0.9278296386776544,
+   "gt": 0.6920839742108155,
+   "transolver": 0.595721491925169
+  }
+ }
+}
