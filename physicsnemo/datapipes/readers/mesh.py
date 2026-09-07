@@ -146,7 +146,11 @@ def _subsample_mesh_cells(
 
 _RANGE_READ_MAX_BYTES = 256 * 2**20
 _PREAD_PAGE = 4096
-_PREAD_THREADS = 16
+# Measured on lustre (AGA, 2026-09-07): 16 reader threads on one file were
+# never faster than one (122-194 ms vs 75-119 ms per 28k-row gather), so the
+# pool is off by default; the code path remains for file systems that do
+# service concurrent reads on one file.
+_PREAD_THREADS = 1
 
 
 def _gather_rows(t: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
