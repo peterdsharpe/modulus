@@ -1,0 +1,26 @@
+{
+ "35": {
+  "n": 180,
+  "rho_gt_err_vs_aoa": 0.557,
+  "rho_isla_err_vs_aoa": 0.605,
+  "rho_gt_err_vs_case_mean_score": 0.109,
+  "rho_isla_err_vs_case_mean_score": 0.138,
+  "rho_gt_err_vs_dataset_mean_score": -0.019,
+  "rho_isla_err_vs_dataset_mean_score": 0.048,
+  "rho_gt_vs_isla": 0.569,
+  "gt_err_cv": 0.145,
+  "isla_err_cv": 0.438
+ },
+ "210": {
+  "n": 180,
+  "rho_gt_err_vs_aoa": 0.341,
+  "rho_isla_err_vs_aoa": 0.498,
+  "rho_gt_err_vs_case_mean_score": -0.043,
+  "rho_isla_err_vs_case_mean_score": 0.186,
+  "rho_gt_err_vs_dataset_mean_score": -0.159,
+  "rho_isla_err_vs_dataset_mean_score": 0.108,
+  "rho_gt_vs_isla": 0.64,
+  "gt_err_cv": 0.191,
+  "isla_err_cv": 0.643
+ }
+}

@@ -243,15 +243,21 @@ print(": Do the architectures agree on which cases are hard? Spearman rank corre
 
 Each architecture is consistent with itself (0.87–0.97 across seeds), so the
 cross-architecture correlations are resolved. At 35 and 210 cases they are
-0.57 and 0.64: GeoTransolver's small-data errors do not fall on the cases
-ISLA finds hard, and its per-case ratio to ISLA spans 1.8x to 4.6x. At
-1,260 cases the two orderings coincide (0.94, the seed ceiling) and the
-ratio collapses to 0.92–1.18. On DrivAerML the orderings coincide at every
-size (0.86–0.89) and GeoTransolver's edge is a near-constant factor. The
-small-data advantage on high-lift geometries is therefore not "the same
-difficulty, scaled": it is a GeoTransolver failure pattern idiosyncratic to
-cases, which disappears with data, and which @sec-de-strata shows is not
-concentrated in any angle or geometry class.
+0.57 and 0.64, and the per-case ratio spans 1.8x to 4.6x; at 1,260 cases
+the two orderings coincide (0.94, the seed ceiling) and the ratio collapses
+to 0.92–1.18. On DrivAerML the orderings coincide at every size (0.86–0.89)
+and GeoTransolver's edge is a near-constant factor. The reason the
+orderings differ at small data is not that GeoTransolver fails on cases of
+its own: its error barely varies by case at all. At 35 cases the
+coefficient of variation of GeoTransolver's per-case error is 0.15 against
+ISLA's 0.44, and at 210 cases 0.19 against 0.64; both models' errors rise
+with angle of attack (rank correlation 0.56 and 0.61 at 35 cases), and
+neither tracks how far a case's field is from uniform
+(results/hilift_error_drivers_2026-09-07.json). GeoTransolver at small data
+is a nearly case-independent predictor, which is what @sec-de-strata reads
+from the reference predictors; ISLA's error varies three to four times
+more across cases because it has learned the case-to-case physics, and a
+model that has cannot be rank-correlated with one that has not.
 
 A third seed at 35 cases gives ISLA 0.138, GeoTransolver 0.359 and Transolver
 0.409. ISLA's third seed falls inside its two-seed range (0.135–0.141);

@@ -6992,32 +6992,36 @@ GeoTransolver/ISLA (results/hilift_percase_correlation_2026-09-07.json).
 | 1,260 cases | 0.94 | 0.94 | 0.95 | 0.92 / 1.06 / 1.18 |
 | single angle, 126 geometries (18 held-out geometries) | 0.63 | 0.92 | 0.96 | 4.27 / 4.97 / 5.97 |
 
-**Reading.** Each architecture is highly consistent with itself across
-seeds at every rung, so the low cross-architecture correlations at 35 and
-210 cases are not noise: GeoTransolver's small-data errors fall on cases
-that are not the ones ISLA finds hard, and the per-case ratio spreads over
-a factor of 2.5 (1.8x to 4.6x at 35 cases). At 1,260 cases the two
-orderings coincide to the limit of seed consistency and the ratio
-collapses to 0.92–1.18, which is the parity result seen per case. On
-DrivAerML the orderings coincide at every size measured, with the ratio
-confined to 1.1–1.4. So the two datasets show two different objects:
-on DrivAerML a uniform fit deficit for ISLA on a shared difficulty
-ordering; on HiLift, in the small-data regime, a GeoTransolver-specific
-failure pattern that is idiosyncratic to cases rather than a scaling of
-their intrinsic difficulty, and that disappears with data. This is the
-per-case signature one expects of a model that has not learned to
-generalize across the geometry family and is partly memorizing: the
-high-lift stratification (@sec-nb-strat35) showed the failure is not
-concentrated in an angle or a named geometry class, and the curvature
-analysis (@sec-nb-curvature-strat) showed it is uniform over each surface;
-this shows it is also not a monotone function of case difficulty.
+**Reading, first pass (superseded below).** Each architecture is highly
+consistent with itself across seeds at every rung, so the low
+cross-architecture correlations at 35 and 210 cases are not noise. The
+first reading was that GeoTransolver's small-data errors fall on cases of
+its own, an idiosyncratic failure pattern; the follow-up in the next
+paragraph shows that is the wrong picture.
 
-**What it adds to the mechanism question.** A carrier of ISLA's advantage
-must explain why GeoTransolver's error decorrelates from difficulty at
-small data, not merely why it is larger. It also sharpens the falsifier for
-the unseen-geometry ladder now finishing: if the advantage on
-never-seen-at-any-angle geometries is again accompanied by a low
-cross-architecture ρ, the same object is being measured.
+**Reading, corrected the same day.** Correlating each model's per-case
+error with candidate drivers (results/hilift_error_drivers_2026-09-07.json)
+shows that GeoTransolver's error at small data barely varies by case: its
+coefficient of variation across the 180 cases is 0.15 at 35 cases and 0.19
+at 210, against 0.44 and 0.64 for ISLA. Both models' errors rise with angle
+of attack (ρ 0.56 for GeoTransolver, 0.61 for ISLA at 35 cases), and
+neither tracks how far a case's field is from uniform (|ρ| ≤ 0.19 against
+the constant-mean predictor scores). So the low cross-architecture
+correlation is the signature of a nearly case-independent predictor
+(GeoTransolver at small data, as the reference-predictor comparison in
+@sec-nb-strat35 already said) against one whose error varies three to four
+times more because it has learned the case-to-case physics; the two cannot
+be rank-correlated, and at 1,260 cases, once GeoTransolver's error also
+tracks the physics, they are (0.94). On DrivAerML both models track the
+physics at every size and the orderings coincide throughout. The two
+datasets thus show one object from two sides: on HiLift at small data,
+ISLA has learned the case-to-case variation and GeoTransolver mostly has
+not; on DrivAerML both have, and ISLA's fit is uniformly a little worse.
+
+**What it adds to the mechanism question.** Nothing about which cases;
+the question is what lets ISLA learn the case-to-case variation from 35
+high-lift cases when GeoTransolver's error stays flat. The unseen-geometry
+ladder now finishing measures that on geometries never seen at any angle.
 
 **Next discriminator (not run).** The hypothesis this suggests, that
 GeoTransolver interpolates locally in geometry space and fails on validation
@@ -7072,7 +7076,9 @@ of attack carries no information, points the same way). ISLA does exploit
 the seen geometries at 35 cases, as a model that has learned a
 geometry-to-pressure map should, and no longer needs to by 210. The
 nearest-training-geometry Chamfer test proposed above would now test a
-falsified premise for GeoTransolver and is withdrawn; the open question is
-what does set GeoTransolver's per-case error at small data, since it is
-neither the case's intrinsic difficulty (@sec-nb-hilift-percase) nor
-geometry novelty.
+falsified premise for GeoTransolver and is withdrawn. Nothing much sets
+GeoTransolver's per-case error at small data: it is nearly
+case-independent (coefficient of variation 0.15 at 35 cases against ISLA's
+0.44, @sec-nb-hilift-percase), rising only with angle of attack, which is
+what a model that has learned the mean pattern and the angle dependence but
+little of the geometry dependence looks like.
