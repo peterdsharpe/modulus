@@ -6900,3 +6900,44 @@ comparison, where it is correct; the volume configuration lives in a
 separate file with a different local-feature setting, and no earlier
 pass read the volume lanes' start-up banner. The rule now in CLAIMS.md is
 that resource figures on any task are read from that task's lane logs.
+
+## 2026-09-07 — Preregistered: query tokens with the signed distance as an input (matched-input steel-man for ISLA on the interior); plus a scale-contract fix for query tokens {#sec-nb-qt-sdf-prereg}
+
+**Setting.** The ledger correction of today (@sec-nb-interior-resources-correction)
+established that GeoTransolver's volume configuration receives, at every
+interior point, the signed distance to the wall as an input, while every
+ISLA interior arm receives at most the wall normal (the SDF gradient). The
+query-token arm (@sec-nb-qt-prereg), now at epoch 200 of 500, isolates the
+interaction difference; this arm isolates the input difference on top of it.
+
+**Change to the model** (commit 16b62765a). `n_query_scalars` adds per-query
+scalar inputs to the query tokens: each scalar s is divided by the gauge and
+entered as the pair [s, sign(s)·log|s|] through a small embedding added to
+the query token's seed. Scalars are invariants, so rotation, translation
+and (with the similarity gauge) geometric-scale covariance are untouched;
+the test asserts all three to 1e-10 in fp64. Writing that test exposed a
+pre-existing gap: the query tokens' learned routing log-weight was
+absolute, while the surface tokens' log-weights are log cell areas and
+shift by 2 log k under a rescale by k, so query-token ISLA under the
+similarity gauge changed its output by 0.145 (relative L2 units of the
+test) under a 3.7x rescale. The query log-weight is now learned relative
+to the mean surface log-weight, which restores the exact contract (1e-15).
+The two query-token lanes in training use the pre-fix snapshot; on
+DrivAerML with its fixed reference length the difference is a constant
+offset absorbed by the learned weight, and they are read out with the
+snapshot they trained with.
+
+**Hypothesis and bars.** *H-input:* with interaction already supplied by
+the query tokens, giving ISLA the signed distance closes most of what
+remains to GeoTransolver-volume. Readout: interior pressure relative L2 on
+the 48 validation cars, two seeds, 500 epochs, same protocol as the
+query-token lanes (`v0_isla_qt_sdf_seed{42,43}`), run as
+`v0_isla_qtsdfval_seed{42,43}` with `+model.n_query_scalars=1
++forward_kwargs.query_scalars=interior.point_data.sdf` and otherwise the
+query-token configuration. *Supported* if QT-SDF/QT ≤ 0.85 (the scalar is
+worth at least 15% of error); *falsified* if QT-SDF/QT ≥ 0.95; between,
+inconclusive. Secondary: if QT-SDF/GT ≤ 1.1 the interior gap is closed at a
+third of the parameters (8.9M vs 27.6M) and two thirds of the memory
+(6.0 vs 8.8 GB). Launched when the query-token lanes release their nodes
+(the 32-node budget is fully allocated); code snapshot `code_isla2`
+(commit 16b62765a plus the reader compaction of the same day).
