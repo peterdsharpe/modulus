@@ -90,7 +90,7 @@ for n, pat in [(35, "t1_hl_transolver_super_scarce_{lr}_seed{s}"), (210, "t1_hl_
             best = v
     xs.append(n); means.append(statistics.mean(best)); lo.append(min(best)); hi.append(max(best))
 data["t"] = (xs, means, lo, hi)
-fig, ax = plt.subplots(figsize=(7.0, 4.6))
+fig, ax = plt.subplots(figsize=(8.0, 4.8))
 style = {"gt": (RED, "GeoTransolver", "o", "-", 2.2), "t": (GREY, "Transolver", "^", "--", 1.6), "mt2": (BLUE, "MeshTransformer2", "s", "-", 2.2)}
 for arch in ("gt", "t", "mt2"):
     xs, means, lo, hi = data[arch]; c, name, mk, ls, lw = style[arch]
@@ -99,7 +99,7 @@ for arch in ("gt", "t", "mt2"):
 ax.annotate("GeoTransolver", (35, data["gt"][1][0]), xytext=(14, 2), textcoords="offset points", color=RED, fontweight="bold", va="center")
 ax.annotate("MeshTransformer2", (210, data["mt2"][1][1]), xytext=(14, -14), textcoords="offset points", color=BLUE, fontweight="bold", va="center")
 xm, ym = (35 * 210) ** 0.5, (data["t"][1][0] * data["t"][1][1]) ** 0.5
-ax.annotate("Transolver", (xm, ym), xytext=(-6, 10), textcoords="offset points", color=GREY, fontsize=9.5, ha="right", va="bottom",
+ax.annotate("Transolver", (xm, ym), xytext=(-3, -7), textcoords="offset points", color=GREY, fontsize=9.5, ha="right", va="top",
             bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
 for i, n in enumerate((35, 210)):
     r_gt = data["gt"][1][i] / data["mt2"][1][i]; r_t = data["t"][1][i] / data["mt2"][1][i]
@@ -114,7 +114,7 @@ ax.set_xticks([35, 210, 1260]); ax.set_xticklabels(["35", "210", "1,260"])
 ax.set_yticks([0.04, 0.06, 0.1, 0.2, 0.4]); ax.set_yticklabels(["0.04", "0.06", "0.10", "0.20", "0.40"])
 ax.set_xlim(22, 3200)
 ax.set_xlabel("Training cases [count]", color=INK2)
-ax.set_ylabel("Surface pressure error\nrel-L2 [–]", color=INK2, rotation=0, ha="right", va="center", labelpad=28)
+ax.set_ylabel("Surface pressure error, rel-L2 [–]", color=INK2)
 ax.set_title("Data efficiency on HiLiftAeroML (shared 180-case validation set)", color=INK, loc="left", fontsize=11, pad=10)
 ax.grid(True, which="major", color=GRID); ax.grid(False, which="minor")
 fig.tight_layout()
