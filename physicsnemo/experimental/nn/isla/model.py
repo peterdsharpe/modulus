@@ -14,26 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""MeshTransformer2 (MT2), stage-0 prototype.
+r"""ISLA: Invariant Slice Attention.
 
-Thesis under test (preregistration mt2_stage0, sha c73bf8b6): soft-slice
-global routing retains its measured power when fed exclusively
-similarity-invariant features, so exact equivariance can be paid once at
-the network's edges instead of in every layer.
+An SE(3)-equivariant soft-slice transformer for boundary-driven PDE
+surrogates. Surface points (position, unit normal, cell area) and a global
+unit drive direction go in; fields at the surface (and, in the interior mode,
+at arbitrary query points) come out. The name states the design principle:
+the attention operates only on invariants of the per-point vector set
+:math:`\{r_i, n_i, d\}` (centered/scaled relative position, unit normal,
+unit drive direction), and the frame is re-attached only at the vector
+heads, so exact rotation and translation covariance is paid once at the
+network's edges instead of in every layer.
 
 Contracts, all by construction rather than per-layer enforcement:
 
-- **Similarity equivariance.** The backbone sees only invariants of the
-  per-point vector set :math:`\{r_i, n_i, d\}` (centered/scaled relative
-  position, unit normal, unit drive direction); vector outputs are
-  expanded in that set plus its spherical-basis complements (the GLOBE
-  multi-vector treatment) with invariant coefficients.
-- **Drive degree one.** Outputs are scaled by :math:`\lVert d \rVert`;
-  the backbone sees only the direction, so a :math:`k\times` drive input
-  moves every output by exactly :math:`k\times`.
+- **Rotation/translation equivariance.** The backbone sees only
+  invariants; vector outputs are expanded in the input vector set plus its
+  spherical-basis complements with invariant coefficients. With
+  ``similarity_gauge=True`` the gauge (centroid and reference length) is
+  derived from the measure-weighted geometry and the model is additionally
+  equivariant to geometric scale.
 - **Measure-aware aggregation.** Slice states are quadrature-weighted
   means, so the routing reads an (unbiasedly) sampled integral rather
   than a raw point population.
+- **Query independence (optional).** With ``query_independent=True``
+  queries are decoded by passive read blocks and a prediction at one point
+  does not depend on which other points are queried.
+
+``ISLA`` is retained as a backward-compatible alias of
+:class:`ISLA`.
 """
 
 import torch
@@ -214,8 +223,8 @@ def _kernel_readout(q_r, src_r, src_h, src_w, rho, eps):
         outs.append(torch.einsum("bcn,bnh->bch", k, src_h) / mass)
     return torch.cat(outs, dim=1)
 
-class MeshTransformer2(Module):
-    r"""Stage-0 MT2: invariant backbone, equivariant edges (see module docs)."""
+class ISLA(Module):
+    r"""ISLA (Invariant Slice Attention): invariant backbone, equivariant edges (see module docs)."""
 
     class MetaData(ModelMetaData):
         jit: bool = False
@@ -348,7 +357,7 @@ class MeshTransformer2(Module):
         ### reflection-covariant; not killed where any single p_k vanishes.
         self.odd_head = odd_head
         ### S1 (critic review 2026-09-02): the original reduction used an
-        ### UNWEIGHTED centroid and a CONSTANT reference length, so MT2 was
+        ### UNWEIGHTED centroid and a CONSTANT reference length, so the model was
         ### neither measure-complete nor scale-equivariant despite the book's
         ### claims. This gauge uses the measure-weighted centroid and the
         ### measure-weighted RMS radius: exact geometric-scale equivariance
@@ -760,3 +769,7 @@ class MeshTransformer2(Module):
         )
         ### Degree-one contract: every output scales with the drive magnitude.
         return out_fields * drive_mag[:, None, :]
+
+
+#: Backward-compatible alias for the architecture's previous name.
+MeshTransformer2 = ISLA

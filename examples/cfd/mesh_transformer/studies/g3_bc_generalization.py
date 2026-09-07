@@ -29,7 +29,7 @@ randomized similarity pose) and evaluated on one-factor-moved test sets:
 
 Arms:
 
-- ``mt2_bscalar``: MeshTransformer2 with boundary scalars, 2D embedded in the
+- ``mt2_bscalar``: ISLA (Invariant Slice Attention) with boundary scalars, 2D embedded in the
   z = 0 plane; boundary panels and interior queries form one token set and
   the loss reads the interior tokens (adapter below).
 - ``softslice_2d``: the suite's in-tree Transolver soft-slice baseline at
@@ -74,7 +74,7 @@ from models import parameter_count
 from train import make_model, relative_mse
 from transolver_intree import build_transolver_intree
 
-from physicsnemo.experimental.nn import MeshTransformer2
+from physicsnemo.experimental.nn import ISLA
 from physicsnemo.mesh import DomainMesh, Mesh
 
 RESULTS_DIR = Path(__file__).resolve().parents[1] / "results" / "g3_2d_2026-08-20"
@@ -172,7 +172,7 @@ def make_g3_case(
 
 
 class MT2LaplaceAdapter(nn.Module):
-    """Run MeshTransformer2 on the 2D Dirichlet-to-interior protocol.
+    """Run ISLA (Invariant Slice Attention) on the 2D Dirichlet-to-interior protocol.
 
     The 2D problem is embedded in the z = 0 plane.  Boundary panel midpoints
     and interior query points form one token set: boundary tokens carry the
@@ -188,7 +188,7 @@ class MT2LaplaceAdapter(nn.Module):
 
     def __init__(self, **mt2_kwargs) -> None:
         super().__init__()
-        self.model = MeshTransformer2(**mt2_kwargs)
+        self.model = ISLA(**mt2_kwargs)
 
     def forward(self, domain: DomainMesh) -> Mesh:
         boundary = domain.boundaries["dirichlet"]

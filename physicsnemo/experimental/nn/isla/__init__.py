@@ -14,10 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Backward-compatible import path. The architecture is now
-:mod:`physicsnemo.experimental.nn.isla` (class :class:`ISLA`); ``MeshTransformer2``
-is an alias of :class:`ISLA`."""
-
-from physicsnemo.experimental.nn.isla import ISLA, MeshTransformer2
+from physicsnemo.experimental.nn.isla.model import ISLA, MeshTransformer2
 
 __all__ = ["ISLA", "MeshTransformer2"]
