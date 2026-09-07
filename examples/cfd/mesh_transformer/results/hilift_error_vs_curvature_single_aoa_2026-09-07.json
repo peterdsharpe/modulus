@@ -1,0 +1,160 @@
+{
+ "per_case": [
+  {
+   "case": "00011_geo_LHC002_AoA_12_domain_LHC002_AoA_12.pdmsh",
+   "top10_frac_isla": 0.049415646475489745,
+   "top10_frac_gt": 0.11417225480875605,
+   "rms_ratio_gt_isla_top10": 4.3797275143225285,
+   "rms_ratio_gt_isla_bottom50": 2.54271673688319,
+   "rms_ratio_gt_isla_all": 2.8813700871666623
+  },
+  {
+   "case": "00131_geo_LHC014_AoA_12_domain_LHC014_AoA_12.pdmsh",
+   "top10_frac_isla": 0.11120228743928415,
+   "top10_frac_gt": 0.11568371711395758,
+   "rms_ratio_gt_isla_top10": 2.894843596318217,
+   "rms_ratio_gt_isla_bottom50": 2.676264329342413,
+   "rms_ratio_gt_isla_all": 2.838218636919404
+  },
+  {
+   "case": "00211_geo_LHC022_AoA_12_domain_LHC022_AoA_12.pdmsh",
+   "top10_frac_isla": 0.17665283852065794,
+   "top10_frac_gt": 0.10309797391513266,
+   "rms_ratio_gt_isla_top10": 1.938163066125374,
+   "rms_ratio_gt_isla_bottom50": 3.1989733566531995,
+   "rms_ratio_gt_isla_all": 2.5370297396828994
+  },
+  {
+   "case": "00231_geo_LHC024_AoA_12_domain_LHC024_AoA_12.pdmsh",
+   "top10_frac_isla": 0.08641783637085655,
+   "top10_frac_gt": 0.09338715523235605,
+   "rms_ratio_gt_isla_top10": 2.6633093863606314,
+   "rms_ratio_gt_isla_bottom50": 2.7993146729711023,
+   "rms_ratio_gt_isla_all": 2.5620036315933823
+  },
+  {
+   "case": "00281_geo_LHC029_AoA_12_domain_LHC029_AoA_12.pdmsh",
+   "top10_frac_isla": 0.10285010773269056,
+   "top10_frac_gt": 0.10639554867077387,
+   "rms_ratio_gt_isla_top10": 3.0871271201444683,
+   "rms_ratio_gt_isla_bottom50": 2.789136006664736,
+   "rms_ratio_gt_isla_all": 3.035254832382308
+  },
+  {
+   "case": "00511_geo_LHC052_AoA_12_domain_LHC052_AoA_12.pdmsh",
+   "top10_frac_isla": 0.3393934243532522,
+   "top10_frac_gt": 0.14844840571981358,
+   "rms_ratio_gt_isla_top10": 1.6438478041685332,
+   "rms_ratio_gt_isla_bottom50": 3.2825348362509037,
+   "rms_ratio_gt_isla_all": 2.485567426507901
+  },
+  {
+   "case": "00621_geo_LHC063_AoA_12_domain_LHC063_AoA_12.pdmsh",
+   "top10_frac_isla": 0.06848945902986103,
+   "top10_frac_gt": 0.10370335736175666,
+   "rms_ratio_gt_isla_top10": 4.07629660353736,
+   "rms_ratio_gt_isla_bottom50": 3.2407810071933,
+   "rms_ratio_gt_isla_all": 3.3126933556036455
+  },
+  {
+   "case": "00691_geo_LHC070_AoA_12_domain_LHC070_AoA_12.pdmsh",
+   "top10_frac_isla": 0.26541175348908824,
+   "top10_frac_gt": 0.12739398851481326,
+   "rms_ratio_gt_isla_top10": 2.103714589934062,
+   "rms_ratio_gt_isla_bottom50": 3.0027701034487726,
+   "rms_ratio_gt_isla_all": 3.036493998424442
+  },
+  {
+   "case": "00701_geo_LHC071_AoA_12_domain_LHC071_AoA_12.pdmsh",
+   "top10_frac_isla": 0.1411091383025065,
+   "top10_frac_gt": 0.13086052412593246,
+   "rms_ratio_gt_isla_top10": 2.8122816463458618,
+   "rms_ratio_gt_isla_bottom50": 2.5502195538551553,
+   "rms_ratio_gt_isla_all": 2.9203308395178094
+  },
+  {
+   "case": "00721_geo_LHC073_AoA_12_domain_LHC073_AoA_12.pdmsh",
+   "top10_frac_isla": 0.08772313238493017,
+   "top10_frac_gt": 0.0934391919011752,
+   "rms_ratio_gt_isla_top10": 2.9607894388243,
+   "rms_ratio_gt_isla_bottom50": 3.0309473936221667,
+   "rms_ratio_gt_isla_all": 2.868798541958688
+  },
+  {
+   "case": "00791_geo_LHC080_AoA_12_domain_LHC080_AoA_12.pdmsh",
+   "top10_frac_isla": 0.04310534946470254,
+   "top10_frac_gt": 0.0743769754281589,
+   "rms_ratio_gt_isla_top10": 3.9922466003038823,
+   "rms_ratio_gt_isla_bottom50": 2.5816110200217564,
+   "rms_ratio_gt_isla_all": 3.039230844348551
+  },
+  {
+   "case": "00861_geo_LHC087_AoA_12_domain_LHC087_AoA_12.pdmsh",
+   "top10_frac_isla": 0.03864979274846123,
+   "top10_frac_gt": 0.10319085705695792,
+   "rms_ratio_gt_isla_top10": 3.9351043610094028,
+   "rms_ratio_gt_isla_bottom50": 3.3296329412885233,
+   "rms_ratio_gt_isla_all": 2.4082924797484515
+  },
+  {
+   "case": "01101_geo_LHC111_AoA_12_domain_LHC111_AoA_12.pdmsh",
+   "top10_frac_isla": 0.05464645152715292,
+   "top10_frac_gt": 0.10167428987916373,
+   "rms_ratio_gt_isla_top10": 3.54988470626814,
+   "rms_ratio_gt_isla_bottom50": 3.489732894152811,
+   "rms_ratio_gt_isla_all": 2.6024935233930795
+  },
+  {
+   "case": "01131_geo_LHC114_AoA_12_domain_LHC114_AoA_12.pdmsh",
+   "top10_frac_isla": 0.17408885496773197,
+   "top10_frac_gt": 0.13769618124917066,
+   "rms_ratio_gt_isla_top10": 1.9946056207477907,
+   "rms_ratio_gt_isla_bottom50": 2.3681850545832264,
+   "rms_ratio_gt_isla_all": 2.242753664280519
+  },
+  {
+   "case": "01211_geo_LHC122_AoA_12_domain_LHC122_AoA_12.pdmsh",
+   "top10_frac_isla": 0.15562270252528265,
+   "top10_frac_gt": 0.10842874942355316,
+   "rms_ratio_gt_isla_top10": 2.6928327180155236,
+   "rms_ratio_gt_isla_bottom50": 2.8191831823582616,
+   "rms_ratio_gt_isla_all": 3.2260688177934593
+  },
+  {
+   "case": "01321_geo_LHC133_AoA_12_domain_LHC133_AoA_12.pdmsh",
+   "top10_frac_isla": 0.04763668453029988,
+   "top10_frac_gt": 0.08131814593634927,
+   "rms_ratio_gt_isla_top10": 3.614466914913274,
+   "rms_ratio_gt_isla_bottom50": 2.554874593719724,
+   "rms_ratio_gt_isla_all": 2.7664401780968553
+  },
+  {
+   "case": "01581_geo_LHC159_AoA_12_domain_LHC159_AoA_12.pdmsh",
+   "top10_frac_isla": 0.04845255763404016,
+   "top10_frac_gt": 0.0699315216090919,
+   "rms_ratio_gt_isla_top10": 4.174847117791222,
+   "rms_ratio_gt_isla_bottom50": 3.20824678510676,
+   "rms_ratio_gt_isla_all": 3.4750610664020507
+  },
+  {
+   "case": "01661_geo_LHC167_AoA_12_domain_LHC167_AoA_12.pdmsh",
+   "top10_frac_isla": 0.08311599852418403,
+   "top10_frac_gt": 0.09766402949196865,
+   "rms_ratio_gt_isla_top10": 3.2170617180488,
+   "rms_ratio_gt_isla_bottom50": 3.0142263492292103,
+   "rms_ratio_gt_isla_all": 2.967798334162431
+  }
+ ],
+ "summary": {
+  "n_cases": 18,
+  "median_top10_error_share": {
+   "isla": 0.08707048437789336,
+   "gt": 0.10344710720935729
+  },
+  "median_rms_ratio_gt_isla": {
+   "top10_curvature": 3.0239582794843844,
+   "bottom50_curvature": 2.910976642903517,
+   "all": 2.875084314562675
+  }
+ }
+}
