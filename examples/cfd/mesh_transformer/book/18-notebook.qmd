@@ -7018,3 +7018,15 @@ small data, not merely why it is larger. It also sharpens the falsifier for
 the unseen-geometry ladder now finishing: if the advantage on
 never-seen-at-any-angle geometries is again accompanied by a low
 cross-architecture ρ, the same object is being measured.
+
+**Next discriminator (not run).** The hypothesis this suggests, that
+GeoTransolver interpolates locally in geometry space and fails on validation
+geometries far from any training geometry while ISLA does not, has a direct
+test: the distance from each validation geometry to its nearest training
+geometry (the dataset ships no design-parameter table, so a Chamfer distance
+between subsampled STL surfaces would serve), correlated with each
+architecture's per-case error at 35 cases. Prediction under the hypothesis:
+GeoTransolver's error correlates with that distance (ρ ≥ 0.5) and ISLA's
+does not (ρ ≤ 0.2); a shared correlation would instead say the difficulty is
+intrinsic and the decorrelation above comes from something else. It costs a
+CPU job over 180 surfaces and is queued behind the running arms.
