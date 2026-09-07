@@ -1,0 +1,22 @@
+{
+ "mt2": {
+  "n_cases": 180,
+  "err_seed42": 0.11083863791478402,
+  "err_seed43": 0.11219456050913347,
+  "err_ensemble": 0.1074596117937644,
+  "ensemble_gain_vs_mean_seed": 1.03775360203218,
+  "disagreement_gmean": 0.054956787720383676,
+  "spearman_disagreement_vs_ensemble_error": 0.14836054610739013,
+  "spearman_disagreement_vs_seed42_error": 0.24407954978034302
+ },
+ "gt": {
+  "n_cases": 180,
+  "err_seed42": 0.11209682369725768,
+  "err_seed43": 0.12394061791737503,
+  "err_ensemble": 0.11415062720611077,
+  "ensemble_gain_vs_mean_seed": 1.0338858725166822,
+  "disagreement_gmean": 0.05977516956994078,
+  "spearman_disagreement_vs_ensemble_error": 0.1937179131043139,
+  "spearman_disagreement_vs_seed42_error": 0.19909667993868121
+ }
+}

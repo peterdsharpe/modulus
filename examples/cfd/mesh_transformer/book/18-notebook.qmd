@@ -6066,8 +6066,24 @@ are dominated by a component shared across seeds — bias from too little
 data, not variance — which is also why the data-efficiency result is so
 seed-stable.
 
+**Addendum — the other rungs** (`results/hilift_ensemble_uq_{210,1260}_2026-09-06.json`):
+
+| rung | MT2 Spearman | GeoTransolver Spearman | Transolver Spearman | ensemble gain (MT2 / GT) |
+|---|---|---|---|---|
+| 35 | **+0.67** | −0.20 | −0.47 | 1.03x / 1.02x |
+| 210 | +0.64 | +0.65 | +0.60 | 1.03x / 1.05x |
+| 1,260 | +0.15 | +0.19 | — | 1.04x / 1.03x |
+
+So the ranking property is a **"the model has learned the task"**
+property, not an MT2-specific one: at 210 cases all three architectures
+have it (≈ 0.6–0.65), and MT2 simply reaches that state at 35 cases
+where the baselines have not. At 1,260 cases the correlation collapses
+for both architectures (0.15–0.19): the remaining error is no longer
+seed-dependent model variance but something the two seeds — and, per
+N1, the two *architectures* — share. That is a second, independent
+line of evidence for the shared-floor reading of the flattened curve
+(@sec-nb-w2-prereg), ahead of the W2-C token-count test.
+
 **What this does not establish.** Calibration (whether the spread is
-the right *size*) is not tested; only the ranking is. Whether the
-ranking property survives at 210 and 1,260 cases, and on the
-force-coefficient level, is a cheap follow-up on the existing
-evaluations and is queued behind the W2 readouts.
+the right *size*) is not tested; only the ranking is. The
+force-coefficient-level version is a cheap follow-up.
