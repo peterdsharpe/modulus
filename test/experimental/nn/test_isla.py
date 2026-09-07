@@ -14,18 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Contract tests for MeshTransformer2: every guarantee is exact by construction."""
+"""Contract tests for ISLA (Invariant Slice Attention): every guarantee is exact by construction."""
 
 import pytest
 import torch
 
-from physicsnemo.experimental.nn.mt2 import MeshTransformer2
+from physicsnemo.experimental.nn.isla import ISLA
 
 
 @pytest.fixture
 def setup():
     torch.manual_seed(0)
-    m = MeshTransformer2(hidden=64, n_layers=3, n_slices=32).double().eval()
+    m = ISLA(hidden=64, n_layers=3, n_slices=32).double().eval()
     n = 500
     ### Anisotropic cloud: the principal-axis frame is exactly covariant
     ### only where the covariance spectrum is non-degenerate (generic for
@@ -94,7 +94,7 @@ def test_collated_input_shapes(setup):
 def setup_local():
     torch.manual_seed(0)
     m = (
-        MeshTransformer2(
+        ISLA(
             hidden=64, n_layers=2, n_slices=16,
             use_local_features=True, local_radii=(0.5, 1.5),
         )
@@ -139,7 +139,7 @@ def test_local_drive_degree_one(setup_local):
 def setup_qi():
     torch.manual_seed(0)
     m = (
-        MeshTransformer2(
+        ISLA(
             hidden=64, n_layers=2, n_slices=16,
             query_independent=True, n_decoder_layers=2,
         )
@@ -199,7 +199,7 @@ def test_qi_drive_degree_one(setup_qi):
 def test_boundary_scalar_channel_contracts():
     torch.manual_seed(0)
     m = (
-        MeshTransformer2(
+        ISLA(
             hidden=64, n_layers=2, n_slices=16, n_boundary_scalars=2
         )
         .double()
@@ -231,7 +231,7 @@ def test_scale_conditioning_rotation_equivariance():
     must leave rotation equivariance and translation invariance exact."""
     torch.manual_seed(0)
     m = (
-        MeshTransformer2(hidden=64, n_layers=2, n_slices=16, scale_conditioning=True)
+        ISLA(hidden=64, n_layers=2, n_slices=16, scale_conditioning=True)
         .double()
         .eval()
     )
@@ -266,7 +266,7 @@ def test_anchor_conditioned_decode_query_independence():
     must not depend on the companion query set."""
     torch.manual_seed(0)
     m = (
-        MeshTransformer2(
+        ISLA(
             hidden=64, n_layers=2, n_slices=16,
             query_independent=True, n_decoder_layers=2, n_anchors=100,
         )
@@ -322,12 +322,12 @@ def test_parity_fix_reflection_equivariance():
     M = torch.diag(torch.tensor([1.0, -1.0, 1.0], dtype=torch.float64))  # mirror
 
     torch.manual_seed(1)
-    fixed = MeshTransformer2(
+    fixed = ISLA(
         hidden=64, n_layers=2, n_slices=16, parity_fix=True, parity_gate_scale=0.1
     )
     fixed = fixed.double().eval()
     torch.manual_seed(1)
-    broken = MeshTransformer2(hidden=64, n_layers=2, n_slices=16).double().eval()
+    broken = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
 
     with torch.no_grad():
         base = fixed(pts, nrm, drv, w)
@@ -358,7 +358,7 @@ def test_true_vector_basis_reflection_and_rotation(basis):
     )
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
-    m = MeshTransformer2(hidden=64, n_layers=2, n_slices=16, vector_basis=basis)
+    m = ISLA(hidden=64, n_layers=2, n_slices=16, vector_basis=basis)
     m = m.double().eval()
     M = torch.diag(torch.tensor([1.0, -1.0, 1.0], dtype=torch.float64))
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
@@ -388,7 +388,7 @@ def test_odd_head_reflection_rotation_and_translation():
     )
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
-    m = MeshTransformer2(hidden=64, n_layers=2, n_slices=16, odd_head=True).double().eval()
+    m = ISLA(hidden=64, n_layers=2, n_slices=16, odd_head=True).double().eval()
     M = torch.diag(torch.tensor([1.0, -1.0, 1.0], dtype=torch.float64))
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
@@ -420,7 +420,7 @@ def test_head_variants_run_under_bf16_autocast(kw):
     """Mixed-precision smoke: every head variant must survive bf16 autocast
     (the odd-coefficient head once failed with a dtype mismatch at step 0)."""
     torch.manual_seed(0)
-    m = MeshTransformer2(hidden=32, n_layers=1, n_slices=8, **kw)
+    m = ISLA(hidden=32, n_layers=1, n_slices=8, **kw)
     pts = torch.randn(1, 128, 3)
     nrm = torch.nn.functional.normalize(torch.randn(1, 128, 3), dim=-1)
     drv = torch.nn.functional.normalize(torch.randn(1, 3), dim=-1)
@@ -446,9 +446,9 @@ def test_similarity_gauge_geometric_scale_equivariance():
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     torch.manual_seed(1)
-    mg = MeshTransformer2(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True).double().eval()
+    mg = ISLA(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True).double().eval()
     torch.manual_seed(1)
-    m0 = MeshTransformer2(hidden=64, n_layers=2, n_slices=16).double().eval()
+    m0 = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
     k = 2.7
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
@@ -469,7 +469,7 @@ def test_raw_coord_channel_breaks_equivariance_by_design():
     nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
-    m = MeshTransformer2(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True,
+    m = ISLA(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True,
                          raw_coord_channel=True).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
@@ -494,7 +494,7 @@ def test_interior_queries_contracts():
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     qpts = torch.randn(1, nq, 3, dtype=torch.float64) * 4.0  # interior/exterior points, no normals
-    m = MeshTransformer2(hidden=64, n_layers=2, n_slices=16, query_independent=True,
+    m = ISLA(hidden=64, n_layers=2, n_slices=16, query_independent=True,
                          n_decoder_layers=2, interior_queries=True, similarity_gauge=True,
                          out_scalars=1, out_vectors=1).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
@@ -526,9 +526,9 @@ def test_latent_volume_tokens_contracts():
     kw = dict(hidden=64, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2,
               interior_queries=True, similarity_gauge=True, out_scalars=1, out_vectors=1)
     torch.manual_seed(1)
-    m = MeshTransformer2(latent_volume_tokens=True, **kw).double().eval()
+    m = ISLA(latent_volume_tokens=True, **kw).double().eval()
     torch.manual_seed(1)
-    m0 = MeshTransformer2(latent_volume_tokens=False, **kw).double().eval()
+    m0 = ISLA(latent_volume_tokens=False, **kw).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
@@ -558,10 +558,10 @@ def test_a35b_ablation_flags_run_and_differ():
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     torch.manual_seed(1)
-    ref = MeshTransformer2(hidden=64, n_layers=2, n_slices=16).double().eval()
+    ref = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
     torch.manual_seed(1)
-    nogeo = MeshTransformer2(hidden=64, n_layers=2, n_slices=16, use_relational_geo=False).double().eval()
-    raw = MeshTransformer2(hidden=64, n_layers=2, n_slices=16, seed_mode="raw").double().eval()
+    nogeo = ISLA(hidden=64, n_layers=2, n_slices=16, use_relational_geo=False).double().eval()
+    raw = ISLA(hidden=64, n_layers=2, n_slices=16, seed_mode="raw").double().eval()
     with torch.no_grad():
         o_ref = ref(pts, nrm, drv, w)
         o_ng = nogeo(pts, nrm, drv, w)
@@ -582,7 +582,7 @@ def test_all_parameters_receive_gradients(kw):
     """DDP requires every parameter to take part in the loss; a module built
     but skipped in forward crashes distributed training (A35b nogeo incident)."""
     torch.manual_seed(0)
-    m = MeshTransformer2(hidden=32, n_layers=2, n_slices=8, **kw)
+    m = ISLA(hidden=32, n_layers=2, n_slices=8, **kw)
     pts = torch.randn(1, 128, 3)
     nrm = torch.nn.functional.normalize(torch.randn(1, 128, 3), dim=-1)
     drv = torch.nn.functional.normalize(torch.randn(1, 3), dim=-1)
@@ -598,7 +598,7 @@ def test_geo_pool_then_project_is_exact():
     mix is a softmax over slices, so the bias passes through unchanged). This
     is the identity behind the memory saving: the saved activation is
     (B, N, 8) instead of (B, N, S, hidden/2)."""
-    from physicsnemo.experimental.nn.mt2.model import _ReadBlock, _SliceBlock
+    from physicsnemo.experimental.nn.isla.model import _ReadBlock, _SliceBlock
 
     torch.manual_seed(0)
     for blk in (_SliceBlock(64, 32).double(), _ReadBlock(64, 32).double()):
@@ -607,3 +607,11 @@ def test_geo_pool_then_project_is_exact():
         old = torch.einsum("bns,bnsg->bng", mix, blk.geo_feat(geo))
         new = blk.geo_feat(torch.einsum("bns,bnsg->bng", mix, geo))
         assert torch.allclose(old, new, atol=1e-12, rtol=0.0)
+
+
+def test_legacy_name_is_an_alias():
+    """The previous name and import path keep working (cluster configs, checkpoints)."""
+    from physicsnemo.experimental.nn import MeshTransformer2 as legacy_top
+    from physicsnemo.experimental.nn.mt2 import MeshTransformer2 as legacy_path
+
+    assert legacy_top is ISLA and legacy_path is ISLA

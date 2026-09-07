@@ -59,7 +59,7 @@ pipeline:
   transforms:
     # Unit freestream direction as a NEW global leaf U_inf_dir (U_inf stays
     # physical). Consumed as the nondimensional rank-1 drive by the
-    # MeshTransformer2 template (drive: global_data.U_inf_dir); inert for
+    # ISLA template (drive: global_data.U_inf_dir); inert for
     # models that do not declare it. Mirrors drivaer_ml_surface.yaml;
     # placed before CenterMesh so the rotation augmentation would rotate it
     # together with U_inf and the geometry.
@@ -100,7 +100,7 @@ pipeline:
     # Guard against fp32-manufactured degenerate slivers (frozen-protocol
     # parity with drivaer_ml_surface.yaml, 2026-08-02 amendment): drop
     # zero-measure cells just before the model, protecting the
-    # MeshTransformer2 measure validation.
+    # ISLA measure validation.
     - _target_: ${dp:DropDegenerateCells}
     # Terminal: convert the surface Mesh into a DomainMesh per the recipe
     # contract. cell_data_targets are auto-injected from the `targets:` block.

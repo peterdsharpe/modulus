@@ -518,7 +518,7 @@ class ComputeDriveInvariants(MeshTransform):
     (``cell_data[normals_field]``), ``d`` the unit freestream direction
     (``global_data[direction_field]``), ``r`` the cell centroid relative to
     the mesh's plain centroid, and ``L`` a constant reference length. These
-    are exactly the seed invariants MeshTransformer2 builds internally
+    are exactly the seed invariants ISLA builds internally
     (``model.py``: ``r_mag``, ``r_hat . d_hat``, ``n_hat . d_hat``), exposed
     so that a raw-coordinate architecture (Transolver, GeoTransolver) can be
     given them as inputs -- the INV transplant test of the HiLift small-data

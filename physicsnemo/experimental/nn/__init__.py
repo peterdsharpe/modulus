@@ -47,7 +47,7 @@ from .mesh_attention import (
     ScalarVectorState,
     TypedProjection,
 )
-from .mt2 import MeshTransformer2
+from .isla import ISLA, MeshTransformer2
 from .rope import (
     build_axial_rope_cos_sin_2d_continuous,
     build_rope_cos_sin_1d_continuous,
@@ -84,6 +84,7 @@ __all__ = [
     "LinearMeshFieldBlock",
     "MeshOperatorBlock",
     "MeshTransformer",
+    "ISLA",
     "MeshTransformer2",
     "NonlinearZeroKernelBasisCrossDecoder",
     "NonlinearZeroMeshFieldBlock",
