@@ -6198,3 +6198,32 @@ chapters use ISLA throughout. This notebook keeps its historical names;
 artifact keys (`mt2_*`) and the `examples/cfd/mesh_transformer/` directory
 are unchanged as provenance. The exact-kernel MeshTransformer keeps its
 name in the archive.
+
+## 2026-09-07 — W2-F launched (unseen-geometry ladder) with a GeoTransolver learning-rate steel-man at the single angle, on the strength of an early single-angle read {#sec-nb-w2f-launch}
+
+**Why now.** The first two evaluated lanes of the single-angle mechanism
+arm (one seed each; `single_aoa_12`, 126 geometries at 12°, validated on
+18 geometries never seen at any angle) read ISLA 0.036 against
+GeoTransolver 0.183 — a 5.0x gap where the drive-direction hypothesis
+predicted the gap would *vanish* (@sec-nb-w2-prereg: ISLA/GT ≥ 0.80;
+falsifier ≤ 0.60). That is one seed and no verdict yet, but it says the
+advantage lives in generalizing across *geometries*, not across angles, so
+the unseen-geometry ladder preregistered as W2-F is now the most
+informative next measurement and launches with the GPU budget the
+finished lanes freed.
+
+**Arms (10 lanes, `highlift/hl_wave2_aga.sbatch` rows 26–35).**
+W2-F: ISLA and GeoTransolver on `geometry_scarce` (210 training cases)
+and `geometry_super_scarce` (40 cases = 4 geometries × 10 angles), 2 seeds
+each, frozen protocol, scored on the 180 cases of the 18 held-out
+geometries. Steel-man G: GeoTransolver on `single_aoa_12` at lr 3e-3 (its
+alternative rate), 2 seeds, so the single-angle gap cannot be attributed
+to the learning rate.
+
+**Predictions in readout units** (W2-F unchanged from the prereg): ISLA/GT
+within 0.1 of the same-size data-efficiency rungs (≈ 0.41 at 210;
+0.35–0.5 at 40); *falsifier* ISLA/GT ≥ 0.8 on either rung (the advantage
+would depend on having seen the geometry at another angle). G: the lr 3e-3
+control lands within 1.2x of GeoTransolver's lr 1e-3 result; *falsifier* it
+comes within 1.2x of ISLA (then the single-angle gap is a learning-rate
+artefact and the mechanism reading is void).
