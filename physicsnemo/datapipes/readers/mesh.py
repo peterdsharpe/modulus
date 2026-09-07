@@ -212,19 +212,24 @@ def _pread_rows(
     fd = os.open(filename, os.O_RDONLY)
     try:
 
-        def read_run(se):
-            s, e = se
-            n = e - s
+        page_of = pages.tolist()
+        s_list, e_list = starts.tolist(), ends.tolist()
+
+        def read_runs(lo_run: int, hi_run: int) -> None:
             # Reads at the file tail may return fewer bytes; the unread slack
             # is never addressed because no row lies beyond the file.
-            os.preadv(fd, [view[s * page : (s + n) * page]], int(pages[s]) * page)
+            for r in range(lo_run, hi_run):
+                s, e = s_list[r], e_list[r]
+                os.preadv(fd, [view[s * page : e * page]], page_of[s] * page)
 
-        runs = list(zip(starts.tolist(), ends.tolist()))
-        if len(runs) > 1:
-            with ThreadPoolExecutor(max_workers=min(_PREAD_THREADS, len(runs))) as ex:
-                list(ex.map(read_run, runs))
+        n_runs = len(s_list)
+        n_threads = max(1, min(_PREAD_THREADS, n_runs // 64))
+        if n_threads > 1:
+            bounds = np.linspace(0, n_runs, n_threads + 1).astype(int).tolist()
+            with ThreadPoolExecutor(max_workers=n_threads) as ex:
+                list(ex.map(lambda b: read_runs(*b), zip(bounds[:-1], bounds[1:])))
         else:
-            read_run(runs[0])
+            read_runs(0, n_runs)
     finally:
         os.close(fd)
     # Assemble: each row's bytes start at slot(first_page)*page + in-page
