@@ -256,7 +256,12 @@ extension would be aimed at a deficit the data do not show. Width alone does
 not close it either: an ISLA with hidden width 256 instead of 192 scores
 0.062 on the same validation set against 0.063–0.067 for the reference width
 and 0.053 for GeoTransolver
-(results/mixedres_training_2026-07-31/sweep/mega_reduction.json).
+(results/mixedres_training_2026-07-31/sweep/mega_reduction.json). And the two architectures agree on which cars are hard: their per-case
+errors are rank-correlated at 0.86–0.89, the same as each model with its
+own second seed (0.87), and the per-case ratio sits between 1.11 and 1.38
+for 80% of cars, with GeoTransolver ahead on 47–48 of 48
+(results/drivaer_percase_correlation_2026-09-07.json). The gap is a
+near-constant factor on a shared difficulty ordering.
 
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 

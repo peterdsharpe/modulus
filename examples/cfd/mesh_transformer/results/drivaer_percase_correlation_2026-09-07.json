@@ -1,0 +1,42 @@
+{
+ "45": {
+  "n": 48,
+  "spearman_isla_vs_gt_per_case_pressure_l2": 0.891,
+  "isla_wins": 1,
+  "ratio_p10_p50_p90": [
+   1.107,
+   1.207,
+   1.301
+  ],
+  "gt_range": [
+   0.039,
+   0.074
+  ],
+  "isla_range": [
+   0.047,
+   0.086
+  ]
+ },
+ "46": {
+  "n": 48,
+  "spearman_isla_vs_gt_per_case_pressure_l2": 0.855,
+  "isla_wins": 0,
+  "ratio_p10_p50_p90": [
+   1.152,
+   1.272,
+   1.375
+  ],
+  "gt_range": [
+   0.04,
+   0.077
+  ],
+  "isla_range": [
+   0.053,
+   0.089
+  ]
+ },
+ "self_consistency": {
+  "gt_seed45_vs_46": 0.871,
+  "isla_seed45_vs_46": 0.871
+ }
+}

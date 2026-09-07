@@ -6941,3 +6941,31 @@ third of the parameters (8.9M vs 27.6M) and two thirds of the memory
 (6.0 vs 8.8 GB). Launched when the query-token lanes release their nodes
 (the 32-node budget is fully allocated); code snapshot `code_isla2`
 (commit 16b62765a plus the reader compaction of the same day).
+
+## 2026-09-07 — Addendum to the DrivAerML verdict: the two architectures rank the cars identically; ISLA's shortfall is a near-constant factor per car {#sec-nb-drivaer-percase}
+
+**Question.** If the DrivAerML gap is case-level rather than spatial
+(@sec-nb-drivaer-station-verdict), is it the *same* cases that are hard for
+both architectures, with ISLA uniformly a little worse, or does each model
+fail on its own cars?
+
+**Instrument.** Per-case surface-pressure relative L2 from the in-family
+evaluations of the same seed pairs (`sweep/<run>/res10000/**/metrics.jsonl`,
+48 validation cars), Spearman rank correlation between ISLA and
+GeoTransolver, compared with each model's rank correlation with itself
+across seeds (results/drivaer_percase_correlation_2026-09-07.json).
+
+**What we saw.** ISLA's and GeoTransolver's per-case errors are rank-correlated
+at 0.89 (seed pair 45) and 0.86 (pair 46); each model against its own other
+seed is 0.87. The per-case ratio ISLA/GeoTransolver has 10th–90th
+percentiles of 1.11–1.30 (pair 45) and 1.15–1.38 (pair 46), and GeoTransolver
+is more accurate on 47 and 48 of the 48 cars.
+
+**Reading.** Which cars are hard is a property of the data, agreed on by both
+architectures to within seed noise; ISLA's error is that shared difficulty
+multiplied by a nearly constant 1.2–1.3. Together with the spatial
+uniformity, this is the signature of a uniform fit deficit (capacity or
+optimisation at the operating point), not of a case class or a surface
+region where ISLA's inductive bias fails. It sharpens the closed
+direction: no region-, case- or geometry-targeted mechanism would move the
+DrivAerML gap; only something that lifts the whole fit would.
