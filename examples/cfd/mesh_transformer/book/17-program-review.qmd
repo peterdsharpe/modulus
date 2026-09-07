@@ -73,7 +73,20 @@ geometry encoder under-performing its own backbone at small n
 depending on the baseline, parity at 1,260. This is the axis the
 program's north-star correction named first, and the first
 architecture-driven generalization advantage the program has measured in
-3D (@sec-nb-hl-ladder-dataeff).
+3D (@sec-nb-hl-ladder-dataeff). It holds case by case, not just on
+average: at 35 training cases MT2 has the lower pressure error on **360
+of 360** paired validation cases against each baseline (median per-case
+ratio 3.2x, worst decile 1.8x), and in engineering terms it predicts lift
+and drag coefficients to about 3% from 35 CFD runs where GeoTransolver
+reaches 11–17% and Transolver 8–12% (@sec-nb-w2e-paired). The four
+GeoTransolver steel-man controls (higher learning rate, doubled epochs, at
+35 and 210 cases) did not move it. What the claim does *not* say: it is a
+data-efficiency claim for the 35–1,260-case regime, not a scaling law
+(MT2's curve flattens while GeoTransolver's steepens, and a naive
+power-law extrapolation would favour GeoTransolver by 5,000 cases); the
+preregistered W2 wave (@sec-nb-w2-prereg) tests whether that flattening
+is a shared protocol floor, fills the curve at 510 cases, adds a third
+seed, and tests the mechanism on a single-angle split.
 
 ```{python}
 #| label: fig-hilift-data-efficiency

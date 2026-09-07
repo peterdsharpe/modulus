@@ -5888,3 +5888,66 @@ same-size data-efficiency rungs within 0.1 (≈ 0.41 at 210; ≈ 0.35–0.5 at
 the geometry at another angle, which would re-attribute it to angle
 interpolation rather than data efficiency. Launches when the running
 count allows.
+
+## 2026-09-06 — W2-E readout: MT2 beats both baselines on 360 of 360 paired validation cases at 35 training cases (median per-case ratio 3.2x), and predicts lift and drag coefficients to 3% where GeoTransolver reaches 11–17% {#sec-nb-w2e-paired}
+
+**Why.** Two seeds with tight spreads is suggestive; the critic (C-power)
+asked for a paired per-case statistic. The 180 validation cases are
+shared across every rung and architecture, so each case can be scored
+as a paired comparison (seed 42 with 42, seed 43 with 43: 360 pairs per
+rung). The recipe's inference also integrates lift and drag coefficients
+per case, which turns the field error into the number an aerodynamicist
+uses. Computed from the existing evaluations
+(`highlift/paired_stats.py` → `results/hilift_paired_stats_2026-09-06.json`);
+no new training.
+
+**Paired pressure rel-L2, MeshTransformer2 (MT2) vs each baseline:**
+
+| training cases | baseline | cases MT2 wins | sign-test p | median ratio (baseline / MT2) | 10th–90th pct |
+|---|---|---|---|---|---|
+| 35 | GeoTransolver | **360 / 360** | 9e-109 | **3.18** | 1.82–4.75 |
+| 35 | Transolver (lr 3e-3) | **360 / 360** | 9e-109 | **3.20** | 1.91–4.71 |
+| 210 | GeoTransolver | 354 / 360 | 3e-96 | 3.07 | 1.67–4.01 |
+| 210 | Transolver (lr 3e-3) | 330 / 360 | 5e-65 | 1.52 | 1.04–1.95 |
+| 1,260 | GeoTransolver | 258 / 360 | 1e-16 | 1.06 | 0.90–1.20 |
+
+At 35 cases there is **no validation case, on either seed, where either
+baseline beats MT2**; the *worst* tenth of cases still favour MT2 by
+1.8x. At 210 the same holds against GeoTransolver (98%); against
+Transolver MT2 wins 92% of cases with a median 1.5x. At 1,260, where
+the means are at parity (0.98), MT2 is nominally better on 72% of cases
+with a median 1.06x — a small but statistically unambiguous per-case
+edge that the seed-mean comparison hides.
+
+**Force coefficients** (mean absolute error relative to the mean
+magnitude of the true coefficient over the 180 cases, averaged over
+seeds):
+
+| training cases | architecture | CD | CL |
+|---|---|---|---|
+| 35 | **MT2** | **3.3%** | **3.0%** |
+| 35 | GeoTransolver | 17.1% | 11.0% |
+| 35 | Transolver | 11.9% | 8.1% |
+| 210 | MT2 | 1.9% | 1.5% |
+| 210 | GeoTransolver | 3.2% | 2.5% |
+| 210 | Transolver | 2.0% | 1.5% |
+| 1,260 | MT2 | 1.4% | 0.9% |
+| 1,260 | GeoTransolver | 1.2% | 0.8% |
+
+**What it establishes.** The data-efficiency result is not a
+seed-level accident: it holds case by case, on every case, at the rung
+where it is largest. In engineering terms, **from 35 CFD runs MT2
+predicts lift and drag coefficients of unseen high-lift configurations
+to about 3%, where the Transolver-family baselines are at 8–17%**; at
+210 runs all three are within 1.5–3%, and at 1,260 the two-seed
+means are indistinguishable (GeoTransolver nominally ahead on forces by
+0.1–0.2 points, MT2 nominally ahead per case on the field). The 3%
+number at 35 cases is the "useful" statement of the result: a
+few-dozen-run design-of-experiments budget yields a force surrogate of
+practical accuracy.
+
+**Caveats.** Coefficients are integrated with the recipe's reference
+area of 1 (dimensional force units), so the *relative* errors are the
+meaningful quantity; the validation set is in-distribution
+(random cases of the same 180-geometry × 10-angle design); and the
+1,260-case force comparison is within seed noise.
