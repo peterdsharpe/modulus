@@ -6801,3 +6801,52 @@ wall time per epoch from the epoch timestamps, epochs 2–4. No in-flight
 science lane uses the new reader; adoption for future lanes, or for the
 remaining links of the slow lanes, is decided by that number and recorded
 below.
+
+## 2026-09-07 — Verdict: positional reads lose 4–5x in the training loop on lustre; the memmap's read-ahead is the better pattern, and HiLift throughput is a dataset-layout problem {#sec-nb-hilift-io-verdict}
+
+**Readout** (`probe_read_{new,old}`, one fresh node, ISLA surface recipe, 4
+epochs each on disjoint 105-case halves of the 210-case split, new reader
+first). Wall time per epoch from the epoch timestamps:
+
+| reader | epoch 1 (includes worker start-up) | epoch 2 | epoch 3 | mean step (26 steps/epoch) |
+|---|---|---|---|---|
+| positional page reads (`_pread_rows`) | 361 s | 320 s | 358 s | 13.6 s |
+| current memmap gather | 130 s | 70 s | 84 s | 3.3 s |
+
+The positional-read path is **4–5x slower** inside the training loop, the
+opposite of the single-reader cold measurement (5 s against 31 s per
+sample). The two measurements are consistent once the file system is
+understood: lustre serves small random reads with high latency and
+serialises them per file, so 28,000 page reads per sample from each of 16
+reader processes are latency-bound, while the memmap's read-ahead turns the
+same access into a few hundred large sequential RPCs and moves most of the
+1.7 GB point file into the client cache, wasteful in bytes but efficient in
+time. Under fleet load the aggregate bandwidth of that read-ahead is what
+the stalls cost; but replacing it with small reads costs more.
+
+**Decision.** The positional-read gather stays in the reader as an opt-in
+(`PHYSICSNEMO_MESH_PREAD_GATHER=1`, commit 1b2ac6617) for file systems that
+serve small reads well, documented with this measurement; it is not used on
+the clusters. The compaction rewrite (unique + inverse remap, range read
+when rows are local) stays as the default: byte-identical, no I/O change on
+this dataset, removes 2.3 GB of temporaries per sample. No lane, checkpoint
+or result is affected; nothing in flight was changed.
+
+**What would actually fix HiLift throughput.** The 10,000-cell sample needs
+336 KB of vertex data but the vertex numbering scatters it over the whole
+1.7 GB file; every strategy that respects the on-disk layout pays either
+1 GB of read-ahead or 28,000 latencies per sample. The fix is at the dataset
+level: either (a) renumber vertices once so that a contiguous cell block
+references a near-contiguous vertex range (rewrite of `points` and `cells`,
+about 8.5 GB per case, 15 TB for the 1,800 cases), after which a sample is
+two sequential reads; or (b) a derived per-cell dataset (centroid, normal,
+area, fields in cell order; 8 GB per case) that the pipeline could consume
+without any vertex gather; or (c) a preregistered change of sampling
+protocol to a fixed per-case reservoir of, say, one million cells (1.8% of
+the mesh, about 100 MB per case), which would make a sample a single small
+read but is a protocol change whose neutrality at 35 cases would first have
+to be shown. Each of these writes terabytes to shared scratch or changes the
+frozen protocol, so each is a decision for the program owner, not for this
+session; until one is taken, HiLift lanes run at 2–3x their compute-bound
+pace on the 210-case rung and 5–6x on the 510-case rung, and the cadence
+of the remaining wave-2 arms is set accordingly.
