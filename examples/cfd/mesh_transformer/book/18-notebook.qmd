@@ -6406,3 +6406,42 @@ the 5.0x single-angle gap is ISLA converting the simpler task into
 accuracy while GeoTransolver does not. Both readings of arm D point the
 same way: the advantage is geometry generalization, and it is largest at a
 fixed operating point.
+
+## 2026-09-07 — Query-token pilot gate: passed with margin — interior pressure 0.103 / 0.108 at 50 epochs, against 0.269 for the passive decode and 0.093 for GeoTransolver's own pilot; promoted to 500 epochs {#sec-nb-qt-pilot}
+
+**Result** (50 epochs, 48 DrivAerML validation cars, interior rel-L2;
+`v0_evals/v0p_isla_qt_sdf_seed*`):
+
+| arm, 50 epochs | pressure | velocity | ν_t |
+|---|---|---|---|
+| GeoTransolver-volume (pilot, @sec-nb-v0-pilot) | 0.093 | — | — |
+| ISLA passive decode, SDF normal (pilot) | 0.269 | 0.397 | 0.631 |
+| ISLA passive decode + latent volume tokens (pilot) | 0.340 | 0.445 | 0.756 |
+| **ISLA with query tokens** (seed 42 / 43) | **0.103 / 0.108** | 0.213 / 0.214 | 0.299 / 0.317 |
+
+**Gate** (@sec-nb-qt-prereg): both seeds ≤ 0.20 → **passes**, by a factor
+of two; the latent-token failure mode (≥ 0.25) does not recur. At pilot
+length, giving ISLA's interior queries the ability to interact removes
+2.6 of the 2.9x pilot gap to GeoTransolver: 0.105 against 0.093 is 1.13x.
+Velocity and ν_t fall by 1.9x and 2.0x against the passive decode.
+
+**Reading, and what it does not yet show.** This is the first interior
+result in which an ISLA variant is within the seed-and-protocol band of
+GeoTransolver, and it says the ingredient the passive decode lacked is
+exactly the one named by the interior stratification — interaction at the
+query, which supplies volumetric context — not local detail
+(@sec-nb-v0-sdf-band) and not off-surface tokens without query information
+(@sec-nb-lvt-verdict). The equivariance contract is intact (the mode is
+covariant by construction, verified in fp64); exact query independence is
+given up, as GeoTransolver gives it up. The full-run bar stands as
+preregistered: ISLA-QT/GT ≤ 1.3 on interior pressure at 500 epochs
+(GeoTransolver 0.062), falsifier ≥ 2.0. Both seeds launched
+(`v0_isla_qt_sdf_seed42/43`, lanes 2–3 of `v0/v0_qt_aga.sbatch`; ~4 h at
+0.27 s/step). Memory at 20,000 tokens: about 6 GB, which is where
+GeoTransolver-volume sits on the same task.
+
+**If it holds at 500 epochs**, the product statement changes from
+"GeoTransolver for the interior, ISLA for the surface" to one
+architecture: ISLA's equivariant routing for the surface and, with query
+tokens, for the volume, at GeoTransolver's interior accuracy and ISLA's
+small-data accuracy — which is the flagship the program set out to find.
