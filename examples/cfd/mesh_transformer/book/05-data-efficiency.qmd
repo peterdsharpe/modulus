@@ -274,7 +274,7 @@ gauge-pressure scale, the dataset mean 0.94, each case's own mean 0.93),
 GeoTransolver scores 0.63 and Transolver 0.68 while MT2 scores 0.25; the
 median per-case correlation between predicted and true pressure is 0.76
 and 0.69 for the baselines against 0.97 for MT2
-(`results/hilift_reference_predictors_35_2026-09-06.json`). At 35 cases the
+^[`results/hilift_reference_predictors_35_2026-09-06.json`]. At 35 cases the
 baselines have learned the coarse, case-independent pressure pattern and
 about half of the case-to-case variation; MT2 has learned most of it.
 
@@ -399,7 +399,7 @@ fixed in advance: the inputs carry the advantage if both baselines reach
 quarter of the log-gap, inside the inconclusive band); GeoTransolver does
 not move (0.392 to 0.394, in the falsifier band). The invariant inputs are
 therefore not the carrier for GeoTransolver and at most a partial
-contributor for Transolver (data: results/inv_transplant_2026-09-07.json).
+contributor for Transolver.^[`results/inv_transplant_2026-09-07.json`]
 What the program can say is that the advantage is a property of MT2's
 soft-slice design as a whole — equivariant anchors, relational routing and
 readback, measure-weighted aggregation, invariant seeds, and the training

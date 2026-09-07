@@ -367,7 +367,7 @@ both are best at 1e-3, where they are at parity (@sec-full-data); at 3e-3
 GeoTransolver destabilizes to 0.148 and 0.397, a 6.5x degradation of the
 seed mean, while MT2 moves from 0.040/0.043 to 0.045/0.049, a 1.14x
 degradation, so its four grid points across both rates and both seeds span
-0.040–0.049 (`results/highlift_wave_reduction.json`).
+0.040–0.049^[`results/highlift_wave_reduction.json`].
 
 Two consequences are built into the protocol. First, because GeoTransolver's
 best rate differs between datasets (3e-3 on DrivAerML, 1e-3 on HiLiftAeroML),

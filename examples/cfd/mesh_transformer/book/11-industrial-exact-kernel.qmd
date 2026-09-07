@@ -363,9 +363,9 @@ ax.plot(far, anchor_v * (far / anchor_p) ** local_slope, color=PURPLE, lw=1.2, l
 ax.errorbar(params, vals, yerr=vals * 0.12, fmt="none", ecolor=MUTED, elinewidth=1.0,
             capsize=3, alpha=0.7, zorder=3)
 ax.plot(params, vals, "o", ms=8, color=PURPLE, mec="white", mew=1.2, zorder=4,
-        label="exact-kernel MeshTransformer, learning-rate-stable rungs")
-ax.plot(9.6, 0.0123, "o", ms=9, mfc="none", mec=PURPLE, mew=1.8, zorder=4,
-        label="×4 width: learning-rate constrained, excluded from fit")
+        label="_exact-kernel MeshTransformer rungs (labelled individually)")
+ax.plot(9.6, 0.0123, "o", ms=9, color=PURPLE, mfc="none", mec=PURPLE, mew=1.8, zorder=4,
+        label="excluded from fit\n(learning-rate constrained)")
 ax.plot(gt_params, gt_val, "*", ms=17, color=RED, mec="white", mew=1.0, zorder=5,
         label="GeoTransolver, matched protocol")
 for label, p, v, ok in rungs:
@@ -385,7 +385,15 @@ ax.minorticks_off()
 ax.set_xlabel("trainable parameters [millions, log scale]")
 ax.set_ylabel("validation relative MSE [–, log scale]")
 ax.grid(True, color=GRID, lw=0.8); ax.set_axisbelow(True)
-ax.legend(fontsize=8, loc="upper right")
+for line in ax.get_lines():
+    lab = line.get_label()
+    if lab.startswith("_") or len(line.get_xdata()) == 0:
+        continue
+    xd, yd = line.get_xdata(), line.get_ydata()
+    k = int(len(xd) * 0.82) if len(xd) > 3 else -1
+    ax.annotate(lab, (xd[k], yd[k]), xytext=(6, 6), textcoords="offset points",
+                color=line.get_color(), fontsize=8, ha="left", va="bottom",
+                bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.85))
 fig.tight_layout()
 plt.show()
 ```
@@ -744,8 +752,8 @@ trains closer to the healthy band, transfers worse: at six checkpoints
 spanning thirteen orders this is an observation, not a claim, but it
 means in-family fit and cross-family robustness may be in tension for
 this architecture. Matching the source-measure magnitude between the
-families does not recover transfer either (no `results/` artifact; the
-notebook record is @sec-nb-measmech-verdict).
+families does not recover transfer either.^[No `results/` artifact; the notebook
+record is @sec-nb-measmech-verdict.]
 
 Three independent probes, sampling density (next section), measure
 magnitude and geometry family, support one description: **the trained

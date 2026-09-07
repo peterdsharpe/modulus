@@ -314,7 +314,16 @@ ax.set_xscale("log"); ax.set_yscale("log")
 ax.set_xlabel("distance from panel [panel lengths]")
 ax.set_ylabel("double-layer cell integral [dimensionless]")
 ax.set_ylim(1e-3, 3e2)
-ax.legend(fontsize=8, loc="upper right")
+import numpy as _np
+for line in ax.get_lines():
+    if line.get_label().startswith("_"):
+        continue
+    xd, yd = _np.asarray(line.get_xdata()), _np.asarray(line.get_ydata())
+    k = int(_np.argmin(_np.abs(_np.log(xd) - _np.log(0.02))))  # label where the four curves are well separated
+    below = line.get_label().startswith("exact panel integral")
+    ax.annotate(line.get_label(), (xd[k], yd[k]), xytext=(8, -6 if below else 5), textcoords="offset points",
+                color=line.get_color(), fontsize=8, ha="left", va="top" if below else "bottom",
+                bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.85))
 plt.tight_layout()
 ```
 

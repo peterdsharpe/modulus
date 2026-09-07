@@ -319,7 +319,7 @@ matches the PDE.
 ## Open questions, and what would settle each {#sec-open-questions}
 
 Each question has a preregistered prediction in readout units and a
-falsifier (@sec-nb-w2-prereg, @sec-nb-lvt-verdict, @sec-nb-g5-prereg), and
+falsifier,^[Preregistrations: @sec-nb-w2-prereg, @sec-nb-lvt-verdict, @sec-nb-g5-prereg.] and
 none is yet measured (@sec-program-status). Unless stated, the readout is the
 pressure rel-L2 of @sec-limits-data-efficiency. The preregistrations were
 written in MT2/GT, MT2's error divided by GeoTransolver's at the same rung,
@@ -385,7 +385,7 @@ mixture is a softmax, pooling first and projecting second is an exact
 identity (fp64 maximum difference 4e-15) that saves a (points × 8)
 activation instead. MT2's peak training memory at 10,000 tokens is 9.8 GB as
 trained; 3.6 GB with the exact pool-then-project rewrite, against
-GeoTransolver's 4.6 GB (@sec-mt2-cost, @sec-nb-geo-pool-memory). Every
+GeoTransolver's 4.6 GB (@sec-mt2-cost).^[Measurement record: @sec-nb-geo-pool-memory.] Every
 trained MT2 checkpoint in this book came from the 9.8 GB implementation, 2.1x
 GeoTransolver's memory, and no MT2 run in the book ran at or below 4.6 GB;
 the headroom is a property of the new implementation, not of any reported
