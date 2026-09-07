@@ -71,6 +71,7 @@ flowchart TB
     W2F["W2-F: unseen-geometry ladder (210, 40 cases)<br/>+ GT single-angle lr 3e-3 steel-man<br/>RUNNING - falsifier ISLA/GT >= 0.8"]:::running
     DEFL["DEFL: deflection split (geometry extrapolation,<br/>sealed one-shot test)<br/>RUNNING - carried if ISLA <= 0.7x GT test error"]:::running
     QT["QT: ISLA query tokens (interior queries interact)<br/>RUNNING - pilot 0.103/0.108 vs passive 0.269, GT 0.093;<br/>full bar ISLA-QT/GT <= 1.3"]:::running
+    QTSDF["QT-SDF: query tokens + signed distance as input<br/>(matched-input steel-man vs GT-volume)<br/>READY - launches when QT nodes free; bar QT-SDF/QT <= 0.85"]:::planned
     DRVSTA["DRV-STA: where on the car is the DrivAerML gap?<br/>DONE - uniform; rear/front 1.10, 1.03 (bar 1.1);<br/>wake-context extension closed"]:::done
     MEM2["MEM2: rebuild per-slice invariants in backward<br/>DONE - exact; 2.3x less peak memory, 1.16x step"]:::done
     IO1["IO1: HiLift reader I/O (read amplification 1 GB/sample)<br/>STOPPED - positional reads 4-5x slower in the loop on lustre;<br/>fix is dataset layout (owner decision)"]:::stopped
@@ -122,6 +123,8 @@ flowchart TB
     LVT --> QT
     V0 --> QT
     QT --> MT3
+    QT --> QTSDF
+    QTSDF --> MT3
     DRVSTA --> MT3
     MEM2 --> MT3
     IO1 --> W2F
@@ -201,6 +204,7 @@ and the 210-case third seed.
 | W2F | RUNNING | Unseen-geometry ladder: ISLA vs GeoTransolver on `geometry_scarce` (210) and `geometry_super_scarce` (40 = 4 geometries × 10 angles), validated on 18 geometries never seen at any angle; plus GeoTransolver at lr 3e-3 on the single-angle split as a learning-rate steel-man. | W2 (arm D) | Prediction: ISLA/GT within 0.1 of the same-size data-efficiency rungs; falsifier ISLA/GT ≥ 0.8 (advantage would depend on seeing the geometry at another angle). Steel-man falsifier: GeoTransolver lr 3e-3 within 1.2x of ISLA at the single angle. | @sec-nb-w2f-launch |
 | DEFL | RUNNING | Geometry extrapolation: train on the 80% of geometries with lower flap/slat deflection (1,260 cases), sealed one-shot test on the 20% most aggressive (360 cases); does ISLA's geometry generalization carry across a geometry-parameter boundary where flow-regime boundaries defeated every architecture? | W2 (arm D) | Carried if ISLA test error ≤ 0.7x GeoTransolver's with d ≤ 4; falsifier ISLA ≥ 0.9x GT or both d ≥ 8. | @sec-nb-deflection-prereg |
 | QT | RUNNING — pilot passed | ISLA with interior queries as interacting tokens (GeoTransolver's interior mechanism on ISLA's equivariant routing; `query_tokens=True`, SE(3)-covariant, not query-independent). Pilot (50 ep): 0.103/0.108 interior pressure vs passive decode 0.269 and GeoTransolver pilot 0.093 → promoted to 500 epochs, 2 seeds. | V0, LVT | Full bar: ISLA-QT/GT ≤ 1.3 on interior pressure (GT 0.062); falsifier ≥ 2.0. | @sec-nb-qt-prereg; @sec-nb-qt-pilot |
+| QT-SDF | READY | GeoTransolver-volume receives the signed distance at every interior point; ISLA never did. Query tokens plus `n_query_scalars=1` (SDF) at 8.9M parameters vs GeoTransolver-volume's 27.6M: does the input close what interaction leaves? Model change also restored exact scale covariance for query tokens. | QT (nodes) | Supported if QT-SDF/QT ≤ 0.85; falsified if ≥ 0.95; secondary: QT-SDF/GT ≤ 1.1 closes the interior gap at a third of the parameters. | @sec-nb-qt-sdf-prereg |
 | DRV-STA | DONE | Where on a DrivAerML car does GeoTransolver's 1.2x edge over ISLA live: on wake-dominated rear surfaces (missing global context) or uniformly (case-level fit)? Per-bin RMS error ratio by streamwise third, 48 validation cases, two seed pairs. | full-data DrivAerML evals | H-wake if rear/front ≥ 1.3; falsified if ≤ 1.1. Result: 1.10 and 1.03 → falsified; gap uniform. | @sec-nb-drivaer-station-verdict; results/drivaer_station_attribution_2026-09-07.json |
 | MEM2 | DONE | Saved-activation attribution of ISLA at 10k tokens (76% per-slice geometry) and an exact recompute-in-backward option (`geo_checkpoint`, recipe default on). | — | Bitwise-identical forward and gradients; peak memory 3.23 → 1.42 GiB (10k), 6.34 → 2.78 GiB (20k); step time 1.16x. | @sec-nb-geo-recompute; results/isla_memory_recompute_2026-09-07.json |
 | IO1 | STOPPED | HiLift lanes are dataloader-bound (130–150 s epochs for 15 s of compute at 210 cases; 510-case lanes 36 h). Root cause measured: a 10k-cell sample's 28k referenced vertices are spread over the whole 142M-vertex memmap and each page fault drags in lustre read-ahead (1.08 GB per sample). Page-wise positional reads move 0.29 GB but are latency-bound in the training loop: 320–361 s per epoch against 70–130 s for the memmap gather on the same node. Kept opt-in; compaction rewrite kept (byte-identical). The remaining fix is dataset-level (vertex renumbering or a per-cell derived copy, ~15 TB) or a preregistered reservoir protocol: owner decision. | — | Adopt if ≥ 1.5x faster epochs: not met (0.2–0.25x). | @sec-nb-hilift-io; @sec-nb-hilift-io-verdict |
