@@ -6726,3 +6726,78 @@ checkpoints is the wave-2 evaluation script's job (lanes 36–39). Readout
 bars are unchanged: carried if ISLA's test error is at most 0.7x
 GeoTransolver's with a degradation ratio d ≤ 4; falsified if ISLA is at or
 above 0.9x GeoTransolver or both models show d ≥ 8.
+
+## 2026-09-07 — HiLift training is I/O-bound: a 10k-cell sample costs ~1 GB of storage traffic through the memmap; page-wise positional reads move 4x less, byte-identical {#sec-nb-hilift-io}
+
+**Setting.** Every HiLiftAeroML lane trains on 10,000 surface cells per
+case per epoch, drawn by the recipe's reader as one contiguous cyclic block
+of cells from the boundary mesh and compacted to the vertices those cells
+reference. Each boundary is 274–294 million cells and 139–149 million
+vertices, 20 GB on disk as memmap-backed tensordict leaves (cells 6.8 GB,
+points 1.7 GB, seven cell fields 12 GB). Watching the running wave-2 lanes:
+a 210-case epoch takes 130–150 s for 52 optimizer steps of 0.29 s (15 s of
+compute), the 510-case rung 6 min per epoch, and the per-step log shows
+data stalls of 3–7 s several times per epoch. The GPU samplers on those
+lanes read 60–67% mean utilisation with a third of samples idle, against
+81% and 8% idle on the GPU-bound query-token lanes. At this rate the
+510-case lanes need 36 h and the deflection lanes two days: the data path,
+not the model, sets the program's experiment cadence.
+
+**Derivation, then measurement.** The reader's cell block is a sequential
+read; the cost had to be in the vertex compaction. Reading the code:
+`Mesh.slice_points` builds two n_points-sized index tensors (2.3 GB of
+temporaries per sample on a 142M-vertex mesh) and then fancy-indexes the
+points memmap at the ~28,000 referenced rows. A first rewrite of the
+compaction (`torch.unique(return_inverse)` remap plus a contiguous
+range read when the referenced ids are local; commit f955fbb63; tests prove it
+equal to the old path for in-memory and memmap meshes) removed the
+temporaries, but a compute-node probe showed it changed nothing about cold
+read time: 2–5 s per case for both. The layout probe then measured why: the
+28,000 vertex ids referenced by a contiguous 10,000-cell block are spread
+over the *entire* vertex array (span 141.5M rows, fill 0.0002, median gap
+3,550 rows, only 12,516 runs even when bridging gaps of 4,096 rows), so no
+range or coalesced read can help; every vertex is its own page. The
+dataset's per-case `_cache` directories, which could have held per-cell
+centroids and normals, are empty scaffolds on all 1,800 cases.
+
+**The mechanism is read amplification, not page count.** On a cold case,
+gathering the 28,000 rows (336 KB of data) through the memmap moved
+**1,077 MiB** from storage in 31 s; `posix_fadvise(RANDOM)` on the file did
+not change it (992 MiB, 24 s); 12-byte `os.pread` per row still moved 873
+MiB (15 s); **`os.pread` of each distinct 4 KiB page moved 286 MiB in 5.1 s**,
+all four byte-identical. The lustre client's read-ahead (256 MB per file,
+2 GB total per client) is what each fault or small read drags in. An
+interleaved A/B on one case confirmed the corollary: the first memmap gather
+pulls most of the 1.7 GB point file into the client cache in 0.6–0.75 s
+(~1.1 GB read), after which further blocks on that case cost 2–9 ms; page
+reads cost 80–160 ms warm. Sixteen reader threads on one file were never
+faster than one (lustre serialises them), so the pool defaults to one thread.
+In training, each node's four ranks touch ~210 cases per epoch on the 210
+rung, 1 GB of read-ahead each, on thirty nodes at once: tens of GB/s of
+aggregate storage traffic per epoch, which is where the 3–7 s stalls come
+from.
+
+**Change** (`physicsnemo/datapipes/readers/mesh.py`, commits f955fbb63,
+11ab33281, 4ce9a7df3, a2e9970e5). `_subsample_mesh_cells` compacts vertices
+directly and gathers rows through `_gather_rows`, which (a) reads one
+contiguous slice when the referenced rows span ≤ 256 MiB, (b) otherwise, for
+a file-backed leaf (tensordict `MemoryMappedTensor`, contiguous, CPU), reads
+exactly the distinct 4 KiB pages holding the rows with positional reads
+(`_pread_rows`: unique pages, runs of consecutive pages in one `preadv`,
+rows assembled with a vectorised byte gather), and (c) otherwise falls back
+to the plain gather. Tests: equality against the old `slice_points` path
+(in-memory and memmap meshes, wrap-around blocks, point_data and
+cell_data, measure weights) and against `t[idx]` for the positional path
+(page-straddling rows, 1-D and int64 leaves, single-run path); 34 pass. The
+outputs are byte-identical, so no protocol, RNG stream or result changes;
+only the I/O pattern does.
+
+**What is not yet known** is the effect inside the training loop under
+fleet load, where the client cache and thirty nodes' contention interact.
+A 4-epoch ISLA run on each of two disjoint 105-case halves of the 210-case
+split (new reader on one half, current reader on the other, same fresh
+node, back to back) is running as `probe_read_{new,old}`; the readout is
+wall time per epoch from the epoch timestamps, epochs 2–4. No in-flight
+science lane uses the new reader; adoption for future lanes, or for the
+remaining links of the slow lanes, is decided by that number and recorded
+below.
