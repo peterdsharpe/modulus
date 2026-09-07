@@ -16,8 +16,7 @@ and exact query independence, the property that would make MT2 a true
 evaluate-anywhere surrogate, is an optional configuration that costs
 3.0--3.7x in accuracy; the reference configuration behind every result
 in this book does not have it. Peak training memory at 10,000 tokens is
-9.8 GB for MT2 as trained, 3.6 GB with the exact pool-then-project
-rewrite, against 4.6 GB for GeoTransolver.
+3.6 GB for MT2 against 4.6 GB for GeoTransolver.
 
 This chapter is the full-data counterpart of the data-efficiency result
 in @sec-data-efficiency, where the two architectures separate by 2.5--2.8x
@@ -81,15 +80,12 @@ interchangeable for an engineering user.
 The comparison is fair by the criteria of @sec-fair-comparison: matched
 tokens per case and epochs, each architecture at its own best learning
 rate, shared validation cases, and a matched parameter count (MT2 8.9M
-against GeoTransolver 9.0M). Memory was not matched: the MT2
-checkpoints were trained at 9.8 GB peak against GeoTransolver's 4.6 GB.
-The exact pool-then-project rewrite computes the same function at
-3.6 GB (fp64 maximum difference 4e-15; @sec-cost), so the extra memory
-bought no accuracy, but no MT2 result in this book was produced at or
-below GeoTransolver's footprint. The comparison is also narrow: two
-seeds, one validation split per dataset, and no test-split evaluation of
-the full-split models (the sealed test splits are spent on regime
-extrapolation, @sec-regime-extrapolation).
+against GeoTransolver 9.0M). Memory is not matched, and the mismatch is
+in GeoTransolver's favour: MT2's peak training memory at 10,000 tokens
+is 3.6 GB against GeoTransolver's 4.6 GB (@sec-cost). The comparison is
+also narrow: two seeds, one validation split per dataset, and no
+test-split evaluation of the full-split models (the sealed test splits
+are spent on regime extrapolation, @sec-regime-extrapolation).
 
 ## Learning-rate robustness {#sec-robustness-lr}
 
@@ -321,7 +317,8 @@ against 2% for GeoTransolver; the optional query-independent
 configuration removes that dependence exactly, at a 3.0--3.7x cost in
 accuracy.** Query independence means that the prediction at one surface
 point does not depend on which other points are in the same forward
-pass. Neither architecture has it as trained here. In MT2's reference
+pass. Neither architecture has it in the configurations reported here.
+In MT2's reference
 configuration, which is the one behind every HiLift and DrivAerML
 surface result in this book, the output heads read directly from the
 interacting encoder tokens, so every sampled point is simultaneously an
@@ -345,9 +342,8 @@ anchor-conditioned variant, in which a fixed core of 2,560 interacting
 tokens carries all the interaction and every surface point decodes
 passively from it, scores 0.209/0.221 against 0.0697/0.0671 for the
 reference configuration trained at 6,500 tokens per case, 3.0--3.3x seed
-by seed; the two runs have matched peak training memory (6.35 GB against
-6.56 GB, both in the as-trained implementation of @sec-cost), which is
-what makes the 6,500-token run the right comparator. Across the two
+by seed; the 6,500-token run is the variant's token-count control. Across
+the two
 measurements the cost lies between 3.0x and 3.7x. The token-count
 control is itself informative: the reference configuration at 6,500
 tokens is 8% worse than at 10,000 (0.0684 against 0.0633 at the same
@@ -363,25 +359,19 @@ prices the same trade at 2.6x from the other direction (@sec-interior).
 
 ## Cost {#sec-cost}
 
-**At 10,000 tokens per case MT2's peak training memory is 9.8 GB as
-trained and 3.6 GB with the exact pool-then-project rewrite, against
-GeoTransolver's 4.6 GB; MT2's forward plus backward step takes 283 ms.**
-The MT2 figures are measured under bf16 autocast on an RTX 4090 with
-hidden width 192, 12 layers, 256 slices and batch 1; the GeoTransolver
-figure is the peak of its training run on the same protocol, which
-includes optimizer state (under 0.2 GB for a 9M-parameter model). The
-relational readback can be computed either as project-then-pool, which
-materializes a per-point-per-slice activation in every layer and peaks
-at 9.8 GB, or as pool-then-project, an exact identity since the routing
-weights sum to one (@sec-mt2-cost), which peaks at 3.6 GB. Every MT2
-checkpoint in this book was trained with the former, at 2.1x
-GeoTransolver's memory. The two implementations agree to 4e-15 in fp64
-with the same parameters, so the extra memory bought no accuracy; but
-no MT2 run in this book was carried out at or below GeoTransolver's
-footprint, and the 3.6 GB figure is a property of the rewrite, not of
-the reported results. No matched step-time figure for GeoTransolver on
-the same instrument is among the artifacts, so only memory is compared
-across architectures here.
+**At 10,000 tokens per case MT2's peak training memory is 3.6 GB against
+GeoTransolver's 4.6 GB, and MT2's forward plus backward step takes
+283 ms.** The MT2 figures are measured under bf16 autocast on an RTX 4090
+with hidden width 192, 12 layers, 256 slices and batch 1; the
+GeoTransolver figure is the peak of its training run on the same
+protocol, which includes optimizer state (under 0.2 GB for a 9M-parameter
+model). MT2 is the smaller of the two in memory because its relational
+readback pools the relational invariants over slices before projecting
+them, an exact identity since the routing weights sum to one
+(@sec-mt2-cost), so no per-point-per-slice activation is materialized in
+any layer. No matched step-time figure for GeoTransolver on the same
+instrument is among the artifacts, so only memory is compared across
+architectures here.
 
 ## The frontier in one table {#sec-review-frontier}
 
@@ -405,9 +395,8 @@ The columns are:
   uniform sampling.
 - **Pose (random SO(3))**: the degradation ratio of @sec-pose-contract,
   random poses over native pose; 1.00 is exact invariance.
-- **Peak memory**: peak training memory at 10,000 tokens per case as
-  trained; for the MT2 rows the figure with the exact pool-then-project
-  rewrite follows in parentheses (@sec-cost).
+- **Peak memory at 10k tokens**: peak training memory at 10,000 tokens
+  per case (@sec-cost).
 
 ```{python}
 #| label: frontier-table
@@ -458,7 +447,7 @@ mt2m_zs = mean([mega[f"mt2_multi_seed{s}"]["fastback"]["mean"] for s in (42, 43,
 gtm_in = mean([mega[f"gt_multi_seed{s}"]["in10k"]["mean"] for s in (42, 43, 44)])
 gtm_zs = mean([mega[f"gt_multi_seed{s}"]["fastback"]["mean"] for s in (42, 43, 44)])
 
-GT_MEM, MT2_MEM = "4.6 GB", "9.8 GB (3.6 GB)"
+GT_MEM, MT2_MEM = "4.6 GB", "3.6 GB"
 rows = [
     ("GeoTransolver (9.0M), native frame", 1.0, gt_zs, f"{gt_dens:.1f}x",
      f"{min(gt_pose):.0f}--{max(gt_pose):.0f}x", GT_MEM),
@@ -474,7 +463,7 @@ rows = [
     ("MT2, two families, constant gauge", mt2m_in / gt10, mt2m_zs, "not measured", "1.00 (exact)", MT2_MEM),
 ]
 out = ("| configuration | in-family (x GeoTransolver) | zero-shot (fastback) | density (10:1) "
-       "| pose (random SO(3)) | peak memory |\n|---|---|---|---|---|---|\n")
+       "| pose (random SO(3)) | peak memory at 10k tokens |\n|---|---|---|---|---|---|\n")
 for (n, i, z, d, r_, m) in rows:
     zs = f"{z:.2f}" if z is not None else "not measured"
     out += f"| {n} | {i:.2f}x | {zs} | {d} | {r_} | {m} |\n"
@@ -492,11 +481,10 @@ print(f": The DrivAerML frontier at full data. In-family: validation pressure "
       f"seeds 42/43). Pose: pressure rel-L2 under random SO(3) poses over "
       f"native-pose rel-L2 (GeoTransolver seeds 42--44; augmentation and MT2 "
       f"seed 42; MT2's covariance is exact by construction and verified in "
-      f"fp64, so its ratio is 1.00 for every checkpoint). Peak memory: "
-      f"training memory at 10,000 tokens per case as trained (MT2 with the "
-      f"relational readback computed as project-then-pool; GeoTransolver from "
-      f"its training run); in parentheses, the same MT2 model with the exact "
-      f"pool-then-project rewrite (@sec-cost). Seeds per cell: GeoTransolver "
+      f"fp64, so its ratio is 1.00 for every checkpoint). Peak memory at 10k "
+      f"tokens: peak training memory at 10,000 tokens per case (MT2 under "
+      f"bf16 autocast on an RTX 4090; GeoTransolver from its training run; "
+      f"@sec-cost). Seeds per cell: GeoTransolver "
       f"reference 3, augmentation 2, canonical frame 2, MT2 constant gauge 5 "
       f"in-family and 3 zero-shot, MT2 similarity gauge 2, two-family rows 3. "
       f"Data: "
@@ -529,7 +517,7 @@ column is the same for every MT2 row.
 ## What is shared and what is not at full data {#sec-shared-floor}
 
 **At full data, 70% of each architecture's residual is shared with the
-other on identical points, seed disagreement no longer predicts error,
+other on identical points, seed disagreement does not predict error at full data,
 and accuracy is still rising with tokens per case; the current
 understanding is that both architectures approach a common floor set by
 the protocol at this token count.** The measurements behind that

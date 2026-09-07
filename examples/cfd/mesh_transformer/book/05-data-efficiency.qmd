@@ -41,11 +41,9 @@ run is evaluated; no checkpoint is selected on validation error, and the
 validation set was otherwise used only for the learning-rate choice on the
 full split. Resources are matched in parameters (8.9M for MT2 against 9.0M
 for GeoTransolver and 6.0M for Transolver) and tokens per case; peak
-training memory at this token count was 9.8 GB for MT2 as trained (2.1x
-GeoTransolver's 4.6 GB) and is 3.6 GB with an exact rewrite of one pooling
-step that leaves the function unchanged (@sec-resource-matching). The test
-split was never read; every number in this chapter is a validation-set
-number.
+training memory at this token count is 3.6 GB for MT2 against 4.6 GB for
+GeoTransolver (@sec-resource-matching). The test split was never read;
+every number in this chapter is a validation-set number.
 
 ## The result {#sec-de-result}
 

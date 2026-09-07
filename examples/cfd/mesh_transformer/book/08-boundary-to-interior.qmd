@@ -11,8 +11,8 @@ DrivAerML it costs 2.6x in interior pressure error. The deficit is
 smallest at the wall and grows with distance from it: the missing
 ingredient is volumetric context, not local detail. Two attempts to
 supply it without breaking the contract fail: off-surface latent tokens
-along anchor normals make MT2 worse, and an exact boundary-integral
-decoder from an earlier design of this program is 8x behind (a comparison
+along anchor normals make MT2 worse, and the exact-kernel
+MeshTransformer's boundary-integral decoder is 8x behind (a comparison
 that is not resource-matched: its parameter count on this task was not
 recorded) because potential flow is the wrong prior for a separated wake.
 
@@ -68,11 +68,7 @@ top of that, whose count was not recorded; the exact-kernel
 MeshTransformer's parameter count on this task was not recorded. Peak
 training memory was recorded only as a range across the arms, 4–9 GB at
 roughly 0.35 s per step, not per arm, so no row of @tbl-interior can be
-attributed a memory figure. The MT2 arms were trained with the
-project-then-pool implementation (9.8 GB as trained on the 10,000-token
-surface task; 3.6 GB with the exact pool-then-project rewrite,
-@sec-mt2), which computes the same function and cannot buy accuracy.
-GeoTransolver processes the 10,000 interior points as additional
+attributed a memory figure. GeoTransolver processes the 10,000 interior points as additional
 tokens, so it interacts over 20,000 tokens per case where MT2 interacts
 over 10,000; that difference is the design choice under test, not a
 confound to remove.

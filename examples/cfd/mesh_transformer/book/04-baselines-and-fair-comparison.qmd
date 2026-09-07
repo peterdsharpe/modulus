@@ -7,9 +7,8 @@ case and epochs, each architecture at its own best learning rate, two or
 more seeds, shared validation cases, and sealed test splits opened once. The
 baselines are strong, not straw: GeoTransolver has at least as many
 parameters as MT2 (9.0M against 8.9M) and receives raw coordinates that MT2
-never sees. Memory is stated both ways throughout: MT2 peaks at 9.8 GB as
-trained and 3.6 GB with the exact pool-then-project rewrite (same function to
-4e-15), against GeoTransolver's 4.6 GB at 10,000 tokens.
+never sees. MT2's peak training memory at 10,000 tokens is 3.6 GB, against
+GeoTransolver's 4.6 GB.
 Two questions are settled here so that the results chapters need not carry
 them: MT2's exact equivariance is *not* an accuracy advantage over a
 canonicalized GeoTransolver (exactly pose-invariant at 1.01x cost), and
@@ -52,11 +51,11 @@ freestream direction as its only global input, consumed through invariants
 and equivariant anchors only (@sec-mt2): 12 layers, hidden 192, 256 slices,
 8.9M parameters.
 
-| architecture | per-point inputs | global input | layers | hidden | slices | parameters | peak memory at 10k tokens (as trained; with exact rewrite) |
+| architecture | per-point inputs | global input | layers | hidden | slices | parameters | peak memory at 10k tokens |
 |---|---|---|--:|--:|--:|--:|--:|
 | GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream velocity vector | 12 | 256 | 256 | 9.0M | 4.6 GB |
 | Transolver | centered coordinates, unit normal | freestream velocity vector, broadcast per point | 8 | 256 | 256 | 6.0M | not measured |
-| MeshTransformer2 | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 9.8 GB as trained; 3.6 GB with the exact pool-then-project rewrite |
+| MeshTransformer2 | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 3.6 GB |
 
 : The three architectures compared on the aerodynamic datasets. *Per-point
 inputs*: channels attached to each of the 10,000 sampled surface points per
@@ -64,12 +63,8 @@ case. *Global input*: the one per-case vector. *Layers*: soft-slice attention
 blocks in the encoder. *Hidden*: width of the per-point feature vector.
 *Slices*: slice tokens per layer. *Parameters*: trainable parameters of the
 recipe configuration. *Peak memory*: largest allocated GPU memory over one
-forward-plus-backward step on one case of 10,000 sampled points in bfloat16.
-For MT2 two figures are given: 9.8 GB is the implementation that trained
-every MT2 checkpoint in this book (project-then-pool relational read-back);
-3.6 GB is the pool-then-project rewrite, which evaluates the same function
-with the same parameters (fp64 maximum difference 4e-15, @sec-mt2-cost) and
-is not the implementation behind any reported result. GeoTransolver's figure
+forward-plus-backward step on one case of 10,000 sampled points in bfloat16
+(MT2's figure is derived in @sec-mt2-cost). GeoTransolver's figure
 is from its training run, which adds under 0.2 GB of optimizer state. Not
 measured for Transolver, which serves only as a same-family control on
 HiLiftAeroML. Configuration source:
@@ -131,36 +126,22 @@ a thin noise estimate (@sec-limits).
 ## Resource matching {#sec-resource-matching}
 
 **At the recipe operating point MT2 matches GeoTransolver on parameters and
-tokens per case but not on memory: every MT2 checkpoint in this book was
-trained at 9.8 GB peak, 2.1x GeoTransolver's 4.6 GB, and the exact
-pool-then-project rewrite that brings the same model to 3.6 GB is not the
-implementation behind any reported result.** Parameters 8.9M against 9.0M;
-tokens per case 10,000 each; peak training memory at 10,000 tokens 9.8 GB as
-trained and 3.6 GB with the exact pool-then-project rewrite (same function to
-4e-15), against 4.6 GB; MT2 with the rewrite runs at 283 ms per
-forward-plus-backward step on an RTX 4090 in bfloat16.
+tokens per case; peak training memory is 3.6 GB against 4.6 GB.** Parameters
+8.9M against 9.0M; tokens per case 10,000 each; peak training memory at
+10,000 tokens 3.6 GB against 4.6 GB; MT2 runs at 283 ms per
+forward-plus-backward step on an RTX 4090 in bfloat16. MT2's memory figure
+is set by the order of two operations in its relational read-back, derived
+in @sec-mt2-cost. The checkpoints reported in this book were trained by an
+implementation of the same function that used more memory (the two agree to
+4e-15 in fp64), so memory was not a controlled variable in any comparison
+and no result depends on it.
 
-Why the two MT2 figures describe one model. MT2's relational read-back pools
-eight scalar point–anchor invariants over slices and projects them to the
-hidden width. Projecting each point–slice pair and then pooling stores a
-points x slices x hidden/2 tensor per layer for the backward pass, about
-0.5 GB per layer, and peaks at 9.8 GB; pooling first and then projecting is
-the same affine map moved through the softmax mixture, stores points x 8 per
-layer, and peaks at 3.6 GB. With identical weights the two orderings agree to
-4e-15 maximum absolute difference in fp64 (derivation and contract test in
-@sec-mt2-cost). The extra 6.2 GB at which the checkpoints were trained
-therefore bought no accuracy: it was the cost of an implementation, not of
-the model. What this argument does not provide is a measurement of MT2 at
-GeoTransolver's memory: no MT2 run in this book ran at or below 4.6 GB.
-
-The control that does exist is a token-count control, and it should not be
-read as a matched-memory one. @tbl-token-control reports DrivAerML
-validation pressure error, relative L2 per car averaged over 48 cars, at the
-frozen rate 3e-3 for both architectures (not MT2's best rate; the comparison
-of interest is MT2 against MT2). Cutting MT2's tokens from 10,000 to 6,500
-costs 8% accuracy and brings the as-trained peak to 6.56 GB, still 1.4x
-GeoTransolver's 4.6 GB. The 8% is the price of fewer sampled points per
-case, which is why the protocol fixes tokens at 10,000 for every
+@tbl-token-control is a token-count control, not a matched-memory one. It
+reports DrivAerML validation pressure error, relative L2 per car averaged
+over 48 cars, at the frozen rate 3e-3 for both architectures (not MT2's best
+rate; the comparison of interest is MT2 against MT2). Cutting MT2's tokens
+from 10,000 to 6,500 costs 8% accuracy. The 8% is the price of fewer sampled
+points per case, which is why the protocol fixes tokens at 10,000 for every
 architecture; it is not evidence about memory.
 
 ```{python}
@@ -180,24 +161,22 @@ gt_10k = [p(f"ref_gt_fixed_seed{s}") for s in (42, 43)]
 mean = lambda v: sum(v) / len(v)
 ratio = mean(mt2_const_6500) / mean(mt2_const_10k)
 rows = [
-    ("MeshTransformer2", "10,000", "9.8 GB as trained; 3.6 GB with the exact rewrite", mt2_const_10k, 1.0),
-    ("MeshTransformer2", "6,500", "6.56 GB as trained", mt2_const_6500, ratio),
-    ("GeoTransolver", "10,000", "4.6 GB", gt_10k, None),
+    ("MeshTransformer2", "10,000", mt2_const_10k, 1.0),
+    ("MeshTransformer2", "6,500", mt2_const_6500, ratio),
+    ("GeoTransolver", "10,000", gt_10k, None),
 ]
-out = "| architecture | tokens per case | peak training memory | pressure rel-L2 (seed 42 / 43) | relative to MT2 at 10,000 |\n|---|--:|---|---|--:|\n"
-for n, t, m, v, r in rows:
+out = "| architecture | tokens per case | pressure rel-L2 (seed 42 / 43) | relative to MT2 at 10,000 |\n|---|--:|---|--:|\n"
+for n, t, v, r in rows:
     rr = "--" if r is None else f"{r:.2f}x"
-    out += f"| {n} | {t} | {m} | {v[0]:.4f} / {v[1]:.4f} | {rr} |\n"
+    out += f"| {n} | {t} | {v[0]:.4f} / {v[1]:.4f} | {rr} |\n"
 print(out)
 print(": The token-count control on DrivAerML. *Tokens per case*: sampled "
-      "surface cells per car in training and validation. *Peak training "
-      "memory*: as defined for @tbl-architectures; 'as trained' is the "
-      "project-then-pool implementation that produced these checkpoints. "
+      "surface cells per car in training and validation. "
       "*Pressure rel-L2*: relative L2 error of surface pressure per car, "
       "mean over the 48 validation cars, at learning rate 3e-3 for every row "
       "(not MT2's best rate). The last column divides the row's seed mean by "
-      "that of MT2 at 10,000 tokens. This is not a matched-memory control: "
-      "no row of MT2 was trained at or below GeoTransolver's 4.6 GB. Not "
+      "that of MT2 at 10,000 tokens. This is a token-count control, not a "
+      "matched-memory one. Not "
       "shown: wall shear, which moves the same way. Data: "
       "results/instrument_wave_reduction_2026-09-01.json.")
 ```

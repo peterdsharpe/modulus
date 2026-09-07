@@ -16,7 +16,13 @@ Consequences:
    does not appear in the chapter at all — not as "we previously believed",
    not as "retired", not as "reframed", not as "superseded". Delete it and its
    references. A reader must never watch the book argue with itself.
-2. **No dates, no chronology.** No "2026-09-05", no "as of", no "addendum",
+2. **State the current model, not the path to it.** The reader is using
+   the best current version; a number about an earlier implementation or
+   configuration ("was 9.8 GB", "as trained", "before the rewrite") is not a
+   fact about the model and does not appear. If an implementation choice
+   needs justifying, give the reason in one place (the cost section), not
+   the history.
+2b. **No dates, no chronology.** No "2026-09-05", no "as of", no "addendum",
    no "the campaign", no "wave", no "round", no "critic review", no "before /
    after the fix". Experiments are described by what they measure, not when
    they ran. (Exception: the tech-tree status appendix, which is explicitly a

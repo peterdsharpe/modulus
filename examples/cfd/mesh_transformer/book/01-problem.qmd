@@ -180,10 +180,9 @@ orientation. Dimensionless scalars may modulate everything freely, because
 a scalar breaks no symmetry. Which of these properties an architecture
 enforces by construction and which it learns from data is the subject of
 @sec-mt2, on MeshTransformer2,^[The code class is `MeshTransformer2`; an
-earlier exact-kernel design of the same name was retired from this book
-after its boundary-integral prior failed on separated flow
-(@sec-interior), and its chapters are kept in the repository's
-`book/archive/` directory.] and @sec-baselines, on GeoTransolver and
+unrelated earlier exact-kernel design shared the name and is documented in
+the repository's `book/archive/` directory, outside this book.] and
+@sec-baselines, on GeoTransolver and
 Transolver; none of the three requires knowing the PDE.
 
 ### Parametric and boundary-condition-driven families {#sec-parametric}
@@ -272,7 +271,7 @@ HiLiftAeroML is 1,800 cases: 180 high-lift wing geometries — flap and slat
 settings sampled by Latin hypercube — each simulated at 10 angles of attack
 from $4^\circ$ to $22^\circ$. Each case supplies surface pressure, velocity
 and wall shear on the wing, together with the freestream direction, which
-now varies from case to case. Because the design is a full grid, every
+varies from case to case. Because the design is a full grid, every
 geometry appears at every angle, and the dataset supports splits along
 three independent directions: how many cases, which angles, and which
 geometries, and the cases span attached flow through stall. This is the
@@ -593,14 +592,8 @@ lab notebook (@sec-notebook).
 count, the tokens per case and the peak training memory of both sides in
 the same sentence. At 10,000 tokens per case MeshTransformer2 has 8.9
 million parameters and GeoTransolver 9.0 million; tokens per case and
-epochs are identical. Peak training memory is stated as two numbers for
-MeshTransformer2, because they differ: every MeshTransformer2 checkpoint
-in this book was trained by an implementation that peaked at 9.8 GB, 2.1x
-GeoTransolver's 4.6 GB; the exact pool-then-project rewrite of the same
-computation — same parameters, same function, float64 maximum difference
-$4\times10^{-15}$ — brings the same model to 3.6 GB. Every memory
-statement in the book carries both figures ("9.8 GB as trained; 3.6 GB
-with the exact pool-then-project rewrite"), and no MeshTransformer2 run
-reported here trained at or below GeoTransolver's 4.6 GB. Every figure and
-table caption ends with the artifact in `results/` from which it is
-computed, and every figure is drawn from that artifact at render time.
+epochs are identical. Peak training memory at 10,000 tokens is 3.6 GB for
+MeshTransformer2 and 4.6 GB for GeoTransolver (@sec-resource-matching).
+Every figure and table caption ends with the artifact in `results/` from
+which it is computed, and every figure is drawn from that artifact at
+render time.

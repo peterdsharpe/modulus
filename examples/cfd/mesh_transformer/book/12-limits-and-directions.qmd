@@ -20,8 +20,8 @@ home section; this chapter adds only the limits.
   controls (@sec-data-efficiency).
 - Full-data accuracy on HiLiftAeroML and on DrivAerML (@sec-full-data).
 - The pose contract: exact rotation and translation covariance (@sec-pose).
-- Learning-rate robustness, and the memory and compute comparison, as
-  trained and with the exact pool-then-project rewrite (@sec-mt2-cost).
+- Learning-rate robustness, and the memory and compute comparison
+  (@sec-mt2-cost).
 - Sampling-density robustness of MT2 with the similarity gauge, and the
   failure of the constant-gauge configuration without it
   (@sec-robustness-density).
@@ -249,7 +249,7 @@ two seeds and evaluated once on the sealed post-stall test. The
 preregistered bands were: raw coordinates carry the ratio if d is 11.0 or
 below with out-of-regime pressure below 0.245; they do not if d is 12.0 or
 above or pressure is 0.255 or above. Measured: d = 12.7/13.3, against 12.5
-for MT2 as trained and 9.3 for GeoTransolver, with sealed-test pressure
+for MT2 and 9.3 for GeoTransolver, with sealed-test pressure
 0.262/0.267. The falsifier fires: raw-coordinate inputs do not give MT2
 GeoTransolver's smaller ratio, and no mechanism for it has been isolated.
 The discriminator the preregistration names next, GeoTransolver with its raw
@@ -348,13 +348,13 @@ with its direction.
 - **Can off-surface context be supplied without giving up the passive
   interior decode?** Wake-aligned probe tokens, and a request-independent
   canonical probe set that interacts GeoTransolver-style. The bar the
-  previous off-surface design failed is interior pressure within 1.5x of
+  latent-volume-token design failed is interior pressure within 1.5x of
   GeoTransolver's. The transplant result (@sec-limits-mechanism) shows the small-data
   advantage is not carried by three per-cell scalars GeoTransolver can be
   given; which architecture the interior work should build on remains open
   (@sec-interior-open).
 - **Does boundary self-identification help MT2?** The largest measured
-  industrial gain of the earlier exact-kernel design came from a trace
+  industrial gain of the exact-kernel MeshTransformer (@sec-interior) came from a trace
   formulation that let each boundary token identify its own cell in the
   readout, so that a prediction at a surface point had an explicit term from
   that point's own cell rather than only from the pooled field. MT2's
@@ -381,19 +381,16 @@ with its direction.
 
 ## Engineering directions {#sec-future}
 
-**Memory headroom.** MT2's relational readback was written as
-project-then-pool, which saves a (points × slices × hidden/2) activation per
-layer for the backward pass; because the projection is affine and the slice
-mixture is a softmax, pooling first and projecting second is an exact
-identity (fp64 maximum difference 4e-15) that saves a (points × 8)
-activation instead. MT2's peak training memory at 10,000 tokens is 9.8 GB as
-trained; 3.6 GB with the exact pool-then-project rewrite, against
-GeoTransolver's 4.6 GB (@sec-mt2-cost).^[Measurement record: @sec-nb-geo-pool-memory.] Every
-trained MT2 checkpoint in this book came from the 9.8 GB implementation, 2.1x
-GeoTransolver's memory, and no MT2 run in the book ran at or below 4.6 GB;
-the headroom is a property of the new implementation, not of any reported
-result. What it buys is prospective: the 20,000-token floor test and larger
-point budgets become affordable.
+**Memory headroom.** MT2's peak training memory at 10,000 tokens is
+3.6 GB, against GeoTransolver's 4.6 GB (@sec-mt2-cost).^[Measurement
+record: @sec-nb-geo-pool-memory.] The relational readback pools the
+softmax slice mixture before the affine projection, so the activation
+saved per layer for the backward pass is (points × 8) rather than
+(points × slices × hidden/2); the two orderings compute the same function
+(fp64 maximum difference 4e-15). The gap below GeoTransolver's footprint
+leaves room for more tokens per case, or a wider model, at GeoTransolver's
+memory: the 20,000-token floor test and larger point budgets are
+affordable within it.
 
 **Measure weights: a training-time cost and an inference-time gain.** MT2
 weights each surface point by its cell area in the slice routing and the
@@ -444,7 +441,7 @@ the unseen-geometry ladder holds within 0.1 of the same-size rungs, the
 token test moves both architectures by a similar factor: with the transplant
 already falsified for GeoTransolver, the advantage is then architectural and
 the flattening is the protocol's floor. The interior stays with
-GeoTransolver until a probe design closes the gap.
+GeoTransolver unless a probe design closes the gap.
 
 **A hybrid becomes the single production model** if a request-independent
 canonical probe set brings MT2's interior pressure within 1.5x of

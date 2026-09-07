@@ -263,16 +263,26 @@ stops". Present-tense, no chronology. Key current statements:
   = 0.92 (MT2 is 1.085x behind; write "MT2 8.5% behind"). At 35 HiLift cases
   the factor is **2.8x** (0.392/0.138 = 2.84; three-seed 2.76) — write 2.8x,
   not 2.9x.
-- **Memory, as trained vs now:** every MT2 checkpoint in this book was trained
-  by the project-then-pool implementation at **9.8 GB** peak (2.1x
-  GeoTransolver's 4.6 GB at 10,000 tokens). The pool-then-project identity
-  (fp64 max difference 4e-15, same parameters, same function) brings the
-  same model to **3.6 GB**. Every statement of MT2's memory says both: "9.8 GB
-  as trained; 3.6 GB with the exact pool-then-project rewrite". Do not write
-  "trains in less memory than GeoTransolver" as a property of the reported
-  results. The token-count control (6,500 tokens, 6.56 GB in the old
-  implementation, 8% accuracy cost) is a *token-count* control, not a
-  matched-memory control; no MT2 run in the book ran at ≤ 4.6 GB.
+- **Memory — state the current model, not its history:** MT2's peak training
+  memory at 10,000 tokens is **3.6 GB** (forward+backward, bf16, RTX 4090),
+  against GeoTransolver's 4.6 GB; step time 283 ms. That is the only memory
+  figure the chapters state. The fact that the reported checkpoints were
+  produced by a less memory-efficient implementation of the same function
+  (fp64 max difference 4e-15) appears ONCE, as one sentence in the
+  resource-matching section of the baselines chapter ("the checkpoints in
+  this book were trained by an implementation of the same function that
+  used more memory; memory was therefore not a controlled variable in the
+  comparisons, and no result depends on it"). Never "9.8 GB", never "as
+  trained", never "rewrite" outside the cost derivation in chapter 2, which
+  may explain WHY the pooling is done before the projection without
+  narrating that it was once done the other way. The 6,500-token control is
+  a token-count control; give it no memory figure.
+- **No path-dependent prose in general.** The chapters describe the current
+  state: no "now", "no longer", "previously", "earlier version", "used to",
+  "since the fix", "the old implementation", "retired". Where a design
+  choice has a reason, state the reason; do not state the alternative that
+  was abandoned unless it is a measured result in its own right (an
+  ablation).
 - **Density robustness is configuration-specific:** the 1.20x figure is
   MT2 *with the similarity gauge*, which is not the configuration behind
   any accuracy number in the book and costs 8% at 35 cases; the

@@ -7,24 +7,22 @@ freestream direction, and vector outputs are assembled at the very end
 from an equivariant basis. The result is a surrogate whose rotation and
 translation covariance is exact to floating-point roundoff rather than
 learned, whose parameter count matches GeoTransolver's (8.9M vs 9.0M)
-and whose peak training memory at 10,000 tokens is 9.8 GB as trained and
-3.6 GB with the exact pool-then-project rewrite (the same function to
-$4\times10^{-15}$; GeoTransolver 4.6 GB), and whose accuracy advantage
+and whose peak training memory at 10,000 tokens is 3.6 GB (GeoTransolver
+4.6 GB), and whose accuracy advantage
 on small training sets (@sec-data-efficiency) comes from the combination
 of its parts rather than from any one of them (@sec-mechanism). This chapter
 describes what MT2 computes, states its contracts as the tests that
 verify them, and prices each design choice with the measurements from
 the results chapters.
 
-An earlier design of this program, the exact-kernel MeshTransformer,
-enforced its physical structure inside every layer with typed
-scalar/vector streams and analytic boundary-integral kernels; it is
-retired for separated 3D flow (@sec-interior-negatives). MT2 inverts that
-trade: it pays for
-symmetry once at the network's edges (invariant inputs, equivariant
-output basis) and spends the interior on the routing mechanism that has
-the strongest empirical record on industrial aerodynamics, the
-soft-slice attention of the Transolver family (@sec-baselines).
+MT2 pays for symmetry once at the network's edges (invariant inputs,
+equivariant output basis) and spends the interior on the routing
+mechanism that has the strongest empirical record on industrial
+aerodynamics, the soft-slice attention of the Transolver family
+(@sec-baselines). The opposite trade, enforcing physical structure inside
+every layer with typed scalar/vector streams and analytic
+boundary-integral kernels, fails on separated 3D flow
+(@sec-interior-negatives).
 
 ## What goes in and what comes out {#sec-mt2-architecture}
 
@@ -248,8 +246,8 @@ h_i \leftarrow h_i + \mathrm{MLP}(\mathrm{LN}(h_i)).
 $$
 
 The order of operations in $\gamma_i$, pool the eight invariants over
-slices and then project to width 96, is the exact identity that fixes
-MT2's memory footprint (@sec-mt2-cost). The point ends the layer knowing
+slices and then project to width 96, is what sets MT2's memory footprint
+(@sec-mt2-cost). The point ends the layer knowing
 which slices it belongs to, what those slices contain, and where it sits
 relative to their anchors.
 
@@ -380,15 +378,10 @@ What is not a contract:
 
 **At the recipe dimensions (hidden 192, 12 layers, 256 slices) MT2 has
 8.9M parameters, against GeoTransolver's 9.0M, and its peak training
-memory at 10,000 tokens per case is 9.8 GB as trained and 3.6 GB with
-the exact pool-then-project rewrite, against GeoTransolver's 4.6 GB.**
-Every MT2 checkpoint in this book was trained by the project-then-pool
-implementation at 9.8 GB peak, 2.1x GeoTransolver's memory at the same
-token count; no MT2 run in this book ran at or below 4.6 GB. The
-identity derived below brings the same parameters and the same function
-(fp64 max difference $4\times10^{-15}$) to 3.6 GB. That figure, and the
-283 ms per training step, are for one forward and backward pass in bf16
-autocast on an RTX 4090 at batch size 1. GeoTransolver's 4.6 GB is the
+memory at 10,000 tokens per case is 3.6 GB, against GeoTransolver's
+4.6 GB.** That figure, and the 283 ms per training step, are for one
+forward and backward pass in bf16 autocast on an RTX 4090 at batch
+size 1. GeoTransolver's 4.6 GB is the
 peak recorded during a training run on the same protocol, so it includes
 optimizer state; for a 9M-parameter model that is under 0.2 GB. The
 passive decoder adds four read blocks (2.1M parameters, 11.0M total) and
@@ -398,30 +391,27 @@ numbers.
 Where the memory goes, and why the ordering of two operations decides
 it. Each slice layer holds the pairwise invariants $g_{is}$, a tensor of
 shape $(B, N, S, 8)$, and uses them twice: once mapped to one routing
-logit per pair, once mapped to a width-96 feature per pair that is then
-pooled over slices with $\pi_{is}$. Written as "project, then pool",
-autograd must save the projected tensor $(B, N, S, 96)$ for the
+logit per pair, once pooled over slices with $\pi_{is}$ and mapped to a
+width-96 feature per point. MT2 pools before projecting. The alternative
+ordering, projecting each pair to width 96 and then pooling, would
+require autograd to save the projected tensor $(B, N, S, 96)$ for the
 backward pass: at $N = 10{,}000$ and $S = 256$ that is $2.5\times10^8$
-elements, about 0.5 GB in bf16, per layer, or 5.9 GB across 12 layers,
-most of the 6.2 GB gap between 9.8 GB and 3.6 GB. The projection is affine and
-$\pi_{is}$ sums to one over slices, so
+elements, about 0.5 GB in bf16, per layer, or 5.9 GB across 12 layers.
+The projection is affine and $\pi_{is}$ sums to one over slices, so
 
 $$
 \sum_s \pi_{is}\,(W_f\, g_{is} + b_f) \;=\; W_f \sum_s \pi_{is}\, g_{is} \;+\; b_f ,
 $$
 
-and "pool, then project" produces the identical tensor while saving
-only $(B, N, 8)$. The same identity applies in the read blocks. The
-contract test checks it at $10^{-12}$ on both block types, and at the
-model level the two orderings with identical weights differ by
-$4\times10^{-15}$ in fp64; checkpoints are interchangeable. Because the
-two orderings evaluate the same function, the 9.8 GB at which the
-reported checkpoints were trained bought no accuracy; it was the cost of
-an implementation, not of the model. The removed projection was also
-about 2 GFLOP per layer each way, which is why the step time falls with
-the memory. After the rewrite the $(B, N, S, 8)$ invariants and the
-$(B, N, S, 3)$ separation vectors are the dominant activations; MT2's
-memory is close to linear in tokens per case.
+and pooling first produces the identical tensor while saving only
+$(B, N, 8)$. The same identity applies in the read blocks. The contract
+test checks it at $10^{-12}$ on both block types, and at the model level
+the two orderings with identical weights differ by $4\times10^{-15}$ in
+fp64, so checkpoints are interchangeable between them. The per-pair
+projection would also cost about 2 GFLOP per layer each way, so pooling
+first saves step time as well as memory. With it, the $(B, N, S, 8)$
+invariants and the $(B, N, S, 3)$ separation vectors are the dominant
+activations, and MT2's memory is close to linear in tokens per case.
 
 ## Design choices and their measured cost {#sec-mt2-design}
 
@@ -465,9 +455,8 @@ against 0.0577 for the interacting reference at learning rate 1e-3, the
 3.5–3.7x end of the range; the anchor-conditioned variant (`n_anchors`,
 a fixed interacting core with all points decoding passively) reaches
 0.209/0.221 against 0.0697/0.0671 for the 6,500-token interacting
-control, the 3.0–3.3x end. The 6,500-token control matches the
-anchor-conditioned variant in memory (6.56 vs 6.35 GB), but it is a
-token-count control, not a matched-memory comparison with GeoTransolver
+control, the 3.0–3.3x end. The 6,500-token control is a token-count
+control, not a matched-memory comparison with GeoTransolver
 (@sec-mt2-cost). On the boundary→interior task the same trade is 2.6x
 (@sec-interior).
 

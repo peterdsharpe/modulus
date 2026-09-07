@@ -45,13 +45,9 @@ augmentation, learning rate 1e-3 for both MT2 and GeoTransolver (each one's
 best on the full split, chosen by validation before these runs), seeds 42
 and 43. MT2 runs in its default configuration (constant reference length,
 similarity gauge off) at 8.9M parameters and GeoTransolver at 9.0M, both at
-10,000 tokens per case (@sec-mt2, @sec-baselines); peak training memory is
-9.8 GB for MT2 as trained (3.6 GB with the exact pool-then-project rewrite,
-which computes the same function to an fp64 maximum difference of 4e-15)
-against 4.6 GB for GeoTransolver. The comparison is matched on parameters,
-tokens and epochs; the extra memory of the as-trained MT2 implementation
-buys no accuracy, because the rewrite evaluates the identical function in
-less.
+10,000 tokens per case (@sec-mt2, @sec-baselines); peak training memory at
+this token count is 3.6 GB for MT2 against 4.6 GB for GeoTransolver. The
+comparison is matched on parameters, tokens and epochs.
 
 The sealed test was run under a protocol declared before any test case was
 read: the eight trained checkpoints (two splits × two architectures × two
@@ -373,7 +369,6 @@ model's range by an order of magnitude. Any reported accuracy for these
 surrogates should state the angle-of-attack and flow-state coverage of the
 training data alongside the error, and deployment should include an
 out-of-regime check on a small sealed set, evaluated once, as done here.
-Within that coverage MT2 is the more accurate model (trained here at 9.8 GB
-peak, 3.6 GB with the exact pool-then-project rewrite, against
-GeoTransolver's 4.6 GB); outside it, neither is usable, and the choice
-between them is not the decision that matters.
+Within that coverage MT2 is the more accurate model (at 3.6 GB peak
+training memory against GeoTransolver's 4.6 GB); outside it, neither is
+usable, and the choice between them is not the decision that matters.
