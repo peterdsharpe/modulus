@@ -1,4 +1,32 @@
 {
+ "ctrl_hl_gt_scarce_lr1e3_ep1000_seed42": {
+  "pressure_l2": 0.15195,
+  "temperature_l2": 0.12061,
+  "density_l2": 0.20336,
+  "velocity_x_l2": 0.12518,
+  "velocity_y_l2": 0.51061,
+  "velocity_z_l2": 0.27213,
+  "velocity_l2": 0.17269,
+  "tau_wall_x_l2": 0.21446,
+  "tau_wall_y_l2": 0.54175,
+  "tau_wall_z_l2": 0.31148,
+  "tau_wall_l2": 0.27324,
+  "n_cases": 180
+ },
+ "ctrl_hl_gt_scarce_lr1e3_ep1000_seed43": {
+  "pressure_l2": 0.12786,
+  "temperature_l2": 0.10605,
+  "density_l2": 0.17186,
+  "velocity_x_l2": 0.11545,
+  "velocity_y_l2": 0.47196,
+  "velocity_z_l2": 0.23881,
+  "velocity_l2": 0.15767,
+  "tau_wall_x_l2": 0.19366,
+  "tau_wall_y_l2": 0.50318,
+  "tau_wall_z_l2": 0.26999,
+  "tau_wall_l2": 0.2462,
+  "n_cases": 180
+ },
  "ctrl_hl_gt_scarce_lr3e3_ep500_seed42": {
   "pressure_l2": 0.22017,
   "temperature_l2": 0.16715,
@@ -109,6 +137,34 @@
   "tau_wall_y_l2": 0.39707,
   "tau_wall_z_l2": 0.20887,
   "tau_wall_l2": 0.19464,
+  "n_cases": 180
+ },
+ "t1_hl_transolver_scarce_lr3e3_seed42": {
+  "pressure_l2": 0.08919,
+  "temperature_l2": 0.08647,
+  "density_l2": 0.11644,
+  "velocity_x_l2": 0.09093,
+  "velocity_y_l2": 0.36356,
+  "velocity_z_l2": 0.17837,
+  "velocity_l2": 0.12196,
+  "tau_wall_x_l2": 0.1529,
+  "tau_wall_y_l2": 0.40366,
+  "tau_wall_z_l2": 0.20988,
+  "tau_wall_l2": 0.195,
+  "n_cases": 180
+ },
+ "t1_hl_transolver_scarce_lr3e3_seed43": {
+  "pressure_l2": 0.08321,
+  "temperature_l2": 0.0824,
+  "density_l2": 0.10924,
+  "velocity_x_l2": 0.08793,
+  "velocity_y_l2": 0.34527,
+  "velocity_z_l2": 0.17177,
+  "velocity_l2": 0.11723,
+  "tau_wall_x_l2": 0.14686,
+  "tau_wall_y_l2": 0.38416,
+  "tau_wall_z_l2": 0.19999,
+  "tau_wall_l2": 0.18625,
   "n_cases": 180
  },
  "t1_hl_transolver_super_scarce_lr1e3_seed42": {

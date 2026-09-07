@@ -5746,3 +5746,35 @@ data). If they do not, the program has excluded inputs, exactness,
 seeds, weights, gauge and encoder routing, and the remaining structure
 (passive relational decoder + slice MLP) becomes the object of the next
 discriminator. The sealed test split is not touched.
+
+## 2026-09-06 — Steel-man controls complete (4 of 4) and Transolver's better learning rate at 210 read out: the data-efficiency ladder is final — 2.9x at 35, 1.3–2.5x at 210, parity at 1,260 {#sec-nb-ctrl-complete}
+
+**Result** (shared 180-case val, pressure rel-L2, 2 seeds;
+`results/t1_transolver_control_reduction_2026-09-05.json`, refreshed):
+
+| arm | s42 / s43 | vs MT2 at the same rung |
+|---|---|---|
+| GeoTransolver, 210 cases, lr 1e-3, **1,000 epochs** | 0.152 / 0.128 | 2.2x (MT2 0.064) |
+| Transolver, 210 cases, **lr 3e-3** | 0.089 / 0.083 | **1.34x** |
+
+**Controls.** The last GeoTransolver control is the only one of the four
+that beat its ladder lane (0.140 mean vs 0.159, 1.13x), which says
+GeoTransolver at 210 cases was mildly under-trained at 500 epochs; it
+remains 2.2x behind MeshTransformer2 (MT2) and nowhere near the
+preregistered falsifier (1.2x MT2 = 0.077). Across the four controls —
+higher learning rate and doubled epochs at both small rungs — the best
+GeoTransolver result at 35 cases is 0.373 (bar 0.166) and at 210 cases
+0.128 (bar 0.077). **The data-efficiency result is not a protocol
+artefact of learning rate or training length.** The hero figure's
+provisional status is lifted.
+
+**Transolver.** At 210 cases the higher learning rate helps Transolver
+slightly (0.086 vs 0.0905 mean), as predicted (0.08–0.10 band); the
+falsifier of the 1.4x statement (≤ 0.070) did not fire. The final
+same-family number at 210 is **1.34x MT2**, and the hero figure — which
+picks each baseline's better learning rate per rung — now shows 1.3x.
+
+**Final ladder statement.** Against GeoTransolver: 2.9x / 2.5x / 1.0x at
+35 / 210 / 1,260 cases. Against plain Transolver (no geometry encoder):
+2.9x / 1.3x / (not run). The mechanism is the open question, and the INV
+transplant (@sec-nb-inv-prereg) is the running test.
