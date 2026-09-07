@@ -5778,3 +5778,89 @@ picks each baseline's better learning rate per rung — now shows 1.3x.
 35 / 210 / 1,260 cases. Against plain Transolver (no geometry encoder):
 2.9x / 1.3x / (not run). The mechanism is the open question, and the INV
 transplant (@sec-nb-inv-prereg) is the running test.
+
+## 2026-09-06 — The slope objection, answered honestly, and the W2 wave preregistered: power (third seed), curve fill (510-case rung), floor test (20k tokens), mechanism (single-AoA split), engineering readout (forces) {#sec-nb-w2-prereg}
+
+**The objection.** An adversarial reader of @fig-hilift-data-efficiency
+can say: MeshTransformer2 (MT2) wins at small n by *flattening* the
+scaling curve, so extrapolated to, say, 5,000 cases GeoTransolver would
+be ahead. The measured log-log segment slopes support the premise:
+
+| segment | GeoTransolver | MT2 |
+|---|---|---|
+| 35 → 210 cases | 0.50 | 0.43 |
+| 210 → 1,260 cases | 0.74 | 0.25 |
+
+GeoTransolver steepens; MT2 flattens. A power-law extrapolation to
+5,000 cases gives ≈ 0.015 for GeoTransolver and ≈ 0.029 for MT2.
+
+**The response.** (i) The claim is a *data-efficiency* claim in the
+regime where every production CFD dataset in this program lives
+(35–1,260 cases); it is not a scaling-law claim and the book will not
+make one. (ii) The flattening may be a **shared floor**, not an MT2
+property: at full data the two architectures share 70% of their
+residual on identical points (N1, @sec-nb-n1-verdict) and accuracy still
+rises with tokens per case (V6: 6,500 → 10,000 tokens was worth 8%),
+which is what a resolution or label floor looks like. If both are
+approaching the same floor, GeoTransolver's steep segment cannot
+continue either. (iii) Structure-versus-flexibility is the expected
+shape (bias–variance): a model with more built-in prior starts lower and
+has less left to learn from data. (iv) The way to *defeat* rather than
+concede the objection is the INV transplant (@sec-nb-inv-prereg): if the
+carrier is the drive-relative invariant inputs, GeoTransolver plus those
+three features should inherit MT2's small-data floor while keeping its
+own large-data slope, dominating at every n.
+
+**W2 wave, preregistered before any of it runs.** All lanes use the
+frozen ladder protocol (500 epochs, 10,000 tokens unless stated, bf16,
+no augmentation, lr 1e-3 for GeoTransolver and MT2, 3e-3 for
+Transolver, shared val) and `highlift/hl_wave2_aga.sbatch` with a lane
+table (`highlift/wave2_lanes.tsv`). Splits are the dataset's own curated
+manifests (`splits.md`): `super_scarce` ⊂ `scarce` ⊂ `medium` ⊂ `full`
+are nested with the same 180-case val; `single_aoa_12` holds 126
+geometries at a single angle of attack with its own 18-geometry val.
+
+- **W2-A power: third seed (44)** at 35 and 210 cases for MT2,
+  GeoTransolver and Transolver (6 lanes). *Prediction:* every seed-44
+  result lands inside the seed-42/43 spread ×1.5; *falsifier:* any
+  architecture's third seed moves its rung mean by more than 15%.
+  Reported together with the paired per-case statistics on the 180
+  shared val cases (fraction of cases MT2 wins; sign-test p), computed
+  now from the existing evaluations
+  (`results/hilift_paired_stats_2026-09-06.json`).
+- **W2-B curve fill: the 510-case `medium` rung** for MT2,
+  GeoTransolver, and Transolver at both learning rates (8 lanes).
+  *Prediction in readout units:* GeoTransolver 0.075–0.095, MT2
+  0.048–0.056 (MT2/GT ≈ 0.6, continuing the monotone 0.35 → 0.41 → 0.98
+  approach to parity). *Falsifier for the "smooth approach to a shared
+  floor" reading:* MT2/GT at 510 ≥ 0.9 (parity already, i.e. MT2's curve
+  is flat from 210 on) — that would mean the crossover is near 1,260 and
+  the slope objection stands in full.
+- **W2-C floor test: 1,260 cases at 20,000 tokens** for MT2 and
+  GeoTransolver (4 lanes). *Prediction if the floor is the protocol's:*
+  both improve by a similar factor (within 5 percentage points of each
+  other; the V6 token effect suggests 5–10%). *Falsifier (objection
+  stands):* GeoTransolver improves by ≥ 10 percentage points more than
+  MT2.
+- **W2-D mechanism: single angle of attack.** MT2 vs GeoTransolver on
+  `single_aoa_12` (126 geometries, AoA fixed at 12°, val 18) and on a
+  matched-size mixed-AoA control `mixed126` (126 cases drawn from
+  `full_train` with a fixed seed, val = the shared 180), 2 seeds each
+  (8 lanes). The drive-invariant hypothesis says MT2's advantage comes
+  from representing the freestream-direction dependence exactly, so it
+  should be *absent* when the direction is fixed (as on DrivAerML) and
+  present when it varies. *Prediction:* MT2/GT ≈ 0.40–0.55 on
+  `mixed126`; MT2/GT ≥ 0.80 on `single_aoa_12`. *Falsifier:* MT2/GT
+  ≤ 0.60 on `single_aoa_12` → the carrier is not the direction
+  dependence.
+- **W2-E engineering readout, no compute:** lift and drag coefficient
+  errors from the existing 35- and 210-case evaluations (the recipe's
+  inference already integrates CD/CL per case). Reported as MAE relative
+  to the mean magnitude, per architecture; a first look at 35 cases
+  shows MT2's CL error 3.2x smaller than GeoTransolver's (19,100 vs
+  60,500 in the dataset's dimensional force units; 3.1% vs 9.7% of the
+  mean) — recorded here before the full table so it cannot be
+  cherry-picked later.
+
+Budget: 26 new lanes (104 GPUs) plus the 6 running; within the 128-GPU
+envelope. The sealed test splits are not touched.
