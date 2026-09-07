@@ -26,7 +26,9 @@ geometries never seen in training, and after every steel-man control we could
 construct for the baselines (higher learning rate, doubled epochs, the same
 attention family without a geometry encoder); a third seed reproduces it. In
 engineering terms, from 35 CFD runs ISLA predicts lift and drag coefficients of
-unseen configurations to about 3%, where the baselines reach 8–17%. It does
+unseen configurations to about 3%, where the baselines reach 8–17%; at a
+fixed angle of attack, 126 geometries give ISLA lift to 0.6% and a 5.0x
+advantage over GeoTransolver on 18 never-seen geometries. It does
 not transfer to DrivAerML, where the freestream is fixed: there GeoTransolver
 is 1.2–1.3x more accurate than ISLA from 27 training cases up. At full data the
 two architectures are at parity on HiLiftAeroML (GeoTransolver/ISLA = 1.02) and
@@ -157,9 +159,10 @@ flattens where GeoTransolver's steepens: a naive power-law extrapolation of the
 two curves puts GeoTransolver at 0.015 and ISLA at 0.029 at 5,000 cases, a
 factor of two in GeoTransolver's favour (@sec-limits). The HiLift accuracy
 figures are validation-set figures (final-epoch checkpoints, no checkpoint
-selection; the sealed test was spent on regime extrapolation). The mechanism that carries the advantage is
-not yet identified: no single ISLA ingredient accounts for more than 16% of
-it (@sec-mechanism). ISLA's exact equivariance is a contract, not an
+selection; the sealed test was spent on regime extrapolation). The advantage is geometry generalization — at a
+fixed angle of attack on 18 never-seen geometries ISLA is 5.0x more accurate
+than GeoTransolver — but the ingredient that carries it is not identified: no
+single ISLA ingredient accounts for more than 16% of it (@sec-mechanism). ISLA's exact equivariance is a contract, not an
 in-distribution accuracy edge on vehicle data: GeoTransolver trained in a
 canonical frame is exactly pose-invariant at 1% cost (@sec-pose). Neither
 architecture generalizes across a flow-regime boundary, and neither

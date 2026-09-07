@@ -398,13 +398,25 @@ quarter of the log-gap, inside the inconclusive band); GeoTransolver does
 not move (0.392 to 0.394, in the falsifier band). The invariant inputs are
 therefore not the carrier for GeoTransolver and at most a partial
 contributor for Transolver.^[`results/inv_transplant_2026-09-07.json`]
-What the program can say is that the advantage is a property of ISLA's
-soft-slice design as a whole — equivariant anchors, relational routing and
-readback, measure-weighted aggregation, invariant seeds, and the training
-dynamics they induce together — and that no single transplantable ingredient
-has been isolated. Two tests that could still locate where the advantage
-lives, a single-angle split and an unseen-geometry ladder, are not yet
-measured (@sec-program-status).
+The single-angle split settles *where* the advantage lives. The dataset's
+`single_aoa_12` split holds 126 geometries at one angle of attack (12°) and
+validates on 18 geometries never seen at any angle. If ISLA's edge came from
+representing the freestream-direction dependence, it should vanish here; the
+preregistered bar was GeoTransolver/ISLA ≤ 1.25, with ≥ 1.67 as the
+falsifier. Measured: ISLA 0.035 / 0.036 against GeoTransolver 0.175 / 0.183
+— **5.0x**, on 18 of 18 held-out geometries (per-geometry ratios 4.0–6.4),
+with lift to 0.6% and drag to 1.6% against 2.0% and 3.9%.^[`results/w2_reduction_2026-09-07.json`,
+arm `D_single_aoa_12`.] Fixing the angle makes the gap *larger*, not
+smaller. What ISLA does with few samples is generalize across high-lift
+*geometries* — flap and slat settings and the gaps between elements — and
+GeoTransolver, from 126 distinct geometries at one operating point, has not
+begun to (its error there, 0.18, is where it also sits at 35 mixed cases).
+The DrivAerML contrast fits this reading: smooth single-body morphs of one
+car, where GeoTransolver is 1.2–1.3x ahead, are not the kind of geometry
+variation on which ISLA's routing has an advantage. Which ingredient of the
+soft-slice design carries that geometry generalization is still not
+isolated; the unseen-geometry ladder and a GeoTransolver learning-rate
+steel-man at the single angle are not yet measured (@sec-program-status).
 
 ## The same protocol on DrivAerML {#sec-de-drivaerml}
 
@@ -473,4 +485,7 @@ evaluation of the 35-case models exists yet. What happens
 across a regime boundary is the subject of @sec-regime-extrapolation, and
 the answer there is that no architecture generalizes.
 
-**The mechanism is not identified**, as the previous section states.
+**The mechanism is located but not isolated.** The advantage is geometry
+generalization on multi-element high-lift configurations, largest when the
+angle of attack is fixed; which ingredient of ISLA's design carries it is
+not identified, as @sec-mechanism states.

@@ -185,11 +185,12 @@ checkpoints of all three architectures on the 360 test cases; the claim
 stands if the 2.8x factor survives there within the two-seed spread. It is
 not yet measured (@sec-program-status).
 
-### The mechanism is not identified {#sec-limits-mechanism}
+### The mechanism is located, not isolated {#sec-limits-mechanism}
 
-**Five single-factor ablations of ISLA at 35 cases moved its error by at
-most 16%, while GeoTransolver's error at that rung is 2.8x ISLA's; the
-ingredient that carries the data efficiency is unknown** (@sec-mechanism). Adding raw
+**The advantage is geometry generalization — at a fixed angle of attack on
+126 never-seen geometries ISLA is 5.0x more accurate than GeoTransolver — but
+five single-factor ablations of ISLA at 35 cases moved its error by at most
+16%, so the ingredient that carries it is unknown** (@sec-mechanism). Adding raw
 coordinates (which breaks the SE(3) contract), replacing the invariant seeds
 by raw vectors, turning the similarity gauge on, turning the measure weights
 off, and removing the relational routing from the encoder each changed the
@@ -201,19 +202,22 @@ dispensable, because no ISLA variant tested was ever without it: the
 relational invariants to each slice anchor remain in every encoder layer of
 the raw-seed variant and in every decoder block of the no-relational-routing
 variant. GeoTransolver and Transolver receive raw centered coordinates,
-normals and the freestream vector, and must learn every drive-relative
-quantity, above all the local incidence n·d, from data. On HiLift the angle
-of attack spans 4° to 22°, so incidence is the leading-order case-dependent
-physics; on DrivAerML the freestream is fixed, n·d is a raw input already,
-and the same ladder protocol at a frozen learning rate of 3e-3 for both
-architectures runs the other way: the two are tied at 14 cases
-(GeoTransolver/ISLA 0.99) and GeoTransolver
-is 1.2–1.3x more accurate than ISLA at every rung from 27 to 218 cases
-(@tbl-drivaerml-dataeff-ladder in @sec-data-efficiency). The HiLift advantage does
-not transfer to DrivAerML.
+normals and the freestream vector. On DrivAerML, where the geometry
+variation is a smooth morph of one car, the same ladder protocol at a frozen
+learning rate of 3e-3 for both architectures runs the other way: the two are
+tied at 14 cases (GeoTransolver/ISLA 0.99) and GeoTransolver is 1.2–1.3x more
+accurate than ISLA at every rung from 27 to 218 cases
+(@tbl-drivaerml-dataeff-ladder in @sec-data-efficiency). The HiLift advantage
+does not transfer to DrivAerML.
 
-That asymmetry is the one candidate the ablations could not touch, and the
-transplant test addressed it directly: GeoTransolver and Transolver at 35
+Two hypotheses for that asymmetry have been tested. The first — that ISLA
+wins by representing the freestream-direction dependence exactly, which
+varies on HiLift and not on DrivAerML — is falsified from both sides. The
+single-angle split (126 geometries at 12°, validated on 18 geometries never
+seen at any angle) was preregistered to show GeoTransolver within 1.25x of
+ISLA if the hypothesis held; it shows GeoTransolver 5.0x behind (0.179
+against 0.036), on 18 of 18 geometries. The transplant test addressed the
+same hypothesis from the baseline side: GeoTransolver and Transolver at 35
 cases with n·d, r̂·d and |r|/L appended to their per-cell inputs, everything
 else frozen, each at its better learning rate, two seeds. The preregistered
 bands were: carrier identified if both reach 0.235 or below (halfway to ISLA
@@ -223,11 +227,14 @@ a 1.35x gain, a quarter of the log-gap to ISLA. GeoTransolver moved from 0.392
 to 0.400/0.388, inside the falsifier band. The invariant inputs are not the
 carrier for GeoTransolver and at most a partial contributor for Transolver;
 the advantage lies in ISLA's routing and decoder structure as a whole, and no
-single ingredient has been isolated. The follow-up this leaves, whether
-Transolver's partial gain persists at 210 cases, is not yet measured
-(@sec-program-status). The stratified evidence says where the advantage
-lives, not why: the baselines' error is flat across every angle and geometry
-while ISLA's tracks flow difficulty, but that does not name the coupling.
+single ingredient has been isolated. What is established is *where* the
+advantage lives: in generalizing across multi-element high-lift geometries
+— flap and slat settings and the gaps between elements — from few
+examples, which smooth single-body morphs do not exercise. Which part of the
+soft-slice design carries that is the open question; the unseen-geometry
+ladder, the GeoTransolver learning-rate steel-man at the single angle, and
+whether Transolver's partial gain persists at 210 cases are not yet
+measured (@sec-program-status).
 
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 
@@ -332,13 +339,14 @@ with its direction.
   the protocol's, both improve by a similar factor (within 5 percentage
   points). If GeoTransolver improves by 10 percentage points or more than
   ISLA, the floor is ISLA's.
-- **Does the advantage require a varying freestream direction?** ISLA versus
-  GeoTransolver on 126 geometries at a single angle of attack, against a
-  matched-size mixed-angle control. If the carrier is the exact
-  representation of direction dependence, ISLA/GT is 0.40–0.55 on the mixed
-  control (GeoTransolver 1.8–2.5x behind) and 0.80 or above at the single
-  angle (GeoTransolver within 1.25x); 0.60 or below at the single angle
-  (GeoTransolver 1.7x or more behind) falsifies it.
+- **Does the geometry advantage carry across a geometry-parameter
+  boundary?** ISLA versus GeoTransolver trained on the 80% of geometries with
+  the lower flap-and-slat deflection and tested once, sealed, on the 20%
+  with the most aggressive settings. If ISLA's geometry generalization
+  extrapolates, its test error is at most 0.7x GeoTransolver's with a
+  degradation ratio below 4; at or above 0.9x, or both ratios at 8 or more,
+  geometry extrapolation behaves like regime extrapolation and coverage
+  governs it too.
 - **Is the advantage geometry memorization?** The unseen-geometry splits at
   210 and 40 cases, whose validation geometries appear at no angle in
   training. Prediction: ISLA/GT within 0.1 of the same-size rungs (about
