@@ -407,7 +407,10 @@ falsifier. Measured: ISLA 0.035 / 0.036 against GeoTransolver 0.175 / 0.183
 — **5.0x**, on 18 of 18 held-out geometries (per-geometry ratios 4.0–6.4),
 with lift to 0.6% and drag to 1.6% against 2.0% and 3.9%.^[`results/w2_reduction_2026-09-07.json`,
 arm `D_single_aoa_12`.] Fixing the angle makes the gap *larger*, not
-smaller. What ISLA does with few samples is generalize across high-lift
+smaller: the matched-size mixed-angle control (126 cases at all angles, the
+shared 180-case validation set) gives ISLA 0.077 and GeoTransolver 0.226
+(3.0x), so fixing the angle halves ISLA's error at equal training-set size
+and leaves GeoTransolver's nearly unchanged. What ISLA does with few samples is generalize across high-lift
 *geometries* — flap and slat settings and the gaps between elements — and
 GeoTransolver, from 126 distinct geometries at one operating point, has not
 begun to (its error there, 0.18, is where it also sits at 35 mixed cases).

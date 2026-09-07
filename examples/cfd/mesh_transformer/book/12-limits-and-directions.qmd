@@ -216,7 +216,8 @@ varies on HiLift and not on DrivAerML — is falsified from both sides. The
 single-angle split (126 geometries at 12°, validated on 18 geometries never
 seen at any angle) was preregistered to show GeoTransolver within 1.25x of
 ISLA if the hypothesis held; it shows GeoTransolver 5.0x behind (0.179
-against 0.036), on 18 of 18 geometries. The transplant test addressed the
+against 0.036), on 18 of 18 geometries, against 3.0x on a matched-size
+mixed-angle control (0.226 against 0.077). The transplant test addressed the
 same hypothesis from the baseline side: GeoTransolver and Transolver at 35
 cases with n·d, r̂·d and |r|/L appended to their per-cell inputs, everything
 else frozen, each at its better learning rate, two seeds. The preregistered

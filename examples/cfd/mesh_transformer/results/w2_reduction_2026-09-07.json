@@ -42,10 +42,28 @@
    "tau_wall_l2": 0.31553,
    "n_cases": 18
   },
+  "mech_hl_mt2_mixed126_seed42": {
+   "pressure_l2": 0.07669,
+   "velocity_l2": 0.10659,
+   "tau_wall_l2": 0.16456,
+   "n_cases": 180
+  },
   "mech_hl_mt2_mixed126_seed43": {
    "pressure_l2": 0.07644,
    "velocity_l2": 0.11148,
    "tau_wall_l2": 0.1684,
+   "n_cases": 180
+  },
+  "mech_hl_gt_mixed126_seed42": {
+   "pressure_l2": 0.18977,
+   "velocity_l2": 0.19968,
+   "tau_wall_l2": 0.32229,
+   "n_cases": 180
+  },
+  "mech_hl_gt_mixed126_seed43": {
+   "pressure_l2": 0.26215,
+   "velocity_l2": 0.22962,
+   "tau_wall_l2": 0.40078,
    "n_cases": 180
   }
  },
@@ -63,9 +81,14 @@
   },
   "D_mixed126": {
    "isla": [
+    0.07669,
     0.07644
    ],
-   "gt": []
+   "gt": [
+    0.18977,
+    0.26215
+   ],
+   "gt_over_isla": 2.951
   },
   "G_single_aoa_12_gt_lr3e3": {
    "isla": [],

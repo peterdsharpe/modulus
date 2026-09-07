@@ -6393,3 +6393,16 @@ geometries: it is fitting each configuration. Whatever ISLA's soft-slice
 routing on relational invariants provides, it acts on the global
 representation of the configuration, not on the resolution of sharp
 features. This closes the "sharp-feature" mechanism without a training run.
+
+**2026-09-07 addendum — the mixed-angle control is in.** `mixed126` (126
+cases drawn from `full_train`, all angles, val = the shared 180): ISLA
+**0.077 / 0.076**, GeoTransolver **0.190 / 0.262**, GeoTransolver/ISLA
+**2.95x** (`results/w2_reduction_2026-09-07.json`, arm `D_mixed126`). The
+preregistered mixed-control prediction was GeoTransolver 1.8–2.5x behind;
+it is 3.0x behind, with a wide GeoTransolver seed spread. Read together:
+at equal training-set size, fixing the angle *halves* ISLA's error (0.077
+→ 0.036) and leaves GeoTransolver's nearly unchanged (0.226 → 0.179), so
+the 5.0x single-angle gap is ISLA converting the simpler task into
+accuracy while GeoTransolver does not. Both readings of arm D point the
+same way: the advantage is geometry generalization, and it is largest at a
+fixed operating point.
