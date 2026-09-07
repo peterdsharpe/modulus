@@ -21,8 +21,9 @@ seen. “Exploratory” means useful for forming a hypothesis but not confirming
 one. “Invalid” means the instrument could not answer the stated question.
 Corrections to earlier interpretations are marked **EDIT**.
 
-Iterations 1--6 predate the notebook and are summarized in @sec-learned-bie,
-@sec-parametric, and @sec-3d-results.
+Iterations 1--6 predate the notebook and are summarized in the archived
+exact-kernel chapters (`book/archive/`, sections on the learned boundary
+integral, parametric families and 3D results).
 
 ## Current research agenda {#sec-nb-current-agenda}
 
@@ -563,7 +564,7 @@ Varying nothing but sampling resolution around one trained checkpoint showed
 pattern error minimized sharply at the training resolution and degrading
 catastrophically above it. Within-family accuracy was therefore partly a
 coverage-specific compensation, not resolution-transferable operator quality
-(@sec-drivaerml-coverage). Full record: archived chronology,
+(archived chapter `book/archive/11-industrial-exact-kernel.qmd`, coverage section). Full record: archived chronology,
 `sec-nb-hcc-verdict`.
 
 ### The declared-degree wave answered its secondary question, not its primary {#sec-nb-wave-summary}

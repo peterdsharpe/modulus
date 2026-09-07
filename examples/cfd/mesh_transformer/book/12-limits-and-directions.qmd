@@ -266,7 +266,10 @@ setting is DrivAerML volume fields predicted from 10,000 surface tokens at
 Interior queries are always decoded passively; the one attempt to supply
 volumetric context while keeping that passive decode, equivariant latent
 tokens placed off each slice anchor along its mean normal, made the interior
-decode worse by 1.43x. Two designs are named and not measured
+decode worse by 1.43x. An exact boundary-integral prior is not an option
+either: on DrivAerML a potential-flow oracle scores worse than predicting each
+case's mean pressure, because the dominant physics is separation
+(@sec-interior-negatives). Two designs are named and not measured
 (@sec-interior-open): a wake-aligned probe set downstream along the
 freestream direction, and a request-independent canonical probe lattice that
 interacts GeoTransolver-style and from which queries decode passively.
@@ -290,31 +293,17 @@ Evaluate-anywhere semantics is a contract with a measured price.
 
 ### Cross-family transfer is a data property {#sec-limits-transfer}
 
-**No checkpoint of any architecture tested transfers zero-shot across
-vehicle families; what moves cross-family error is the diversity of the
-training data** (@sec-industrial-mt1). The failure is not identical across
-architectures — on the held-out fastback family GeoTransolver trained on
-DrivAerML alone scores 0.59 where MT2 scores 0.95–0.99 (1.0 is the mean
-predictor; @tbl-frontier) — but neither is usable, and a second training
-family moves both to 0.11–0.13. The similarity
+**Neither MT2 nor GeoTransolver transfers zero-shot across vehicle
+families; what moves cross-family error is the diversity of the training
+data** (@tbl-frontier in @sec-full-data). The failure is not identical across
+the two architectures — on the held-out fastback family GeoTransolver trained
+on DrivAerML alone scores 0.59 where MT2 scores 0.95–0.99 (1.0 is the mean
+predictor) — but neither is usable, and a second training family moves both
+to 0.11–0.13. The similarity
 gauge, which fixes the constant-gauge configuration's sampling-density
 failure (@sec-robustness-density), leaves zero-shot transfer unchanged. A claim of family-portable surface physics from any of these
 architectures would need a corpus in which geometry, pose, scale and regime
 vary one at a time (@sec-open-questions).
-
-### The exact-kernel line stops at separated flow {#sec-limits-exact-kernel}
-
-**The exact-kernel MeshTransformer (MT1) buys generalization exactly where
-the kernel is the operator, and separated 3D aerodynamics is not such a
-problem** (@sec-linear-suites, @sec-nonlinear-suites). On controlled
-families with exact labels the exact-kernel decoder generalizes across
-boundary-condition frequency content where no soft-slice mechanism tested
-does, and extrapolates amplitude exactly under a declared linearity
-contract. On DrivAerML pressure an exact potential-flow oracle scores rel-L2
-4.8 against 0.77 for predicting the case mean, because the dominant physics
-is separation, which no Laplace operator carries; on the interior task MT1
-is 8x behind GeoTransolver. Structure buys generalization only where it
-matches the PDE.
 
 ## Open questions, and what would settle each {#sec-open-questions}
 
@@ -364,6 +353,20 @@ with its direction.
   advantage is not carried by three per-cell scalars GeoTransolver can be
   given; which architecture the interior work should build on remains open
   (@sec-interior-open).
+- **Does boundary self-identification help MT2?** The largest measured
+  industrial gain of the earlier exact-kernel design came from a trace
+  formulation that let each boundary token identify its own cell in the
+  readout, so that a prediction at a surface point had an explicit term from
+  that point's own cell rather than only from the pooled field. MT2's
+  routing has no analogous explicit term: the heads read each surface
+  point's encoder token, but after twelve layers of slice routing that token
+  holds whatever the routing mixed into it, and nothing in the readout marks
+  the point's own position, normal and area apart from the field. The test
+  is a single-factor addition of an own-token readout channel to MT2,
+  everything else frozen, at 35 and 1,260 HiLift cases, two seeds. Falsified
+  if it moves neither rung by more than the two-seed spread; a gain at 35
+  cases only would say the term is a small-data aid, at both rungs that
+  MT2's readout is missing a general ingredient.
 - **Which generalization axes does structure buy, one at a time?** A 3D
   RANS corpus generated with counterfactual twin draws per factor (pose,
   scale, Reynolds number, layout, mesh), so each axis is tested exactly.

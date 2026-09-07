@@ -16,7 +16,7 @@ canonicalized GeoTransolver (exactly pose-invariant at 1.01x cost), and
 learning-rate choice belongs to the protocol because a shared rate would
 have decided the comparison by tuning.
 
-## The baselines and what each one sees
+## The baselines and what each one sees {#sec-part-baseline}
 
 **The comparison is against two members of the Transolver family: the same
 soft-slice attention as MT2, fed raw geometric inputs in place of MT2's
@@ -38,12 +38,14 @@ Twelve layers, hidden width 256, 256 slices, 9.0M parameters. It is not
 rotation- or translation-equivariant: rotate the car and it sees a different
 input.
 
+::: {#sec-transolver}
 **Transolver** is the same family without the geometry encoder, the control
 that isolates what the encoder contributes. Per point it receives coordinates
 and normal; the freestream vector is broadcast to every point. Eight layers,
-hidden 256, 256 slices, 6.0M parameters. On HiLiftAeroML, the only recipe
-dataset on which it is run, it trains at learning rate 3e-3, its best of the
-two rates run.
+hidden 256, 256 slices, 6.0M parameters. On HiLiftAeroML, the only dataset
+on which it is run in this book, it trains at learning rate 3e-3, its best
+of the two rates run.
+:::
 
 **MT2** receives position, unit normal and cell area per point and the unit
 freestream direction as its only global input, consumed through invariants
@@ -52,9 +54,9 @@ and equivariant anchors only (@sec-mt2): 12 layers, hidden 192, 256 slices,
 
 | architecture | per-point inputs | global input | layers | hidden | slices | parameters | peak memory at 10k tokens (as trained; with exact rewrite) |
 |---|---|---|--:|--:|--:|--:|--:|
-| MeshTransformer2 | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 9.8 GB as trained; 3.6 GB with the exact pool-then-project rewrite |
 | GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream velocity vector | 12 | 256 | 256 | 9.0M | 4.6 GB |
 | Transolver | centered coordinates, unit normal | freestream velocity vector, broadcast per point | 8 | 256 | 256 | 6.0M | not measured |
+| MeshTransformer2 | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 9.8 GB as trained; 3.6 GB with the exact pool-then-project rewrite |
 
 : The three architectures compared on the aerodynamic datasets. *Per-point
 inputs*: channels attached to each of the 10,000 sampled surface points per
@@ -73,54 +75,6 @@ measured for Transolver, which serves only as a same-family control on
 HiLiftAeroML. Configuration source:
 `unified_external_aero_recipe/conf/model/{mt2,geotransolver,transolver}_surface.yaml`.
 {#tbl-architectures}
-
-## Transolver on the controlled suites {#sec-part-baseline}
-
-**On the synthetic boundary-to-interior suites (@sec-linear-suites) the
-mainstream baseline is a steel-manned Transolver, and at matched parameters
-and a training budget of 3,000 updates the exact-kernel MeshTransformer (MT1,
-@sec-mt1) is 4–21x more accurate on the 2D Laplace suites and 34–78x on the
-screened-Laplace and 3D suites, narrowing to 1.4x on the multiply-connected
-shell suite where MT1 is itself representation-limited; because Transolver is
-still improving at 30,000 updates (0.119 at native capacity,
-@fig-transolver-steps), each matched-budget gap is an upper bound on the
-converged gap.** The comparison ablates the thesis of the controlled suites;
-it does not rank architectures for industrial use.
-
-### The matched-capacity comparison {#sec-transolver}
-
-The baseline is a port of Transolver verified against the official
-implementation, given a *shared boundary-plus-query token sequence* (its
-query points attend to each other and to the boundary, more interaction than
-MT1, whose queries are independent by contract), and trained exactly as MT1:
-streaming generation of one fresh case per step, AdamW at 3e-4, seeds
-17/29/43. Two capacities: *matched*, 103,053 parameters against MT1's
-104,261, and *native*, 2,809,409 (27x).
-
-The quantity is relative L2 error of the interior field on the frozen 2D
-Laplace reference banks, in-distribution (ID) and on a held-out band of
-boundary-condition frequencies (frequency-OOD); similarity covariance is the
-relative change of the prediction under a random rotation, translation and
-rescaling. At matched parameters and 3,000 updates Transolver reaches ID 0.769
-against MT1's 0.0375, a 20x gap. At native capacity its step curve descends
-0.608, 0.262, 0.119 over 3,000, 10,000 and 30,000 updates and has not
-flattened (@fig-transolver-steps): with 27x the parameters and 10x the
-compute it is still 3.2x above MT1 at 3,000 updates, so the 20x is a
-matched-budget figure and an upper bound on the gap Transolver would converge
-to. Frequency-OOD saturates near 0.46 against 0.0748; similarity covariance
-stays at 0.08–0.25 at every budget against MT1's 3e-7. The ranges quoted at
-the head of this section are: 4–21x on 2D Laplace, where 4x is
-native-capacity Transolver in its own fixed-dataset regime (2,304 training
-cases, 15 epochs, best-checkpoint selection: 0.062–0.070 against MT1's
-0.016–0.017; the matched-capacity Transolver reads 0.126–0.136 there, 7–9x)
-and 21x is
-the streaming regime just described; 34–78x on the in-distribution error of
-the screened-Laplace (78x), 3D sphere (56x) and 3D star (34x) suites at
-matched parameters, three seeds and 3,000 updates; 1.4x on the
-multiply-connected shell suite (0.529 against 0.377). Transolver keeps what
-this benchmark does not test: volumetric and piecewise inputs, which
-boundary-only MT1 cannot ingest. Data: `results/learned_bie_2026-07-02.json`,
-keys `iteration_15_transolver_comparison`, `iteration_17_fixed_dataset_regime`.
 
 ## The fair-comparison protocol {#sec-fair-comparison}
 

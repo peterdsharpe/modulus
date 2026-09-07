@@ -234,8 +234,7 @@ seed-to-seed prediction spread on both datasets (@sec-shared-floor).
 ## Sampling-density robustness {#sec-robustness-density}
 
 **Under a 10:1 spatially biased sampling density, MT2 with the similarity
-gauge degrades 1.20x, GeoTransolver 3.6x, the exact-kernel
-MeshTransformer (MT1) about 1.8x (1.6--2.2x across three seeds), and MT2
+gauge degrades 1.20x, GeoTransolver 3.6x, and MT2
 with the constant gauge 13--14.5x.** The 1.20x figure belongs to a
 configuration that produced no accuracy number in this book; every
 accuracy result uses the constant gauge, which is the 13--14.5x row. The
@@ -262,7 +261,6 @@ surface), so a biased sample estimates the same gauge as a uniform one.
 | MT2, similarity gauge (seeds 42 / 43) | 0.0638 / 0.0629 | 0.0766 / 0.0758 | 1.20x / 1.20x |
 | MT2, constant gauge (seeds 42 / 43) | 0.0636 / 0.0627 | 0.926 / 0.812 | 14.5x / 13.0x |
 | GeoTransolver (seed 42) | 0.0530 | 0.192 | 3.6x |
-| exact-kernel MT1 (seeds 42 / 43 / 44) | 0.141 / 0.134 / 0.145 | 0.235 / 0.298 / 0.238 | 1.7x / 2.2x / 1.6x |
 
 : Sampling-density robustness on DrivAerML. Columns: validation pressure
 rel-L2 (48 cars) with 10,000 uniformly sampled points; the same with a
@@ -274,7 +272,7 @@ and are seed-matched. Data:
 results/s1_similarity_gauge_2026-09-03.json (MT2 rows);
 results/mixedres_training_2026-07-31/sweep/round3_reduction.json
 (uniform column) and p3v3_reduction.json (biased column) for
-GeoTransolver and MT1. {#tbl-density}
+GeoTransolver. {#tbl-density}
 
 What the gauge costs depends on the data budget. At full DrivAerML data
 it is neutral in-family: 0.0638/0.0629 against 0.0636/0.0627 on pressure
@@ -283,9 +281,7 @@ cases it costs 8% (0.149 against 0.138 in the single-factor ablation of
 @sec-mechanism), which is why no accuracy result in this book uses it.
 It also does nothing for zero-shot transfer to a held-out vehicle family, which
 stays at mean-predictor level with or without it (@sec-limits), so
-absolute geometric size was not what limited cross-family transfer. MT1's
-intermediate robustness is what its intrinsic gauge and measure contract
-buy (@sec-mt1); GeoTransolver's 3.6x is the cost of geometry-adaptive
+absolute geometric size was not what limited cross-family transfer. GeoTransolver's 3.6x is the cost of geometry-adaptive
 statistics computed from the sample rather than from the surface. The
 scope is one probe geometry (one bias pattern at one ratio) on one
 dataset, and the GeoTransolver figure is a single seed.

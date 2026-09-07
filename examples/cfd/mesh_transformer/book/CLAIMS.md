@@ -233,7 +233,7 @@ surface alone; 435/48 cars; 10k surface tokens, 10k interior query points;
   (not measured): wake-aligned probe tokens; a request-independent canonical
   probe set that interacts GeoTransolver-style.
 
-## Controlled suites (Part III) — the exact-kernel line
+## Controlled suites — the exact-kernel line (ARCHIVED: chapters 03/09/10/11 live unrendered in book/archive/; the reader-facing book mentions the exact-kernel design only in the interior chapter's "Why not an exact boundary-integral prior?" section and one footnote in the index)
 
 Keep the results of chapters 07–15 that are not contradicted below, framed
 as "what exact operator structure buys on controlled problems and where it
@@ -382,3 +382,16 @@ stops". Present-tense, no chronology. Key current statements:
 - Any statement that the interior gap is closable by latent volume tokens
   along anchor normals (falsified).
 - Any project code names, dates, "retired", "reframed", "critic".
+
+
+## Scope decision 2026-09-07
+
+The exact-kernel MeshTransformer is retired as a product candidate for 3D
+aerodynamics and removed from the reader-facing book (criterion: keep only
+what aids understanding of the future flagship). Its chapters are archived
+under book/archive/; its results stay in the lab notebook. The book has one
+architecture (MeshTransformer2, code class `MeshTransformer2`) and two
+baselines (GeoTransolver, Transolver) on DrivAerML and HiLiftAeroML, with
+SHIFT-SUV as zero-shot target. Do not write "MT1" in polished chapters;
+say "the exact-kernel MeshTransformer, an earlier design of this program"
+where the interior chapter needs it.

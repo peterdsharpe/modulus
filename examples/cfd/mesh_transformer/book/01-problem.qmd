@@ -2,8 +2,8 @@
 
 Every result in this book is a measurement of one mapping — from a
 discretized boundary and a few global conditions to the steady fields that
-boundary induces — on datasets whose labels are exact or certified, under
-one frozen training recipe, with error definitions stated once, here. A
+boundary induces — on three external CFD datasets, under one frozen
+training recipe, with error definitions stated once, here. A
 reader who knows PDEs and transformers but has never seen this program
 should be able to read any later table after this chapter and nothing
 else.
@@ -46,7 +46,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.collections import LineCollection
 
-BLUE, RED, GREY, PURPLE = "#2a78d6", "#e34948", "#52514e", "#7b4fb3"
+BLUE, RED, GREY = "#2a78d6", "#e34948", "#52514e"
 INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
                      "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
@@ -143,13 +143,11 @@ homogeneous — no interior source terms — and governed by the same equations
 everywhere in the domain. For such problems the boundary data and the
 global conditions determine the whole field, so a surrogate that consumes
 only the boundary throws nothing away: the boundary *is* the problem. The
-industrial targets are steady RANS and Euler flows around vehicles and
-wings. Their governing equations are not given to the model, and for RANS
-they are not even perfectly knowable, since the turbulence closure is an
-empirical fit. The synthetic suites below pose the simplest members of the
-same class — Laplace, screened Laplace, ideal flow — because there the
-equations *are* known and the labels exact, which makes every structural
-claim about an architecture falsifiable.
+industrial targets are time-averaged turbulent flows around vehicles and
+wings. Their governing equations are not given to the model, and they are
+not even perfectly knowable, since the turbulence closure is an empirical
+fit; every claim about an architecture is therefore a measurement against
+CFD labels, never against a closed form.
 
 Classical potential theory says what a correct boundary-to-field map must
 look like. For a harmonic field $u$ in a domain $\Omega$ with boundary
@@ -161,8 +159,11 @@ u(x)=\int_{\Gamma}\Bigl[G(x,y)\,\partial_{n_y}u(y)-u(y)\,\partial_{n_y}G(x,y)\Bi
 $$ {#eq-green}
 
 where $G$ is the free-space fundamental solution, $n_y$ the outward normal
-at the boundary point $y$ and $dS_y$ the boundary measure. Three
-consequences shape every architecture in this book. First, the density of
+at the boundary point $y$ and $dS_y$ the boundary measure. The identity is
+not used as a model — the flows of interest are separated and turbulent,
+far from harmonic — but it says what any correct boundary-to-field map has
+to respect, and three consequences shape the architectures compared in
+this book. First, the density of
 this representation depends on the whole domain, not on $x-y$ and $n_y$
 alone: every boundary patch influences every interior point, with no
 cutoff radius that survives a change of geometry, so the correct inductive
@@ -176,33 +177,37 @@ rotations, reflections and positive scalings: it can depend on the
 geometry only through the joint invariants of $\{x-y,\ n_y,\ \hat d\}$ —
 magnitudes and pairwise angles — never on absolute position or
 orientation. Dimensionless scalars may modulate everything freely, because
-a scalar breaks no symmetry. Which architectures enforce these properties
-by construction and which learn them from data is the subject of
-@sec-mt2, @sec-mt1 and @sec-baselines; none of the three requires knowing
-the PDE.
+a scalar breaks no symmetry. Which of these properties an architecture
+enforces by construction and which it learns from data is the subject of
+@sec-mt2, on MeshTransformer2,^[The code class is `MeshTransformer2`; an
+earlier exact-kernel design of the same name was retired from this book
+after its boundary-integral prior failed on separated flow
+(@sec-interior), and its chapters are kept in the repository's
+`book/archive/` directory.] and @sec-baselines, on GeoTransolver and
+Transolver; none of the three requires knowing the PDE.
 
 ### Parametric and boundary-condition-driven families {#sec-parametric}
 
-Many of the datasets are not a single PDE but a family indexed by a
-dimensionless global scalar: the screening constant $\tilde\kappa=\kappa L$
-of $\Delta u-\kappa^2u=0$, the vorticity coupling $\tilde c$ of steady
-rotational Euler flow, the Reynolds number of a cavity or an airfoil.
-Physical parameters enter only in nondimensional form, scaled by the case's
-reference length $L$, so learned weights never see units. The boundary data
-is likewise a variable: in the Dirichlet suites the trace $g$ is the drive
-and the operator maps $g\mapsto u$ linearly at fixed geometry; in the flow
-suites the drive is the freestream (with circulation or Reynolds number),
-the velocity is linear in it and the pressure exactly quadratic. Whether an
-architecture declares such structure or learns it is a design choice whose
-price is measured in @sec-linear-suites and @sec-nonlinear-suites; the
-datasets are built so that each axis of variation — geometry, boundary
-data, parameter, resolution — can be held out separately.
+A dataset in this book is a family of cases, and the families differ in
+what varies. On DrivAerML and SHIFT-SUV only the geometry varies: every car
+sits in the same freestream, so the drive is a constant and the operator is
+learned as a function of shape alone. On HiLiftAeroML the drive is itself a
+variable: each of the 180 wing geometries is simulated at ten angles of
+attack, so the freestream direction $\hat d$ changes from case to case and
+the model has to represent how the field depends on it, across a range that
+runs from attached flow through stall. Coordinates enter only in
+nondimensional form, scaled by the dataset's per-case reference length $L$,
+so learned weights never see units; no architecture receives the Reynolds
+number, and no architecture is told how the field depends on the drive —
+that dependence is learned. Because HiLiftAeroML is a full geometry-by-angle
+grid, its axes of variation — how many cases, which angles, which
+geometries — can each be held out separately (@sec-splits).
 
 ### What generalization means here
 
 A learned operator is useful only if it behaves like an operator away from
 its training distribution, and "away" has several independent directions.
-Four are measured on the industrial datasets:
+Four are measured:
 
 - **Data efficiency**: accuracy versus the number of training cases, on a
   fixed validation set, from a few dozen cases upward
@@ -214,112 +219,20 @@ Four are measured on the industrial datasets:
   at any condition, as opposed to geometries seen at other conditions.
 - **Cross-family transfer**: zero-shot evaluation on a vehicle family
   different from the training family — SHIFT-SUV, @sec-shift-suv
-  (@sec-industrial-mt1, @sec-full-data).
+  (@sec-full-data).
 
-On the synthetic suites three further axes are held out one at a time:
-boundary-data frequency content (drive modes never seen in training), PDE
-parameter (constants outside the training band), and boundary resolution
-(the same continuous cases discretized with 32 to 256 panels). The rule
-throughout is one question per split: geometry-OOD and frequency-OOD are
-never combined into one score.
+The rule throughout is one question per split: unseen geometry and an
+unseen flow regime are never combined into one score.
 
 ## Datasets {#sec-datasets}
 
-Two kinds of data appear: synthetic suites with exact or certified labels,
-built so that a wrong structural claim fails unambiguously, and four
-external CFD datasets that pose the actual engineering problem. Every
-dataset supplies the same input schema — boundary cells with positions,
-outward normals and measures, plus global conditions — so one model
-implementation runs on all of them.
+Three external CFD datasets appear, each posing the actual engineering
+problem: DrivAerML and HiLiftAeroML are training and evaluation sources,
+SHIFT-SUV a zero-shot target. Every dataset supplies the same input schema
+— boundary cells with positions, outward normals and measures, plus global
+conditions — so one model implementation runs on all of them.
 
-### The exact-label synthetic suites {#sec-benchmarks}
-
-**2D Laplace on conformal domains.** Domains are images of the unit disk
-under a polynomial conformal map $F_a(z)=z+\sum_{m\in S}a_m z^m$ with the
-injectivity certificate $\kappa=\sum_m m|a_m|<1$, so every sampled geometry
-is provably nondegenerate and the certificate is itself the deformation
-axis. For any holomorphic polynomial $H$, $u=\operatorname{Re}H$ is exactly
-harmonic on the physical domain: targets carry zero discretization error
-and the boundary data is the exact trace. Training uses shape modes
-$\{2,3\}$ with $\kappa\in[0.05,0.35]$; held-out splits use modes $\{4,5\}$,
-$\kappa\in[0.45,0.65]$, and zero-mean drive modes $\{5,\dots,8\}$ against
-training modes $\{1,\dots,4\}$. Cases may undergo a random similarity
-(rotation, reflection, translation, scale in $[0.2,5]$); Neumann and mixed
-variants are posed only where well-posed.
-
-**Screened Laplace.** Disks of random radius and center carry Dirichlet
-data for $\Delta u-\kappa^2u=0$ with exact modified-Bessel-series solutions
-and the dimensionless screening $\tilde\kappa=\kappa R$ as a global scalar.
-Training samples $\tilde\kappa\in[0.5,2]$; held-out splits push to $[3,5]$,
-where the field collapses into a boundary rim, and $[0.05,0.3]$, the
-harmonic limit. This is the smallest parametric family: the operator
-itself varies from case to case.
-
-**3D Laplace.** Closed triangulated surfaces — spheres, star-deformed
-spheres and two-surface shells — carry Dirichlet data. Labels are exact on
-any geometry because the solutions are superpositions of point charges
-placed outside the domain (and inside the cavity for shells), whose
-Dirichlet, Neumann and Robin data are all analytic. The shell tier changes
-topology.
-
-**Liouville.** The conformal-star domains carry Dirichlet data for
-$\Delta u+2e^{u}=0$, whose exact solutions are the spherical-metric
-potentials $u=\log\!\big(4|f'|^2/(1+|f|^2)^2\big)$ for holomorphic $f$: exact
-labels without linearity. The homogeneous problem ($g\equiv0$) has the
-nonzero solution $u(0)=\log4$, so any model that maps zero data to zero
-output scores relative error exactly 1 on it.
-
-**Potential flow.** Smooth exterior bodies (conformal images of the unit
-circle) sit in a uniform stream with prescribed circulation $\Gamma$. The
-model receives the body boundary, the freestream direction as a global
-vector and $\Gamma$ as a global scalar; targets are the exact disturbance
-streamfunction (a pseudoscalar, odd under reflection) or velocity. The
-drive is a vector, the domain unbounded, the physics handed.
-
-**Euler–Bernoulli.** The same exterior flows with two coupled targets at
-shared queries: the velocity $u=U_\infty+u_d$, linear in the drive, and the
-Bernoulli pressure $p^\*=\tfrac12(|U_\infty|^2-|u|^2)$, exactly quadratic in
-it.
-
-**Rotational Euler.** Disks carry boundary data for steady Euler flow with
-the linear vorticity law $\Delta\psi=-\tilde c^{2}\psi$, velocity
-$\nabla^\perp\psi$ and pressure from momentum balance. The coupling $\tilde c$ has a hard ceiling at the first
-Dirichlet eigenvalue $j_{0,1}\approx2.405$, where the interior stops being
-determined by the boundary. Training uses $\tilde c\in[0.5,1.8]$; held-out
-splits use $(1.9,2.2]$ and the near-eigenvalue band $[2.25,2.38]$, where
-unit boundary data is amplified 150–6,000 times.
-
-**Navier–Stokes star cavity.** Star-shaped cavities hold viscous fluid
-driven by a tangential wall-velocity band at Reynolds numbers from 10 to
-300. Labels come from a Taylor–Hood P2–P1 finite-element solver, and every
-case carries its own certification — Newton residual, momentum balance,
-divergence, and on a subset a finer-mesh re-solve bounding the label noise
-(velocity $\lesssim10^{-4}$, pressure $\lesssim10^{-3}$). It is the only
-synthetic suite with approximate labels, and no claim is made below its
-stated floor.
-
-On every synthetic suite training cases are generated online (fresh random
-geometry and drive per step), so there is no finite training set to
-memorize, and evaluation uses frozen banks every model sees identically.
-The model receives only physical data — boundary cells, declared boundary
-fields, query coordinates, the reference length; generator coefficients
-and mode indices never enter the input.
-
-### AirFRANS
-
-AirFRANS is 1,000 cases of steady incompressible RANS over NACA airfoils
-(OpenFOAM, eddy-viscosity closure), spanning chord Reynolds numbers of 2–6
-million and angles of attack from $-5^\circ$ to $+15^\circ$, with velocity,
-pressure and turbulent viscosity at roughly 180,000 volume points per case.
-Its boundary-value problem is fully recoverable from explicit freestream
-and no-slip conditions. The official tasks
-are a scarce split (200 train / 200 test), a full split (800 / 200), and
-Reynolds and angle-of-attack extrapolation tasks. Being two-dimensional
-and classically solvable in milliseconds, it is a well-labelled benchmark
-rather than a use case; its results (@sec-industrial-mt1) concern the
-exact-kernel MeshTransformer only.
-
-### DrivAerML {#sec-transolver-dataset}
+### DrivAerML {#sec-benchmarks}
 
 DrivAerML is 484 parametrically morphed DrivAer notchback vehicle variants
 with time-averaged fields from scale-resolving CFD: surface pressure and
@@ -344,13 +257,11 @@ speed of 30 m/s against DrivAerML's 38.9 m/s. Its curated manifest
 separates two rear-end styles, each with its own train / validation / test
 split: the *estate* family (794 / 99 / 100 cases) and the *fastback*
 family (796 / 99 / 99). In this book it is a zero-shot transfer target,
-never a source of in-family accuracy claims. Both families are held out
-from every model in the book; which one a table reports is stated in its
-caption: the frontier table (@tbl-frontier) scores every row on the fastback
-family, so that models trained on DrivAerML alone and models trained on
-DrivAerML plus the estate family are compared on one target, while the
-exact-kernel MeshTransformer's cross-family analysis (@sec-industrial-mt1)
-uses the estate family for DrivAerML-only models. The speed difference is a
+never a source of in-family accuracy claims. The fastback family is held
+out from every model in the book, and the frontier table (@tbl-frontier)
+scores every row on it, so that models trained on DrivAerML alone and
+models trained on DrivAerML plus the estate family are compared on one
+target. The speed difference is a
 covariate shift identical for every architecture, none of which receives
 the Reynolds number, and it is reported alongside the geometry-family
 shift rather than corrected.
@@ -438,28 +349,15 @@ Sampling-density and pose probes evaluate the same 48 cars with
 transformed inputs (@sec-full-data).
 
 **SHIFT-SUV.** No training split in the single-family comparisons; the
-estate family is a training source only in the two-family rows of the
-frontier table. Both families are zero-shot targets; each table's caption
-names which (fastback for every row of @tbl-frontier; estate for the
-exact-kernel MeshTransformer's cross-family analysis, in full or on a
-20-case subset of its test split where stated) (@sec-industrial-mt1,
-@sec-full-data).
-
-**AirFRANS.** The official scarce (200 / 200) and full (800 / 200) tasks,
-with validation carved from training cases only under a fixed seed, and
-the official Reynolds and angle-of-attack extrapolation tasks.
-
-**Synthetic suites.** Evaluation banks are frozen before any model sees
-them and shared by every arm. Each held-out axis — unseen shape modes,
-stronger deformation, unseen drive modes, parameter above or below the
-training band, boundary resolution from 32 to 256 panels, paired similarity
-transforms — is its own split.
+estate family's training split is a training source only in the two-family
+rows of the frontier table. The fastback family is the zero-shot target of
+every row of @tbl-frontier (@sec-full-data).
 
 ## How we measure {#sec-part-eval}
 
 Every number in this book is one of a small set of quantities defined
 here: a relative field error, a force-coefficient error, a paired per-case
-statistic, a seed-disagreement statistic, an operator-fidelity residual, or
+statistic, a seed-disagreement statistic, a regime-extrapolation ratio, or
 an exact contract test.
 
 ### Field error, forces and paired statistics {#sec-metrics}
@@ -588,97 +486,69 @@ the out-of-regime error divided by the same model's in-regime validation
 error, always reported beside the absolute test error, since a smaller $d$
 can also come from a higher in-regime floor (@sec-regime-extrapolation).
 
-### Operator fidelity as a first-class column {#sec-fidelity-columns}
-
-On the synthetic suites supervised accuracy is checked against the
-governing operator directly. Every problem driver's report carries a
-`fidelity` block computed in float64 on two cases and 32 query points per
-evaluation split: the strong-form PDE residual of the predicted field (for
-Laplace, $\lVert L^2\Delta u_\theta\rVert/\lVert u_\theta\rVert$ by
-autograd), the boundary-trace error, and — where the PDE licenses one — a
-maximum-principle violation, using on the conformal bank a certified check
-whose trace grid is enlarged by the analytic derivative bound so sampling
-cannot manufacture a pass. The tables of @sec-linear-suites carry the PDE
-residual beside the relative L2 error because the two disagree in
-instructive ways: a model can have the best supervised error of its cohort
-and the worst residual, meaning it interpolates values without
-representing the operator.
-
-### Contracts are exact tests, not metrics
+### Contracts are exact tests, not metrics {#sec-fidelity-columns}
 
 Structural properties an architecture claims are asserted to roundoff, in
 float64, as unit tests — never averaged into a score. A property either
-holds to roundoff or is not claimed. The contracts tested in this book:
+holds to roundoff or is not claimed. The contracts tested in this book,
+all on MeshTransformer2 (@sec-mt2):
 
 - **rotation and translation covariance**: a rigidly moved input produces
   the rigidly moved output (scalars unchanged, vectors rotated);
 - **similarity covariance**: the same under positive rescaling, which
-  requires the reference length to transform with the geometry — for
-  MeshTransformer2 this holds only with its similarity gauge on
-  (@sec-mt2) and is not claimed for the default constant gauge;
+  requires the reference length to transform with the geometry — this
+  holds only with the similarity gauge on and is not claimed for the
+  default constant gauge behind the accuracy results;
+- **measure-scale invariance**: multiplying every cell measure by one
+  constant leaves every output unchanged, so only the relative weighting
+  of cells matters;
 - **query independence**: the prediction at a point does not depend on
   which other points are in the query batch (chunking may only reorder
-  floating-point sums). The exact-kernel MeshTransformer holds this always;
-  MeshTransformer2 holds it for interior queries, which are always decoded
-  passively, and for surface queries only in its optional
-  query-independent configuration — the reference configuration behind
-  every surface result in this book reads its heads from the interacting
-  encoder tokens, so a surface prediction depends weakly on the other
-  sampled points (@sec-mt2);
-- **superposition and zero drive**: for architectures declaring a linear
-  field mode, two-drive linearity to $\sim10^{-7}$ and exactly zero output
-  at zero boundary data;
-- **quadrature consistency**: splitting a cell into measure-conserving
-  duplicates leaves the operator unchanged;
-- **interior-data hygiene**: attaching arbitrary data to the interior
-  points changes no output.
+  floating-point sums). MeshTransformer2 holds this for interior queries,
+  which are always decoded passively, and for surface queries only in its
+  optional query-independent configuration — the reference configuration
+  behind every surface result in this book reads its heads from the
+  interacting encoder tokens, so a surface prediction depends weakly on
+  the other sampled points.
 
-The exact-kernel MeshTransformer's paired-similarity tests run at
-$128\,\epsilon_{\mathrm{fp32}}$ and measure $10^{-7}$–$2\times10^{-6}$;
-MeshTransformer2's contract suite runs in float64 (33 tests). A property that is *not* enforced by construction — GeoTransolver's pose
+A property that is *not* enforced by construction — GeoTransolver's pose
 behaviour, for instance — is measured as an accuracy degradation under
 transformed inputs and reported as a number (@sec-full-data), never as a
 pass.
 
-### The four properties a PDE solver must have {#sec-four-properties}
+### The properties a PDE surrogate should have {#sec-four-properties}
 
 Four properties are commonly required of any discretization of a
 boundary-driven PDE: **spatial equivariance**, **discretization
 invariance**, **units invariance**, and **global interaction**. Each has a
 measurement here, and the measurements differ in kind.
 
-*Spatial equivariance* is either a contract (MeshTransformer2 and the
-exact-kernel MeshTransformer, tested in float64) or an accuracy under
-transformed inputs (GeoTransolver and Transolver, which consume raw
-coordinates). Both are reported; neither is assumed.
+*Spatial equivariance* is either a contract (MeshTransformer2, tested in
+float64) or an accuracy under transformed inputs (GeoTransolver and
+Transolver, which consume raw coordinates). Both are reported; neither is
+assumed.
 
 *Global interaction* holds by construction in every architecture compared
 here: all use global attention or slice routing over the whole boundary,
 with no neighbourhoods or cutoffs.
 
-*Discretization invariance* means two different things, tested separately.
-Under **refinement** — more, smaller cells tiling the same surface — an
-operator built on exact panel quadrature converges: on an icosphere the
-exact double-layer kernel's error against its converged limit falls
-$2.51\%\to0.59\%\to0.12\%$ as each subdivision quadruples the cell count,
-second order in the cell size; the synthetic suites test this as the
-32-to-256-panel split. Under **subsampling** — the industrial regime, where
-10,000 points are drawn from a surface of millions of cells — coverage is
-incomplete by design, and the question is robustness to *where* the samples
-fall. That is measured on DrivAerML by evaluating a trained model on a
-sampling whose density is biased ten to one across the surface, reported
-as the biased-sampling error divided by the uniform-sampling error
-(@sec-full-data).
+*Discretization invariance* is measured as robustness to **subsampling**.
+In the industrial regime 10,000 points are drawn from a surface of millions
+of cells, so coverage is incomplete by design and the question is
+robustness to *where* the samples fall. That is measured on DrivAerML by
+evaluating a trained model on a sampling whose density is biased ten to
+one across the surface, reported as the biased-sampling error divided by
+the uniform-sampling error (@sec-full-data).
 
 *Units invariance* has two halves. For **lengths**, every model
-nondimensionalizes coordinates by a reference length $L$ and is exactly
-scale-covariant when $L$ transforms with the geometry — the intrinsic gauge
-of the exact-kernel MeshTransformer, or MeshTransformer2 with its
-similarity gauge on. For the **measure**, cell areas enter as quadrature
-weights; whether a trained model exploits correct weights under non-uniform
-sampling is not a contract but the density-robustness measurement above.
-Nothing in this book asserts a units property that was not tested in one
-of these two forms.
+nondimensionalizes coordinates by the dataset's reference length $L$, so no
+weight ever sees a metre; exact scale covariance when $L$ transforms with
+the geometry is a contract only for MeshTransformer2 with its similarity
+gauge on, and is not claimed otherwise. For the **measure**, cell areas
+enter as quadrature weights; whether a trained model exploits correct
+weights under non-uniform sampling is not a contract but the
+density-robustness measurement above. Nothing in this book asserts a units
+property that was not tested in one of these two forms.
 
 ## Protocol {#sec-protocol}
 
@@ -697,20 +567,16 @@ mean.
 
 **Shared validation, sealed test.** All architectures at all rungs of a
 ladder are scored on the same validation cases, which is what makes the
-paired statistics meaningful. On the industrial datasets the checkpoint evaluated is always the
-final-epoch checkpoint: no checkpoint is selected on validation error, and
-the validation set's only role in model selection was the per-architecture
-learning-rate choice on the full split described above. (Two parts of the book
-do select checkpoints on validation error and say so where they report:
-the controlled Navier–Stokes suite, whose arms restore the best-validation
-checkpoint before the test evaluation (@sec-ns-cavity), and the AirFRANS
-runs of the exact-kernel MeshTransformer, whose validation partition is
-described with the results (@sec-airfrans).) The HiLiftAeroML
-accuracy figures in this book are therefore validation-set figures with no
-checkpoint selection behind them. A sealed test split is evaluated exactly
-once, with the checkpoint and inference configuration declared in writing
-beforehand; the HiLiftAeroML test splits were spent only on the
-regime-extrapolation evaluations of @sec-regime-extrapolation, and no
+paired statistics meaningful. On both datasets the checkpoint evaluated is
+the final-epoch checkpoint: no checkpoint is selected on validation error,
+and the validation set's only role in model selection was the
+per-architecture learning-rate choice on the full split described above.
+The HiLiftAeroML and DrivAerML accuracy figures in this book are therefore
+validation-set figures with no checkpoint selection behind them. A sealed
+test split is evaluated exactly once, with the checkpoint and inference
+configuration declared in writing beforehand; the HiLiftAeroML test splits
+were spent only on the regime-extrapolation evaluations and the
+raw-coordinate discriminator of @sec-regime-extrapolation, and no
 data-efficiency or full-data experiment touches them.
 
 **Preregistration.** Each experiment is written down before it runs with a

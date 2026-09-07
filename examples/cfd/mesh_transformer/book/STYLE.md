@@ -27,9 +27,10 @@ Consequences:
    identifier is unavoidable in a table, define it in the same table's
    caption.
 4. **Architectures by name, every time.** MeshTransformer2 (MT2 after first
-   use in a chapter), the exact-kernel MeshTransformer (the original
-   architecture; "MT1" after first use), GeoTransolver, Transolver. Never
-   "the incumbent", "the baseline", "the old model".
+   use in a chapter), GeoTransolver, Transolver. The retired exact-kernel
+   design appears only in the interior chapter and the index footnote, as
+   "the exact-kernel MeshTransformer, an earlier design of this program";
+   never "MT1". Never "the incumbent", "the baseline", "the old model".
 
 ## Every number has a home
 

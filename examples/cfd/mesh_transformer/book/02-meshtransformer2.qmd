@@ -16,9 +16,11 @@ describes what MT2 computes, states its contracts as the tests that
 verify them, and prices each design choice with the measurements from
 the results chapters.
 
-The exact-kernel MeshTransformer (MT1, @sec-mt1) enforces its physical
-structure inside every layer with typed scalar/vector streams and
-analytic boundary-integral kernels. MT2 inverts that trade: it pays for
+An earlier design of this program, the exact-kernel MeshTransformer,
+enforced its physical structure inside every layer with typed
+scalar/vector streams and analytic boundary-integral kernels; it is
+retired for separated 3D flow (@sec-interior-negatives). MT2 inverts that
+trade: it pays for
 symmetry once at the network's edges (invariant inputs, equivariant
 output basis) and spends the interior on the routing mechanism that has
 the strongest empirical record on industrial aerodynamics, the
@@ -365,8 +367,7 @@ What is not a contract:
   is one in every training and evaluation run. It is a normalization
   detail, not a physical law: a pressure coefficient is degree zero in
   the freestream speed and a dimensional pressure is degree two. MT2 has
-  no drive-magnitude contract in the sense that MT1 has a declared
-  linearity contract (@sec-mt1).
+  no drive-magnitude contract.
 - **Query independence in the reference configuration.** Without the
   passive decoder, every surface point is an interacting token, so the
   prediction at a point depends on the rest of the sample. On DrivAerML
@@ -456,8 +457,7 @@ similarity gauge on gives 1.08x at 35 cases (@sec-mechanism). Under a
 degrades 1.20x; that configuration is not the one behind any accuracy
 number in this book and costs the 8% just stated. The constant-gauge
 configuration behind every accuracy result degrades 13–14.5x, worse
-than GeoTransolver's 3.6x and MT1's about 1.8x (1.6–2.2x over three
-seeds) (@sec-robustness-density).
+than GeoTransolver's 3.6x (@sec-robustness-density).
 
 **Query independence** costs 3.0–3.7x on DrivAerML surface pressure
 (@sec-query-independence). The passive decoder reaches 0.203–0.211

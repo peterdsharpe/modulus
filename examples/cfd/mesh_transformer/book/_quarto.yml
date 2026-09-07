@@ -4,14 +4,13 @@ project:
 
 book:
   title: "Learning Boundary-to-Field Operators on Meshes"
-  subtitle: "MeshTransformer2 and the exact-kernel MeshTransformer, measured against GeoTransolver"
+  subtitle: "MeshTransformer2, measured against GeoTransolver on production aerodynamics"
   chapters:
     - index.qmd
     - part: "The problem and the architectures"
       chapters:
         - 01-problem.qmd
         - 02-meshtransformer2.qmd
-        - 03-exact-kernel-meshtransformer.qmd
         - 04-baselines-and-fair-comparison.qmd
     - part: "Evidence on production aerodynamics"
       chapters:
@@ -19,11 +18,6 @@ book:
         - 06-accuracy-and-robustness.qmd
         - 07-regime-extrapolation.qmd
         - 08-boundary-to-interior.qmd
-    - part: "What exact operator structure buys"
-      chapters:
-        - 09-linear-suites.qmd
-        - 10-nonlinear-suites.qmd
-        - 11-industrial-exact-kernel.qmd
     - part: "Limits and status"
       chapters:
         - 12-limits-and-directions.qmd

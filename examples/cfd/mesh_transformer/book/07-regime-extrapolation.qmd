@@ -238,7 +238,7 @@ spread, so the ten-fold degradation and the 1.29 aoa ratio are robust while
 the 1.06 stall ratio between architectures should be read as suggestive. Both splits
 are drawn from one high-lift wing family; the conclusion is about crossing
 a regime boundary within that family, not about cross-family transfer,
-which is treated in @sec-industrial-mt1.
+which is treated in @sec-full-data.
 
 ## The smaller ratio is not carried by raw coordinates {#sec-ood-mechanism}
 
@@ -342,23 +342,16 @@ outcome bears on mechanism, not on the practical conclusion: every variant
 tested sits at a sealed-test error near 0.26–0.28, ten or more times its
 in-regime error.
 
-## Relation to the exact-kernel result on boundary-condition content
+## Extrapolating across boundary-condition content is a different question
 
-Extrapolation across the *content* of the boundary data is possible when
-the model carries the governing operator exactly, and this chapter shows
-where that stops. On the two-dimensional Laplace, screened and mixed
-boundary-condition suites with exact labels (@sec-linear-suites), the
-exact-kernel MeshTransformer's decoder evaluates the PDE's Green's
-function, so it reaches a relative L2 error of 0.070 on a held-out band of
-boundary-condition spatial frequencies where the soft-slice and
-moment-decoder arms score about 1.0, the error of predicting zero. An exact
-operator carries the spectral response for free; learned routing must have
-seen each mode. Separated three-dimensional flow offers no such operator:
-the potential-flow prior fails on separated aerodynamics (@sec-limits), so
-neither architecture tested here has an exact operator to carry, and both
-pay the extrapolation cost above, equivariant or not. Regime extrapolation
-is a coverage problem where the operator is unknown, and a structure
-problem only where it is known.
+Extrapolation across the *content* of the boundary data is a different
+question from extrapolation across a flow regime. On linear problems with
+exact labels, a decoder that evaluates the governing operator's Green's
+function exactly generalizes across boundary-condition content where
+soft-slice architectures do not; that route is closed for separated 3D
+flow, where no exact operator is available (@sec-interior-negatives). No
+architecture in this book has a mechanism for crossing a regime boundary,
+and none was expected to.
 
 ## What this means in practice
 

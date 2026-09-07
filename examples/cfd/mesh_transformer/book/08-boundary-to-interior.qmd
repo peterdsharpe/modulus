@@ -11,10 +11,10 @@ DrivAerML it costs 2.6x in interior pressure error. The deficit is
 smallest at the wall and grows with distance from it: the missing
 ingredient is volumetric context, not local detail. Two attempts to
 supply it without breaking the contract fail: off-surface latent tokens
-along anchor normals make MT2 worse, and the exact double-layer kernel of
-the original architecture is 8x behind (a comparison that is not
-resource-matched: its parameter count on this task was not recorded)
-because potential flow is the wrong prior for a separated wake.
+along anchor normals make MT2 worse, and an exact boundary-integral
+decoder from an earlier design of this program is 8x behind (a comparison
+that is not resource-matched: its parameter count on this task was not
+recorded) because potential flow is the wrong prior for a separated wake.
 
 ## The task {#sec-interior-task}
 
@@ -135,14 +135,19 @@ wall. Passed as the query normal it overrides the proxy; it is equally
 covariant and carries information about the local wall geometry that the
 proxy does not.
 
-*The exact-kernel MeshTransformer (MT1).* The original architecture
-(@sec-mt1, @sec-kernel-decoder) decodes at interior points natively: its
-decoder evaluates two exact singular Laplace kernels — the double-layer
-member and the single-layer member — from the boundary sample with
-learned densities, so an interior prediction is a boundary integral at
-the query. It is the surface configuration used elsewhere in this book with
-the trace terms removed; its parameter count on this task is not
-recorded.
+*The exact-kernel MeshTransformer, an earlier design of this program.*
+A one-layer attention encoder reads the boundary sample; its decoder
+then evaluates the exact double-layer and single-layer Laplace kernels
+from every boundary panel to the query, weighted by learned,
+operator-conditioned densities, so an interior prediction is a
+discretized boundary integral rather than a learned interpolation. Its
+contracts — similarity equivariance and, when declared, linearity in the
+drive — are exact for potential flow, where these kernels are the
+Green's-function representation of the solution, and the decoder is
+query-independent by construction. The arm trained here drops the
+surface-trace terms so that every interior output is the boundary
+integral alone; its parameter count on this task is not recorded. The
+rest of this chapter calls it the exact-kernel decoder.
 
 ## Results {#sec-interior-results}
 
@@ -158,7 +163,7 @@ draws the pressure column.
 | MT2, passive decode, SDF-gradient normal | 11.0M | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
 | MT2, passive decode, proxy normal | 11.0M | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
 | MT2 + 769 latent volume tokens | 11.0M + latent-token layers (not recorded) | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
-| exact-kernel MT1, double-layer decoder | not recorded | 0.496 (0.499 / 0.492) | 0.549 | 0.727 | 8.0 |
+| exact-kernel decoder, double-layer | not recorded | 0.496 (0.499 / 0.492) | 0.549 | 0.727 | 8.0 |
 
 : Interior relative L2 error on the 48 DrivAerML validation cars
 (arithmetic mean over cars, then over two seeds; per-seed pressure in
@@ -209,7 +214,7 @@ arms = [
     ("MT2\nSDF-gradient normal", lambda s: red[f"v0_mt2_int_sdf_seed{s}"]["pressure_l2"], BLUE),
     ("MT2\nproxy normal", lambda s: red[f"v0_mt2_int_seed{s}"]["pressure_l2"], BLUE),
     ("MT2 + 769 latent\nvolume tokens", lambda s: LVT_PRESSURE[s], BLUE),
-    ("exact-kernel MT1\ndouble-layer decoder", lambda s: red[f"v0_mt1k_vol_seed{s}"]["pressure_l2"], PURPLE),
+    ("exact-kernel decoder\ndouble-layer", lambda s: red[f"v0_mt1k_vol_seed{s}"]["pressure_l2"], PURPLE),
 ]
 seeds = (42, 43)
 means = [statistics.mean(get(s) for s in seeds) for _, get, _ in arms]
@@ -239,8 +244,8 @@ the size of what remains: even with the better normal, MT2 is 2.6x
 behind on pressure, 2.3x on velocity and 4.0x on eddy viscosity. The
 dominant term is not the normal; it is that GeoTransolver's interior
 tokens gather context and MT2's queries can only read what the
-surface-centred slices hold. The exact-kernel MT1 at 8.0x is taken up in
-@sec-interior-negatives.
+surface-centred slices hold. The exact-kernel decoder at 8.0x is taken up
+in @sec-interior-negatives.
 
 The comparison is between each architecture's natural interior mode, not
 a matched-mechanism ablation: GeoTransolver was not run with passive
@@ -276,7 +281,7 @@ GeoTransolver, which the sampling bias does not distort.
 #|   two-seed means (arm ÷ GeoTransolver) and the small markers are the
 #|   paired per-seed ratios (filled = seed 42, open = seed 43, same x). Left,
 #|   pressure; right, velocity including the freestream mean. Log axis. The
-#|   hollow purple marker is the exact-kernel MT1 far-band pressure, whose
+#|   hollow purple marker is the exact-kernel decoder's far-band pressure, whose
 #|   output there is identically zero (see text); it is not evidence of
 #|   accuracy. How to read this: a rising line means the arm loses more
 #|   ground to GeoTransolver as queries move away from the body. It does not
@@ -308,7 +313,7 @@ def pct(f):
 ticks = [f"{b}\n{e}\n{pct(frac[b]['case_mean'])}% of points" for b, e in zip(bands, edges)]
 arms = [("MT2, SDF-gradient normal", "mt2_int_sdf", BLUE, "-"),
         ("MT2, proxy normal", "mt2_int", BLUE, "--"),
-        ("exact-kernel MT1", "mt1k_vol", PURPLE, "-")]
+        ("exact-kernel decoder", "mt1k_vol", PURPLE, "-")]
 fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.2), sharey=True)
 import math
 for ax, field, title in zip(axes, ("pressure", "velocity"), ("pressure $C_p$", "velocity $U/|U_\\infty|$")):
@@ -374,7 +379,10 @@ freestream, is the well-conditioned view of the far field.
 
 Two mechanisms were tested as ways to give MT2 interior context or an
 interior prior without giving up query independence. Both fail, for
-different reasons.
+different reasons: the first adds tokens that hurt, the second starts
+from a physical prior that is worse than a constant on this flow.
+
+### Latent volume tokens along anchor normals
 
 **Latent volume tokens along anchor normals make the passive decode
 worse, by 1.43x on pressure.** The construction: before the encoder,
@@ -399,8 +407,16 @@ the deficit is largest. The supported statement is narrow:
 tokens in MT2's routing, degrade the interior decode.** It does not show
 that interaction at the query itself is the only remedy.
 
+### Why not an exact boundary-integral prior?
+
 **The exact double-layer kernel is not a usable prior for separated
-flow.** Two measurements establish this. The first is a zero-parameter
+flow, so the flagship does not evaluate exact boundary-integral
+kernels.** The question deserved asking: a boundary-integral decoder is
+query-independent and exactly covariant by construction, and on linear
+problems with exact labels the same decoder generalizes exactly across
+boundary-condition content, which is why it was a candidate here; those
+results are archived with the design. Three measurements on DrivAerML
+answer it. The first is a zero-parameter
 oracle: on the 45 of 48 validation cars whose remesh passes a
 watertightness and Gauss-identity check, exact inviscid potential flow —
 single- and double-layer integrals on the closed remesh, Neumann data
@@ -417,20 +433,27 @@ peaks are two to three times too strong. A decoder built as "exact
 Laplace kernel plus learned correction" starts from a field worse than a
 constant.
 
-The second is the trained exact-kernel MT1 in @tbl-interior at 8.0x,
-together with its far-band behaviour in @fig-interior-bands. Its
+The second is the trained exact-kernel decoder in @tbl-interior, at
+**8.0x** GeoTransolver on interior pressure with learned densities on
+top of the exact kernels. The comparison is not resource-matched: the
+decoder's parameter count on this task was not recorded and peak
+training memory was logged only as the 4–9 GB range across arms. The
+caveat would matter if more capacity could plausibly close the gap; the
+oracle says otherwise, because the field the learned densities must
+correct is already worse than a constant.
+
+The third is the decoder's far-band behaviour in @fig-interior-bands. Its
 far-band pressure ratio of 0.59x GeoTransolver is not accuracy: its
 far-field pressure output has decayed to identically zero (|C_p| below
 10⁻⁶ on every far point, against a true RMS of 0.0055), which yields the
 trivial relative L2 of 1.000 on all 48 cars and both seeds and beats
 GeoTransolver's 1.71 only through the denominator problem above. On
-far-band velocity, the well-conditioned readout, MT1 is **16.7x**
-GeoTransolver (RMS velocity error 0.34 |U_∞| against 0.027), and there
-is no distance band under any definition in which the double-layer
-decoder is within 1.5x of GeoTransolver on velocity. The
-exact-kernel line is closed for separated three-dimensional aerodynamics
-on every readout in this book; what it buys on problems whose operator
-it matches is the subject of @sec-linear-suites.
+far-band velocity, the well-conditioned readout, the exact-kernel
+decoder is **16.7x** GeoTransolver (RMS velocity error 0.34 |U_∞|
+against 0.027), and there is no distance band under any definition in
+which the double-layer decoder is within 1.5x of GeoTransolver on
+velocity. The exact-kernel line is closed for separated
+three-dimensional aerodynamics on every readout in this book.
 
 ## Standing and open designs {#sec-interior-open}
 
@@ -440,8 +463,8 @@ independence are contractual, at a 2.6x price in interior pressure error
 on DrivAerML.** Neither passive construction of a query normal closes
 the gap, the SDF gradient is the better of the two by 1.2x, and the
 distance stratification locates the missing quantity as volumetric
-context available to the query. The exact-kernel MT1 is not a contender
-on this task.
+context available to the query. The exact-kernel decoder is not a
+contender on this task.
 
 Two designs would supply that context without making a prediction depend
 on the batch of queries. Neither has been measured; both are designs,

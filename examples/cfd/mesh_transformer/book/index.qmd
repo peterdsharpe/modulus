@@ -4,10 +4,16 @@ This book reports a research program on **surrogates for steady,
 boundary-driven, three-dimensional PDE problems**: given a discretized
 boundary (a surface mesh with normals and areas) and a few global conditions
 such as the freestream direction, predict the fields on that boundary and in
-the volume around it. The program built two architectures and measured them
+the volume around it. The program built an architecture, MeshTransformer2,^[The code class is
+`MeshTransformer2`. An earlier exact-kernel design of the same name was
+retired from this book after its boundary-integral prior failed on separated
+flow (@sec-interior-negatives); its chapters are kept, unrendered, in the
+repository's `book/archive/` directory, and its results remain in the lab
+notebook.] and measured it
 against the strongest available mainstream baseline, GeoTransolver, under one
-frozen, parameter- and token-matched protocol on exact-label suites and on three
-production aerodynamics datasets (AirFRANS, DrivAerML, HiLiftAeroML). The
+frozen, parameter- and token-matched protocol on two production aerodynamics
+datasets (DrivAerML, HiLiftAeroML), with a third (SHIFT-SUV) as a zero-shot
+transfer target. The
 audience is applied mathematicians and machine-learning researchers; every
 term is defined at first use and every number is computed live from a
 checked-in artifact.
@@ -124,15 +130,14 @@ plt.show()
 ## How to read this book
 
 Part I defines the problem, the datasets and splits, the metrics and the
-protocol (@sec-problem), then the two architectures — MeshTransformer2
-(@sec-mt2) and the exact-kernel MeshTransformer from which it descends
-(@sec-mt1) — and the baselines with the fair-comparison rules
+protocol (@sec-problem), then the architecture, MeshTransformer2
+(@sec-mt2), and the baselines with the fair-comparison rules
 (@sec-baselines). Part II is the evidence on production aerodynamics: data
 efficiency (@sec-data-efficiency), accuracy at full data and the robustness
 contracts (@sec-full-data), regime extrapolation (@sec-regime-extrapolation),
-and boundary-to-interior prediction (@sec-interior). Part III is what exact
-operator structure buys on controlled problems and where it stops
-(@sec-linear-suites, @sec-nonlinear-suites, @sec-industrial-mt1). Part IV
+and boundary-to-interior prediction (@sec-interior), which also answers why
+the architecture does not evaluate exact boundary-integral kernels
+(@sec-interior-negatives). Part III
 states the limits of every claim and the experiments that would move them
 (@sec-limits) and holds the live status ledger of the program
 (@sec-program-status). The appendix is the dated lab notebook
@@ -162,4 +167,4 @@ in-distribution accuracy edge on vehicle data: GeoTransolver trained in a
 canonical frame is exactly pose-invariant at 1% cost (@sec-pose). Neither
 architecture generalizes across a flow-regime boundary, and neither
 transfers zero-shot to a different vehicle family
-(@sec-regime-extrapolation, @sec-industrial-mt1).
+(@sec-regime-extrapolation, @sec-full-data).
