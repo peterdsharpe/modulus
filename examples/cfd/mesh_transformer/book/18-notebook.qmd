@@ -6663,3 +6663,43 @@ the normal's streamwise component) were planned but the evaluation files
 store normals under a boundary path the script did not resolve; the station
 bins alone decide the preregistered bars, so the orientation view was not
 pursued.
+
+## 2026-09-07 — Addendum: compiling the geometry region makes the recompute path faster than the eager stored path (237 vs 289 ms) at 1.28 GiB; same function in fp32, bf16 rounding differs at the 1% level {#sec-nb-geo-compile}
+
+**Question.** The per-slice geometry that @sec-nb-geo-recompute moved into a
+recompute region is a chain of elementwise operations over
+points × slices tensors, the textbook case for kernel fusion. Does fusing the
+region recover the 16% step-time cost of recomputation?
+
+**Instrument.** `torch.compile(dynamic=False)` applied to the region function
+alone (`_geo_region`), the rest of the model eager as in the recipe; the
+same interleaved A/B harness as before, on the same shared RTX 4090, 10,000
+tokens, 10 timed repetitions per arm after warm-up
+(results/isla_memory_recompute_2026-09-07.json, key `compiled_region`).
+
+| arm | median step | ratio to stored/eager | peak step memory |
+|---|---|---|---|
+| stored activations, eager | 289 ms | 1.00 | 3.26 GiB |
+| stored activations, compiled region | 228 ms | 0.79 | 1.83 GiB |
+| recompute, eager (recipe default) | 333 ms | 1.15 | 1.42 GiB |
+| recompute, compiled region | 237 ms | 0.82 | 1.28 GiB |
+
+**Equivalence.** In fp32 the compiled region is the same function as the
+eager one: forward relative difference 5.6e-7, global relative gradient
+difference 1.0e-7. Under bf16 autocast the two differ by 1.1% in forward
+output and 2.1e-3 in global gradient norm, because the fused kernels round the
+elementwise chain differently from eager autocast (the earlier report of a
+1e4 relative gradient difference was an artifact of dividing by the
+near-zero gradient of the routing bias, which the slice softmax is invariant
+to). So the compiled region is a legitimate speed option (same function, a
+different bf16 rounding) but not the bitwise-identical arithmetic of the
+frozen protocol, and the recipe keeps `compile=false`.
+
+**Why it matters.** With the region compiled, ISLA trains at 0.82x the step
+time of today's eager code and 2.5x less memory, both from exact rewrites of
+the same architecture. The remaining step time is dominated by the
+(points × slices × hidden) einsums and the token MLPs, which are the same
+costs Transolver-family models pay. Adopting the compiled region in training
+is an engineering decision to be validated on one lane (loss curve overlaid on
+an eager seed); it is not a research claim and is not scheduled ahead of the
+science arms.

@@ -69,5 +69,25 @@
     "recompute_over_stored_median": 1.158502444776198
    }
   }
+ },
+ "compiled_region": {
+  "note": "torch.compile(dynamic=False) applied to _geo_region only, whole model otherwise eager; interleaved A/B at 10,000 tokens, 10 timed reps, same shared RTX 4090 (isla_compile_region.py). Equivalence (isla_compile_exact.py, 4,000 tokens): fp32 forward rel diff 5.6e-7, global rel grad diff 1.0e-7 (same function); under bf16 autocast forward rel diff 1.1e-2, global rel grad diff 2.1e-3 (different rounding of the fused chain, not protocol-identical).",
+  "median_step_ms": {
+   "stored_eager": 289,
+   "stored_compiled": 228,
+   "recompute_eager": 333,
+   "recompute_compiled": 237
+  },
+  "ratio_to_stored_eager": {
+   "stored_compiled": 0.79,
+   "recompute_eager": 1.15,
+   "recompute_compiled": 0.82
+  },
+  "peak_step_memory_gib": {
+   "stored_eager": 3.26,
+   "stored_compiled": 1.83,
+   "recompute_eager": 1.42,
+   "recompute_compiled": 1.28
+  }
  }
 }
