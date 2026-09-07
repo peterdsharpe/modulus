@@ -5951,3 +5951,62 @@ area of 1 (dimensional force units), so the *relative* errors are the
 meaningful quantity; the validation set is in-distribution
 (random cases of the same 180-geometry × 10-angle design); and the
 1,260-case force comparison is within seed noise.
+
+## 2026-09-06 — Free mechanism probe on the 35-case models: MT2's advantage holds at every angle of attack (2.2–4.3x), at the one angle absent from training (18°, 2.5x), and on never-seen geometries (3.0x); the baselines' error is flat across all strata {#sec-nb-strat35}
+
+**Why.** Two hypotheses about the 35-case carrier make different
+predictions about *where* on the validation set the advantage lives.
+If MeshTransformer2 (MT2) wins by representing the freestream-direction
+dependence exactly, its edge should be largest at angles the baselines
+have seen least. If it wins by geometry memorization, the edge should
+collapse on validation geometries absent from the 35 training cases.
+Both are readable now from the existing evaluations
+(`highlift/stratified_35.py` → `results/hilift_stratified_35_2026-09-06.json`);
+geometric-mean pressure rel-L2 over cases and both seeds.
+
+**By angle of attack** (the 35 training cases contain 3–7 cases per
+angle and **none at 18°**; 33 distinct geometries):
+
+| AoA [deg] | train cases | val cases | MT2 | GeoTransolver | Transolver | GT / MT2 | T / MT2 |
+|---|---|---|---|---|---|---|---|
+| 4 | 4 | 17 | 0.106 | 0.354 | 0.329 | 3.3 | 3.1 |
+| 6 | 4 | 18 | 0.098 | 0.338 | 0.330 | 3.4 | 3.4 |
+| 8 | 3 | 19 | 0.098 | 0.339 | 0.351 | 3.5 | 3.6 |
+| 10 | 4 | 13 | 0.096 | 0.350 | 0.362 | 3.7 | 3.8 |
+| 12 | 3 | 17 | 0.088 | 0.377 | 0.390 | 4.3 | 4.4 |
+| 14 | 3 | 15 | 0.121 | 0.418 | 0.439 | 3.5 | 3.6 |
+| 16 | 7 | 15 | 0.135 | 0.445 | 0.468 | 3.3 | 3.5 |
+| **18** | **0** | 27 | 0.167 | 0.412 | 0.443 | **2.5** | 2.7 |
+| 20 | 3 | 15 | 0.186 | 0.407 | 0.415 | 2.2 | 2.2 |
+| 22 | 4 | 24 | 0.184 | 0.432 | 0.435 | 2.4 | 2.4 |
+
+**By whether the validation geometry appears in training at another angle:**
+
+| geometry seen in train | val cases | MT2 | GeoTransolver | Transolver | GT / MT2 |
+|---|---|---|---|---|---|
+| yes | 34 | 0.113 | 0.386 | 0.387 | 3.4 |
+| **no** | **146** | 0.130 | 0.388 | 0.398 | **3.0** |
+
+**Three readings.** (i) **The advantage is not geometry memorization:**
+on the 146 never-seen geometries MT2 is 3.0x ahead; seeing a geometry
+at another angle helps MT2 by 15% and GeoTransolver not at all.
+(ii) **The advantage is not angle memorization either:** at 18°, which
+no training case has, MT2 interpolates smoothly between its 16° and
+20° errors (0.135 → 0.167 → 0.186) and stays 2.5x ahead. (iii) **The
+baselines' error is flat** — 0.33–0.47 at every angle and identical on
+seen and unseen geometries — while MT2's error tracks the physics
+(0.09–0.10 in attached flow, 0.17–0.19 post-stall, where the ratio
+falls to 2.2–2.5x). Flat error across every stratum is what a model
+that has not yet begun to fit the case-to-case variation looks like; a
+dataset-mean predictor would be the natural reference and is worth
+computing (recorded as a to-do, not a result). The picture at 35 cases
+is therefore not "MT2 is 3x better at the same task" but "**MT2 has
+learned the task and the Transolver family has not yet started**",
+which is exactly what a sample-complexity carrier (a coupling the
+baselines must learn from data and MT2 gets for free) would produce,
+and what the INV transplant (@sec-nb-inv-prereg) tests directly.
+
+**Bearing on W2-F.** The unseen-geometry prediction (ratios within 0.1
+of the same-size rung) is already met at this rung on the 146-case
+subset; W2-F's own lanes remain the clean test because the `geometry`
+splits hold out *all* angles of the val geometries by construction.
