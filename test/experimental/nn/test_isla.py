@@ -638,6 +638,51 @@ def test_geo_checkpoint_is_exact(extra):
         assert torch.allclose(p.grad, q.grad, atol=1e-11, rtol=1e-9), n
 
 
+def test_query_scalars_contracts():
+    """Per-query scalar inputs on the query tokens (e.g. the signed distance
+    to the wall): exact rotation/translation covariance is untouched (scalars
+    are invariants), the scalar channel changes the output and receives
+    gradients, geometric-scale equivariance holds under the similarity gauge
+    with the "length" scaling, and misuse raises."""
+    torch.manual_seed(0)
+    kw = dict(out_scalars=1, out_vectors=1, hidden=32, n_layers=2, n_slices=8,
+              query_tokens=True, similarity_gauge=True, n_query_scalars=1)
+    m = ISLA(**kw).double()
+    pts = torch.randn(1, 40, 3, dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, 40, 3, dtype=torch.float64), dim=-1)
+    drive = torch.tensor([[1.0, 0.3, 0.0]], dtype=torch.float64)
+    w = torch.rand(1, 40, dtype=torch.float64) + 0.5
+    q = torch.randn(1, 12, 3, dtype=torch.float64)
+    qn = torch.nn.functional.normalize(torch.randn(1, 12, 3, dtype=torch.float64), dim=-1)
+    sdf = torch.randn(1, 12, dtype=torch.float64) * 0.3
+    out = m(pts, nrm, drive, measure_weights=w, query_points=q, query_normals=qn, query_scalars=sdf)
+    assert out.shape == (1, 12, 4)
+    ### scalar channel is live
+    out2 = m(pts, nrm, drive, measure_weights=w, query_points=q, query_normals=qn, query_scalars=sdf * 2)
+    assert not torch.allclose(out, out2)
+    ### rotation + translation covariance (scalars ride along unchanged)
+    R = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))[0]
+    if torch.det(R) < 0:
+        R[:, 0] = -R[:, 0]
+    t = torch.tensor([0.4, -1.1, 2.0], dtype=torch.float64)
+    rot = m(pts @ R.T + t, nrm @ R.T, drive @ R.T, measure_weights=w, query_points=q @ R.T + t,
+            query_normals=qn @ R.T, query_scalars=sdf)
+    assert torch.allclose(rot[..., 0], out[..., 0], atol=1e-10)
+    assert torch.allclose(rot[..., 1:], out[..., 1:] @ R.T, atol=1e-10)
+    ### geometric-scale equivariance: lengths scale, so must the scalar
+    s = 3.7
+    sc = m(pts * s, nrm, drive, measure_weights=w * s**2, query_points=q * s, query_normals=qn,
+           query_scalars=sdf * s)
+    assert torch.allclose(sc, out, atol=1e-10)
+    ### gradients reach the scalar embedding
+    out.square().sum().backward()
+    assert all(p.grad is not None and p.grad.abs().sum() > 0 for p in m.qt_scalar_embed.parameters())
+    with pytest.raises(ValueError):
+        m(pts, nrm, drive, measure_weights=w, query_points=q, query_normals=qn)
+    with pytest.raises(ValueError):
+        ISLA(out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, n_query_scalars=1)
+
+
 def test_legacy_name_is_an_alias():
     """The previous name and import path keep working (cluster configs, checkpoints)."""
     from physicsnemo.experimental.nn import MeshTransformer2 as legacy_top

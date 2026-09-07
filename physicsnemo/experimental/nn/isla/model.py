@@ -291,6 +291,8 @@ class ISLA(Module):
         local_readout_rho: float = 0.02,
         query_tokens: bool = False,
         geo_checkpoint: bool = False,
+        n_query_scalars: int = 0,
+        query_scalar_scale: str = "length",
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -443,6 +445,24 @@ class ISLA(Module):
                 raise ValueError("query_tokens supports the plain invariant seed set only")
             self.qt_logw = nn.Parameter(torch.zeros(1))
             self.qt_type = nn.Parameter(torch.zeros(hidden))
+        ### Optional per-query scalar inputs for the query tokens (e.g. the
+        ### signed distance to the wall, which GeoTransolver's volume
+        ### configuration receives at every interior point). Scalars are
+        ### invariants, so every covariance contract is untouched; with
+        ### query_scalar_scale="length" each scalar s is divided by the gauge
+        ### and entered as [s, sign(s) log(|s|+eps)], keeping geometric-scale
+        ### equivariance when the similarity gauge is on.
+        self.n_query_scalars = int(n_query_scalars)
+        self.query_scalar_scale = query_scalar_scale
+        if self.n_query_scalars:
+            if not self.query_tokens:
+                raise ValueError("n_query_scalars requires query_tokens=True")
+            if query_scalar_scale not in ("length", "none"):
+                raise ValueError(f"unknown query_scalar_scale {query_scalar_scale!r}")
+            width = 2 * self.n_query_scalars if query_scalar_scale == "length" else self.n_query_scalars
+            self.qt_scalar_embed = nn.Sequential(
+                nn.Linear(width, hidden), nn.GELU(), nn.Linear(hidden, hidden)
+            )
         if odd_head:
             self.N_ODD = 7
             self.odd_assign = nn.Linear(hidden, n_slices)
@@ -545,6 +565,7 @@ class ISLA(Module):
         boundary_scalars: Float[torch.Tensor, "batch tokens n_bscalars"] | None = None,
         query_points: Float[torch.Tensor, "batch queries 3"] | None = None,
         query_normals: Float[torch.Tensor, "batch queries 3"] | None = None,
+        query_scalars: Float[torch.Tensor, "batch queries n_qscalars"] | None = None,
     ) -> Float[torch.Tensor, "batch tokens out_dim"]:
         if points.ndim == 2:
             points = points[None]
@@ -685,11 +706,27 @@ class ISLA(Module):
                 dim=-1,
             )
             h_q = self.embed(q_inv) + self.qt_type.to(h.dtype)
+            if self.n_query_scalars:
+                if query_scalars is None:
+                    raise ValueError("n_query_scalars > 0 needs query_scalars")
+                qs = query_scalars.reshape(bq, nq, self.n_query_scalars).to(q_inv.dtype)
+                if self.query_scalar_scale == "length":
+                    qs = qs / gauge
+                    qs = torch.cat([qs, torch.sign(qs) * torch.log(qs.abs() + self.eps)], dim=-1)
+                h_q = h_q + self.qt_scalar_embed(qs).to(h_q.dtype)
+            elif query_scalars is not None:
+                raise ValueError("query_scalars given but n_query_scalars == 0")
             h = torch.cat([h, h_q], dim=1)
             r = torch.cat([r, q_r], dim=1)
             n_hat = torch.cat([n_hat, q_nhat], dim=1)
             d_hat = torch.cat([d_hat, q_d], dim=1)
-            log_w = torch.cat([log_w, self.qt_logw.to(log_w.dtype).expand(b, nq, 1)], dim=1)
+            ### The query tokens' routing weight is learned RELATIVE to the
+            ### surface measure (mean surface log-weight), so that rescaling
+            ### the geometry (areas x k^2) shifts every token's log-weight by
+            ### the same 2 log k and the similarity-gauge scale contract holds
+            ### exactly; an absolute learned weight broke it (2026-09-07).
+            q_logw = self.qt_logw.to(log_w.dtype) + log_w[:, :n_surface].mean(dim=1, keepdim=True)
+            log_w = torch.cat([log_w, q_logw.expand(b, nq, 1)], dim=1)
             n = n + nq
 
         if not (self.query_independent and 0 < self.n_anchors < n):
