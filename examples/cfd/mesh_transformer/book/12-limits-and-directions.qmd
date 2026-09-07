@@ -25,8 +25,9 @@ home section; this chapter adds only the limits.
 - Sampling-density robustness of ISLA with the similarity gauge, and the
   failure of the constant-gauge configuration without it
   (@sec-robustness-density).
-- Interior accuracy: GeoTransolver's interacting query tokens lead ISLA's
-  passive decode (@sec-interior).
+- Interior accuracy: GeoTransolver's volume configuration leads ISLA's
+  passive decode, at 2.8x the parameters and with the signed distance as an
+  input (@sec-interior).
 - Regime extrapolation: nothing tested generalizes across a flow-regime
   boundary (@sec-regime-extrapolation).
 
