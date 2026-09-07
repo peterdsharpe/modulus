@@ -619,6 +619,7 @@ class TestCellSubsampleMeasureWeights:
         mesh = Mesh.load(tmp_path / "big.pmsh")
         assert getattr(mesh.points, "filename", None) is not None
         monkeypatch.setattr(rm, "_RANGE_READ_MAX_BYTES", 0)
+        monkeypatch.setattr(rm, "_USE_PREAD_GATHER", True)
         idx = torch.unique(torch.cat([
             torch.tensor([0, 1, 2, 341, 342, 682, 683, 1000, 1001, 1002, 1003, n - 1]),
             torch.randint(0, n, (500,)),

@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import glob as _glob
 import logging
+import os
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -146,11 +147,18 @@ def _subsample_mesh_cells(
 
 _RANGE_READ_MAX_BYTES = 256 * 2**20
 _PREAD_PAGE = 4096
-# Measured on lustre (AGA, 2026-09-07): 16 reader threads on one file were
-# never faster than one (122-194 ms vs 75-119 ms per 28k-row gather), so the
-# pool is off by default; the code path remains for file systems that do
-# service concurrent reads on one file.
 _PREAD_THREADS = 1
+# Page-wise positional reads for scattered gathers on file-backed leaves are
+# OPT-IN (env PHYSICSNEMO_MESH_PREAD_GATHER=1). Measured on lustre (AGA,
+# 2026-09-07, HiLiftAeroML surfaces, 28k scattered rows of a 142M-row
+# memmap per sample): a single cold reader moved 0.29 GB with page reads
+# against 1.08 GB through the memmap (each page fault drags in the client's
+# read-ahead window), but inside the training loop with 16 reader processes
+# per node the page reads were latency-bound (5-29 s per step against ~1-3 s)
+# because the file system serialises small reads per file, while the
+# memmap's read-ahead turns the same access into large sequential RPCs.
+# Threads on one file did not help there either (16 never beat 1).
+_USE_PREAD_GATHER = os.environ.get("PHYSICSNEMO_MESH_PREAD_GATHER", "0") == "1"
 
 
 def _gather_rows(t: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
@@ -158,15 +166,12 @@ def _gather_rows(t: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
     are laid out.
 
     * Rows spanning at most ``_RANGE_READ_MAX_BYTES``: one sequential slice
-      ``t[lo:hi]`` then an in-memory index.
-    * Otherwise, for a file-backed leaf (tensordict ``MemoryMappedTensor``):
-      explicit page-sized positional reads of exactly the pages that hold the
-      rows (:func:`_pread_rows`). A fancy-index gather on the memmap instead
-      faults one page per row and, on a network file system, each fault
-      drags in its read-ahead window: measured on a HiLiftAeroML surface
-      (142M vertices, 28k rows wanted) the memmap gather moved 1.08 GB from
-      storage in 31 s where page reads moved 0.29 GB in 5 s, byte-identical.
-    * Anything else: the plain gather.
+      ``t[lo:hi]`` then an in-memory index (one sequential read instead of
+      one page fault per row).
+    * Otherwise, if ``_USE_PREAD_GATHER`` is set and the leaf is file-backed
+      (tensordict ``MemoryMappedTensor``): page-sized positional reads of
+      exactly the pages holding the rows (:func:`_pread_rows`).
+    * Otherwise: the plain gather.
 
     All branches return a fresh tensor equal to ``t[idx]``.
     """
@@ -179,7 +184,8 @@ def _gather_rows(t: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
         return t[lo:hi][idx - lo]
     filename = getattr(t, "filename", None)
     if (
-        filename is not None
+        _USE_PREAD_GATHER
+        and filename is not None
         and t.device.type == "cpu"
         and t.is_contiguous()
         and t.storage_offset() == 0
