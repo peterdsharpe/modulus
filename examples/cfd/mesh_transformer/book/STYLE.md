@@ -32,8 +32,7 @@ Consequences:
    experiment is: "the single-factor ablation at 35 training cases". If an
    identifier is unavoidable in a table, define it in the same table's
    caption.
-4. **Architectures by name, every time.** MeshTransformer2 (MT2 after first
-   use in a chapter), GeoTransolver, Transolver. The retired exact-kernel
+4. **Architectures by name, every time.** ISLA, GeoTransolver, Transolver. The retired exact-kernel
    design appears only in the interior chapter and the index footnote, as
    "the exact-kernel MeshTransformer, an earlier design of this program";
    never "MT1". Never "the incumbent", "the baseline", "the old model".
@@ -70,7 +69,7 @@ Consequences:
     unit in brackets; direct labels rather than legends where space allows;
     one visual channel per variable; grey for context, colour for the claim;
     the same hue means the same architecture in every figure
-    (MeshTransformer2 blue `#2a78d6`, GeoTransolver red `#e34948`,
+    (ISLA blue `#2a78d6`, GeoTransolver red `#e34948`,
     Transolver grey `#52514e`, exact-kernel MeshTransformer purple
     `#7b4fb3` where present).
 11. Every figure gets a "how to read this" sentence in the caption or

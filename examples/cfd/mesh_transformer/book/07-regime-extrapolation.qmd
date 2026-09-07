@@ -1,9 +1,9 @@
 # Regime extrapolation: angle of attack and stall {#sec-regime-extrapolation}
 
-**Trained on one flow regime, neither MeshTransformer2 nor GeoTransolver
+**Trained on one flow regime, neither ISLA nor GeoTransolver
 predicts the other.** Crossing from low to high angle of attack, or from
 attached to separated flow, multiplies surface-pressure error by roughly
-ten for both architectures, to a level worse than MT2 reaches from only 35
+ten for both architectures, to a level worse than ISLA reaches from only 35
 training cases inside the regime. The data-efficiency advantage of
 @sec-data-efficiency does not carry across a regime boundary, and no
 architectural choice tested here substitutes for training data that covers
@@ -41,12 +41,12 @@ from the in-regime fit.
 
 Training follows the frozen protocol of @sec-protocol for both
 architectures: 10,000 sampled surface points per case, 500 epochs, bf16, no
-augmentation, learning rate 1e-3 for both MT2 and GeoTransolver (each one's
+augmentation, learning rate 1e-3 for both ISLA and GeoTransolver (each one's
 best on the full split, chosen by validation before these runs), seeds 42
-and 43. MT2 runs in its default configuration (constant reference length,
+and 43. ISLA runs in its default configuration (constant reference length,
 similarity gauge off) at 8.9M parameters and GeoTransolver at 9.0M, both at
 10,000 tokens per case (@sec-mt2, @sec-baselines); peak training memory at
-this token count is 3.6 GB for MT2 against 4.6 GB for GeoTransolver. The
+this token count is 3.6 GB for ISLA against 4.6 GB for GeoTransolver. The
 comparison is matched on parameters, tokens and epochs.
 
 The sealed test was run under a protocol declared before any test case was
@@ -76,9 +76,9 @@ cases from its own side.
 | split | architecture | validation (in-regime) | sealed test (OOD) | d = test / val |
 |---|---|---|---|---|
 | aoa | GeoTransolver | 0.0301 | 0.315 | 10.5 |
-| aoa | MeshTransformer2 | 0.0207 | 0.244 | 11.8 |
+| aoa | ISLA | 0.0207 | 0.244 | 11.8 |
 | stall | GeoTransolver | 0.0296 | 0.276 | 9.3 |
-| stall | MeshTransformer2 | 0.0207 | 0.260 | 12.5 |
+| stall | ISLA | 0.0207 | 0.260 | 12.5 |
 
 : Regime extrapolation on HiLiftAeroML: seed-mean pressure rel-L2 on the
 in-regime validation set and on the sealed test set of the other regime,
@@ -99,14 +99,14 @@ the numbers. {#tbl-hilift-ood}
 #|   cases; 723 sealed post-stall test cases). Each line is one seed, joining
 #|   its in-regime validation pressure error to its sealed-test pressure
 #|   error; filled markers are seed 42, open markers seed 43; red circles are
-#|   GeoTransolver, blue squares MeshTransformer2. Each end is annotated with
+#|   GeoTransolver, blue squares ISLA. Each end is annotated with
 #|   the seed-mean error and each line pair with the seed-mean d = test / val.
 #|   What it does not show:
 #|   per-case pairing or statistics (each point is a split mean over two
 #|   seeds); anything about data efficiency (@fig-hilift-data-efficiency);
 #|   velocity or wall-shear error. Protocol: 10,000 sampled surface points
 #|   per case, 500 epochs, bf16, no augmentation, learning rate 1e-3 for both
-#|   architectures, MT2 in its default constant-gauge configuration. Data:
+#|   architectures, ISLA in its default constant-gauge configuration. Data:
 #|   results/hilift_ladder_reduction_2026-09-03.json (validation) and
 #|   results/hilift_sealed_test_2026-09-04.json (test, d).
 #| code-fold: true
@@ -127,7 +127,7 @@ mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASEL
 lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
 sealed = json.load(open(Path("..") / "results" / "hilift_sealed_test_2026-09-04.json"))
 runs = sealed["runs"]
-style = {"gt": (RED, "GeoTransolver", "o"), "mt2": (BLUE, "MeshTransformer2", "s")}
+style = {"gt": (RED, "GeoTransolver", "o"), "mt2": (BLUE, "ISLA", "s")}
 seeds = (42, 43)
 # In-regime validation sizes come from the dataset's curated split manifests
 # (112 low-angle cases for aoa, 135 pre-stall cases for stall); the sealed
@@ -155,7 +155,7 @@ for ax, (axis, title) in zip(axs, panels):
         vmean, tmean, dmean = (statistics.mean(x) for x in (vals, tests, ds))
         # Direct labels: seed-mean validation error left of the validation end,
         # seed-mean test error and d right of the test end. GeoTransolver sits
-        # above MT2 at both ends, so its labels go above and MT2's below.
+        # above ISLA at both ends, so its labels go above and ISLA's below.
         up = arch == "gt"
         ax.text(X_VAL - 0.06, vmean, f"{vmean:.3f}", color=c, fontsize=8.8, ha="right",
                 va="bottom" if up else "top")
@@ -185,7 +185,7 @@ plt.show()
 
 ::: {.callout-note title="How to read this figure"}
 It says: *from either side of a regime boundary, both architectures lose
-about a factor of ten.* The lower blue endpoints show that MT2 is still the
+about a factor of ten.* The lower blue endpoints show that ISLA is still the
 more accurate model on the far side of the boundary; the shallower red
 slope shows that GeoTransolver loses a smaller multiple of a worse starting
 point. It does not show data efficiency, per-case statistics, or any field
@@ -196,7 +196,7 @@ Three readings follow, in order of importance.
 
 **Neither architecture generalizes across a flow-regime boundary.** Both
 lose a factor of about ten, from 0.021–0.030 in regime to 0.24–0.33 on the
-sealed test. Those test errors are worse than MT2 reaches from 35 in-regime
+sealed test. Those test errors are worse than ISLA reaches from 35 in-regime
 training cases on the shared validation set of the data-efficiency ladder
 (0.138; @sec-data-efficiency). A model that has seen 788 or 942 cases of
 the wrong regime is therefore less useful than one that has seen 35 cases
@@ -205,19 +205,19 @@ axis. The other fields degrade in the same way: sealed-test velocity
 rel-L2 is 0.19–0.26 and wall-shear rel-L2 0.32–0.39 for all eight
 checkpoints, against 0.04–0.06 and 0.07–0.10 in regime.
 
-**MT2 keeps the lower absolute error on both axes.** Its seed-mean
+**ISLA keeps the lower absolute error on both axes.** Its seed-mean
 sealed-test pressure error is 0.244 against GeoTransolver's 0.315 on the
 aoa split and 0.260 against 0.276 on the stall split. Written as
-GeoTransolver error ÷ MT2 error, so that a value above 1 favours MT2, the
+GeoTransolver error ÷ ISLA error, so that a value above 1 favours ISLA, the
 advantage is 1.43–1.45 on the in-regime validation sets (between the
 210-case and 1,260-case rungs of the data-efficiency ladder, as expected for
 training sets of 788–942 cases) and shrinks to 1.29 on the aoa test set and
 1.06 on the stall test set; it does not invert.
 
 **GeoTransolver has the smaller degradation ratio, and it has it because
-its in-regime floor is higher.** Its d is 10.5 and 9.3 against MT2's 11.8
+its in-regime floor is higher.** Its d is 10.5 and 9.3 against ISLA's 11.8
 and 12.5. The two architectures converge to similar sealed-test error
-(GeoTransolver ÷ MT2 of 1.29 on aoa and 1.06 on stall) from different
+(GeoTransolver ÷ ISLA of 1.29 on aoa and 1.06 on stall) from different
 starting points (0.030 against 0.021), and a ratio criterion rewards the
 worse starting point: a model that fits its own regime less well has less to
 lose. The d values themselves are separated by more than their seed spread
@@ -225,7 +225,7 @@ on the stall split (d_GT / d_MT2 is 0.74 with disjoint seed intervals,
 against 0.89 on aoa), so the smaller ratio is a real feature of
 GeoTransolver's numbers; the next section tests whether it is carried by
 GeoTransolver's raw-coordinate inputs and finds that it is not. In absolute
-terms, the number that governs deployment, MT2 is ahead.
+terms, the number that governs deployment, ISLA is ahead.
 
 The readings carry their own limits. The measurement is two seeds and one
 evaluation per checkpoint, with no per-case pairing. The two-seed intervals
@@ -238,27 +238,27 @@ which is treated in @sec-full-data.
 
 ## The smaller ratio is not carried by raw coordinates {#sec-ood-mechanism}
 
-**Giving MT2 a raw-coordinate input channel does not give it
+**Giving ISLA a raw-coordinate input channel does not give it
 GeoTransolver's smaller degradation ratio; the variant's d is 12.7 and 13.3
-against MT2's 12.5 and GeoTransolver's 9.3, and its sealed-test error is
+against ISLA's 12.5 and GeoTransolver's 9.3, and its sealed-test error is
 unchanged (0.264 against 0.260).** GeoTransolver's smaller ratio is therefore the arithmetic
 of a higher in-regime floor, not a transfer mechanism that its inputs carry.
 
 The hypothesis under test was that GeoTransolver's inputs explain its
 ratio. GeoTransolver consumes raw centered coordinates and normals per
-point; MT2 consumes only SE(3)-invariant seeds relative to a gauge
+point; ISLA consumes only SE(3)-invariant seeds relative to a gauge
 (@sec-mt2). Pointwise raw-coordinate features might let a model carry a
 learned map from position on the wing to pressure across the boundary, at
 the cost of the in-regime accuracy that invariant seeds buy. The controlled
-test adds the raw coordinates to MT2 rather than removing them from
+test adds the raw coordinates to ISLA rather than removing them from
 GeoTransolver, because an added channel changes less than a removed encoder
 input.
 
-The **raw-coordinate variant** is MT2 with a side channel that appends the
+The **raw-coordinate variant** is ISLA with a side channel that appends the
 gauge-normalized raw coordinates and normal components to its seed
 invariants, deliberately breaking rotation equivariance (a contract test
 asserts that equivariance is broken), run with the similarity gauge on
-rather than the constant reference length of the reference MT2. It was
+rather than the constant reference length of the reference ISLA. It was
 trained on the stall split at two seeds under the otherwise frozen
 protocol, with one permitted sealed-test evaluation of the two new
 checkpoints only; no previously evaluated checkpoint was re-evaluated. The
@@ -268,7 +268,7 @@ in-regime validation pressure error, the sealed-test pressure error, and d.
 
 The bars were declared in readout units before the variant was trained. Raw
 features carry the transfer if the variant's d moves at least halfway from
-MT2's 12.5 toward GeoTransolver's 9.3, that is **d ≤ 11.0, and** its
+ISLA's 12.5 toward GeoTransolver's 9.3, that is **d ≤ 11.0, and** its
 sealed-test pressure error falls below 0.245. They do not if **d ≥ 12.0 or**
 the sealed-test error is 0.255 or more. Between those bands the result is
 inconclusive. Because the trigger for the test was a ratio driven by
@@ -300,12 +300,12 @@ n_test = []
 for s in (42, 43):
     r = b1[f"b1_hl_mt2_stall_rawcoord_seed{s}"]
     n_test.append(r["stall_test"]["n"])
-    lines.append(f"| MT2 + raw-coordinate channel, seed {s} | {r['val']['pressure_l2']:.4f} "
+    lines.append(f"| ISLA + raw-coordinate channel, seed {s} | {r['val']['pressure_l2']:.4f} "
                  f"| {r['stall_test']['pressure_l2']:.3f} | {r['d_axis']:.1f} |")
-for arch, name in (("mt2", "MT2 reference (constant gauge), seed mean"), ("gt", "GeoTransolver, seed mean")):
+for arch, name in (("mt2", "ISLA reference (constant gauge), seed mean"), ("gt", "GeoTransolver, seed mean")):
     v, t, d = ref(arch)
     lines.append(f"| {name} | {v:.4f} | {t:.3f} | {d:.1f} |")
-caption = (": Raw-coordinate variant of MT2 on the stall split against the reference rows of "
+caption = (": Raw-coordinate variant of ISLA on the stall split against the reference rows of "
            "@tbl-hilift-ood: pressure rel-L2 on the 135 in-regime validation cases, on the sealed "
            "post-stall test, and their ratio d. Preregistered bars: raw coordinates carry the ratio "
            "if d ≤ 11.0 and test error < 0.245; they do not if d ≥ 12.0 or test error ≥ 0.255. "
@@ -319,18 +319,18 @@ display(Markdown("\n".join(lines) + "\n\n" + caption))
 
 Both falsifier conditions fire on both seeds: d is 12.7 and 13.3 (≥ 12.0)
 and the sealed-test pressure error is 0.262 and 0.267 (≥ 0.255). The
-channel leaves in-regime accuracy where the reference MT2 has it
+channel leaves in-regime accuracy where the reference ISLA has it
 (0.0206/0.0201 against 0.0204/0.0210) and leaves the sealed-test error
 where it was (0.264 seed mean against 0.260), so the slightly larger d is
 the arithmetic of a marginally lower denominator, not of any change in
-out-of-regime accuracy. Raw-coordinate inputs do not buy MT2 any of
+out-of-regime accuracy. Raw-coordinate inputs do not buy ISLA any of
 GeoTransolver's ratio. Whether the similarity gauge, on in this variant and
 off in the reference, contributes to the small test-error shift is not
 separated by this design; the in-regime figures say it did not move the
 floor.
 
 The reading of the previous section stands without a mechanism to add.
-GeoTransolver reaches the same sealed-test error as MT2 to within 1.06x
+GeoTransolver reaches the same sealed-test error as ISLA to within 1.06x
 from an in-regime floor 1.43x higher, and that is the whole of its smaller
 ratio. On the absolute readout there is no transfer advantage to explain,
 so no GeoTransolver ablation removing its raw coordinates is warranted. The
@@ -361,7 +361,7 @@ few dozen post-stall cases are worth more than hundreds of additional
 attached-flow cases if post-stall predictions are needed: the 35-case
 in-regime error (0.138) is lower than the 788-case out-of-regime error
 (0.244). The data-efficiency result of @sec-data-efficiency says how few
-in-regime cases MT2 needs; this chapter says that none of them can be
+in-regime cases ISLA needs; this chapter says that none of them can be
 replaced by cases from the wrong regime.
 
 Second, a validation set drawn from the training regime overstates the
@@ -369,6 +369,6 @@ model's range by an order of magnitude. Any reported accuracy for these
 surrogates should state the angle-of-attack and flow-state coverage of the
 training data alongside the error, and deployment should include an
 out-of-regime check on a small sealed set, evaluated once, as done here.
-Within that coverage MT2 is the more accurate model (at 3.6 GB peak
+Within that coverage ISLA is the more accurate model (at 3.6 GB peak
 training memory against GeoTransolver's 4.6 GB); outside it, neither is
 usable, and the choice between them is not the decision that matters.

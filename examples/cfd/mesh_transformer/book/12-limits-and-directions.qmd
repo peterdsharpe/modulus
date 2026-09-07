@@ -1,6 +1,6 @@
 # Limits, open questions, and directions {#sec-limits}
 
-The program's headline result, that MeshTransformer2 (MT2) is several times
+The program's headline result, that ISLA is several times
 more accurate than GeoTransolver and Transolver when trained on a few dozen
 high-lift cases, and at parity on HiLiftAeroML and 8.5% behind on DrivAerML
 at each architecture's best learning rate, is established on one dataset
@@ -22,10 +22,10 @@ home section; this chapter adds only the limits.
 - The pose contract: exact rotation and translation covariance (@sec-pose).
 - Learning-rate robustness, and the memory and compute comparison
   (@sec-mt2-cost).
-- Sampling-density robustness of MT2 with the similarity gauge, and the
+- Sampling-density robustness of ISLA with the similarity gauge, and the
   failure of the constant-gauge configuration without it
   (@sec-robustness-density).
-- Interior accuracy: GeoTransolver's interacting query tokens lead MT2's
+- Interior accuracy: GeoTransolver's interacting query tokens lead ISLA's
   passive decode (@sec-interior).
 - Regime extrapolation: nothing tested generalizes across a flow-regime
   boundary (@sec-regime-extrapolation).
@@ -41,10 +41,10 @@ surface-pressure relative L2 error as defined in @sec-metrics, averaged
 over the 180 validation cases shared by every rung of the nested splits. The log-log
 slope of a segment is −Δ log(error)/Δ log(cases) between adjacent rungs; a
 larger slope means error falls faster with data. GeoTransolver's slope is
-0.50 from 35 to 210 cases and 0.74 from 210 to 1,260; MT2's is 0.43 and
-then 0.25. GeoTransolver steepens as data grows and MT2 flattens. A naive
+0.50 from 35 to 210 cases and 0.74 from 210 to 1,260; ISLA's is 0.43 and
+then 0.25. GeoTransolver steepens as data grows and ISLA flattens. A naive
 power-law extrapolation of the two curves puts GeoTransolver at 0.015 and
-MT2 at 0.029 at 5,000 cases, a factor of two in GeoTransolver's favour.
+ISLA at 0.029 at 5,000 cases, a factor of two in GeoTransolver's favour.
 
 ```{python}
 #| label: fig-slope-extrapolation
@@ -52,7 +52,7 @@ MT2 at 0.029 at 5,000 cases, a factor of two in GeoTransolver's favour.
 #|   The slope objection, drawn. Pressure relative L2 error on the shared
 #|   180-case HiLiftAeroML validation set versus number of training cases,
 #|   log-log, seed means (small dots are the two seeds) for GeoTransolver
-#|   (red) and MeshTransformer2 (blue); the Transolver control at its better
+#|   (red) and ISLA (blue); the Transolver control at its better
 #|   learning rate (grey, dashed) is shown at the two rungs it was run on.
 #|   Each solid segment is labelled with its log-log slope. The dotted lines
 #|   extend the last measured segment of each curve as a power law to 5,000
@@ -61,7 +61,7 @@ MT2 at 0.029 at 5,000 cases, a factor of two in GeoTransolver's favour.
 #|   figure shows that the two measured curves have different curvature; it
 #|   does not show where either curve goes, because the shared-floor evidence
 #|   (text) says the flattening may belong to the protocol rather than to
-#|   MT2. Protocol: learning rate 1e-3 for GeoTransolver and MT2, 3e-3 for
+#|   ISLA. Protocol: learning rate 1e-3 for GeoTransolver and ISLA, 3e-3 for
 #|   Transolver, 500 epochs, bf16, no augmentation, 10,000 sampled points per
 #|   case, two seeds. Data: results/hilift_ladder_reduction_2026-09-03.json
 #|   and results/t1_transolver_control_reduction_2026-09-05.json.
@@ -107,10 +107,10 @@ for x, v in zip(txs, tpts):
 # Transolver label to the right of its 210-case point (clear of both solid curves)
 ax.annotate("Transolver", (txs[1], tmeans[1]), xytext=(8, 0), textcoords="offset points",
             color=INK2, fontsize=9.5, ha="left", va="center")
-style = {"gt": (RED, "GeoTransolver", "o"), "mt2": (BLUE, "MeshTransformer2", "s")}
+style = {"gt": (RED, "GeoTransolver", "o"), "mt2": (BLUE, "ISLA", "s")}
 for arch, (xs, means, pts) in curves.items():
     c, name, mk = style[arch]
-    up = arch == "gt"  # GeoTransolver slope labels above its curve, MT2 below
+    up = arch == "gt"  # GeoTransolver slope labels above its curve, ISLA below
     ax.plot(xs, means, color=c, lw=2.2, marker=mk, ms=7, zorder=3)
     for x, v in zip(xs, pts):
         ax.scatter([x] * 2, v, color=c, s=14, zorder=4)
@@ -126,11 +126,11 @@ for arch, (xs, means, pts) in curves.items():
     y_ext = means[2] * (X_EXTRAP / xs[2]) ** (-s_last)
     ax.plot([xs[2], X_EXTRAP], [means[2], y_ext], color=c, ls=":", lw=1.6, zorder=2)
     ax.scatter([X_EXTRAP], [y_ext], color=c, s=28, facecolors="white", zorder=4)
-    # MT2 (upper endpoint) labelled above its point, GeoTransolver (lower) below
+    # ISLA (upper endpoint) labelled above its point, GeoTransolver (lower) below
     ax.annotate(f"{name}\nnaive extrapolation {y_ext:.3f}", (X_EXTRAP, y_ext),
                 xytext=(8, -6) if up else (8, 6), textcoords="offset points", color=c,
                 fontsize=9, ha="left", va="top" if up else "bottom")
-    # architecture names: GeoTransolver above its 35-case point, MT2 below-left of its 210-case point
+    # architecture names: GeoTransolver above its 35-case point, ISLA below-left of its 210-case point
     if up:
         ax.annotate(name, (xs[0], means[0]), xytext=(0, 12), textcoords="offset points",
                     color=c, fontsize=10.5, fontweight="bold", ha="center", va="bottom")
@@ -153,10 +153,10 @@ plt.show()
 Three facts bound the extrapolation. The claim is scoped to the range in
 which every production CFD dataset in this program lives; no scaling-law
 statement is made. The flattening may be a floor of the protocol rather than
-a property of MT2: at 1,260 cases the two architectures share 70% of their
+a property of ISLA: at 1,260 cases the two architectures share 70% of their
 residual on identical points, the correlation between two-seed disagreement
 and per-case error collapses for both, and accuracy still rises with points
-per case (6,500 → 10,000 points is worth 8% for MT2), which is what a
+per case (6,500 → 10,000 points is worth 8% for ISLA), which is what a
 resolution or label floor looks like (@sec-shared-floor); if both curves
 approach one floor, GeoTransolver's steep segment cannot continue either.
 And the shape is what a bias–variance argument predicts for a model with
@@ -187,8 +187,8 @@ not yet measured (@sec-program-status).
 
 ### The mechanism is not identified {#sec-limits-mechanism}
 
-**Five single-factor ablations of MT2 at 35 cases moved its error by at
-most 16%, while GeoTransolver's error at that rung is 2.8x MT2's; the
+**Five single-factor ablations of ISLA at 35 cases moved its error by at
+most 16%, while GeoTransolver's error at that rung is 2.8x ISLA's; the
 ingredient that carries the data efficiency is unknown** (@sec-mechanism). Adding raw
 coordinates (which breaks the SE(3) contract), replacing the invariant seeds
 by raw vectors, turning the similarity gauge on, turning the measure weights
@@ -197,7 +197,7 @@ off, and removing the relational routing from the encoder each changed the
 not load-bearing, and no single route to invariant information is.
 
 What the ablations do not establish is that invariant information is
-dispensable, because no MT2 variant tested was ever without it: the
+dispensable, because no ISLA variant tested was ever without it: the
 relational invariants to each slice anchor remain in every encoder layer of
 the raw-seed variant and in every decoder block of the no-relational-routing
 variant. GeoTransolver and Transolver receive raw centered coordinates,
@@ -207,8 +207,8 @@ of attack spans 4° to 22°, so incidence is the leading-order case-dependent
 physics; on DrivAerML the freestream is fixed, n·d is a raw input already,
 and the same ladder protocol at a frozen learning rate of 3e-3 for both
 architectures runs the other way: the two are tied at 14 cases
-(GeoTransolver/MT2 0.99) and GeoTransolver
-is 1.2–1.3x more accurate than MT2 at every rung from 27 to 218 cases
+(GeoTransolver/ISLA 0.99) and GeoTransolver
+is 1.2–1.3x more accurate than ISLA at every rung from 27 to 218 cases
 (@tbl-drivaerml-dataeff-ladder in @sec-data-efficiency). The HiLift advantage does
 not transfer to DrivAerML.
 
@@ -216,41 +216,41 @@ That asymmetry is the one candidate the ablations could not touch, and the
 transplant test addressed it directly: GeoTransolver and Transolver at 35
 cases with n·d, r̂·d and |r|/L appended to their per-cell inputs, everything
 else frozen, each at its better learning rate, two seeds. The preregistered
-bands were: carrier identified if both reach 0.235 or below (halfway to MT2
+bands were: carrier identified if both reach 0.235 or below (halfway to ISLA
 in log-error); falsified at 0.30 or above; inconclusive between. Transolver
 moved from 0.402 to 0.294/0.301 (mean 0.297), inside the inconclusive band:
-a 1.35x gain, a quarter of the log-gap to MT2. GeoTransolver moved from 0.392
+a 1.35x gain, a quarter of the log-gap to ISLA. GeoTransolver moved from 0.392
 to 0.400/0.388, inside the falsifier band. The invariant inputs are not the
 carrier for GeoTransolver and at most a partial contributor for Transolver;
-the advantage lies in MT2's routing and decoder structure as a whole, and no
+the advantage lies in ISLA's routing and decoder structure as a whole, and no
 single ingredient has been isolated. The follow-up this leaves, whether
 Transolver's partial gain persists at 210 cases, is not yet measured
 (@sec-program-status). The stratified evidence says where the advantage
 lives, not why: the baselines' error is flat across every angle and geometry
-while MT2's tracks flow difficulty, but that does not name the coupling.
+while ISLA's tracks flow difficulty, but that does not name the coupling.
 
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 
-**Neither architecture generalizes across a flow-regime boundary, and MT2's
+**Neither architecture generalizes across a flow-regime boundary, and ISLA's
 structure does not change that** (@sec-regime-extrapolation). The readout is
 d = (pressure rel-L2 on the sealed out-of-regime test set) / (pressure rel-L2
 on in-regime validation cases). Trained at angles of attack up to 12° and
 tested at 14° and above, or trained pre-stall and tested post-stall, both
 architectures lose about a factor of ten, and the out-of-regime errors
-(0.24–0.33) are worse than MT2 reaches from 35 in-regime cases (0.138). MT2
+(0.24–0.33) are worse than ISLA reaches from 35 in-regime cases (0.138). ISLA
 keeps the lower absolute error; GeoTransolver has the smaller d because its
 in-regime floor is higher. Coverage of the regime, not architecture, governs
 this axis.
 
 Whether GeoTransolver's smaller ratio comes from its raw-coordinate inputs
-was tested directly: MT2 with a raw-coordinate channel appended to its seed
+was tested directly: ISLA with a raw-coordinate channel appended to its seed
 invariants, which breaks the SE(3) contract, trained on the stall split with
 two seeds and evaluated once on the sealed post-stall test. The
 preregistered bands were: raw coordinates carry the ratio if d is 11.0 or
 below with out-of-regime pressure below 0.245; they do not if d is 12.0 or
 above or pressure is 0.255 or above. Measured: d = 12.7/13.3, against 12.5
-for MT2 and 9.3 for GeoTransolver, with sealed-test pressure
-0.262/0.267. The falsifier fires: raw-coordinate inputs do not give MT2
+for ISLA and 9.3 for GeoTransolver, with sealed-test pressure
+0.262/0.267. The falsifier fires: raw-coordinate inputs do not give ISLA
 GeoTransolver's smaller ratio, and no mechanism for it has been isolated.
 The discriminator the preregistration names next, GeoTransolver with its raw
 coordinates removed, is not yet measured (@sec-program-status).
@@ -258,10 +258,10 @@ coordinates removed, is not yet measured (@sec-program-status).
 ### Interior accuracy trails GeoTransolver by 2.6x {#sec-limits-interior}
 
 **On the boundary → interior task, GeoTransolver's queries-as-interacting-
-tokens lead MT2's passive equivariant decode by 2.6x on interior pressure,
+tokens lead ISLA's passive equivariant decode by 2.6x on interior pressure,
 and the deficit grows with distance from the wall** (@sec-interior). The
 setting is DrivAerML volume fields predicted from 10,000 surface tokens at
-10,000 interior query points; MT2's deficit is 2.5x near the wall and
+10,000 interior query points; ISLA's deficit is 2.5x near the wall and
 3.3–5.4x in the far bands, the signature of missing volumetric context.
 Interior queries are always decoded passively; the one attempt to supply
 volumetric context while keeping that passive decode, equivariant latent
@@ -276,7 +276,7 @@ interacts GeoTransolver-style and from which queries decode passively.
 
 ### Exact query independence costs 3.0–3.7x and is not in the reference configuration {#sec-limits-query-independence}
 
-**MT2's surface predictions in the reference configuration depend weakly on
+**ISLA's surface predictions in the reference configuration depend weakly on
 which other points are sampled; making them exactly independent costs
 3.0–3.7x in accuracy, so every surface checkpoint behind the headline
 results is the interacting configuration** (@sec-query-independence). Query
@@ -293,11 +293,11 @@ Evaluate-anywhere semantics is a contract with a measured price.
 
 ### Cross-family transfer is a data property {#sec-limits-transfer}
 
-**Neither MT2 nor GeoTransolver transfers zero-shot across vehicle
+**Neither ISLA nor GeoTransolver transfers zero-shot across vehicle
 families; what moves cross-family error is the diversity of the training
 data** (@tbl-frontier in @sec-full-data). The failure is not identical across
 the two architectures — on the held-out fastback family GeoTransolver trained
-on DrivAerML alone scores 0.59 where MT2 scores 0.95–0.99 (1.0 is the mean
+on DrivAerML alone scores 0.59 where ISLA scores 0.95–0.99 (1.0 is the mean
 predictor) — but neither is usable, and a second training family moves both
 to 0.11–0.13. The similarity
 gauge, which fixes the constant-gauge configuration's sampling-density
@@ -311,38 +311,38 @@ Each question has a preregistered prediction in readout units and a
 falsifier,^[Preregistrations: @sec-nb-w2-prereg, @sec-nb-lvt-verdict, @sec-nb-g5-prereg.] and
 none is yet measured (@sec-program-status). Unless stated, the readout is the
 pressure rel-L2 of @sec-limits-data-efficiency. The preregistrations were
-written in MT2/GT, MT2's error divided by GeoTransolver's at the same rung,
-so below 1 favours MT2; this is the inverse of the GeoTransolver/MT2
+written in ISLA/GT, ISLA's error divided by GeoTransolver's at the same rung,
+so below 1 favours ISLA; this is the inverse of the GeoTransolver/ISLA
 convention used elsewhere in the book, and each threshold below is labelled
 with its direction.
 
 - **Is the two-seed result robust at 210 cases?** A third seed at 210 cases
-  for all three architectures; the 35-case third seed is in: MT2's falls inside its
-  two-seed range, the baselines' just outside theirs in MT2's favour
+  for all three architectures; the 35-case third seed is in: ISLA's falls inside its
+  two-seed range, the baselines' just outside theirs in ISLA's favour
   (@sec-data-efficiency). Settled if every third-seed result lands
   inside the two-seed spread widened by 1.5x; falsified if the rung mean
   moves by more than 15%.
 - **Is the approach to parity smooth?** The 510-case rung between 210 and
-  1,260. Prediction: GeoTransolver 0.075–0.095, MT2 0.048–0.056, MT2/GT
-  about 0.6 (GeoTransolver 1.7x behind). If MT2/GT is already 0.9 or above
-  (GeoTransolver within 1.1x), MT2's curve is flat from 210 on and the
+  1,260. Prediction: GeoTransolver 0.075–0.095, ISLA 0.048–0.056, ISLA/GT
+  about 0.6 (GeoTransolver 1.7x behind). If ISLA/GT is already 0.9 or above
+  (GeoTransolver within 1.1x), ISLA's curve is flat from 210 on and the
   slope objection stands in full.
 - **Is the flattening a protocol floor?** Both architectures at 1,260 cases
   with 20,000 rather than 10,000 sampled points per case. If the floor is
   the protocol's, both improve by a similar factor (within 5 percentage
   points). If GeoTransolver improves by 10 percentage points or more than
-  MT2, the floor is MT2's.
-- **Does the advantage require a varying freestream direction?** MT2 versus
+  ISLA, the floor is ISLA's.
+- **Does the advantage require a varying freestream direction?** ISLA versus
   GeoTransolver on 126 geometries at a single angle of attack, against a
   matched-size mixed-angle control. If the carrier is the exact
-  representation of direction dependence, MT2/GT is 0.40–0.55 on the mixed
+  representation of direction dependence, ISLA/GT is 0.40–0.55 on the mixed
   control (GeoTransolver 1.8–2.5x behind) and 0.80 or above at the single
   angle (GeoTransolver within 1.25x); 0.60 or below at the single angle
   (GeoTransolver 1.7x or more behind) falsifies it.
 - **Is the advantage geometry memorization?** The unseen-geometry splits at
   210 and 40 cases, whose validation geometries appear at no angle in
-  training. Prediction: MT2/GT within 0.1 of the same-size rungs (about
-  0.41 at 210; 0.35–0.5 at 40; GeoTransolver 2–3x behind). MT2/GT of 0.8 or
+  training. Prediction: ISLA/GT within 0.1 of the same-size rungs (about
+  0.41 at 210; 0.35–0.5 at 40; GeoTransolver 2–3x behind). ISLA/GT of 0.8 or
   above on either rung (GeoTransolver within 1.25x) re-attributes the
   advantage to angle interpolation on seen geometries.
 - **Can off-surface context be supplied without giving up the passive
@@ -353,25 +353,25 @@ with its direction.
   advantage is not carried by three per-cell scalars GeoTransolver can be
   given; which architecture the interior work should build on remains open
   (@sec-interior-open).
-- **Does boundary self-identification help MT2?** The largest measured
+- **Does boundary self-identification help ISLA?** The largest measured
   industrial gain of the exact-kernel MeshTransformer (@sec-interior) came from a trace
   formulation that let each boundary token identify its own cell in the
   readout, so that a prediction at a surface point had an explicit term from
-  that point's own cell rather than only from the pooled field. MT2's
+  that point's own cell rather than only from the pooled field. ISLA's
   routing has no analogous explicit term: the heads read each surface
   point's encoder token, but after twelve layers of slice routing that token
   holds whatever the routing mixed into it, and nothing in the readout marks
   the point's own position, normal and area apart from the field. The test
-  is a single-factor addition of an own-token readout channel to MT2,
+  is a single-factor addition of an own-token readout channel to ISLA,
   everything else frozen, at 35 and 1,260 HiLift cases, two seeds. Falsified
   if it moves neither rung by more than the two-seed spread; a gain at 35
   cases only would say the term is a small-data aid, at both rungs that
-  MT2's readout is missing a general ingredient.
+  ISLA's readout is missing a general ingredient.
 - **Which generalization axes does structure buy, one at a time?** A 3D
   RANS corpus generated with counterfactual twin draws per factor (pose,
   scale, Reynolds number, layout, mesh), so each axis is tested exactly.
   Preregistered: on pose twins GeoTransolver without a freestream frame
-  fails by 5x or more and canonicalized GeoTransolver matches MT2 within
+  fails by 5x or more and canonicalized GeoTransolver matches ISLA within
   1.05x; on scale twins at fixed Reynolds number across 0.02–20 m (the
   first real test of the similarity gauge) GeoTransolver exceeds 2x at a 10x
   scale change; on Reynolds twins no architecture transfers a decade of Re
@@ -381,7 +381,7 @@ with its direction.
 
 ## Engineering directions {#sec-future}
 
-**Memory headroom.** MT2's peak training memory at 10,000 tokens is
+**Memory headroom.** ISLA's peak training memory at 10,000 tokens is
 3.6 GB, against GeoTransolver's 4.6 GB (@sec-mt2-cost).^[Measurement
 record: @sec-nb-geo-pool-memory.] The relational readback pools the
 softmax slice mixture before the affine projection, so the activation
@@ -392,12 +392,12 @@ leaves room for more tokens per case, or a wider model, at GeoTransolver's
 memory: the 20,000-token floor test and larger point budgets are
 affordable within it.
 
-**Measure weights: a training-time cost and an inference-time gain.** MT2
+**Measure weights: a training-time cost and an inference-time gain.** ISLA
 weights each surface point by its cell area in the slice routing and the
 pooled anchors. Under uniform 10,000-point sampling the weights are a source
 of gradient variance rather than information: turning them off improves the
 35-case error by 12% (0.88x). With the similarity gauge on, they are also
-what make MT2 insensitive to sampling density at inference: MT2 with the
+what make ISLA insensitive to sampling density at inference: ISLA with the
 similarity gauge degrades 1.20x under a 10:1 biased density on DrivAerML,
 against 3.6x for GeoTransolver (@sec-robustness-density). That is not the
 configuration behind any accuracy number in this book: the similarity gauge
@@ -418,7 +418,7 @@ control. It is not yet measured (@sec-program-status).
 ## What would change the recommendation {#sec-review-roads}
 
 The current recommendation is GeoTransolver where interior accuracy is the
-target, and MT2 for surface prediction where training data are scarce, an
+target, and ISLA for surface prediction where training data are scarce, an
 exact pose contract is required, or (with the similarity gauge on) sampling
 density at inference is not under the model's control (@sec-interior,
 @sec-data-efficiency, @sec-robustness-density). Three outcomes would change
@@ -426,29 +426,29 @@ it.
 
 **GeoTransolver becomes the surface recommendation at all but the smallest
 training sets** if the 510-case rung and the 20,000-token test show
-GeoTransolver keeping its steeper large-data slope (MT2/GT 0.9 or above at
-510 cases; GeoTransolver improving ten percentage points more than MT2 at
+GeoTransolver keeping its steeper large-data slope (ISLA/GT 0.9 or above at
+510 cases; GeoTransolver improving ten percentage points more than ISLA at
 20,000 tokens). The shorter road to this outcome is closed: the transplant
 test showed the small-data advantage is not three scalars per point that
-GeoTransolver could adopt (@sec-limits-mechanism), so MT2's small-data case
+GeoTransolver could adopt (@sec-limits-mechanism), so ISLA's small-data case
 stands, and its remaining case at full data is its contracts, of which the
 canonical-frame GeoTransolver already matches pose invariance at 1.01x cost
 (@sec-pose).
 
-**MT2 becomes the surface recommendation across the whole data range** if
+**ISLA becomes the surface recommendation across the whole data range** if
 the unseen-geometry ladder holds within 0.1 of the same-size rungs, the
-510-case rung lands near MT2/GT 0.6 (GeoTransolver 1.7x behind), and the
+510-case rung lands near ISLA/GT 0.6 (GeoTransolver 1.7x behind), and the
 token test moves both architectures by a similar factor: with the transplant
 already falsified for GeoTransolver, the advantage is then architectural and
 the flattening is the protocol's floor. The interior stays with
 GeoTransolver unless a probe design closes the gap.
 
 **A hybrid becomes the single production model** if a request-independent
-canonical probe set brings MT2's interior pressure within 1.5x of
+canonical probe set brings ISLA's interior pressure within 1.5x of
 GeoTransolver's while keeping its surface accuracy and contracts. Such a
-hybrid, MT2's encoder and surface heads with a GeoTransolver-style
-interacting core on a fixed probe lattice, would be priced against MT2's
+hybrid, ISLA's encoder and surface heads with a GeoTransolver-style
+interacting core on a fixed probe lattice, would be priced against ISLA's
 query-independent configuration, which pays 3.0–3.7x on the surface task
 (3.0–3.3x at matched memory; @sec-query-independence), and against a canonicalized
-GeoTransolver rather than against MT2 alone. If none of these fires, the
+GeoTransolver rather than against ISLA alone. If none of these fires, the
 recommendation stands as written, with the bounds of this chapter attached.

@@ -4,7 +4,7 @@ project:
 
 book:
   title: "Learning Boundary-to-Field Operators on Meshes"
-  subtitle: "MeshTransformer2, measured against GeoTransolver on production aerodynamics"
+  subtitle: "ISLA, measured against GeoTransolver on production aerodynamics"
   chapters:
     - index.qmd
     - part: "The problem and the architectures"

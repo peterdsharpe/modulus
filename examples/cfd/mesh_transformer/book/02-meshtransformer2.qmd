@@ -1,6 +1,6 @@
-# MeshTransformer2: an equivariant soft-slice surrogate {#sec-mt2}
+# ISLA: an invariant slice-attention surrogate {#sec-mt2}
 
-MeshTransformer2 (MT2) is a soft-slice transformer whose backbone never
+ISLA (Invariant Slice Attention; the code class is `ISLA`, formerly `MeshTransformer2`) is a soft-slice transformer whose backbone never
 sees a coordinate. Every learned operation acts on rotation- and
 translation-invariant scalars built from the surface geometry and the
 freestream direction, and vector outputs are assembled at the very end
@@ -11,11 +11,11 @@ and whose peak training memory at 10,000 tokens is 3.6 GB (GeoTransolver
 4.6 GB), and whose accuracy advantage
 on small training sets (@sec-data-efficiency) comes from the combination
 of its parts rather than from any one of them (@sec-mechanism). This chapter
-describes what MT2 computes, states its contracts as the tests that
+describes what ISLA computes, states its contracts as the tests that
 verify them, and prices each design choice with the measurements from
 the results chapters.
 
-MT2 pays for symmetry once at the network's edges (invariant inputs,
+ISLA pays for symmetry once at the network's edges (invariant inputs,
 equivariant output basis) and spends the interior on the routing
 mechanism that has the strongest empirical record on industrial
 aerodynamics, the soft-slice attention of the Transolver family
@@ -26,7 +26,7 @@ boundary-integral kernels, fails on separated 3D flow
 
 ## What goes in and what comes out {#sec-mt2-architecture}
 
-**MT2 maps a sampled surface plus a freestream direction to fields at
+**ISLA maps a sampled surface plus a freestream direction to fields at
 query points, and every field it produces transforms with the input
 under rigid motions.** The inputs, per case, are:
 
@@ -61,7 +61,7 @@ otherwise; the default reference length is a constant.
 
 ```{mermaid}
 %%| fig-cap: >
-%%|   The MeshTransformer2 forward pass. Blue stages are learned; grey boxes
+%%|   The ISLA forward pass. Blue stages are learned; grey boxes
 %%|   are data. The backbone (gauge through the last slice layer) consumes
 %%|   only invariant scalars; the only place a vector is reconstructed is
 %%|   the output basis. The passive decoder on the right is optional: in the
@@ -101,7 +101,7 @@ flowchart TB
 **Every stage below is either a fixed geometric map or a learned map
 acting on invariants; the two never mix until the output basis.** The
 symbols are tied to the identifiers in
-`physicsnemo/experimental/nn/mt2/model.py`.
+`physicsnemo/experimental/nn/isla/model.py`.
 
 | symbol | code | meaning |
 |---|---|---|
@@ -246,7 +246,7 @@ h_i \leftarrow h_i + \mathrm{MLP}(\mathrm{LN}(h_i)).
 $$
 
 The order of operations in $\gamma_i$, pool the eight invariants over
-slices and then project to width 96, is what sets MT2's memory footprint
+slices and then project to width 96, is what sets ISLA's memory footprint
 (@sec-mt2-cost). The point ends the layer knowing
 which slices it belongs to, what those slices contain, and where it sits
 relative to their anchors.
@@ -314,7 +314,7 @@ identically one and carries no physical content.
 **Each contract is a property of the code, verified in double precision
 on random weights and a random anisotropic point cloud, not a property
 of a trained checkpoint.** The tests live in
-`test/experimental/nn/test_mt2.py` (33 tests). The fixture is a
+`test/experimental/nn/test_isla.py` (33 tests). The fixture is a
 3-layer, 32-slice, width-64 model in fp64 on 500 points with random
 normals, drive and weights; tolerances are absolute.
 
@@ -355,7 +355,7 @@ their measured cost is collected in @sec-limits.
 
 What is not a contract:
 
-- **Geometric scale.** With the default constant gauge, MT2 is not
+- **Geometric scale.** With the default constant gauge, ISLA is not
   scale-equivariant; $\lvert r_i\rvert$ is an absolute size and the
   gauge test asserts the dependence. Scale equivariance is a property of
   the `similarity_gauge=True` configuration only.
@@ -364,7 +364,7 @@ What is not a contract:
   test confirms it, but the recipe feeds a unit direction, so the factor
   is one in every training and evaluation run. It is a normalization
   detail, not a physical law: a pressure coefficient is degree zero in
-  the freestream speed and a dimensional pressure is degree two. MT2 has
+  the freestream speed and a dimensional pressure is degree two. ISLA has
   no drive-magnitude contract.
 - **Query independence in the reference configuration.** Without the
   passive decoder, every surface point is an interacting token, so the
@@ -376,7 +376,7 @@ What is not a contract:
 
 ## Cost {#sec-mt2-cost}
 
-**At the recipe dimensions (hidden 192, 12 layers, 256 slices) MT2 has
+**At the recipe dimensions (hidden 192, 12 layers, 256 slices) ISLA has
 8.9M parameters, against GeoTransolver's 9.0M, and its peak training
 memory at 10,000 tokens per case is 3.6 GB, against GeoTransolver's
 4.6 GB.** That figure, and the 283 ms per training step, are for one
@@ -392,7 +392,7 @@ Where the memory goes, and why the ordering of two operations decides
 it. Each slice layer holds the pairwise invariants $g_{is}$, a tensor of
 shape $(B, N, S, 8)$, and uses them twice: once mapped to one routing
 logit per pair, once pooled over slices with $\pi_{is}$ and mapped to a
-width-96 feature per point. MT2 pools before projecting. The alternative
+width-96 feature per point. ISLA pools before projecting. The alternative
 ordering, projecting each pair to width 96 and then pooling, would
 require autograd to save the projected tensor $(B, N, S, 96)$ for the
 backward pass: at $N = 10{,}000$ and $S = 256$ that is $2.5\times10^8$
@@ -411,18 +411,18 @@ fp64, so checkpoints are interchangeable between them. The per-pair
 projection would also cost about 2 GFLOP per layer each way, so pooling
 first saves step time as well as memory. With it, the $(B, N, S, 8)$
 invariants and the $(B, N, S, 3)$ separation vectors are the dominant
-activations, and MT2's memory is close to linear in tokens per case.
+activations, and ISLA's memory is close to linear in tokens per case.
 
 ## Design choices and their measured cost {#sec-mt2-design}
 
-**No single ingredient of MT2 carries its small-data accuracy; the
+**No single ingredient of ISLA carries its small-data accuracy; the
 largest single effect measured is 16%, and the two contracts that cost
 the most (density robustness and query independence) are bought by
 configurations other than the one behind the accuracy results.** Each
 choice below carries one headline number and a cross-reference to the
 chapter that defines the measurement and reports the full readout. The
 ablation numbers are ratios of a variant's pressure error to the
-reference MT2 error (0.138) in the single-factor ablation at 35
+reference ISLA error (0.138) in the single-factor ablation at 35
 HiLiftAeroML training cases under the frozen protocol of @sec-protocol,
 two seeds; greater than one means the variant is worse (@sec-mechanism).
 
@@ -443,7 +443,7 @@ estimate at inference (@sec-pose).
 **Measure weights** are a robustness property paid for in small-data
 accuracy. Turning the routing weights off gives 0.88x and turning the
 similarity gauge on gives 1.08x at 35 cases (@sec-mechanism). Under a
-10:1 sampling-density bias on DrivAerML, MT2 *with the similarity gauge*
+10:1 sampling-density bias on DrivAerML, ISLA *with the similarity gauge*
 degrades 1.20x; that configuration is not the one behind any accuracy
 number in this book and costs the 8% just stated. The constant-gauge
 configuration behind every accuracy result degrades 13–14.5x, worse

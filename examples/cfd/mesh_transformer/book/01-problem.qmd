@@ -179,7 +179,7 @@ magnitudes and pairwise angles — never on absolute position or
 orientation. Dimensionless scalars may modulate everything freely, because
 a scalar breaks no symmetry. Which of these properties an architecture
 enforces by construction and which it learns from data is the subject of
-@sec-mt2, on MeshTransformer2,^[The code class is `MeshTransformer2`; an
+@sec-mt2, on ISLA,^[The code class is `ISLA`; an
 unrelated earlier exact-kernel design shared the name and is documented in
 the repository's `book/archive/` directory, outside this book.] and
 @sec-baselines, on GeoTransolver and
@@ -381,8 +381,8 @@ $\varepsilon$ over the validation cases. Absolute values are therefore
 comparable only within one dataset and one pipeline; the quantity that
 carries across normalizations is the *ratio* between two models scored on
 the same cases. Every cross-architecture ratio in this book is the named
-baseline's error divided by MeshTransformer2's error on the same cases,
-so a ratio above one favours MeshTransformer2; this convention is stated
+baseline's error divided by ISLA's error on the same cases,
+so a ratio above one favours ISLA; this convention is stated
 here once and not restated per table.
 
 Two diagnostic analyses use a *different* scale and are labelled as such
@@ -394,7 +394,7 @@ over cases. On that scale predicting the freestream pressure everywhere
 scores exactly 1.00 by construction, the dataset-mean constant 0.94, and
 each case's own mean pressure 0.93, so a model has learned something about
 a case only when it beats those. Numbers on the two scales are not
-interchangeable: MeshTransformer2 trained on 35 HiLiftAeroML cases reads
+interchangeable: ISLA trained on 35 HiLiftAeroML cases reads
 0.25 on the gauge-pressure scale and 0.138 on the recipe metric. Per-case
 ratios between two models coincide on the two scales, because the
 numerators are the same; the case-averaged values do not.
@@ -413,7 +413,7 @@ numerators are the same; the case-averaged values do not.
 #|   scale of the metric — 1.00 is "predict the freestream pressure
 #|   everywhere" and 0.93 is the best any constant per case can do; the
 #|   coloured bars are the same quantity for trained models. It does not
-#|   show the recipe-metric values used in every later table (where MT2
+#|   show the recipe-metric values used in every later table (where ISLA
 #|   reads 0.138 at this rung against 0.25 here); only ratios between bars
 #|   transfer. Data: results/hilift_reference_predictors_35_2026-09-06.json.
 #| code-fold: true
@@ -438,7 +438,7 @@ rows = [
     ("constant: each case's own mean", s["const_case_mean_rel_l2_gmean"], "#c3c2b7"),
     ("Transolver, 35 cases", s["model_rel_l2_gmean"]["transolver"], GREY),
     ("GeoTransolver, 35 cases", s["model_rel_l2_gmean"]["gt"], RED),
-    ("MeshTransformer2, 35 cases", s["model_rel_l2_gmean"]["mt2"], BLUE),
+    ("ISLA, 35 cases", s["model_rel_l2_gmean"]["mt2"], BLUE),
 ]
 fig, ax = plt.subplots(figsize=(7.6, 3.3))
 y = range(len(rows))
@@ -467,9 +467,9 @@ the same 180 HiLiftAeroML validation cases, each case yields one paired
 comparison: the case is scored by each architecture's two-seed mean error,
 giving 180 case-level pairs (seeds are averaged within a case first, never
 counted as separate pairs). Three statistics are reported: the number of
-cases on which MeshTransformer2 has the lower two-seed mean error, with
+cases on which ISLA has the lower two-seed mean error, with
 the exact two-sided sign test on $n=180$; the stricter count of cases on
-which MeshTransformer2 wins on both seeds individually; and the median and
+which ISLA wins on both seeds individually; and the median and
 10th–90th percentile of the per-case error ratio.
 
 **Seed disagreement as an uncertainty signal.** With two independently
@@ -490,7 +490,7 @@ can also come from a higher in-regime floor (@sec-regime-extrapolation).
 Structural properties an architecture claims are asserted to roundoff, in
 float64, as unit tests — never averaged into a score. A property either
 holds to roundoff or is not claimed. The contracts tested in this book,
-all on MeshTransformer2 (@sec-mt2):
+all on ISLA (@sec-mt2):
 
 - **rotation and translation covariance**: a rigidly moved input produces
   the rigidly moved output (scalars unchanged, vectors rotated);
@@ -503,7 +503,7 @@ all on MeshTransformer2 (@sec-mt2):
   of cells matters;
 - **query independence**: the prediction at a point does not depend on
   which other points are in the query batch (chunking may only reorder
-  floating-point sums). MeshTransformer2 holds this for interior queries,
+  floating-point sums). ISLA holds this for interior queries,
   which are always decoded passively, and for surface queries only in its
   optional query-independent configuration — the reference configuration
   behind every surface result in this book reads its heads from the
@@ -522,7 +522,7 @@ boundary-driven PDE: **spatial equivariance**, **discretization
 invariance**, **units invariance**, and **global interaction**. Each has a
 measurement here, and the measurements differ in kind.
 
-*Spatial equivariance* is either a contract (MeshTransformer2, tested in
+*Spatial equivariance* is either a contract (ISLA, tested in
 float64) or an accuracy under transformed inputs (GeoTransolver and
 Transolver, which consume raw coordinates). Both are reported; neither is
 assumed.
@@ -542,7 +542,7 @@ the uniform-sampling error (@sec-full-data).
 *Units invariance* has two halves. For **lengths**, every model
 nondimensionalizes coordinates by the dataset's reference length $L$, so no
 weight ever sees a metre; exact scale covariance when $L$ transforms with
-the geometry is a contract only for MeshTransformer2 with its similarity
+the geometry is a contract only for ISLA with its similarity
 gauge on, and is not claimed otherwise. For the **measure**, cell areas
 enter as quadrature weights; whether a trained model exploits correct
 weights under non-uniform sampling is not a contract but the
@@ -558,7 +558,7 @@ one learning rate per architecture per dataset, chosen for each by
 validation on that dataset's full split before any smaller-split
 experiment ran and never retuned per rung, so a difference between rungs
 of a ladder is a difference in data and nothing else. The chosen rates:
-MeshTransformer2 $10^{-3}$ on both datasets; GeoTransolver $10^{-3}$ on
+ISLA $10^{-3}$ on both datasets; GeoTransolver $10^{-3}$ on
 HiLiftAeroML and $3\times10^{-3}$ on DrivAerML; Transolver
 $3\times10^{-3}$ on HiLiftAeroML. Every configuration runs at two or more
 seeds (42 and 43 unless stated), with the seed range reported next to the
@@ -590,10 +590,10 @@ lab notebook (@sec-notebook).
 
 **Resource matching.** A cross-architecture comparison states the parameter
 count, the tokens per case and the peak training memory of both sides in
-the same sentence. At 10,000 tokens per case MeshTransformer2 has 8.9
+the same sentence. At 10,000 tokens per case ISLA has 8.9
 million parameters and GeoTransolver 9.0 million; tokens per case and
 epochs are identical. Peak training memory at 10,000 tokens is 3.6 GB for
-MeshTransformer2 and 4.6 GB for GeoTransolver (@sec-resource-matching).
+ISLA and 4.6 GB for GeoTransolver (@sec-resource-matching).
 Every figure and table caption ends with the artifact in `results/` from
 which it is computed, and every figure is drawn from that artifact at
 render time.

@@ -6182,3 +6182,19 @@ absolute readout, there is none to explain. This closes the last branch
 of the earlier decision rule for a successor design; the design
 question now rests on the small-data carrier and the interior
 (@sec-nb-inv-verdict, @sec-nb-lvt-verdict).
+
+
+## 2026-09-07 — Naming decision: the architecture is ISLA (Invariant Slice Attention); MeshTransformer2 becomes a compatibility alias {#sec-nb-isla-name}
+
+A colleague pointed out that "MeshTransformer" is already the name of
+other published architectures. Peter chose **ISLA — Invariant Slice
+Attention** (pronounced "eye-la"; an *isla* is an island, a shape defined
+entirely by its boundary) for the soft-slice equivariant architecture the
+book calls MeshTransformer2 / MT2 in every entry above this one. The code
+package moves to `physicsnemo/experimental/nn/isla/` with class `ISLA` and a
+backward-compatible alias `MeshTransformer2`; the recipe config becomes
+`isla_surface.yaml` with the old file kept as a pointer. Reader-facing
+chapters use ISLA throughout. This notebook keeps its historical names;
+artifact keys (`mt2_*`) and the `examples/cfd/mesh_transformer/` directory
+are unchanged as provenance. The exact-kernel MeshTransformer keeps its
+name in the archive.

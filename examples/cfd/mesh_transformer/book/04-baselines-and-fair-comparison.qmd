@@ -1,16 +1,16 @@
 # Baselines and the fair-comparison protocol {#sec-baselines}
 
-Every accuracy claim in this book compares MeshTransformer2 (MT2) against
+Every accuracy claim in this book compares ISLA against
 GeoTransolver, and where stated against plain Transolver, under one protocol
 that fixes everything except the architecture: matched sampled points per
 case and epochs, each architecture at its own best learning rate, two or
 more seeds, shared validation cases, and sealed test splits opened once. The
 baselines are strong, not straw: GeoTransolver has at least as many
-parameters as MT2 (9.0M against 8.9M) and receives raw coordinates that MT2
-never sees. MT2's peak training memory at 10,000 tokens is 3.6 GB, against
+parameters as ISLA (9.0M against 8.9M) and receives raw coordinates that ISLA
+never sees. ISLA's peak training memory at 10,000 tokens is 3.6 GB, against
 GeoTransolver's 4.6 GB.
 Two questions are settled here so that the results chapters need not carry
-them: MT2's exact equivariance is *not* an accuracy advantage over a
+them: ISLA's exact equivariance is *not* an accuracy advantage over a
 canonicalized GeoTransolver (exactly pose-invariant at 1.01x cost), and
 learning-rate choice belongs to the protocol because a shared rate would
 have decided the comparison by tuning.
@@ -18,13 +18,13 @@ have decided the comparison by tuning.
 ## The baselines and what each one sees {#sec-part-baseline}
 
 **The comparison is against two members of the Transolver family: the same
-soft-slice attention as MT2, fed raw geometric inputs in place of MT2's
+soft-slice attention as ISLA, fed raw geometric inputs in place of ISLA's
 invariants.** Transolver (Wu et al., ICML 2024, arXiv
 [2402.02366](https://arxiv.org/abs/2402.02366)) is a transformer for physics
 fields on unstructured point sets. Each layer assigns every point a softmax
 mixture over a fixed number of *slices*, pools point features into one token
 per slice, runs attention among the slice tokens, and scatters the result
-back through the same mixture. MT2 (@sec-mt2) shares this backbone; it
+back through the same mixture. ISLA (@sec-mt2) shares this backbone; it
 differs in what enters the routing and what the tokens may carry.
 
 **GeoTransolver** is the recipe's reference surface model. Per surface point
@@ -46,7 +46,7 @@ on which it is run in this book, it trains at learning rate 3e-3, its best
 of the two rates run.
 :::
 
-**MT2** receives position, unit normal and cell area per point and the unit
+**ISLA** receives position, unit normal and cell area per point and the unit
 freestream direction as its only global input, consumed through invariants
 and equivariant anchors only (@sec-mt2): 12 layers, hidden 192, 256 slices,
 8.9M parameters.
@@ -55,7 +55,7 @@ and equivariant anchors only (@sec-mt2): 12 layers, hidden 192, 256 slices,
 |---|---|---|--:|--:|--:|--:|--:|
 | GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream velocity vector | 12 | 256 | 256 | 9.0M | 4.6 GB |
 | Transolver | centered coordinates, unit normal | freestream velocity vector, broadcast per point | 8 | 256 | 256 | 6.0M | not measured |
-| MeshTransformer2 | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 3.6 GB |
+| ISLA | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 3.6 GB |
 
 : The three architectures compared on the aerodynamic datasets. *Per-point
 inputs*: channels attached to each of the 10,000 sampled surface points per
@@ -64,7 +64,7 @@ blocks in the encoder. *Hidden*: width of the per-point feature vector.
 *Slices*: slice tokens per layer. *Parameters*: trainable parameters of the
 recipe configuration. *Peak memory*: largest allocated GPU memory over one
 forward-plus-backward step on one case of 10,000 sampled points in bfloat16
-(MT2's figure is derived in @sec-mt2-cost). GeoTransolver's figure
+(ISLA's figure is derived in @sec-mt2-cost). GeoTransolver's figure
 is from its training run, which adds under 0.2 GB of optimizer state. Not
 measured for Transolver, which serves only as a same-family control on
 HiLiftAeroML. Configuration source:
@@ -79,7 +79,7 @@ Datasets and splits are defined in @sec-problem, the metric in @sec-metrics.
 
 1. **Matched tokens per case: 10,000 sampled surface points for every
    architecture.** Accuracy still rises with tokens at 10,000 (6,500 to
-   10,000 is worth 8% for MT2, @sec-resource-matching), so a token mismatch
+   10,000 is worth 8% for ISLA, @sec-resource-matching), so a token mismatch
    would be a handicap disguised as an architecture difference.
 2. **Matched epochs: 500 for every arm, one case per step.** A short budget
    favours the faster starter; the 1,000-epoch GeoTransolver controls at 35
@@ -87,7 +87,7 @@ Datasets and splits are defined in @sec-problem, the metric in @sec-metrics.
    under-train the baseline.
 3. **Learning rate chosen per architecture on the full split, by
    validation, before any ladder or ablation ran.** From the grid
-   {1e-3, 3e-3, 1e-2} on DrivAerML and {1e-3, 3e-3} on HiLiftAeroML: MT2 1e-3
+   {1e-3, 3e-3, 1e-2} on DrivAerML and {1e-3, 3e-3} on HiLiftAeroML: ISLA 1e-3
    on both datasets; GeoTransolver 1e-3 on HiLiftAeroML and 3e-3 on
    DrivAerML; each then frozen for every smaller split and ablation. The one
    departure is disclosed where it occurs: Transolver had no full-split run
@@ -125,11 +125,11 @@ a thin noise estimate (@sec-limits).
 
 ## Resource matching {#sec-resource-matching}
 
-**At the recipe operating point MT2 matches GeoTransolver on parameters and
+**At the recipe operating point ISLA matches GeoTransolver on parameters and
 tokens per case; peak training memory is 3.6 GB against 4.6 GB.** Parameters
 8.9M against 9.0M; tokens per case 10,000 each; peak training memory at
-10,000 tokens 3.6 GB against 4.6 GB; MT2 runs at 283 ms per
-forward-plus-backward step on an RTX 4090 in bfloat16. MT2's memory figure
+10,000 tokens 3.6 GB against 4.6 GB; ISLA runs at 283 ms per
+forward-plus-backward step on an RTX 4090 in bfloat16. ISLA's memory figure
 is set by the order of two operations in its relational read-back, derived
 in @sec-mt2-cost. The checkpoints reported in this book were trained by an
 implementation of the same function that used more memory (the two agree to
@@ -138,8 +138,8 @@ and no result depends on it.
 
 @tbl-token-control is a token-count control, not a matched-memory one. It
 reports DrivAerML validation pressure error, relative L2 per car averaged
-over 48 cars, at the frozen rate 3e-3 for both architectures (not MT2's best
-rate; the comparison of interest is MT2 against MT2). Cutting MT2's tokens
+over 48 cars, at the frozen rate 3e-3 for both architectures (not ISLA's best
+rate; the comparison of interest is ISLA against ISLA). Cutting ISLA's tokens
 from 10,000 to 6,500 costs 8% accuracy. The 8% is the price of fewer sampled
 points per case, which is why the protocol fixes tokens at 10,000 for every
 architecture; it is not evidence about memory.
@@ -154,18 +154,18 @@ from pathlib import Path
 R = Path("..") / "results"
 iw = json.load(open(R / "instrument_wave_reduction_2026-09-01.json"))
 p = lambda k: iw[k]["pressure_l2"]
-# artifact keys: "ref_mt2_v3c" is the constant-gauge reference MT2 at lr 3e-3
+# artifact keys: "ref_mt2_v3c" is the constant-gauge reference ISLA at lr 3e-3
 mt2_const_10k = [p(f"ref_mt2_v3c_seed{s}") for s in (42, 43)]
 mt2_const_6500 = [p(f"iw_mt2_v3c_r6500_seed{s}") for s in (42, 43)]
 gt_10k = [p(f"ref_gt_fixed_seed{s}") for s in (42, 43)]
 mean = lambda v: sum(v) / len(v)
 ratio = mean(mt2_const_6500) / mean(mt2_const_10k)
 rows = [
-    ("MeshTransformer2", "10,000", mt2_const_10k, 1.0),
-    ("MeshTransformer2", "6,500", mt2_const_6500, ratio),
+    ("ISLA", "10,000", mt2_const_10k, 1.0),
+    ("ISLA", "6,500", mt2_const_6500, ratio),
     ("GeoTransolver", "10,000", gt_10k, None),
 ]
-out = "| architecture | tokens per case | pressure rel-L2 (seed 42 / 43) | relative to MT2 at 10,000 |\n|---|--:|---|--:|\n"
+out = "| architecture | tokens per case | pressure rel-L2 (seed 42 / 43) | relative to ISLA at 10,000 |\n|---|--:|---|--:|\n"
 for n, t, v, r in rows:
     rr = "--" if r is None else f"{r:.2f}x"
     out += f"| {n} | {t} | {v[0]:.4f} / {v[1]:.4f} | {rr} |\n"
@@ -174,8 +174,8 @@ print(": The token-count control on DrivAerML. *Tokens per case*: sampled "
       "surface cells per car in training and validation. "
       "*Pressure rel-L2*: relative L2 error of surface pressure per car, "
       "mean over the 48 validation cars, at learning rate 3e-3 for every row "
-      "(not MT2's best rate). The last column divides the row's seed mean by "
-      "that of MT2 at 10,000 tokens. This is a token-count control, not a "
+      "(not ISLA's best rate). The last column divides the row's seed mean by "
+      "that of ISLA at 10,000 tokens. This is a token-count control, not a "
       "matched-memory one. Not "
       "shown: wall shear, which moves the same way. Data: "
       "results/instrument_wave_reduction_2026-09-01.json.")
@@ -183,7 +183,7 @@ print(": The token-count control on DrivAerML. *Tokens per case*: sampled "
 
 ## Pose: equivariant by construction, invariant by canonicalization {#sec-pose}
 
-**MT2 is exactly rotation- and translation-covariant by construction;
+**ISLA is exactly rotation- and translation-covariant by construction;
 GeoTransolver trained in a canonical frame is exactly pose-invariant at 1.01x
 accuracy cost. On vehicle data the two are equally good, so equivariance is a
 contract about what the model needs at inference, not an accuracy
@@ -192,7 +192,7 @@ advantage.**
 The two phrases mean different things. A model is *equivariant by
 construction* when every operation inside it commutes with rigid motions: its
 inputs are invariants or vectors in an equivariant basis, so a rotated case
-yields the rotated prediction to floating-point roundoff (MT2's fp64 contract
+yields the rotated prediction to floating-point roundoff (ISLA's fp64 contract
 test, @sec-mt2). A pipeline is *invariant by canonicalization* when a
 preprocessing step estimates a frame from each case, expresses the case in
 that frame, runs an ordinary non-equivariant model, and rotates vector outputs
@@ -249,7 +249,7 @@ print(f": Pose dependence of GeoTransolver on DrivAerML. *In pose*: the 48 "
       f"seed 43; the parenthesized factor divides the seed mean by the "
       f"in-pose seed mean of the first row ({ref:.4f}). Across three seeds "
       f"of the recipe-frame model the orbit penalty spans "
-      f"{min(orbit_ratios):.0f}–{max(orbit_ratios):.0f}x. Not shown: MT2, "
+      f"{min(orbit_ratios):.0f}–{max(orbit_ratios):.0f}x. Not shown: ISLA, "
       f"whose orbit and in-pose predictions agree to fp64 roundoff by "
       f"construction; wall shear behaves the same way. Data: "
       f"results/p1_canonicalization_control_2026-09-02.json (rows 1–2), "
@@ -265,7 +265,7 @@ fixed 1° roll costs it 1.7–1.8x, 5° costs 6.5–6.8x; key `stage3` of the sa
 artifact) and the frame estimate carries about 0.8° of it; a model that sees
 the estimator's tilt noise during training learns to ignore it, and the
 penalty falls to 1.01x (row 3 of @tbl-pose). Third, on
-this data MT2's exact equivariance and canonicalized GeoTransolver deliver
+this data ISLA's exact equivariance and canonicalized GeoTransolver deliver
 the same pose invariance, so no accuracy claim in this book is attributed to
 equivariance; the pose contract is scored as a contract.
 
@@ -275,7 +275,7 @@ resolved; both hold for every vehicle and wing dataset here. They fail for a
 PDE surrogate with no distinguished drive direction, for bodies whose
 transverse inertia tensor is degenerate or whose third moment vanishes (a
 symmetry the estimator cannot break), and for assemblies of parts in mixed
-orientations, where no single frame canonicalizes every component. MT2 needs
+orientations, where no single frame canonicalizes every component. ISLA needs
 neither a frame estimate nor a freestream at inference; there the contract
 is the difference between a working surrogate and a 26–32x failure.
 
@@ -283,7 +283,7 @@ is the difference between a working surrogate and a 26–32x failure.
 
 **The two architectures lose very different amounts of accuracy at a wrong
 learning rate: one grid step above its best, GeoTransolver degrades 4–14x on
-DrivAerML and 6.5x on HiLiftAeroML where MT2 degrades 1.55x and 1.14x, so a
+DrivAerML and 6.5x on HiLiftAeroML where ISLA degrades 1.55x and 1.14x, so a
 protocol sharing one rate would measure tuning luck instead of
 architecture.** The quantity is validation pressure error, relative L2 per
 case averaged over the validation cases, at 500 epochs and 10,000 tokens,
@@ -294,11 +294,11 @@ rung. The full grid is plotted and reported as a robustness result in
 @sec-robustness-lr (@fig-lr-robustness); here the point is procedural.
 
 On DrivAerML, GeoTransolver's best rate is 3e-3 (0.0532) and at 1e-2 it
-degrades 4–14x (0.221 and 0.739 on the two seeds); MT2's best is 1e-3
+degrades 4–14x (0.221 and 0.739 on the two seeds); ISLA's best is 1e-3
 (0.0577) and at 1e-2 it degrades 1.55x (0.0874 and 0.0914). On HiLiftAeroML
 both are best at 1e-3, where they are at parity (@sec-full-data); at 3e-3
 GeoTransolver destabilizes to 0.148 and 0.397, a 6.5x degradation of the
-seed mean, while MT2 moves from 0.040/0.043 to 0.045/0.049, a 1.14x
+seed mean, while ISLA moves from 0.040/0.043 to 0.045/0.049, a 1.14x
 degradation, so its four grid points across both rates and both seeds span
 0.040–0.049^[`results/highlift_wave_reduction.json`].
 
@@ -306,13 +306,13 @@ Two consequences are built into the protocol. First, because GeoTransolver's
 best rate differs between datasets (3e-3 on DrivAerML, 1e-3 on HiLiftAeroML),
 "best rate per architecture, chosen on the full split" is the only rule under
 which the GeoTransolver baseline is the strongest version of itself on both.
-The DrivAerML best-vs-best figure is MT2 0.0577 (lr 1e-3) against
-GeoTransolver 0.0532 (lr 3e-3), MT2 8.5% behind; at a common 3e-3 it would
-read 1.19x (MT2 0.0633), and at a common 1e-3 on DrivAerML GeoTransolver
-0.0548 is 1.05x ahead of MT2's 0.0577 (@sec-full-data). Second, the rate is
+The DrivAerML best-vs-best figure is ISLA 0.0577 (lr 1e-3) against
+GeoTransolver 0.0532 (lr 3e-3), ISLA 8.5% behind; at a common 3e-3 it would
+read 1.19x (ISLA 0.0633), and at a common 1e-3 on DrivAerML GeoTransolver
+0.0548 is 1.05x ahead of ISLA's 0.0577 (@sec-full-data). Second, the rate is
 chosen once and frozen for every
 smaller split: retuning at 35 or 210 training cases would hand the baseline
-search that MT2 did not get, and the steel-man controls in
+search that ISLA did not get, and the steel-man controls in
 @sec-data-efficiency (GeoTransolver at 3e-3 and at 1,000 epochs on the small
 splits) confirm that the frozen rate does not produce the data-efficiency
 gap.

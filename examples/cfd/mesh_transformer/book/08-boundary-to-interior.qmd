@@ -1,17 +1,17 @@
 # Boundary to interior: predicting volume fields from the surface {#sec-interior}
 
 **On the one task that asks for the flow rather than the wall pressure,
-GeoTransolver is 2.6x more accurate than MeshTransformer2 (MT2), and the
+GeoTransolver is 2.6x more accurate than ISLA, and the
 gap is a property of how each architecture treats an interior point.**
 GeoTransolver lets interior query points interact with everything as
-tokens; MT2 decodes them passively, so a prediction at one interior point
+tokens; ISLA decodes them passively, so a prediction at one interior point
 never depends on which other interior points are asked for. That contract is worth
 keeping for a surrogate queried on arbitrary probe sets, and on
 DrivAerML it costs 2.6x in interior pressure error. The deficit is
 smallest at the wall and grows with distance from it: the missing
 ingredient is volumetric context, not local detail. Two attempts to
 supply it without breaking the contract fail: off-surface latent tokens
-along anchor normals make MT2 worse, and the exact-kernel
+along anchor normals make ISLA worse, and the exact-kernel
 MeshTransformer's boundary-integral decoder is 8x behind (a comparison
 that is not resource-matched: its parameter count on this task was not
 recorded) because potential flow is the wrong prior for a separated wake.
@@ -50,8 +50,8 @@ arithmetic mean of ε over the 48 validation cars; where a table cell is a
 ratio, the numerator is the named arm and the denominator is
 GeoTransolver on the same 48 cars, so a ratio above 1 means the arm is
 less accurate than GeoTransolver. This is the reverse of the convention
-in the rest of the book, where ratios are baseline ÷ MT2 and a value
-above 1 favours MT2; it is used here because GeoTransolver is the most
+in the rest of the book, where ratios are baseline ÷ ISLA and a value
+above 1 favours ISLA; it is used here because GeoTransolver is the most
 accurate arm on this task. Velocity's denominator includes the
 freestream and is never small; pressure is a gauge quantity whose
 denominator can be tiny far from the body (@sec-interior-distance).
@@ -60,7 +60,7 @@ denominator can be tiny far from the body (@sec-interior-distance).
 tuning on this task), bf16, no augmentation, two seeds (42 and 43).
 
 **Resources.** The arms are not resource-matched. Parameter counts:
-GeoTransolver-volume 9.0M (@sec-baselines); MT2 11.0M in the
+GeoTransolver-volume 9.0M (@sec-baselines); ISLA 11.0M in the
 passive-decode configuration this task requires (8.9M in the surface
 configuration, @sec-mt2), and the latent-volume-token arm adds a
 latent-token assignment layer, an embedding and one measure weight on
@@ -69,19 +69,19 @@ MeshTransformer's parameter count on this task was not recorded. Peak
 training memory was recorded only as a range across the arms, 4–9 GB at
 roughly 0.35 s per step, not per arm, so no row of @tbl-interior can be
 attributed a memory figure. GeoTransolver processes the 10,000 interior points as additional
-tokens, so it interacts over 20,000 tokens per case where MT2 interacts
+tokens, so it interacts over 20,000 tokens per case where ISLA interacts
 over 10,000; that difference is the design choice under test, not a
 confound to remove.
 
 ### Query independence as a first-class property {#sec-interior-query-independence}
 
-An interior query in MT2 is never a token. The encoder sees the surface
+An interior query in ISLA is never a token. The encoder sees the surface
 only; interior queries are decoded passively, by read blocks
 (@sec-mt2-forward) that read the slice states and the boundary tokens
 and write nothing back, so a prediction at one interior point is
 independent of the other interior points queried (verified in fp64 to
 10⁻¹², @sec-query-independence). This is a property of the interior
-decode: MT2's surface predictions in this book come from a configuration
+decode: ISLA's surface predictions in this book come from a configuration
 whose heads read the interacting encoder tokens, and do not share it. A
 user who asks for one streamline, a plane, or the whole domain gets the
 same answer at every shared point, at a cost linear in the points asked
@@ -96,11 +96,11 @@ same layers, so an interior token gathers information from the surface
 and from other interior tokens before it is decoded. Nothing about the
 architecture changes between the surface task and this one.
 
-*MT2.* The passive decoder builds every query-side invariant from the
+*ISLA.* The passive decoder builds every query-side invariant from the
 query position q, the freestream direction d, and a unit normal n̂ at
 the query. Lengths need two conventions kept apart. The recipe stores
 coordinates nondimensionalized by the dataset's per-case reference
-length L_ref, which is 5 m for every DrivAerML car; MT2 then measures q
+length L_ref, which is 5 m for every DrivAerML car; ISLA then measures q
 from the centroid in *gauge units*, dividing by its constant gauge of
 8.0 in those nondimensional units (40 m physical on DrivAerML). The
 invariants are
@@ -156,9 +156,9 @@ draws the pressure column.
 | arm | parameters | pressure (seed 42 / 43) | velocity | ν_t | pressure ratio, arm ÷ GeoTransolver |
 |---|---|---|---|---|---|
 | GeoTransolver, queries as interacting tokens | 9.0M | 0.062 (0.0622 / 0.0618) | 0.133 | 0.094 | 1.0 |
-| MT2, passive decode, SDF-gradient normal | 11.0M | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
-| MT2, passive decode, proxy normal | 11.0M | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
-| MT2 + 769 latent volume tokens | 11.0M + latent-token layers (not recorded) | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
+| ISLA, passive decode, SDF-gradient normal | 11.0M | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
+| ISLA, passive decode, proxy normal | 11.0M | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
+| ISLA + 769 latent volume tokens | 11.0M + latent-token layers (not recorded) | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
 | exact-kernel decoder, double-layer | not recorded | 0.496 (0.499 / 0.492) | 0.549 | 0.727 | 8.0 |
 
 : Interior relative L2 error on the 48 DrivAerML validation cars
@@ -166,7 +166,7 @@ draws the pressure column.
 parentheses), 10,000 surface tokens and 10,000 interior queries per car,
 500 epochs, learning rate 1e-3. Ratio = arm ÷ GeoTransolver, so a value
 above 1 means less accurate than GeoTransolver; this is the reverse of
-the book's usual baseline ÷ MT2 convention. The arms are not
+the book's usual baseline ÷ ISLA convention. The arms are not
 resource-matched: parameter counts as listed, and peak training memory
 recorded only as a 4–9 GB range across arms, not per arm. Seed
 spreads are 1–8% of the means, so every ratio is resolved. Sources:
@@ -207,9 +207,9 @@ lvt = json.load(open(Path("..") / "results" / "v0_lvt_reduction_2026-09-07.json"
 LVT_PRESSURE = {s: lvt[f"v0_mt2_lvt_sdf_seed{s}"]["pressure_l2"] for s in (42, 43)}
 arms = [
     ("GeoTransolver\nqueries as tokens", lambda s: red[f"v0_gt_vol_seed{s}"]["pressure_l2"], RED),
-    ("MT2\nSDF-gradient normal", lambda s: red[f"v0_mt2_int_sdf_seed{s}"]["pressure_l2"], BLUE),
-    ("MT2\nproxy normal", lambda s: red[f"v0_mt2_int_seed{s}"]["pressure_l2"], BLUE),
-    ("MT2 + 769 latent\nvolume tokens", lambda s: LVT_PRESSURE[s], BLUE),
+    ("ISLA\nSDF-gradient normal", lambda s: red[f"v0_mt2_int_sdf_seed{s}"]["pressure_l2"], BLUE),
+    ("ISLA\nproxy normal", lambda s: red[f"v0_mt2_int_seed{s}"]["pressure_l2"], BLUE),
+    ("ISLA + 769 latent\nvolume tokens", lambda s: LVT_PRESSURE[s], BLUE),
     ("exact-kernel decoder\ndouble-layer", lambda s: red[f"v0_mt1k_vol_seed{s}"]["pressure_l2"], PURPLE),
 ]
 seeds = (42, 43)
@@ -233,25 +233,25 @@ plt.show()
 ```
 
 Two things in the table carry the section. First, the ordering of the
-two MT2 constructions: the SDF-gradient normal beats the proxy normal by
+two ISLA constructions: the SDF-gradient normal beats the proxy normal by
 1.2x on pressure and on every field, so a true wall normal at the query
 is better information than a covariant blend of anchor normals. Second,
-the size of what remains: even with the better normal, MT2 is 2.6x
+the size of what remains: even with the better normal, ISLA is 2.6x
 behind on pressure, 2.3x on velocity and 4.0x on eddy viscosity. The
 dominant term is not the normal; it is that GeoTransolver's interior
-tokens gather context and MT2's queries can only read what the
+tokens gather context and ISLA's queries can only read what the
 surface-centred slices hold. The exact-kernel decoder at 8.0x is taken up
 in @sec-interior-negatives.
 
 The comparison is between each architecture's natural interior mode, not
 a matched-mechanism ablation: GeoTransolver was not run with passive
-interior points, nor MT2 with its queries made tokens. The 2.6x bounds
-the price of MT2's contract as MT2 is built; it does not isolate
+interior points, nor ISLA with its queries made tokens. The 2.6x bounds
+the price of ISLA's contract as ISLA is built; it does not isolate
 interaction from every other difference between the two models.
 
 ## Where the deficit lives {#sec-interior-distance}
 
-**MT2's deficit is smallest at the wall and grows with distance from it,
+**ISLA's deficit is smallest at the wall and grows with distance from it,
 the signature of missing volumetric context rather than missing local
 detail.** The interior sample is stratified by the unsigned distance from
 each query to the full-resolution vehicle surface (the SDF magnitude),
@@ -259,7 +259,7 @@ into three bands fixed before the models were evaluated. The thresholds
 are 0.4 and 4.0 in the recipe's nondimensional coordinates, which
 DrivAerML's per-case reference length L_ref = 5 m (read from the
 artifact by the figure code) converts to metres: *near* is less than 2 m
-from the surface, *mid* 2–20 m, *far* beyond 20 m. In MT2's gauge units
+from the surface, *mid* 2–20 m, *far* beyond 20 m. In ISLA's gauge units
 (the constant gauge 8.0, 40 m physical) the same thresholds are 0.05 and
 0.5. The sampler's near-wall
 bias makes the bands very unequal — 97.8% of points near, 2.0% mid,
@@ -307,8 +307,8 @@ edges = [f"< {thr[0] * L_m:g} m", f"{thr[0] * L_m:g}–{thr[1] * L_m:g} m", f"�
 def pct(f):
     return f"{100 * f:.2g}" if f < 0.01 else f"{100 * f:.1f}"
 ticks = [f"{b}\n{e}\n{pct(frac[b]['case_mean'])}% of points" for b, e in zip(bands, edges)]
-arms = [("MT2, SDF-gradient normal", "mt2_int_sdf", BLUE, "-"),
-        ("MT2, proxy normal", "mt2_int", BLUE, "--"),
+arms = [("ISLA, SDF-gradient normal", "mt2_int_sdf", BLUE, "-"),
+        ("ISLA, proxy normal", "mt2_int", BLUE, "--"),
         ("exact-kernel decoder", "mt1k_vol", PURPLE, "-")]
 fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.2), sharey=True)
 import math
@@ -349,12 +349,12 @@ plt.tight_layout()
 plt.show()
 ```
 
-For MT2 with the SDF-gradient normal the pressure ratio runs 2.5x near,
+For ISLA with the SDF-gradient normal the pressure ratio runs 2.5x near,
 3.7x mid, 3.3x far; velocity runs 2.3x near, 4.7x mid, 5.4x far. The
 proxy-normal construction has the same shape (3.1x → 3.3x → 3.0x on
 pressure, 2.5x → 4.5x → 6.4x on velocity). The near-wall band, where a
-local-detail deficit would show first, is MT2's *best* band on every
-field. The reading is mechanical: MT2's slices and anchors are
+local-detail deficit would show first, is ISLA's *best* band on every
+field. The reading is mechanical: ISLA's slices and anchors are
 surface-centred and its read blocks consult slice states and boundary
 tokens, so a query 10 m into the wake has nothing off-surface to read.
 GeoTransolver's interior tokens supply that context to each other.
@@ -373,7 +373,7 @@ freestream, is the well-conditioned view of the far field.
 
 ## What does not work {#sec-interior-negatives}
 
-Two mechanisms were tested as ways to give MT2 interior context or an
+Two mechanisms were tested as ways to give ISLA interior context or an
 interior prior without giving up query independence. Both fail, for
 different reasons: the first adds tokens that hurt, the second starts
 from a physical prior that is worse than a constant on this flow.
@@ -400,7 +400,7 @@ enter the measure-weighted routing on which the surface tokens rely, and
 offsets of 0.5–2 anchor radii never reach the mid and far bands where
 the deficit is largest. The supported statement is narrow:
 **off-surface latent tokens placed along anchor normals, as interacting
-tokens in MT2's routing, degrade the interior decode.** It does not show
+tokens in ISLA's routing, degrade the interior decode.** It does not show
 that interaction at the query itself is the only remedy.
 
 ### Why not an exact boundary-integral prior?
@@ -453,7 +453,7 @@ three-dimensional aerodynamics on every readout in this book.
 
 ## Standing and open designs {#sec-interior-open}
 
-**GeoTransolver is the architecture to use for interior accuracy; MT2 is
+**GeoTransolver is the architecture to use for interior accuracy; ISLA is
 the architecture to use when exact SE(3) covariance and interior query
 independence are contractual, at a 2.6x price in interior pressure error
 on DrivAerML.** Neither passive construction of a query normal closes
@@ -467,7 +467,7 @@ on the batch of queries. Neither has been measured; both are designs,
 not results.
 
 *Wake-aligned probe tokens.* The failed latent tokens sat along anchor
-normals within two anchor radii of the body; the region where MT2 loses
+normals within two anchor radii of the body; the region where ISLA loses
 the most ground is downstream. A probe set built covariantly from the
 surface and the freestream direction d — tokens placed along d behind
 the body, at offsets scaled by the reference length — would put
@@ -483,7 +483,7 @@ GeoTransolver-style; predictions at shared points would still agree
 exactly across requests, at the cost of a fixed probe budget per
 inference.
 
-Whether to build either on MT2 or on GeoTransolver depends on what
-carries MT2's small-data advantage on the surface task (@sec-mechanism),
+Whether to build either on ISLA or on GeoTransolver depends on what
+carries ISLA's small-data advantage on the surface task (@sec-mechanism),
 the open question that gates this one. @sec-limits collects the interior
 deficit alongside the book's other limits.

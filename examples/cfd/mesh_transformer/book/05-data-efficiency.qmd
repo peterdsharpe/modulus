@@ -1,19 +1,19 @@
 # Data efficiency on HiLiftAeroML {#sec-data-efficiency}
 
-Trained on 35 high-lift wing cases, MeshTransformer2 (MT2) predicts surface
+Trained on 35 high-lift wing cases, ISLA predicts surface
 pressure 2.8x more accurately than GeoTransolver and than plain Transolver;
 at 210 cases the advantage is 2.5x over GeoTransolver and 1.3x over
-Transolver; at 1,260 cases MT2 and GeoTransolver are at parity (Transolver
+Transolver; at 1,260 cases ISLA and GeoTransolver are at parity (Transolver
 was not run at that rung). The result
 is specific to HiLiftAeroML: on DrivAerML, where the freestream is fixed,
-GeoTransolver is 1.2–1.3x more accurate than MT2 from 27 training cases up
+GeoTransolver is 1.2–1.3x more accurate than ISLA from 27 training cases up
 (@sec-de-drivaerml). This chapter states exactly what was measured, shows
 that the HiLift result holds case by case and under every steel-man control
 constructed for the baselines, translates it into force-coefficient
 accuracy, and reports what the program has learned about *what* carries it —
 which is less than one would like. Every ratio between architectures in this
-chapter is the baseline's error divided by MT2's, so a value above one favours
-MT2. The chapter's limits are stated in @sec-de-limits and collected with the
+chapter is the baseline's error divided by ISLA's, so a value above one favours
+ISLA. The chapter's limits are stated in @sec-de-limits and collected with the
 rest of the book's in @sec-limits.
 
 ## What was measured {#sec-de-setup}
@@ -34,14 +34,14 @@ the same points, then the arithmetic mean over the 180 cases. Every
 architecture is trained under the same frozen protocol (@sec-protocol):
 10,000 sampled surface points per case, 500 epochs, bfloat16, no
 augmentation, two seeds, and the learning rate each architecture prefers
-on the full split (1e-3 for MT2 and GeoTransolver; Transolver, which had
+on the full split (1e-3 for ISLA and GeoTransolver; Transolver, which had
 no prior tuning on this dataset, was run at 1e-3 and 3e-3 and is reported
 at the better of the two per rung, 3e-3). The final-epoch checkpoint of each
 run is evaluated; no checkpoint is selected on validation error, and the
 validation set was otherwise used only for the learning-rate choice on the
-full split. Resources are matched in parameters (8.9M for MT2 against 9.0M
+full split. Resources are matched in parameters (8.9M for ISLA against 9.0M
 for GeoTransolver and 6.0M for Transolver) and tokens per case; peak
-training memory at this token count is 3.6 GB for MT2 against 4.6 GB for
+training memory at this token count is 3.6 GB for ISLA against 4.6 GB for
 GeoTransolver (@sec-resource-matching). The test split was never read;
 every number in this chapter is a validation-set number.
 
@@ -52,13 +52,13 @@ every number in this chapter is a validation-set number.
 #| fig-cap: >
 #|   Surface-pressure relative L2 error on the shared 180-case validation set
 #|   versus number of training cases, for GeoTransolver (red circles),
-#|   MeshTransformer2 (blue squares) and plain Transolver without a geometry
+#|   ISLA (blue squares) and plain Transolver without a geometry
 #|   encoder (grey triangles, dashed; at its better learning rate, 3e-3).
 #|   Lines join seed means, shaded bands span the two seeds, small dots are
 #|   the individual seeds. The annotated factors are each baseline's error
-#|   divided by MT2's at the same rung (above one favours MT2). Protocol: 10,000 sampled surface
+#|   divided by ISLA's at the same rung (above one favours ISLA). Protocol: 10,000 sampled surface
 #|   points per case, 500 epochs, bfloat16, no augmentation, learning rate
-#|   1e-3 for GeoTransolver and MT2, two seeds; MT2 in its constant-gauge
+#|   1e-3 for GeoTransolver and ISLA, two seeds; ISLA in its constant-gauge
 #|   configuration. The figure does not show scaling beyond 1,260 cases and
 #|   does not include the third seed (reported in the text), and does not show
 #|   DrivAerML, where the ordering reverses (@tbl-drivaerml-dataeff-ladder). Data:
@@ -105,7 +105,7 @@ for arch in ("gt", "t", "mt2"):
         ax.scatter([x] * len(v), v, color=c, s=14, alpha=0.9, zorder=4)
 ax.annotate("GeoTransolver", (35, data["gt"][1][0]), xytext=(14, 2), textcoords="offset points", color=RED, fontweight="bold", va="center",
             bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
-ax.annotate("MeshTransformer2", (210, data["mt2"][1][1]), xytext=(14, -14), textcoords="offset points", color=BLUE, fontweight="bold", va="center",
+ax.annotate("ISLA", (210, data["mt2"][1][1]), xytext=(14, -14), textcoords="offset points", color=BLUE, fontweight="bold", va="center",
             bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
 xm, ym = (35 * 210) ** 0.5, (data["t"][1][0] * data["t"][1][1]) ** 0.5
 ax.annotate("Transolver", (xm, ym), xytext=(-3, -7), textcoords="offset points", color=GREY, fontsize=9.5, ha="right", va="top",
@@ -114,7 +114,7 @@ for i, n in enumerate((35, 210)):
     r_gt = data["gt"][1][i] / data["mt2"][1][i]; r_t = data["t"][1][i] / data["mt2"][1][i]
     ymid = (data["gt"][1][i] * data["mt2"][1][i]) ** 0.5
     ax.annotate("", (n, data["mt2"][1][i]), (n, data["gt"][1][i]), arrowprops=dict(arrowstyle="<->", color=INK2, lw=0.9, shrinkA=4, shrinkB=4))
-    ax.text(n * 1.08, ymid, f"GeoTransolver {r_gt:.1f}x MT2\nTransolver {r_t:.1f}x MT2", color=INK2, fontsize=9, va="center", linespacing=1.3,
+    ax.text(n * 1.08, ymid, f"GeoTransolver {r_gt:.1f}x ISLA\nTransolver {r_t:.1f}x ISLA", color=INK2, fontsize=9, va="center", linespacing=1.3,
             bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
 r_full = data["gt"][1][2] / data["mt2"][1][2]
 ax.annotate(f"{r_full:.2f}x (parity)", (1260, (data["gt"][1][2] * data["mt2"][1][2]) ** 0.5), xytext=(14, 30), textcoords="offset points", color=INK2, fontsize=9, va="bottom")
@@ -152,27 +152,27 @@ for n, gpat, mpat, tpat in [(35, "lad_hl_gt_super_scarce_seed{s}", "lad_hl_mt2_s
     tcell = f"{statistics.mean(t):.3f} ({min(t):.3f}–{max(t):.3f})" if t else "—"
     tr = f"{statistics.mean(t)/mm:.1f}" if t else "—"
     rows.append(f"| {n:,} | {gm:.3f} ({min(g):.3f}–{max(g):.3f}) | {tcell} | **{mm:.3f}** ({min(m):.3f}–{max(m):.3f}) | {gm/mm:.2f} | {tr} |")
-print("| training cases | GeoTransolver | Transolver (lr 3e-3) | MeshTransformer2 | GT / MT2 | T / MT2 |")
+print("| training cases | GeoTransolver | Transolver (lr 3e-3) | ISLA | GT / ISLA | T / ISLA |")
 print("|---|---|---|---|---|---|")
 print("\n".join(rows))
 print()
-print(": Surface-pressure relative L2 error on the shared 180-case validation set: seed mean (seed range) for each architecture at each rung, and the ratio of each baseline's mean to MT2's. Ratios above 1 mean MT2 is more accurate. Same protocol and sources as @fig-hilift-data-efficiency. {#tbl-hilift-ladder}")
+print(": Surface-pressure relative L2 error on the shared 180-case validation set: seed mean (seed range) for each architecture at each rung, and the ratio of each baseline's mean to ISLA's. Ratios above 1 mean ISLA is more accurate. Same protocol and sources as @fig-hilift-data-efficiency. {#tbl-hilift-ladder}")
 ```
 
 Two features of the numbers matter before any interpretation. The seed
-spreads are small against the gaps at 35 and 210 cases (0.006 for MT2 and
+spreads are small against the gaps at 35 and 210 cases (0.006 for ISLA and
 0.035 for GeoTransolver against a gap of 0.25 at 35 cases), and the gap
 closes monotonically with data: 2.8x, then 2.5x, then parity. GeoTransolver
-reaches the accuracy MT2 has at 210 cases somewhere between 210 and 1,260
+reaches the accuracy ISLA has at 210 cases somewhere between 210 and 1,260
 cases (the 510-case rung is not yet measured).
 
 The same-family control sharpens the statement rather than weakening it.
 Plain Transolver — GeoTransolver's attention family without the geometry
-encoder — collapses exactly like GeoTransolver at 35 cases (0.40, 2.9x MT2)
+encoder — collapses exactly like GeoTransolver at 35 cases (0.40, 2.9x ISLA)
 but recovers faster, reaching 0.086 at 210 cases, where it is 1.8x more
 accurate than GeoTransolver itself. So at 210 cases most of the 2.5x gap
 to GeoTransolver is GeoTransolver's geometry encoder falling behind its own
-backbone, and MT2's advantage over the *best* Transolver-family baseline is
+backbone, and ISLA's advantage over the *best* Transolver-family baseline is
 1.3x. At 35 cases the two baselines are indistinguishable and the 2.8x
 holds against both.
 
@@ -180,7 +180,7 @@ holds against both.
 
 The 180 validation cases are shared, so each can be scored once as a
 paired comparison: for every case, each architecture's two-seed mean error
-(@sec-metrics). The table reports how many of the 180 cases MT2 wins, how
+(@sec-metrics). The table reports how many of the 180 cases ISLA wins, how
 many it wins on both seeds individually (a stricter count), an exact
 two-sided sign test on n = 180, and the distribution of the per-case error
 ratio.
@@ -193,7 +193,7 @@ import json
 from pathlib import Path
 ps = json.load(open(Path("..") / "results" / "hilift_paired_stats_case_2026-09-07.json"))
 names = {"gt": "GeoTransolver", "transolver": "Transolver (lr 3e-3)"}
-print("| training cases | baseline | cases MT2 wins (of 180) | wins on both seeds | sign-test p (n = 180) | median ratio (baseline / MT2) | 10th–90th percentile |")
+print("| training cases | baseline | cases ISLA wins (of 180) | wins on both seeds | sign-test p (n = 180) | median ratio (baseline / ISLA) | 10th–90th percentile |")
 print("|---|---|---|---|---|---|---|")
 for n in ("35", "210", "1260"):
     for b in ("gt", "transolver"):
@@ -203,20 +203,20 @@ for n in ("35", "210", "1260"):
         r = ps[n][k]
         print(f"| {int(n):,} | {names[b]} | **{r['mt2_wins_seed_mean']} / {r['n_cases']}** | {r['mt2_wins_both_seeds']} | {r['sign_test_p_n180']:.0e} | {r['median_ratio_base_over_mt2']:.2f} | {r['q10_ratio']:.2f}–{r['q90_ratio']:.2f} |")
 print()
-print(": Case-level paired comparison on the 180 shared validation cases. Each case is scored once by each architecture's two-seed mean pressure error; 'wins' counts cases where MT2's error is lower, and the next column counts cases where MT2 is lower on each seed separately. The sign test is exact and two-sided against a 50% null on n = 180. Ratios are baseline error over MT2 error; above 1 favours MT2. Data: results/hilift_paired_stats_case_2026-09-07.json. {#tbl-hilift-paired}")
+print(": Case-level paired comparison on the 180 shared validation cases. Each case is scored once by each architecture's two-seed mean pressure error; 'wins' counts cases where ISLA's error is lower, and the next column counts cases where ISLA is lower on each seed separately. The sign test is exact and two-sided against a 50% null on n = 180. Ratios are baseline error over ISLA error; above 1 favours ISLA. Data: results/hilift_paired_stats_case_2026-09-07.json. {#tbl-hilift-paired}")
 ```
 
 At 35 cases there is no validation case, on either seed, where either
-baseline beats MT2, and the worst tenth of cases still favour MT2 by 1.8x.
-At 210 cases MT2 wins 177 of 180 cases against GeoTransolver (175 on both
+baseline beats ISLA, and the worst tenth of cases still favour ISLA by 1.8x.
+At 210 cases ISLA wins 177 of 180 cases against GeoTransolver (175 on both
 seeds) and 165 of 180 against Transolver (median 1.5x). At 1,260 cases,
-where the means are at parity, MT2 is lower on 130 of 180 cases (103 on
+where the means are at parity, ISLA is lower on 130 of 180 cases (103 on
 both seeds) with a median ratio of 1.06 — a small per-case edge the mean
 comparison hides, and one that the paired view is the right instrument to
 see.
 
-A third seed at 35 cases gives MT2 0.138, GeoTransolver 0.359 and Transolver
-0.409. MT2's third seed falls inside its two-seed range (0.135–0.141);
+A third seed at 35 cases gives ISLA 0.138, GeoTransolver 0.359 and Transolver
+0.409. ISLA's third seed falls inside its two-seed range (0.135–0.141);
 GeoTransolver's falls below its range (0.375–0.409) and Transolver's just
 above (0.398–0.406). The three-seed means are 0.138, 0.381 and 0.404, for
 factors of 2.8x and 2.9x.
@@ -237,7 +237,7 @@ The table stratifies the 35-case results by both.
 import json
 from pathlib import Path
 st = json.load(open(Path("..") / "results" / "hilift_stratified_35_2026-09-06.json"))
-print("| angle of attack [deg] | training cases at this angle | validation cases | MT2 | GeoTransolver | Transolver | GT / MT2 |")
+print("| angle of attack [deg] | training cases at this angle | validation cases | ISLA | GeoTransolver | Transolver | GT / ISLA |")
 print("|---|---|---|---|---|---|---|")
 for aoa in sorted(st["by_aoa"], key=int):
     r = st["by_aoa"][aoa]
@@ -246,7 +246,7 @@ for aoa in sorted(st["by_aoa"], key=int):
 print()
 print(": The 35-case models stratified by angle of attack: geometric-mean pressure rel-L2 over the validation cases at each angle (both seeds). The 18° row (bold) is an angle absent from the 35 training cases. Data: results/hilift_stratified_35_2026-09-06.json. {#tbl-hilift-strata}")
 print()
-print("| validation geometry seen in training at another angle | validation cases | MT2 | GeoTransolver | Transolver | GT / MT2 |")
+print("| validation geometry seen in training at another angle | validation cases | ISLA | GeoTransolver | Transolver | GT / ISLA |")
 print("|---|---|---|---|---|---|")
 for k, lab in (("True", "yes"), ("False", "**no**")):
     r = st["by_geometry_seen"][k]
@@ -255,26 +255,26 @@ print()
 print(": The same models stratified by whether the validation geometry appears among the 33 geometries of the 35-case training set. Data: results/hilift_stratified_35_2026-09-06.json. {#tbl-hilift-strata-geo}")
 ```
 
-Neither collapse happens. On the 146 never-seen geometries MT2 is 3.0x
-ahead; seeing a geometry at another angle helps MT2 by 15% and
-GeoTransolver not at all. At 18°, MT2 interpolates smoothly between its
+Neither collapse happens. On the 146 never-seen geometries ISLA is 3.0x
+ahead; seeing a geometry at another angle helps ISLA by 15% and
+GeoTransolver not at all. At 18°, ISLA interpolates smoothly between its
 16° and 20° errors (0.135 → 0.167 → 0.186) and stays 2.5x ahead. The
 advantage is uniform — 2.2x to 4.3x at every angle — and largest in
-attached flow (4°–12°), where MT2's error is 0.09–0.10 against 0.33–0.39
+attached flow (4°–12°), where ISLA's error is 0.09–0.10 against 0.33–0.39
 for the baselines.
 
 The strata also show *what kind* of model each is at 35 cases. The
 baselines' error is nearly flat — 0.33 to 0.47 at every angle, identical on
-seen and unseen geometries — while MT2's tracks the physics, doubling from
+seen and unseen geometries — while ISLA's tracks the physics, doubling from
 attached flow to post-stall. Against reference predictors on the same
 cases (a constant freestream pressure everywhere scores 1.00 on the
 gauge-pressure scale, the dataset mean 0.94, each case's own mean 0.93),
-GeoTransolver scores 0.63 and Transolver 0.68 while MT2 scores 0.25; the
+GeoTransolver scores 0.63 and Transolver 0.68 while ISLA scores 0.25; the
 median per-case correlation between predicted and true pressure is 0.76
-and 0.69 for the baselines against 0.97 for MT2
+and 0.69 for the baselines against 0.97 for ISLA
 ^[`results/hilift_reference_predictors_35_2026-09-06.json`]. At 35 cases the
 baselines have learned the coarse, case-independent pressure pattern and
-about half of the case-to-case variation; MT2 has learned most of it.
+about half of the case-to-case variation; ISLA has learned most of it.
 
 ## In engineering terms: lift and drag {#sec-de-forces}
 
@@ -291,7 +291,7 @@ reference area, so only relative errors are meaningful).
 import json
 from pathlib import Path
 ps = json.load(open(Path("..") / "results" / "hilift_paired_stats_2026-09-06.json"))
-names = {"mt2": "MeshTransformer2", "gt": "GeoTransolver", "transolver": "Transolver (lr 3e-3)"}
+names = {"mt2": "ISLA", "gt": "GeoTransolver", "transolver": "Transolver (lr 3e-3)"}
 print("| training cases | architecture | drag coefficient error | lift coefficient error |")
 print("|---|---|---|---|")
 for n in ("35", "210", "1260"):
@@ -305,7 +305,7 @@ print()
 print(": Force-coefficient error: mean absolute error of the integrated drag (CD) and lift (CL) coefficients over the 180 validation cases, as a percentage of the mean magnitude of the true coefficient, averaged over seeds. Data: results/hilift_paired_stats_2026-09-06.json. {#tbl-hilift-forces}")
 ```
 
-From 35 CFD runs, MT2 predicts the lift and drag of unseen high-lift
+From 35 CFD runs, ISLA predicts the lift and drag of unseen high-lift
 configurations to about 3%, where GeoTransolver reaches 11–17% and
 Transolver 8–12%. At 210 runs all three are within 1.5–3%, and at 1,260
 the two-seed means are indistinguishable. The 3% figure is the practical
@@ -318,16 +318,16 @@ A small-data advantage can be a protocol artefact: the fixed 500-epoch
 budget gives a 35-case model only 4,500 optimizer steps, and the learning
 rate was chosen on the full split. Four GeoTransolver controls test both
 explanations, with the preregistered falsifier that any control within
-1.2x of MT2 at 35 cases voids the result.
+1.2x of ISLA at 35 cases voids the result.
 
-| training cases | GeoTransolver control | error (seed 42 / seed 43) | GeoTransolver at the protocol rate and epochs | falsifier (1.2x MT2) |
+| training cases | GeoTransolver control | error (seed 42 / seed 43) | GeoTransolver at the protocol rate and epochs | falsifier (1.2x ISLA) |
 |---|---|---|---|---|
 | 35 | learning rate 3e-3, 500 epochs | 0.392 / 0.480 | 0.375 / 0.409 | 0.166 |
 | 35 | learning rate 1e-3, 1,000 epochs | 0.373 / 0.429 | 0.375 / 0.409 | 0.166 |
 | 210 | learning rate 3e-3, 500 epochs | 0.220 / 0.290 | 0.157 / 0.160 | 0.077 |
 | 210 | learning rate 1e-3, 1,000 epochs | 0.152 / 0.128 | 0.157 / 0.160 | 0.077 |
 
-: GeoTransolver steel-man controls, two seeds each, on the shared validation set. A higher learning rate hurts at both rungs; doubling the epochs helps only at 210 cases (0.140 against 0.159, 1.13x) and leaves GeoTransolver 2.2x behind MT2 there. No control approaches the falsifier. Data: results/t1_transolver_control_reduction_2026-09-05.json. {#tbl-hilift-controls}
+: GeoTransolver steel-man controls, two seeds each, on the shared validation set. A higher learning rate hurts at both rungs; doubling the epochs helps only at 210 cases (0.140 against 0.159, 1.13x) and leaves GeoTransolver 2.2x behind ISLA there. No control approaches the falsifier. Data: results/t1_transolver_control_reduction_2026-09-05.json. {#tbl-hilift-controls}
 
 The same-family baseline (Transolver at its better learning rate) is a
 further control, already in the tables above. A learning-rate explanation is
@@ -341,7 +341,7 @@ Because two seeds exist for every model, the disagreement between them is
 a per-case uncertainty estimate at no extra cost. Its rank correlation
 with the per-case error tells whether a model knows where it is wrong.
 
-| training cases | MT2 | GeoTransolver | Transolver |
+| training cases | ISLA | GeoTransolver | Transolver |
 |---|---|---|---|
 | 35 | **+0.67** | −0.20 | −0.47 |
 | 210 | +0.64 | +0.65 | +0.60 |
@@ -349,12 +349,12 @@ with the per-case error tells whether a model knows where it is wrong.
 
 : Spearman rank correlation, over the 180 validation cases, between the two seeds' disagreement (norm of the difference of their pressure predictions) and the two-seed ensemble's error. Data: results/hilift_ensemble_uq_{35,210,1260}_2026-09-06.json. {#tbl-hilift-uq}
 
-At 35 cases MT2's seed disagreement ranks its errors (0.67), so a two-seed
-MT2 ships with a usable per-case confidence flag; the baselines'
+At 35 cases ISLA's seed disagreement ranks its errors (0.67), so a two-seed
+ISLA ships with a usable per-case confidence flag; the baselines'
 disagreement is anticorrelated with their error, so an ensemble spread
 would mislead. At 210 cases all three architectures have the property,
 which identifies it as a "the model has learned the task" property that
-MT2 reaches at 35 cases and the baselines at 210. At 1,260 cases it
+ISLA reaches at 35 cases and the baselines at 210. At 1,260 cases it
 collapses for both architectures — the remaining error is not
 seed-dependent model variance — which is part of the evidence, taken up in
 @sec-shared-floor, that both architectures approach a common floor at this
@@ -363,13 +363,13 @@ ranking is tested here, not calibration.
 
 ## What carries it {#sec-mechanism}
 
-MT2 differs from the Transolver family in several ways at once: exact
+ISLA differs from the Transolver family in several ways at once: exact
 rotation and translation equivariance, an invariant seed parameterization,
 measure-weighted routing, equivariant slice anchors with relational
 invariants, and an optional similarity gauge. Removing one at a time at
-35 cases (reference MT2 error 0.138) gives:
+35 cases (reference ISLA error 0.138) gives:
 
-| single-factor change to MT2 at 35 cases | error (seed 42 / 43) | vs reference |
+| single-factor change to ISLA at 35 cases | error (seed 42 / 43) | vs reference |
 |---|---|---|
 | add raw coordinates as inputs (breaks exact equivariance) | 0.143 / 0.143 | 1.04x |
 | replace the invariant seeds by the raw vectors [r, n, d] | 0.138 / 0.137 | 0.99x |
@@ -377,7 +377,7 @@ invariants, and an optional similarity gauge. Removing one at a time at
 | measure weights off | 0.121 / 0.123 | **0.88x** |
 | relational routing off in the encoder | 0.158 / 0.163 | 1.16x |
 
-: Single-factor ablations of MeshTransformer2 at 35 training cases, two seeds, frozen protocol, shared validation set. Every variant retains an invariant path somewhere (the relational invariants in the encoder, or in the decoder read blocks), so these results speak to exactness and to individual ingredients, not to the presence of invariant information. Data: results/a35_v0_reduction_2026-09-05.json. {#tbl-hilift-ablations}
+: Single-factor ablations of ISLA at 35 training cases, two seeds, frozen protocol, shared validation set. Every variant retains an invariant path somewhere (the relational invariants in the encoder, or in the decoder read blocks), so these results speak to exactness and to individual ingredients, not to the presence of invariant information. Data: results/a35_v0_reduction_2026-09-05.json. {#tbl-hilift-ablations}
 
 No single ingredient carries the advantage: nothing moves the error by
 more than 16%, against a 190% gap to the baselines. Exactness of the
@@ -389,16 +389,16 @@ cases, where uniform sampling makes area weights a source of gradient
 variance rather than information. Relational routing is worth 16%.
 
 The complementary test from the baseline side gives GeoTransolver and
-Transolver MT2's three drive-relative invariants (local incidence n·d,
+Transolver ISLA's three drive-relative invariants (local incidence n·d,
 radial cosine, radius) as per-cell input features at 35 cases, with bands
 fixed in advance: the inputs carry the advantage if both baselines reach
-0.235 or better (halfway to MT2 in log-error), and do not if both stay at
+0.235 or better (halfway to ISLA in log-error), and do not if both stay at
 0.30 or worse. Transolver improves from 0.402 to 0.297 (a 1.35x gain, a
 quarter of the log-gap, inside the inconclusive band); GeoTransolver does
 not move (0.392 to 0.394, in the falsifier band). The invariant inputs are
 therefore not the carrier for GeoTransolver and at most a partial
 contributor for Transolver.^[`results/inv_transplant_2026-09-07.json`]
-What the program can say is that the advantage is a property of MT2's
+What the program can say is that the advantage is a property of ISLA's
 soft-slice design as a whole — equivariant anchors, relational routing and
 readback, measure-weighted aggregation, invariant seeds, and the training
 dynamics they induce together — and that no single transplantable ingredient
@@ -421,7 +421,7 @@ seeds, scored on the 48-car validation split.
 import json, statistics
 from pathlib import Path
 lad = json.load(open(Path("..") / "results" / "ladder_reduction.json"))
-print("| training cars | GeoTransolver | MeshTransformer2 | GT / MT2 |")
+print("| training cars | GeoTransolver | ISLA | GT / ISLA |")
 print("|---|---|---|---|")
 for n in (14, 27, 54, 109, 218):
     g = [lad[f"lad_gt_n{n}_seed{s}"]["infamily"] for s in (42, 43)]
@@ -429,7 +429,7 @@ for n in (14, 27, 54, 109, 218):
     gm, mm = statistics.mean(g), statistics.mean(m)
     print(f"| {n} | {gm:.3f} ({min(g):.3f}–{max(g):.3f}) | {mm:.3f} ({min(m):.3f}–{max(m):.3f}) | {gm/mm:.2f} |")
 print()
-print(": DrivAerML data-efficiency ladder: surface-pressure relative L2 on the 48 validation cars, seed mean (seed range), at learning rate 3e-3 for both architectures (the frozen protocol of that ladder; MT2's preferred rate of 1e-3 is worth about 1.1x at full data and does not change the ordering). GT / MT2 below one means GeoTransolver is more accurate. Data: results/ladder_reduction.json. {#tbl-drivaerml-dataeff-ladder}")
+print(": DrivAerML data-efficiency ladder: surface-pressure relative L2 on the 48 validation cars, seed mean (seed range), at learning rate 3e-3 for both architectures (the frozen protocol of that ladder; ISLA's preferred rate of 1e-3 is worth about 1.1x at full data and does not change the ordering). GT / ISLA below one means GeoTransolver is more accurate. Data: results/ladder_reduction.json. {#tbl-drivaerml-dataeff-ladder}")
 ```
 
 At 14 cars the two architectures tie at 0.27; from 27 cars up GeoTransolver is 1.2–1.3x more accurate, a gap that
@@ -444,13 +444,13 @@ explain it.
 
 **It is a data-efficiency claim, not a scaling law.** The measured
 log-log slopes of error against training cases are 0.50 then 0.74 for
-GeoTransolver and 0.43 then 0.25 for MT2 over the 35→210 and 210→1,260
-segments: GeoTransolver's curve steepens where MT2's flattens, and a naive
+GeoTransolver and 0.43 then 0.25 for ISLA over the 35→210 and 210→1,260
+segments: GeoTransolver's curve steepens where ISLA's flattens, and a naive
 power-law extrapolation of the two curves puts GeoTransolver at 0.015 and
-MT2 at 0.029 at 5,000 cases, a factor of two in GeoTransolver's favour.
+ISLA at 0.029 at 5,000 cases, a factor of two in GeoTransolver's favour.
 The book makes no claim beyond 1,260 cases. Three pieces of evidence
 suggest the flattening is a shared floor of the protocol rather than a
-property of MT2 — 70% of the residual at full data is shared between the
+property of ISLA — 70% of the residual at full data is shared between the
 two architectures on identical points, the seed-disagreement correlation
 collapses for both at 1,260 cases, and accuracy still rises with tokens
 per case — but that reading is a hypothesis under test (both architectures
@@ -460,7 +460,7 @@ at 1,260 cases with 20,000 tokens), not a result (@sec-shared-floor).
 (@sec-de-drivaerml): GeoTransolver is 1.2–1.3x more accurate from 27
 training cases up and the two tie at 14. The contrast with HiLiftAeroML,
 where the angle of attack varies, is real and unexplained: the obvious
-hypothesis (that MT2 wins by representing the freestream-direction
+hypothesis (that ISLA wins by representing the freestream-direction
 dependence exactly) predicts that giving the baselines those features would
 close the gap, and it does not.
 
