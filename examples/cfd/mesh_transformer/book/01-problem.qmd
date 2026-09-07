@@ -344,10 +344,13 @@ speed of 30 m/s against DrivAerML's 38.9 m/s. Its curated manifest
 separates two rear-end styles, each with its own train / validation / test
 split: the *estate* family (794 / 99 / 100 cases) and the *fastback*
 family (796 / 99 / 99). In this book it is a zero-shot transfer target,
-never a source of in-family accuracy claims: a model trained on DrivAerML
-alone is evaluated on the estate family, and a model trained on DrivAerML
-plus the estate family is evaluated on the fastback family
-(@sec-industrial-mt1, @sec-full-data). The speed difference is a
+never a source of in-family accuracy claims. Both families are held out
+from every model in the book; which one a table reports is stated in its
+caption: the frontier table (@tbl-frontier) scores every row on the fastback
+family, so that models trained on DrivAerML alone and models trained on
+DrivAerML plus the estate family are compared on one target, while the
+exact-kernel MeshTransformer's cross-family analysis (@sec-industrial-mt1)
+uses the estate family for DrivAerML-only models. The speed difference is a
 covariate shift identical for every architecture, none of which receives
 the Reynolds number, and it is reported alongside the geometry-family
 shift rather than corrected.
@@ -434,11 +437,13 @@ the 484 variants in neither, fixed across every experiment.
 Sampling-density and pose probes evaluate the same 48 cars with
 transformed inputs (@sec-full-data).
 
-**SHIFT-SUV.** No training split in the single-family comparisons. The
-estate family is the zero-shot target for models trained on DrivAerML
-alone (in full, or on a 20-case subset of its test split where stated);
-the fastback family is the zero-shot target for models trained on
-DrivAerML plus estate (@sec-industrial-mt1, @sec-full-data).
+**SHIFT-SUV.** No training split in the single-family comparisons; the
+estate family is a training source only in the two-family rows of the
+frontier table. Both families are zero-shot targets; each table's caption
+names which (fastback for every row of @tbl-frontier; estate for the
+exact-kernel MeshTransformer's cross-family analysis, in full or on a
+20-case subset of its test split where stated) (@sec-industrial-mt1,
+@sec-full-data).
 
 **AirFRANS.** The official scarce (200 / 200) and full (800 / 200) tasks,
 with validation carved from training cases only under a fixed seed, and
@@ -695,10 +700,12 @@ ladder are scored on the same validation cases, which is what makes the
 paired statistics meaningful. On the industrial datasets the checkpoint evaluated is always the
 final-epoch checkpoint: no checkpoint is selected on validation error, and
 the validation set's only role in model selection was the per-architecture
-learning-rate choice on the full split described above. (The controlled
-Navier–Stokes suite is the one exception in this book: its arms restore the
-best-validation checkpoint before the test evaluation, as stated in
-@sec-ns-cavity.) The HiLiftAeroML
+learning-rate choice on the full split described above. (Two parts of the book
+do select checkpoints on validation error and say so where they report:
+the controlled Navier–Stokes suite, whose arms restore the best-validation
+checkpoint before the test evaluation (@sec-ns-cavity), and the AirFRANS
+runs of the exact-kernel MeshTransformer, whose validation partition is
+described with the results (@sec-airfrans).) The HiLiftAeroML
 accuracy figures in this book are therefore validation-set figures with no
 checkpoint selection behind them. A sealed test split is evaluated exactly
 once, with the checkpoint and inference configuration declared in writing

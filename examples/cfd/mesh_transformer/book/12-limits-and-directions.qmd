@@ -37,9 +37,8 @@ home section; this chapter adds only the limits.
 **The data-efficiency result is a statement about 35 to 1,260 training cases
 on HiLiftAeroML, not a scaling law, and the measured curve shapes are what
 an adversarial reader will point at.** The quantity throughout is the
-relative L2 error of surface pressure, ‖p̂ − p‖/‖p − p_∞‖ over the 10,000
-sampled points of a case, averaged over the 180 validation cases shared by
-every rung of the nested splits (@sec-problem, @sec-metrics). The log-log
+surface-pressure relative L2 error as defined in @sec-metrics, averaged
+over the 180 validation cases shared by every rung of the nested splits. The log-log
 slope of a segment is −Δ log(error)/Δ log(cases) between adjacent rungs; a
 larger slope means error falls faster with data. GeoTransolver's slope is
 0.50 from 35 to 210 cases and 0.74 from 210 to 1,260; MT2's is 0.43 and
@@ -208,7 +207,7 @@ of attack spans 4° to 22°, so incidence is the leading-order case-dependent
 physics; on DrivAerML the freestream is fixed, n·d is a raw input already,
 and the same ladder protocol at a frozen learning rate of 3e-3 for both
 architectures runs the other way: the two are tied at 14 cases
-(GeoTransolver/MT2 0.99, near the trivial-predictor level) and GeoTransolver
+(GeoTransolver/MT2 0.99) and GeoTransolver
 is 1.2–1.3x more accurate than MT2 at every rung from 27 to 218 cases
 (@tbl-drivaerml-dataeff-ladder in @sec-data-efficiency). The HiLift advantage does
 not transfer to DrivAerML.
@@ -293,7 +292,11 @@ Evaluate-anywhere semantics is a contract with a measured price.
 
 **No checkpoint of any architecture tested transfers zero-shot across
 vehicle families; what moves cross-family error is the diversity of the
-training data, not the architecture** (@sec-industrial-mt1). The similarity
+training data** (@sec-industrial-mt1). The failure is not identical across
+architectures — on the held-out fastback family GeoTransolver trained on
+DrivAerML alone scores 0.59 where MT2 scores 0.95–0.99 (1.0 is the mean
+predictor; @tbl-frontier) — but neither is usable, and a second training
+family moves both to 0.11–0.13. The similarity
 gauge, which fixes the constant-gauge configuration's sampling-density
 failure (@sec-robustness-density), leaves zero-shot transfer unchanged. A claim of family-portable surface physics from any of these
 architectures would need a corpus in which geometry, pose, scale and regime
@@ -325,8 +328,9 @@ convention used elsewhere in the book, and each threshold below is labelled
 with its direction.
 
 - **Is the two-seed result robust at 210 cases?** A third seed at 210 cases
-  for all three architectures; the 35-case third seed is in and inside the
-  bands (@sec-data-efficiency). Settled if every third-seed result lands
+  for all three architectures; the 35-case third seed is in: MT2's falls inside its
+  two-seed range, the baselines' just outside theirs in MT2's favour
+  (@sec-data-efficiency). Settled if every third-seed result lands
   inside the two-seed spread widened by 1.5x; falsified if the rung mean
   moves by more than 15%.
 - **Is the approach to parity smooth?** The 510-case rung between 210 and
@@ -356,9 +360,10 @@ with its direction.
   interior decode?** Wake-aligned probe tokens, and a request-independent
   canonical probe set that interacts GeoTransolver-style. The bar the
   previous off-surface design failed is interior pressure within 1.5x of
-  GeoTransolver's. The transplant result (@sec-limits-mechanism) settles
-  which architecture this work builds on: the small-data advantage is not a
-  feature GeoTransolver can adopt, so both designs are MT2 designs.
+  GeoTransolver's. The transplant result (@sec-limits-mechanism) shows the small-data
+  advantage is not carried by three per-cell scalars GeoTransolver can be
+  given; which architecture the interior work should build on remains open
+  (@sec-interior-open).
 - **Which generalization axes does structure buy, one at a time?** A 3D
   RANS corpus generated with counterfactual twin draws per factor (pose,
   scale, Reynolds number, layout, mesh), so each axis is tested exactly.

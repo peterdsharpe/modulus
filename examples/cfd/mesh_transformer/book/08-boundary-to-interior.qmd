@@ -465,6 +465,6 @@ exactly across requests, at the cost of a fixed probe budget per
 inference.
 
 Whether to build either on MT2 or on GeoTransolver depends on what
-carries MT2's small-data advantage on the surface task (@sec-mt2), the
-open question that gates this one. @sec-limits collects the interior
+carries MT2's small-data advantage on the surface task (@sec-mechanism),
+the open question that gates this one. @sec-limits collects the interior
 deficit alongside the book's other limits.

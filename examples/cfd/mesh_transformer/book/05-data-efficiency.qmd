@@ -3,7 +3,8 @@
 Trained on 35 high-lift wing cases, MeshTransformer2 (MT2) predicts surface
 pressure 2.8x more accurately than GeoTransolver and than plain Transolver;
 at 210 cases the advantage is 2.5x over GeoTransolver and 1.3x over
-Transolver; at 1,260 cases the three architectures are at parity. The result
+Transolver; at 1,260 cases MT2 and GeoTransolver are at parity (Transolver
+was not run at that rung). The result
 is specific to HiLiftAeroML: on DrivAerML, where the freestream is fixed,
 GeoTransolver is 1.2–1.3x more accurate than MT2 from 27 training cases up
 (@sec-de-drivaerml). This chapter states exactly what was measured, shows
@@ -164,7 +165,8 @@ Two features of the numbers matter before any interpretation. The seed
 spreads are small against the gaps at 35 and 210 cases (0.006 for MT2 and
 0.035 for GeoTransolver against a gap of 0.25 at 35 cases), and the gap
 closes monotonically with data: 2.8x, then 2.5x, then parity. GeoTransolver
-needs the full 1,260 cases to reach the accuracy MT2 reaches with 210.
+reaches the accuracy MT2 has at 210 cases somewhere between 210 and 1,260
+cases (the 510-case rung is not yet measured).
 
 The same-family control sharpens the statement rather than weakening it.
 Plain Transolver — GeoTransolver's attention family without the geometry
@@ -432,8 +434,7 @@ print()
 print(": DrivAerML data-efficiency ladder: surface-pressure relative L2 on the 48 validation cars, seed mean (seed range), at learning rate 3e-3 for both architectures (the frozen protocol of that ladder; MT2's preferred rate of 1e-3 is worth about 1.1x at full data and does not change the ordering). GT / MT2 below one means GeoTransolver is more accurate. Data: results/ladder_reduction.json. {#tbl-drivaerml-dataeff-ladder}")
 ```
 
-At 14 cars the two architectures tie at 0.27, close to the trivial-predictor
-level; from 27 cars up GeoTransolver is 1.2–1.3x more accurate, a gap that
+At 14 cars the two architectures tie at 0.27; from 27 cars up GeoTransolver is 1.2–1.3x more accurate, a gap that
 persists to the full split (1.085x at each architecture's best rate,
 @sec-full-data). The HiLift advantage is therefore a property of that
 dataset's variation — 180 geometries crossed with ten angles of attack —

@@ -402,7 +402,7 @@ pooled over slices with $\pi_{is}$. Written as "project, then pool",
 autograd must save the projected tensor $(B, N, S, 96)$ for the
 backward pass: at $N = 10{,}000$ and $S = 256$ that is $2.5\times10^8$
 elements, about 0.5 GB in bf16, per layer, or 5.9 GB across 12 layers,
-which is the gap between 9.8 GB and 3.6 GB. The projection is affine and
+most of the 6.2 GB gap between 9.8 GB and 3.6 GB. The projection is affine and
 $\pi_{is}$ sums to one over slices, so
 
 $$

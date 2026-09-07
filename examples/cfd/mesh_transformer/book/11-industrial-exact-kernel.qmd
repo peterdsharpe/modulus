@@ -606,7 +606,8 @@ coordinate-based one; it is refuted at every capacity and seed tested.
 #|   Left: zero-shot SHIFT-SUV pressure relative L2 (20 cases) for the
 #|   GeoTransolver anchor (red) and four exact-kernel MeshTransformer
 #|   checkpoints (purple): three flagship seeds and the 11.4M rung, all
-#|   trained on DrivAerML with the dataset's fixed reference length of 8.0.
+#|   trained on DrivAerML with the constant gauge of 8.0 reference-length units
+#|   (40 m physical).
 #|   The shaded band is the models' own-family in-distribution error, where
 #|   a transferring model would land; the dashed line is relative L2 = 1,
 #|   the mean-predictor level. Right: the same flagship seed evaluated
@@ -685,7 +686,7 @@ ax_r.text(6.4, dose["geotransolver_reference"] * 0.33, "GeoTransolver 0.677", fo
 ax_r.set_yscale("log"); ax_r.set_xscale("log")
 ax_r.set_xticks(gauges, [str(int(g)) for g in gauges])
 ax_r.set_xlim(6, 78); ax_r.set_ylim(8e-2, 3e17)
-ax_r.set_xlabel("declared reference length [m, log scale]")
+ax_r.set_xlabel("declared reference length [reference-length units, log scale]")
 ax_r.set_title("one flagship checkpoint, reference length varied", fontsize=9.5, pad=9)
 for ax in (ax_l, ax_r):
     ax.grid(axis="y", color=GRID, lw=0.8); ax.grid(axis="x", visible=False); ax.set_axisbelow(True)
@@ -904,7 +905,7 @@ GeoTransolver in pressure and somewhat better in wall-shear ratio, at
 generalize at all, and neither its exact structure nor its gauge
 changes that; transfer across vehicle families is, for every
 architecture tested in this book, a property of the diversity of the
-training data rather than of the architecture (@sec-data-efficiency).
+training data rather than of the architecture (@sec-limits-transfer).
 
 What the line keeps is what the controlled suites showed: parameter
 efficiency (two zero-parameter exact members do the work of eight

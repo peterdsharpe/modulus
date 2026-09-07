@@ -79,7 +79,7 @@ HiLiftAeroML. Configuration source:
 **On the synthetic boundary-to-interior suites (@sec-linear-suites) the
 mainstream baseline is a steel-manned Transolver, and at matched parameters
 and a training budget of 3,000 updates the exact-kernel MeshTransformer (MT1,
-@sec-mt1) is 7.7–20x more accurate on the 2D Laplace suites and 34–78x on the
+@sec-mt1) is 4–21x more accurate on the 2D Laplace suites and 34–78x on the
 screened-Laplace and 3D suites, narrowing to 1.4x on the multiply-connected
 shell suite where MT1 is itself representation-limited; because Transolver is
 still improving at 30,000 updates (0.119 at native capacity,
@@ -109,9 +109,11 @@ compute it is still 3.2x above MT1 at 3,000 updates, so the 20x is a
 matched-budget figure and an upper bound on the gap Transolver would converge
 to. Frequency-OOD saturates near 0.46 against 0.0748; similarity covariance
 stays at 0.08–0.25 at every budget against MT1's 3e-7. The ranges quoted at
-the head of this section are: 7.7–20x on 2D Laplace, where 7.7x is
-Transolver's own fixed-dataset regime (2,304 training cases, 15 epochs,
-best-checkpoint selection: 0.126–0.136 against MT1's 0.016–0.017) and 20x is
+the head of this section are: 4–21x on 2D Laplace, where 4x is
+native-capacity Transolver in its own fixed-dataset regime (2,304 training
+cases, 15 epochs, best-checkpoint selection: 0.062–0.070 against MT1's
+0.016–0.017; the matched-capacity Transolver reads 0.126–0.136 there, 7–9x)
+and 21x is
 the streaming regime just described; 34–78x on the in-distribution error of
 the screened-Laplace (78x), 3D sphere (56x) and 3D star (34x) suites at
 matched parameters, three seeds and 3,000 updates; 1.4x on the
@@ -136,9 +138,13 @@ Datasets and splits are defined in @sec-problem, the metric in @sec-metrics.
    under-train the baseline.
 3. **Learning rate chosen per architecture on the full split, by
    validation, before any ladder or ablation ran.** From the grid
-   {1e-3, 3e-3, 1e-2}: MT2 1e-3 on both datasets; GeoTransolver 1e-3 on
-   HiLiftAeroML and 3e-3 on DrivAerML; Transolver 3e-3 on HiLiftAeroML; each
-   then frozen for every smaller split and ablation. Choosing after seeing
+   {1e-3, 3e-3, 1e-2} on DrivAerML and {1e-3, 3e-3} on HiLiftAeroML: MT2 1e-3
+   on both datasets; GeoTransolver 1e-3 on HiLiftAeroML and 3e-3 on
+   DrivAerML; each then frozen for every smaller split and ablation. The one
+   departure is disclosed where it occurs: Transolver had no full-split run
+   on HiLiftAeroML, so it was trained at both 1e-3 and 3e-3 on the 35- and
+   210-case rungs and is reported at the better of the two per rung (3e-3 at
+   both), a choice that favours the baseline (@sec-data-efficiency). Choosing after seeing
    ladder results would let the tuning budget set the gap (@sec-lr-protocol).
 4. **Two or more seeds per cell, reported individually.** Seed spread is
    the only noise estimate at 48 or 180 validation cases; every ratio is

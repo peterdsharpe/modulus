@@ -6,7 +6,7 @@ boundary (a surface mesh with normals and areas) and a few global conditions
 such as the freestream direction, predict the fields on that boundary and in
 the volume around it. The program built two architectures and measured them
 against the strongest available mainstream baseline, GeoTransolver, under one
-frozen, resource-matched protocol on exact-label suites and on three
+frozen, parameter- and token-matched protocol on exact-label suites and on three
 production aerodynamics datasets (AirFRANS, DrivAerML, HiLiftAeroML). The
 audience is applied mathematicians and machine-learning researchers; every
 term is defined at first use and every number is computed live from a
