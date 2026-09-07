@@ -6703,3 +6703,26 @@ costs Transolver-family models pay. Adopting the compiled region in training
 is an engineering decision to be validated on one lane (loss curve overlaid on
 an eager seed); it is not a research claim and is not scheduled ahead of the
 science arms.
+
+## 2026-09-07 — Deflection arm: the one-shot sealed test evaluation is scripted before any result exists {#sec-nb-deflection-eval-ready}
+
+The geometry-extrapolation lanes (@sec-nb-deflection-prereg; ISLA and
+GeoTransolver, seeds 42/43, training on the 80% of geometries with lower
+flap/slat deflection) are at epoch 8 of 500 and will finish in about two
+days. So that the sealed test is evaluated exactly as preregistered and not
+improvised when the numbers are due, two files now sit beside the lane
+launcher on the cluster: `highlift/build_deflection_test_manifest.py`, the
+single sanctioned reader of the dataset's `deflection_test` list, which
+writes the test manifest and the `highlift_surface_deflection_test` dataset
+variant and refuses to run if any test case is missing on disk, duplicated
+or overlapping the training or validation lists; and
+`highlift/hl_defl_test_eval_aga.sbatch`, four lanes (architecture × seed)
+that each evaluate their checkpoint once on that list with the inference
+configuration frozen identical to the wave-2 validation evaluations except
+`infer_split=test`, and that refuse to start until all four lanes report
+training complete. Both mirror the aoa/stall sealed-test scripts of
+2026-09-04 line for line. The in-distribution validation of the same
+checkpoints is the wave-2 evaluation script's job (lanes 36–39). Readout
+bars are unchanged: carried if ISLA's test error is at most 0.7x
+GeoTransolver's with a degradation ratio d ≤ 4; falsified if ISLA is at or
+above 0.9x GeoTransolver or both models show d ≥ 8.
