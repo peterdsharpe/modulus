@@ -6969,3 +6969,52 @@ optimisation at the operating point), not of a case class or a surface
 region where ISLA's inductive bias fails. It sharpens the closed
 direction: no region-, case- or geometry-targeted mechanism would move the
 DrivAerML gap; only something that lifts the whole fit would.
+
+## 2026-09-07 — At 35 and 210 HiLift cases the two architectures disagree on which cases are hard (ρ 0.57, 0.64 against seed self-consistency 0.88–0.97); at 1,260 they agree (0.94) — the opposite of DrivAerML {#sec-nb-hilift-percase}
+
+**Question.** The DrivAerML addendum (@sec-nb-drivaer-percase) found ISLA and
+GeoTransolver ranking the 48 cars identically, with ISLA's error a constant
+factor on a shared difficulty ordering. Is HiLift's small-data advantage
+the same kind of object, ISLA uniformly better on a shared ordering, or
+does GeoTransolver's small-data failure land on cases of its own?
+
+**Instrument.** Per-case surface-pressure relative L2 from the wave-1 and
+wave-2 validation evaluations on the shared 180 cases (two-seed mean per
+architecture per case), Spearman rank correlation between the two
+architectures, against each architecture's rank correlation with its own
+other seed; the 10th/50th/90th percentile of the per-case ratio
+GeoTransolver/ISLA (results/hilift_percase_correlation_2026-09-07.json).
+
+| rung | ρ ISLA vs GeoTransolver | ρ GeoTransolver seed 42 vs 43 | ρ ISLA seed 42 vs 43 | GT/ISLA per-case ratio p10 / p50 / p90 |
+|---|---|---|---|---|
+| 35 cases | **0.57** | 0.94 | 0.97 | 1.81 / 3.13 / 4.61 |
+| 210 cases | **0.64** | 0.88 | 0.96 | 1.67 / 3.08 / 3.94 |
+| 1,260 cases | 0.94 | 0.94 | 0.95 | 0.92 / 1.06 / 1.18 |
+| single angle, 126 geometries (18 held-out geometries) | 0.63 | 0.92 | 0.96 | 4.27 / 4.97 / 5.97 |
+
+**Reading.** Each architecture is highly consistent with itself across
+seeds at every rung, so the low cross-architecture correlations at 35 and
+210 cases are not noise: GeoTransolver's small-data errors fall on cases
+that are not the ones ISLA finds hard, and the per-case ratio spreads over
+a factor of 2.5 (1.8x to 4.6x at 35 cases). At 1,260 cases the two
+orderings coincide to the limit of seed consistency and the ratio
+collapses to 0.92–1.18, which is the parity result seen per case. On
+DrivAerML the orderings coincide at every size measured, with the ratio
+confined to 1.1–1.4. So the two datasets show two different objects:
+on DrivAerML a uniform fit deficit for ISLA on a shared difficulty
+ordering; on HiLift, in the small-data regime, a GeoTransolver-specific
+failure pattern that is idiosyncratic to cases rather than a scaling of
+their intrinsic difficulty, and that disappears with data. This is the
+per-case signature one expects of a model that has not learned to
+generalize across the geometry family and is partly memorizing: the
+high-lift stratification (@sec-nb-strat35) showed the failure is not
+concentrated in an angle or a named geometry class, and the curvature
+analysis (@sec-nb-curvature-strat) showed it is uniform over each surface;
+this shows it is also not a monotone function of case difficulty.
+
+**What it adds to the mechanism question.** A carrier of ISLA's advantage
+must explain why GeoTransolver's error decorrelates from difficulty at
+small data, not merely why it is larger. It also sharpens the falsifier for
+the unseen-geometry ladder now finishing: if the advantage on
+never-seen-at-any-angle geometries is again accompanied by a low
+cross-architecture ρ, the same object is being measured.

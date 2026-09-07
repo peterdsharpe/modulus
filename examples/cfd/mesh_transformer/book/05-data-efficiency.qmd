@@ -215,6 +215,44 @@ both seeds) with a median ratio of 1.06 — a small per-case edge the mean
 comparison hides, and one that the paired view is the right instrument to
 see.
 
+The same per-case errors answer a second question: do the two architectures
+agree on *which* cases are hard? @tbl-hilift-percase-rho gives the Spearman
+rank correlation between ISLA's and GeoTransolver's per-case errors at each
+rung, next to each architecture's rank correlation with its own second seed,
+which is the ceiling a correlation between two models could reach.
+
+```{python}
+#| label: tbl-hilift-percase-rho
+#| output: asis
+#| code-fold: true
+import json
+from pathlib import Path
+hl = json.load(open(Path("..") / "results" / "hilift_percase_correlation_2026-09-07.json"))
+dr = json.load(open(Path("..") / "results" / "drivaer_percase_correlation_2026-09-07.json"))
+print("| dataset and rung | cases | ρ ISLA vs GeoTransolver | ρ GeoTransolver, seed vs seed | ρ ISLA, seed vs seed | per-case ratio GeoTransolver / ISLA, 10th / 50th / 90th pct |")
+print("|---|---|---|---|---|---|")
+for key, label in (("35", "HiLiftAeroML, 35"), ("210", "HiLiftAeroML, 210"), ("1260", "HiLiftAeroML, 1,260"), ("single12", "HiLiftAeroML, single angle, 126 (18 held-out geometries)")):
+    r = hl[key]; p = r["ratio_gt_over_isla_p10_p50_p90"]
+    print(f"| {label} | {r['n']} | **{r['rho_isla_vs_gt']:.2f}** | {r['rho_gt_self']:.2f} | {r['rho_isla_self']:.2f} | {p[0]:.2f} / {p[1]:.2f} / {p[2]:.2f} |")
+for s in ("45", "46"):
+    r = dr[s]; p = [1 / x for x in reversed(r["ratio_p10_p50_p90"])]
+    print(f"| DrivAerML, 435 (seed pair {s}) | {r['n']} | **{r['spearman_isla_vs_gt_per_case_pressure_l2']:.2f}** | {dr['self_consistency']['gt_seed45_vs_46']:.2f} | {dr['self_consistency']['isla_seed45_vs_46']:.2f} | {p[0]:.2f} / {p[1]:.2f} / {p[2]:.2f} |")
+print()
+print(": Do the architectures agree on which cases are hard? Spearman rank correlation of per-case surface-pressure error between ISLA and GeoTransolver (two-seed means per case on HiLiftAeroML; single seeds on DrivAerML, where the same-numbered seeds are paired), against each architecture's correlation with its own other seed. Ratios are GeoTransolver error over ISLA error per case (above 1 favours ISLA); on DrivAerML the artifact stores ISLA/GeoTransolver and the table inverts it. Data: results/hilift_percase_correlation_2026-09-07.json, results/drivaer_percase_correlation_2026-09-07.json. {#tbl-hilift-percase-rho}")
+```
+
+Each architecture is consistent with itself (0.87–0.97 across seeds), so the
+cross-architecture correlations are resolved. At 35 and 210 cases they are
+0.57 and 0.64: GeoTransolver's small-data errors do not fall on the cases
+ISLA finds hard, and its per-case ratio to ISLA spans 1.8x to 4.6x. At
+1,260 cases the two orderings coincide (0.94, the seed ceiling) and the
+ratio collapses to 0.92–1.18. On DrivAerML the orderings coincide at every
+size (0.86–0.89) and GeoTransolver's edge is a near-constant factor. The
+small-data advantage on high-lift geometries is therefore not "the same
+difficulty, scaled": it is a GeoTransolver failure pattern idiosyncratic to
+cases, which disappears with data, and which @sec-de-strata shows is not
+concentrated in any angle or geometry class.
+
 A third seed at 35 cases gives ISLA 0.138, GeoTransolver 0.359 and Transolver
 0.409. ISLA's third seed falls inside its two-seed range (0.135–0.141);
 GeoTransolver's falls below its range (0.375–0.409) and Transolver's just

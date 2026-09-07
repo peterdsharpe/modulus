@@ -1,0 +1,46 @@
+{
+ "35": {
+  "n": 180,
+  "rho_isla_vs_gt": 0.569,
+  "rho_gt_self": 0.941,
+  "rho_isla_self": 0.973,
+  "ratio_gt_over_isla_p10_p50_p90": [
+   1.81,
+   3.13,
+   4.61
+  ]
+ },
+ "210": {
+  "n": 180,
+  "rho_isla_vs_gt": 0.64,
+  "rho_gt_self": 0.884,
+  "rho_isla_self": 0.962,
+  "ratio_gt_over_isla_p10_p50_p90": [
+   1.67,
+   3.08,
+   3.94
+  ]
+ },
+ "1260": {
+  "n": 180,
+  "rho_isla_vs_gt": 0.938,
+  "rho_gt_self": 0.937,
+  "rho_isla_self": 0.948,
+  "ratio_gt_over_isla_p10_p50_p90": [
+   0.92,
+   1.06,
+   1.18
+  ]
+ },
+ "single12": {
+  "n": 18,
+  "rho_isla_vs_gt": 0.633,
+  "rho_gt_self": 0.917,
+  "rho_isla_self": 0.959,
+  "ratio_gt_over_isla_p10_p50_p90": [
+   4.27,
+   4.97,
+   5.97
+  ]
+ }
+}
