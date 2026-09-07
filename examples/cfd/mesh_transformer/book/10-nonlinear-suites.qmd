@@ -109,6 +109,36 @@ SEQ_PURPLE = LinearSegmentedColormap.from_list(
     "book_seq_purple", ["#f0efec", PURPLE])
 
 RESULTS = Path("..") / "results"
+
+
+def direct_labels(ax, items, x_text, min_gap, log_y=True, fontsize=7.5):
+    """Label line ends directly instead of with a legend.
+
+    items: (x_end, y_end, text, color) for each line. Every label sits in
+    one column at data x = x_text; labels are pushed apart vertically (in
+    log10 units if log_y) so they do not overlap, and a thin leader joins
+    each label to its line end.
+    """
+    items = sorted(items, key=lambda t: t[1])
+    ys = [math.log10(y) if log_y else y for _, y, _, _ in items]
+    for i in range(1, len(ys)):
+        if ys[i] - ys[i - 1] < min_gap:
+            ys[i] = ys[i - 1] + min_gap
+    # keep the stack inside the axes: cap at the top, then push down
+    lo, hi = ax.get_ylim()
+    top = (math.log10(hi) if log_y else hi) - 0.6 * min_gap
+    if ys[-1] > top:
+        ys[-1] = top
+        for i in range(len(ys) - 2, -1, -1):
+            ys[i] = min(ys[i], ys[i + 1] - min_gap)
+    for (x, y0, text, color), y in zip(items, ys):
+        ax.annotate(text, (x, y0), xytext=(x_text, 10 ** y if log_y else y),
+                    textcoords="data", fontsize=fontsize, color=color, va="center",
+                    ha="left", annotation_clip=False,
+                    arrowprops=dict(arrowstyle="-", color=color, lw=0.6, alpha=0.6,
+                                    shrinkA=0, shrinkB=2))
+
+
 import warnings
 
 warnings.filterwarnings("ignore")  # the generators import physicsnemo.experimental
@@ -283,38 +313,50 @@ nl_rows = diagnosis["eb_amplitude_cases"][0]["rows"]
 q2_rows = fix["results"]["euler_bernoulli"]["per_seed"][0]["amplitude_probe_cases"][0]["rows"]
 alphas = [r["alpha"] for r in nl_rows]
 ax = axes[0]
-ax.loglog(alphas, [r["velocity_exact_rms"] for r in nl_rows], "--", color=INK, lw=2.0,
-          label="exact (degree 1)", zorder=4)
-ax.loglog(alphas, [r["velocity_rms"] for r in nl_rows], "o-", ms=3.5, color=PURPLE_LIGHT,
-          lw=1.2, label="MT1, nonlinear read-in (slope 21.3 off-range)")
-ax.loglog([r["alpha"] for r in q2_rows], [r["velocity_rms"] for r in q2_rows], "s-", ms=3.5,
-          color=PURPLE_DARK, lw=1.2, label="MT1, declared degree 2")
+exact_rms = [r["velocity_exact_rms"] for r in nl_rows]
+nl_rms = [r["velocity_rms"] for r in nl_rows]
+q2_alphas, q2_rms = [r["alpha"] for r in q2_rows], [r["velocity_rms"] for r in q2_rows]
+ax.loglog(alphas, exact_rms, "--", color=INK, lw=2.0, zorder=4)
+ax.loglog(alphas, nl_rms, "o-", ms=3.5, color=PURPLE_LIGHT, lw=1.2)
+ax.loglog(q2_alphas, q2_rms, "s-", ms=3.5, color=PURPLE_DARK, lw=1.2)
 ax.axvspan(2.0, 4.0, color=GRID, alpha=0.5, zorder=0)
 ax.text(2.8, 2e-2, "extrapolated\nband", fontsize=7.5, ha="center", color=INK2)
+direct_labels(ax, [
+    (alphas[-1], nl_rms[-1], "MT1, nonlinear read-in\n(slope 21.3 off-range)", PURPLE_LIGHT),
+    (q2_alphas[-1], q2_rms[-1], "MT1, declared degree 2", PURPLE_DARK),
+    (alphas[-1], exact_rms[-1], "exact (degree 1)", INK),
+], x_text=alphas[-1] * 1.12, min_gap=0.55)
+ax.set_xlim(right=alphas[-1] * 3.4)
 ax.set_xlabel(r"drive scale $\alpha$ [-]")
 ax.set_ylabel("velocity RMS response [-]")
 ax.set_title("Euler–Bernoulli: the degree probe", fontsize=9)
-ax.legend(fontsize=7.5, loc="upper left")
 
 nl_sweep = diagnosis["er_amplification_sweep"]
 q2_sweeps = [entry["amplification_sweep"] for entry in fix["results"]["euler_rotational"]["per_seed"]]
 couplings = [e["coupling"] for e in nl_sweep]
 q2_matrix = np.array([[e["mean_combined"] for e in sweep] for sweep in q2_sweeps])
 ax = axes[1]
-ax.semilogy(couplings, [e["mean_combined"] for e in nl_sweep], "o-", ms=3.5, color=PURPLE_LIGHT,
-            lw=1.2, label="MT1, nonlinear read-in (one seed)")
-ax.semilogy(couplings, q2_matrix.mean(axis=0), "s-", ms=3.5, color=PURPLE_DARK, lw=1.2,
-            label="MT1, declared degree 2 (3-seed mean)")
+nl_combined = [e["mean_combined"] for e in nl_sweep]
+q2_mean_curve = q2_matrix.mean(axis=0)
+ax.semilogy(couplings, nl_combined, "o-", ms=3.5, color=PURPLE_LIGHT, lw=1.2)
+ax.semilogy(couplings, q2_mean_curve, "s-", ms=3.5, color=PURPLE_DARK, lw=1.2)
 ax.fill_between(couplings, q2_matrix.min(axis=0), q2_matrix.max(axis=0), color=PURPLE_DARK,
                 alpha=0.2, lw=0)
 ax.axhline(1.0, color=INK, lw=1.0, ls="--")
-ax.text(1.02, 1.25, "acceptance bar (1.0)", fontsize=7.5, color=INK)
+ax.text(1.02, 1.3, "acceptance bar (1.0)", fontsize=7.5, color=INK, va="bottom")
 ax.axvline(2.4048, color=INK2, lw=1.0, ls=":")
 ax.text(2.39, 3e-2, r"$j_{0,1}$", fontsize=8, ha="right", color=INK2)
+direct_labels(ax, [
+    (couplings[-1], nl_combined[-1], "MT1, nonlinear read-in\n(one seed)", PURPLE_LIGHT),
+], x_text=2.5, min_gap=1.2)
+ax.annotate("MT1, declared degree 2\n(3-seed mean, band = range)", (couplings[-1], q2_mean_curve[-1]),
+            xytext=(2.5, 0.3), textcoords="data", fontsize=7.5, color=PURPLE_DARK, va="top",
+            ha="left", arrowprops=dict(arrowstyle="-", color=PURPLE_DARK, lw=0.6, alpha=0.6,
+                                       shrinkA=0, shrinkB=2))
+ax.set_xlim(right=3.45)
 ax.set_xlabel(r"vorticity coupling $\tilde c$ [-]")
 ax.set_ylabel("combined relative $L^2$ [-] (log)")
 ax.set_title("rotational Euler: error vs operator parameter", fontsize=9)
-ax.legend(fontsize=7.5, loc="upper left")
 fig.tight_layout()
 plt.show()
 ```
@@ -360,10 +402,13 @@ labels, so every wall in them is a theorem the tables confirm.
 
 ### Potential flow {#sec-ds-potential-flow}
 
-**Given the same inputs as a trace-informed control, MT1 solves the
-exterior problem with circulation to relative error 0.013; given only the
-raw drive, it is at no-response on a streamfunction target, by a parity
-argument, and the fix is a typed channel, not capacity.** Smooth
+**Given the same inputs as a trace-informed control, MT1 (about 105k
+parameters) solves the exterior problem with circulation to relative
+error 0.013 where the 19,008-parameter pair-kernel control, which
+receives the same exact boundary trace as per-cell input, reaches 0.178;
+given only the raw drive, MT1 is at no-response on a streamfunction
+target, by a parity argument, and the fix is a typed channel, not
+capacity.** Smooth
 two-dimensional bodies (conformal images of the unit circle, restricted to
 orientation-preserving placements) sit in a uniform stream $U_\infty$
 with prescribed circulation $\Gamma$. The exact flow is classical
@@ -428,10 +473,12 @@ plt.show()
 ```
 
 The control semantics matter more here than anywhere else in the book.
-The *pair-kernel control* is a learned two-point kernel that receives the
-exact disturbance trace as per-cell boundary data; it is *trace-informed*.
-The raw-drive MT1 arms receive only the body outline, $U_\infty$ and
-$\Gamma$, and must reconstruct the trace themselves. A trace-driven arm
+The *pair-kernel control* is a learned two-point kernel of 19,008
+parameters that receives the exact disturbance trace as per-cell boundary
+data; it is *trace-informed*. The raw-drive MT1 arms (about 105k–113k
+parameters, depending on the dictionary) receive only the body outline,
+$U_\infty$ and $\Gamma$, and must reconstruct the trace themselves. A
+trace-driven arm
 therefore holds strictly more information than a raw-drive arm, and the
 two must never be compared as equals: the trace-informed row is a
 reference for what the *data* supports, not a competitor. The table
@@ -501,17 +548,22 @@ lines.append(row("pair-kernel control, trace-informed (from @tbl-potential-flow)
                  it21["potential_flow_pair_kernel"]))
 lines.append(": The representable reformulations, same protocol as "
              "@tbl-potential-flow. Rows 1–2 and the control share the same inputs "
-             "and may be compared; rows 3–5 receive less information than any of "
+             "and may be compared (MT1 about 105k–111k parameters against the "
+             "control's 19,008; the archive records no memory figures for these "
+             "runs); rows 3–5 receive less information than any of "
              "them. \"Full dictionary\" adds learned smooth members to the two "
              "exact kernels. Data: results/learned_bie_2026-07-02.json, key "
              "`iteration_22_representable_reformulations`. {#tbl-potential-flow-resolved}")
 print("\n".join(lines))
 ```
 
-Three facts follow. Given identical data, MT1 reaches 0.013
-in-distribution and 0.020 on circulation-OOD against the control's
-0.178, so the encode-and-solve path handles the exterior problem with
-circulation; the wall was target type alone. The velocity arms fit
+Three facts follow. Given identical data, the trace-driven MT1 arm
+(about 105k parameters) reaches 0.013 in-distribution and 0.020 on
+circulation-OOD against 0.178 for the 19,008-parameter pair-kernel
+control, both fed the exact boundary trace; the 5.5x parameter gap
+between them is a caveat on the size of the margin, not on its sign, and
+the encode-and-solve path handles the exterior problem with circulation;
+the wall was target type alone. The velocity arms fit
 (0.14 in-distribution) but their circulation-OOD is pinned at
 0.646–0.649 across every arm and seed, a spread too tight for optimization
 noise: the vortex velocity is $\Gamma\,x^{\perp}/(2\pi|x|^2)$, and with
@@ -1116,11 +1168,14 @@ barrier, and the declared-degree mode is an approximation hypothesis.
 Five arms train on the 840-case split for 15 epochs at 3 seeds: MT1 in
 linear mode, nonlinear mode with parity channels, declared degree 2 with
 parity channels, the boundary-mean predictor, and Transolver
-(@sec-transolver) at matched parameter count on the same token contract
+(@sec-transolver) at matched parameter count (103,375 against
+106,408–233,108 for the MT1 arms) on the same token contract
 (coordinates, normals, panel measures, the rank-1 drive, and $\tilde\nu$
-as a constant channel). All MT1 arms use the one-head configuration and
-the two exact members. Cells are the combined velocity-and-pressure
-relative $L^2$ error, mean ± sd over seeds.
+as a constant channel). Transolver receives the same 15-epoch budget on
+the same 840 cases, a budget that may undertrain it, so its gap to the
+MT1 arms is an upper bound on the converged gap. All MT1 arms use the
+one-head configuration and the two exact members. Cells are the combined
+velocity-and-pressure relative $L^2$ error, mean ± sd over seeds.
 
 ```{python}
 #| label: tbl-ns-arms
@@ -1151,8 +1206,9 @@ print(": Navier–Stokes cavity, combined relative $L^2$ error, mean ± sd over 
       f"seeds, 15 epochs on the {n_train}-case train split, 140 cases per "
       "evaluation split. Per-field and near-wall values are in the artifact; "
       "@fig-ns-wall shows the per-field Reynolds dependence. The Transolver row "
-      "is its first measurement on a solver-labelled nonlinear suite at this "
-      "budget, which may undertrain it; no ordering was preregistered for it. "
+      "is trained for the same 15 epochs on the same 840 cases as the MT1 arms, "
+      "a budget that may undertrain it, so its gap to the MT1 arms is an upper "
+      "bound on the converged gap; no ordering was preregistered for it. "
       "Data: results/ns_cavity_star_2026-07-05.json. {#tbl-ns-arms}")
 ```
 
@@ -1176,20 +1232,25 @@ style = {
     "mt_singpair_q2_pseudo": (PURPLE_DARK, "s-", "MT1, declared degree 2 + parity"),
     "transolver_intree_matched": (TRANSOLVER, "d-", "Transolver"),
 }
-fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.8), sharex=True)
+fig, axes = plt.subplots(1, 2, figsize=(10.4, 3.8), sharex=True)
 for ax, field in zip(axes, ("velocity", "pressure")):
+    ends = []
     for arm, (color, marker, label) in style.items():
         entry = wall[arm]
-        ax.loglog(entry["bin_centers"], entry[field], marker, ms=4, lw=1.3, color=color, label=label)
+        ax.loglog(entry["bin_centers"], entry[field], marker, ms=4, lw=1.3, color=color)
+        ends.append((entry["bin_centers"][-1], entry[field][-1], label, color))
     floor = wall["boundary_mean"]
-    ax.loglog(floor["bin_centers"], floor[field], ":", lw=1.2, color=INK, label="boundary-mean floor")
+    ax.loglog(floor["bin_centers"], floor[field], ":", lw=1.2, color=INK)
+    ends.append((floor["bin_centers"][-1], floor[field][-1], "boundary-mean floor", INK))
+    x_end = floor["bin_centers"][-1]
+    ax.set_ylim(top=ax.get_ylim()[1] * 1.6)  # headroom for the label stack
+    direct_labels(ax, ends, x_text=x_end * 1.18, min_gap=0.075)
+    ax.set_xlim(right=x_end * 6.0)
     ax.set_xlabel("case Reynolds number [-]")
     ax.set_ylabel(f"{field} relative $L^2$ [-]")
     ax.set_title(field, fontsize=9)
     ax.grid(which="both")
-handles, labels_ = axes[0].get_legend_handles_labels()
-fig.legend(handles, labels_, fontsize=8, loc="lower center", ncols=5, bbox_to_anchor=(0.5, -0.01))
-fig.tight_layout(rect=[0, 0.08, 1, 1])
+fig.tight_layout()
 plt.show()
 ```
 
@@ -1249,33 +1310,38 @@ joined = confound["re_gap_curves"]["joined"]
 seam = 10.0
 gap_arms = (("mt_singpair_linear", PURPLE_LIGHT, "MT1, linear mode (106k)"),
             ("mt_singpair_linear_pseudo", PURPLE_DARK, "MT1, linear mode + parity channels (131k)"))
-fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.8), sharex=True, sharey=True)
+fig, axes = plt.subplots(1, 2, figsize=(10.4, 3.8), sharex=True, sharey=True)
 for ax, field in zip(axes, ("velocity", "pressure")):
     low_edge = min(joined[gap_arms[0][0]]["bin_centers"]) / 1.4
     ax.axvspan(low_edge, 1.0, color="#eceaf4", zorder=0)
     ax.axhline(0.0, color=GRID, lw=1.0, zorder=1)
     ax.axvline(seam, color=BASELINE, lw=1.0, ls="--", zorder=1)
+    ends = []
     for arm, color, label in gap_arms:
         entry = joined[arm]
         centers = np.array(entry["bin_centers"])
         values = np.array(entry[f"{field}_gap"])
         catalog = np.array(entry["catalog"])
-        ax.plot(centers, values, "-", lw=1.3, color=color, label=label, zorder=2)
+        ax.plot(centers, values, "-", lw=1.3, color=color, zorder=2)
         for cat, marker, face in (("v1-lowre", "o", color), ("v1", "s", "white")):
             mask = catalog == cat
             ax.plot(centers[mask], values[mask], marker, ms=5, lw=0, color=color,
                     markerfacecolor=face, markeredgecolor=color, zorder=3)
+        ends.append((centers[-1], values[-1], label, color))
+    direct_labels(ax, ends, x_text=centers[-1] * 1.25, min_gap=0.05, log_y=False)
     ax.set_xscale("log")
-    ax.set_ylim(-0.12, 0.6)
+    ax.set_xlim(right=centers[-1] * 40.0)
+    ax.set_ylim(-0.17, 0.6)
     ax.set_xlabel("case Reynolds number [-]")
     ax.set_title(f"{field} gap to the nonlinear reference", fontsize=9)
     ax.grid(which="both", axis="x")
 axes[0].set_ylabel("arm $-$ nonlinear reference, relative $L^2$ [-]")
-axes[0].text(0.72, -0.108, "near-Stokes\n(drive-linear)", fontsize=7.5, color=INK2, ha="center", va="bottom")
-axes[0].text(90.0, -0.108, "convection-dominated", fontsize=7.5, color=INK2, ha="center", va="bottom")
+axes[0].text(0.75, -0.163, "near-Stokes\n(drive-linear)", fontsize=7.5, color=INK2, ha="center", va="bottom")
+axes[0].text(90.0, -0.163, "convection-dominated", fontsize=7.5, color=INK2, ha="center", va="bottom")
 axes[0].annotate("catalog seam", (seam, 0.34), xytext=(3, 0), textcoords="offset points",
                  fontsize=7, color=INK2, rotation=90, va="bottom")
-axes[0].legend(fontsize=8, loc="upper left")
+axes[0].text(0.5, 0.56, "filled circles: low-Re slice; open squares: production catalog",
+             fontsize=7.5, color=INK2, va="top")
 fig.tight_layout()
 plt.show()
 ```
@@ -1342,7 +1408,7 @@ print(": The near-Stokes slice (Re 0.5–5 train, 5–10 unseen Re): combined "
       "{#tbl-ns-lowre}")
 ```
 
-### The wide-Reynolds sweep {#sec-ns-e1}
+### The wide-Reynolds sweep {#sec-ns-reynolds-sweep}
 
 **Accuracy versus Reynolds number is U-shaped across three decades, the
 label-noise floor sits three orders of magnitude below model error
@@ -1353,7 +1419,10 @@ $\mathrm{Re} \in [1, 10]$, $[10, 100]$ and $[100, 1000]$, each trained
 at 3 seeds under the frozen protocol, alongside the production band
 $[10, 200]$. The table gives the in-distribution combined error (3-seed
 median and range), the error on each band's unseen-Reynolds slice
-directly above it, and the measured label-noise floor.
+directly above it, and the measured label-noise floor. Unlike every
+other table in this chapter, its values have no artifact under
+`results/`: they are transcribed from the training-run logs, and the
+table and figure below carry that label.
 
 | training band, Re | in-distribution (3-seed) | unseen Re | label-noise floor |
 |---|---|---|---|
@@ -1363,10 +1432,11 @@ directly above it, and the measured label-noise floor.
 | [100, 1000] | 0.348 (0.320–0.401) | 0.369 | 0.00038 |
 
 : The Reynolds bands (catalogs `v2-re1`, `v2-re10`, `v1`, `v2-re100`
-under `datasets/ns_cavity_star/`). The unseen-Re penalties are not
-comparable across bands, because each band's unseen slice sits at a
-different relative distance from its training range. Values transcribed
-from the cluster run reports; see @sec-nb-e1-curve. {#tbl-ns-reynolds-bands}
+under `datasets/ns_cavity_star/`), nonlinear-with-parity MT1 arm, 15
+epochs, 3 seeds. The unseen-Re penalties are not comparable across
+bands, because each band's unseen slice sits at a different relative
+distance from its training range. Not reproducible from `results/`;
+transcribed from run logs (@sec-nb-e1-curve). {#tbl-ns-reynolds-bands}
 
 ```{python}
 #| label: fig-ns-reynolds-sweep
@@ -1383,7 +1453,8 @@ from the cluster run reports; see @sec-nb-e1-curve. {#tbl-ns-reynolds-bands}
 #|   How to read this: the arm and protocol were fixed on the production
 #|   band in the middle of the sweep, so the U cannot be separated from
 #|   fixed-protocol regime sensitivity without per-band retuning, which
-#|   was not done. Values as in @tbl-ns-reynolds-bands.
+#|   was not done. Not reproducible from results/; values and the solver
+#|   ceiling transcribed from run logs, as in @tbl-ns-reynolds-bands.
 #| code-fold: true
 bands = [
     ("[1, 10]", (1, 10), 0.312, 0.275, 0.349, 0.344, 0.00020),
@@ -1407,17 +1478,22 @@ for (label, (lo, hi), med, *_), center in zip(bands, centers):
     ax.plot([lo, hi], [med, med], color=PURPLE, lw=1.0, alpha=0.45, solid_capstyle="butt", zorder=2)
 ax.plot(centers, median, "-", color=PURPLE, lw=1.8, alpha=0.6, zorder=3)
 ax.errorbar(centers, median, yerr=[lo_err, hi_err], fmt="o", ms=8, color=PURPLE, ecolor=PURPLE,
-            elinewidth=1.4, capsize=4, mec="white", mew=1.2, zorder=4, label="in-band evaluation (3 seeds)")
-ax.plot(centers, unseen, "s", ms=6.5, mfc="none", mec=INK2, mew=1.6, zorder=4, label="unseen-Re slice")
+            elinewidth=1.4, capsize=4, mec="white", mew=1.2, zorder=4)
+ax.plot(centers, unseen, "s", ms=6.5, mfc="none", mec=INK2, mew=1.6, zorder=4)
 label_offsets = {"[1, 10]": (40, 8), "[10, 200]": (16, -15), "[10, 100]": (-44, 14),
                  "[100, 1000]": (58, -14)}
 for (label, *_), center, med in zip(bands, centers, median):
     dx, dy = label_offsets[label]
     ax.annotate(f"Re {label}", (center, med), textcoords="offset points", xytext=(dx, dy),
                 ha="center", fontsize=8, color=INK2)
+ax.annotate("unseen-Re slice\n(open squares)", (centers[0], unseen[0]), textcoords="offset points",
+            xytext=(-6, 26), ha="center", fontsize=8, color=INK2,
+            arrowprops=dict(arrowstyle="-", color=INK2, lw=0.7))
+ax.annotate("in-band evaluation: 3-seed median and range", (centers[0], median[0] - lo_err[0]),
+            textcoords="offset points", xytext=(62, -22), ha="center", fontsize=8, color=PURPLE,
+            arrowprops=dict(arrowstyle="-", color=PURPLE, lw=0.7))
 ax.set_ylim(0.20, 0.45)
 ax.set_ylabel("combined relative $L^2$ [-]")
-ax.legend(fontsize=8, loc="lower center", ncols=2, bbox_to_anchor=(0.5, 1.01))
 ax_floor.plot(centers, floor_vals, "-o", color=MUTED, lw=1.5, ms=5, zorder=3)
 ax_floor.set_ylim(1.2e-4, 9e-4)
 ax_floor.set_yscale("log")
@@ -1436,7 +1512,7 @@ middle of the sweep, so the U may measure fixed-protocol regime
 sensitivity rather than intrinsic difficulty, and the two are not
 separable without per-band retuning, which the program's rule against
 protocol tuning reserves for an experiment about the protocol itself.
-The floor measurement retires a different question: labels are not what
+The floor measurement settles a different question: labels are not what
 limits this suite anywhere in the sweep.
 
 The sweep stops for a physical reason. Generating a $[1000, 10000]$ band
@@ -1444,7 +1520,8 @@ reached 450 cases before an unseen-split case drawing
 $\mathrm{Re} \in [4166, 4667]$ stalled the Newton solve on all eight
 retry attempts, while every case at $\mathrm{Re} \le 4000$ solved
 cleanly; bracket probes place the onset of stalls near
-$\mathrm{Re} \approx 4200$, thickening toward 5000
+$\mathrm{Re} \approx 4200$, thickening toward 5000. These counts come
+from the generator's logs, not from a `results/` artifact
 (@sec-nb-re-ceiling-final). Steady cavity solutions stop being
 practically computable there, and that is a measured limit of the
 benchmark rather than of any model.
@@ -1459,9 +1536,11 @@ here is crossed by changing what the decoder is permitted to read
 (drive invariants, a bilinear composition, a parity sector) at a
 parameter change of at most a few percent, and none is crossed by width
 or depth. Where the target is representable and the inputs are the same,
-the encoder does its job well: the trace-driven MT1 reaches 0.013 on the
-exterior problem against the trace-informed control's 0.178, and the
-linear mode is the best velocity model on rotational Euler. The
+the encoder does its job well: the trace-driven MT1 (about 105k
+parameters) reaches 0.013 on the exterior problem against 0.178 for the
+19,008-parameter trace-informed pair-kernel control given the same
+boundary trace, and the linear mode is the best velocity model on
+rotational Euler. The
 one-head configuration and the two exact kernel members (@sec-mt1) are
 used unchanged on all five suites; the one dictionary lesson that
 changes with nonlinearity is that a nonlinear read-in needs learned

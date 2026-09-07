@@ -12,8 +12,9 @@ smallest at the wall and grows with distance from it: the missing
 ingredient is volumetric context, not local detail. Two attempts to
 supply it without breaking the contract fail: off-surface latent tokens
 along anchor normals make MT2 worse, and the exact double-layer kernel of
-the original architecture is 8x behind because potential flow is the
-wrong prior for a separated wake.
+the original architecture is 8x behind (a comparison that is not
+resource-matched: its parameter count on this task was not recorded)
+because potential flow is the wrong prior for a separated wake.
 
 ## The task {#sec-interior-task}
 
@@ -47,19 +48,34 @@ p_∞ = 0, velocity as U/|U_∞| with the freestream mean included, Frobenius
 norm over the three components. The number reported for an arm is the
 arithmetic mean of ε over the 48 validation cars; where a table cell is a
 ratio, the numerator is the named arm and the denominator is
-GeoTransolver on the same 48 cars. Velocity's denominator includes the
+GeoTransolver on the same 48 cars, so a ratio above 1 means the arm is
+less accurate than GeoTransolver. This is the reverse of the convention
+in the rest of the book, where ratios are baseline ÷ MT2 and a value
+above 1 favours MT2; it is used here because GeoTransolver is the most
+accurate arm on this task. Velocity's denominator includes the
 freestream and is never small; pressure is a gauge quantity whose
 denominator can be tiny far from the body (@sec-interior-distance).
 
 **Protocol.** 500 epochs, learning rate 1e-3 for every arm (no per-arm
-tuning on this task), bf16, no augmentation, two seeds (42 and 43). MT2
-has 11.0M parameters in the passive-decode configuration this task
-requires (8.9M in the surface configuration, @sec-mt2) and GeoTransolver
-9.0M (@sec-baselines); all arms train in 4–9 GB of memory at roughly
-0.35 s per step. GeoTransolver processes the 10,000 interior
-points as additional tokens, so it interacts over 20,000 tokens per case
-where MT2 interacts over 10,000; that difference is the design choice
-under test, not a confound to remove.
+tuning on this task), bf16, no augmentation, two seeds (42 and 43).
+
+**Resources.** The arms are not resource-matched. Parameter counts:
+GeoTransolver-volume 9.0M (@sec-baselines); MT2 11.0M in the
+passive-decode configuration this task requires (8.9M in the surface
+configuration, @sec-mt2), and the latent-volume-token arm adds a
+latent-token assignment layer, an embedding and one measure weight on
+top of that, whose count was not recorded; the exact-kernel
+MeshTransformer's parameter count on this task was not recorded. Peak
+training memory was recorded only as a range across the arms, 4–9 GB at
+roughly 0.35 s per step, not per arm, so no row of @tbl-interior can be
+attributed a memory figure. The MT2 arms were trained with the
+project-then-pool implementation (9.8 GB as trained on the 10,000-token
+surface task; 3.6 GB with the exact pool-then-project rewrite,
+@sec-mt2), which computes the same function and cannot buy accuracy.
+GeoTransolver processes the 10,000 interior points as additional
+tokens, so it interacts over 20,000 tokens per case where MT2 interacts
+over 10,000; that difference is the design choice under test, not a
+confound to remove.
 
 ### Query independence as a first-class property {#sec-interior-query-independence}
 
@@ -85,8 +101,13 @@ and from other interior tokens before it is decoded. Nothing about the
 architecture changes between the surface task and this one.
 
 *MT2.* The passive decoder builds every query-side invariant from the
-query position q (relative to the centroid, in gauge units), the
-freestream direction d, and a unit normal n̂ at the query:
+query position q, the freestream direction d, and a unit normal n̂ at
+the query. Lengths need two conventions kept apart. The recipe stores
+coordinates nondimensionalized by the dataset's per-case reference
+length L_ref, which is 5 m for every DrivAerML car; MT2 then measures q
+from the centroid in *gauge units*, dividing by its constant gauge of
+8.0 in those nondimensional units (40 m physical on DrivAerML). The
+invariants are
 {|q|, log|q|, q̂·d, q̂·n̂, n̂·d}. Surface points have normals; interior
 points do not, so a normal has to be constructed. Two constructions are
 measured.
@@ -102,7 +123,8 @@ $$
 a_s(q) = \operatorname{softmax}_s\!\big(-|q - z_s|^2 / \rho^2\big),
 $$
 
-with ρ = 0.25 gauge units. It is exactly SE(3)-covariant, smooth,
+with ρ = 0.25 gauge units (2.0 nondimensional units, 10 m on
+DrivAerML). It is exactly SE(3)-covariant, smooth,
 defined everywhere and parameter-free; every read block and the vector
 head run unchanged.
 
@@ -115,10 +137,10 @@ proxy does not.
 
 *The exact-kernel MeshTransformer (MT1).* The original architecture
 (@sec-mt1, @sec-kernel-decoder) decodes at interior points natively: its
-decoder evaluates exact singular kernels — the double-layer Laplace
-kernel and screened members — from the boundary sample with learned
-densities, so an interior prediction is a boundary integral at the
-query. It is the surface configuration used elsewhere in this book with
+decoder evaluates two exact singular Laplace kernels — the double-layer
+member and the single-layer member — from the boundary sample with
+learned densities, so an interior prediction is a boundary integral at
+the query. It is the surface configuration used elsewhere in this book with
 the trace terms removed; its parameter count on this task is not
 recorded.
 
@@ -130,18 +152,22 @@ gives the arithmetic-mean relative L2 over the 48 validation cars for
 each arm, both seeds, and the ratio to GeoTransolver; @fig-interior-arms
 draws the pressure column.
 
-| arm | pressure (seed 42 / 43) | velocity | ν_t | pressure ratio to GeoTransolver |
-|---|---|---|---|---|
-| GeoTransolver, queries as interacting tokens | 0.062 (0.0622 / 0.0618) | 0.133 | 0.094 | 1.0 |
-| MT2, passive decode, SDF-gradient normal | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
-| MT2, passive decode, proxy normal | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
-| MT2 + 769 latent volume tokens | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
-| exact-kernel MT1, double-layer decoder | 0.496 (0.499 / 0.492) | 0.549 | 0.727 | 8.0 |
+| arm | parameters | pressure (seed 42 / 43) | velocity | ν_t | pressure ratio, arm ÷ GeoTransolver |
+|---|---|---|---|---|---|
+| GeoTransolver, queries as interacting tokens | 9.0M | 0.062 (0.0622 / 0.0618) | 0.133 | 0.094 | 1.0 |
+| MT2, passive decode, SDF-gradient normal | 11.0M | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
+| MT2, passive decode, proxy normal | 11.0M | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
+| MT2 + 769 latent volume tokens | 11.0M + latent-token layers (not recorded) | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
+| exact-kernel MT1, double-layer decoder | not recorded | 0.496 (0.499 / 0.492) | 0.549 | 0.727 | 8.0 |
 
 : Interior relative L2 error on the 48 DrivAerML validation cars
 (arithmetic mean over cars, then over two seeds; per-seed pressure in
 parentheses), 10,000 surface tokens and 10,000 interior queries per car,
-500 epochs, learning rate 1e-3. Ratio = arm ÷ GeoTransolver. Seed
+500 epochs, learning rate 1e-3. Ratio = arm ÷ GeoTransolver, so a value
+above 1 means less accurate than GeoTransolver; this is the reverse of
+the book's usual baseline ÷ MT2 convention. The arms are not
+resource-matched: parameter counts as listed, and peak training memory
+recorded only as a 4–9 GB range across arms, not per arm. Seed
 spreads are 1–8% of the means, so every ratio is resolved. Sources:
 `results/a35_v0_reduction_2026-09-05.json` (first, second, third and
 fifth rows) and `results/v0_lvt_reduction_2026-09-07.json` (the
@@ -154,11 +180,12 @@ latent-volume-token row). {#tbl-interior}
 #|   cars. Bars are the two-seed mean of the per-car arithmetic-mean relative
 #|   L2 error; the two dots on each bar are the individual seeds (filled =
 #|   seed 42, open = seed 43, same x). Labels above the bars give the ratio to
-#|   GeoTransolver. How to read this: it shows the pressure column of the
+#|   GeoTransolver (arm ÷ GeoTransolver; above 1 means less accurate than
+#|   GeoTransolver). How to read this: it shows the pressure column of the
 #|   table only; velocity and eddy viscosity rank the arms identically but
-#|   are not drawn. The latent-volume-token bar uses the values in the
-#|   notebook record (@sec-nb-lvt-verdict); the other four come from
-#|   results/a35_v0_reduction_2026-09-05.json.
+#|   are not drawn. Data: results/a35_v0_reduction_2026-09-05.json (four
+#|   arms) and results/v0_lvt_reduction_2026-09-07.json (the
+#|   latent-volume-token bar).
 #| code-fold: true
 import json, statistics
 from pathlib import Path
@@ -227,9 +254,13 @@ interaction from every other difference between the two models.
 the signature of missing volumetric context rather than missing local
 detail.** The interior sample is stratified by the unsigned distance from
 each query to the full-resolution vehicle surface (the SDF magnitude),
-into three bands fixed before the models were evaluated: *near* is less
-than 2 m from the surface, *mid* 2–20 m, *far* beyond 20 m (0.4 and 4.0
-units of the recipe's 5 m reference length). The sampler's near-wall
+into three bands fixed before the models were evaluated. The thresholds
+are 0.4 and 4.0 in the recipe's nondimensional coordinates, which
+DrivAerML's per-case reference length L_ref = 5 m (read from the
+artifact by the figure code) converts to metres: *near* is less than 2 m
+from the surface, *mid* 2–20 m, *far* beyond 20 m. In MT2's gauge units
+(the constant gauge 8.0, 40 m physical) the same thresholds are 0.05 and
+0.5. The sampler's near-wall
 bias makes the bands very unequal — 97.8% of points near, 2.0% mid,
 0.12% far, so the far band holds 4–25 points per car. Within each band
 the per-car relative L2 is computed over the band's points only and

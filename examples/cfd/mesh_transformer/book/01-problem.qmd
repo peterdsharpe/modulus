@@ -18,7 +18,10 @@ problem needs: a unit freestream direction $\hat d$, and dimensionless
 scalars such as a Reynolds number or a screening constant. The output is
 the steady field this data induces — pressure and wall shear on the
 boundary itself, and pressure, velocity or other fields at arbitrary
-interior points. The interior query points carry no data; they are bare
+interior points. Throughout this book *interior* means the fluid domain
+that the surface bounds — for a body in a stream, the region outside the
+body — as distinct from the surface itself; it never means the inside of
+a solid. The interior query points carry no data; they are bare
 coordinates at which the field is requested. There is no volume mesh, no
 initial state, and nothing to advance in time.
 
@@ -30,8 +33,9 @@ initial state, and nothing to advance in time.
 #|   closed form). Left, the input: boundary cells with outward normals
 #|   (gray) and measures, plus one global condition, the unit freestream
 #|   direction. Right, the output: the surface pressure coefficient along
-#|   the boundary and the interior pressure field at bare query points
-#|   (black dots). How to read this: the figure shows what enters and
+#|   the boundary and the interior pressure field — the fluid domain
+#|   outside the airfoil — at bare query points (black dots). How to read
+#|   this: the figure shows what enters and
 #|   what is scored; it does not show any model's prediction, and the
 #|   industrial datasets are three-dimensional, turbulent and separated,
 #|   where no closed form exists.
@@ -209,7 +213,8 @@ Four are measured on the industrial datasets:
 - **Unseen geometry**: validation geometries that never appear in training
   at any condition, as opposed to geometries seen at other conditions.
 - **Cross-family transfer**: zero-shot evaluation on a vehicle family
-  different from the training family (@sec-industrial-mt1).
+  different from the training family — SHIFT-SUV, @sec-shift-suv
+  (@sec-industrial-mt1, @sec-full-data).
 
 On the synthetic suites three further axes are held out one at a time:
 boundary-data frequency content (drive modes never seen in training), PDE
@@ -221,7 +226,7 @@ never combined into one score.
 ## Datasets {#sec-datasets}
 
 Two kinds of data appear: synthetic suites with exact or certified labels,
-built so that a wrong structural claim fails unambiguously, and three
+built so that a wrong structural claim fails unambiguously, and four
 external CFD datasets that pose the actual engineering problem. Every
 dataset supplies the same input schema — boundary cells with positions,
 outward normals and measures, plus global conditions — so one model
@@ -321,13 +326,31 @@ with time-averaged fields from scale-resolving CFD: surface pressure and
 wall shear on vehicle surfaces of roughly 8.8 million points, plus volume
 fields, all time averages of a turbulent flow. Every comparison in this book
 feeds the models the vehicle surface only — the information diet of every
-published baseline on the dataset. The recipe's split uses 435 cars for
-training and 48 for validation and samples 10,000 surface points per case
-per step. The surface task predicts pressure and wall shear at those points
-(@sec-full-data); the interior task predicts pressure, velocity and
-turbulent viscosity at 10,000 interior query points from the surface alone
-(@sec-interior). The freestream direction is the same for every car: the
-geometry varies, the drive does not.
+published baseline on the dataset. The recipe's manifest assigns 435
+variants to training and 48 to validation; the remaining variant is
+excluded from both splits. Every experiment samples 10,000 surface points
+per case per step. The surface task predicts pressure and wall shear at
+those points (@sec-full-data); the interior task predicts pressure,
+velocity and turbulent viscosity at 10,000 interior query points from the
+surface alone (@sec-interior). The freestream direction is the same for
+every car: the geometry varies, the drive does not.
+
+### SHIFT-SUV {#sec-shift-suv}
+
+SHIFT-SUV is a second external vehicle dataset — sport-utility bodies with
+time-averaged surface pressure and wall shear, the same 5 m reference
+length as DrivAerML and the same freestream direction, at a freestream
+speed of 30 m/s against DrivAerML's 38.9 m/s. Its curated manifest
+separates two rear-end styles, each with its own train / validation / test
+split: the *estate* family (794 / 99 / 100 cases) and the *fastback*
+family (796 / 99 / 99). In this book it is a zero-shot transfer target,
+never a source of in-family accuracy claims: a model trained on DrivAerML
+alone is evaluated on the estate family, and a model trained on DrivAerML
+plus the estate family is evaluated on the fastback family
+(@sec-industrial-mt1, @sec-full-data). The speed difference is a
+covariate shift identical for every architecture, none of which receives
+the Reynolds number, and it is reported alongside the geometry-family
+shift rather than corrected.
 
 ### HiLiftAeroML
 
@@ -406,9 +429,16 @@ fig.tight_layout()
 plt.show()
 ```
 
-**DrivAerML.** One split: 435 training cars, 48 validation cars, fixed
-across every experiment. Sampling-density and pose probes evaluate the same
-48 cars with transformed inputs (@sec-full-data).
+**DrivAerML.** One split: 435 training cars, 48 validation cars, one of
+the 484 variants in neither, fixed across every experiment.
+Sampling-density and pose probes evaluate the same 48 cars with
+transformed inputs (@sec-full-data).
+
+**SHIFT-SUV.** No training split in the single-family comparisons. The
+estate family is the zero-shot target for models trained on DrivAerML
+alone (in full, or on a 20-case subset of its test split where stated);
+the fastback family is the zero-shot target for models trained on
+DrivAerML plus estate (@sec-industrial-mt1, @sec-full-data).
 
 **AirFRANS.** The official scarce (200 / 200) and full (800 / 200) tasks,
 with validation carved from training cases only under a fixed seed, and
@@ -425,15 +455,15 @@ transforms — is its own split.
 Every number in this book is one of a small set of quantities defined
 here: a relative field error, a force-coefficient error, a paired per-case
 statistic, a seed-disagreement statistic, an operator-fidelity residual, or
-an exact contract test. Unless a table says otherwise, a ratio is the named
-baseline's error divided by MeshTransformer2's error on the same cases, so
-a ratio above one favours MeshTransformer2.
+an exact contract test.
 
 ### Field error, forces and paired statistics {#sec-metrics}
 
-**Relative L2 error.** For one case with sampled points $j=1,\dots,N$,
-prediction $\hat f_j$, label $f_j$ and cell measures $w_j$ normalized to
-sum to one, the recipe computes
+**Relative L2 error.** This is the book's single pressure metric; every
+accuracy table and figure uses it unless its caption says otherwise. For
+one case with sampled points $j=1,\dots,N$, prediction $\hat f_j$, label
+$f_j$ and cell measures $w_j$ normalized to sum to one, the recipe
+computes
 
 $$
 \varepsilon=\frac{\sqrt{\sum_j w_j\,\lVert\hat f_j-f_j\rVert^2}}
@@ -445,30 +475,45 @@ wall shear) and the absolute value for scalars. The fields enter as the
 training pipeline presents them — each field shifted and scaled by dataset
 statistics — so the denominator is the norm of the standardized label, not
 of the raw pressure. The reported error is the arithmetic mean of
-$\varepsilon$ over the validation cases; where an artifact uses the
-geometric mean, the table says so. Absolute values are therefore
+$\varepsilon$ over the validation cases. Absolute values are therefore
 comparable only within one dataset and one pipeline; the quantity that
 carries across normalizations is the *ratio* between two models scored on
-the same cases. In the gauge-pressure normalization of
-@fig-metric-calibration, predicting the freestream pressure everywhere
+the same cases. Every cross-architecture ratio in this book is the named
+baseline's error divided by MeshTransformer2's error on the same cases,
+so a ratio above one favours MeshTransformer2; this convention is stated
+here once and not restated per table.
+
+Two diagnostic analyses use a *different* scale and are labelled as such
+wherever they appear: the reference-predictor calibration of
+@fig-metric-calibration and the seed-disagreement analysis of
+@sec-data-efficiency score the relative L2 of the gauge pressure,
+$\lVert\hat p-p\rVert/\lVert p-p_\infty\rVert$, with the geometric mean
+over cases. On that scale predicting the freestream pressure everywhere
 scores exactly 1.00 by construction, the dataset-mean constant 0.94, and
-each case's own mean pressure 0.93; a model has learned something about a
-case only when it beats those.
+each case's own mean pressure 0.93, so a model has learned something about
+a case only when it beats those. Numbers on the two scales are not
+interchangeable: MeshTransformer2 trained on 35 HiLiftAeroML cases reads
+0.25 on the gauge-pressure scale and 0.138 on the recipe metric. Per-case
+ratios between two models coincide on the two scales, because the
+numerators are the same; the case-averaged values do not.
 
 ```{python}
 #| label: fig-metric-calibration
 #| fig-cap: >
 #|   What a relative L2 error means, calibrated on HiLiftAeroML. Pressure
-#|   relative L2 on the 180 shared validation cases, gauge pressure
-#|   p − p_inf, geometric mean over cases, for three parameter-free
-#|   reference predictors (gray) and the three architectures trained on
-#|   35 cases (seed 42). How to read this: the gray bars are the scale of
-#|   the metric — 1.00 is "predict the freestream pressure everywhere"
-#|   and 0.93 is the best any constant per case can do; the coloured bars
-#|   are the same quantity for trained models. It does not show the
-#|   recipe-normalized values used in every later table (where MT2 reads
-#|   0.138 at this rung); only ratios between bars transfer. Data:
-#|   results/hilift_reference_predictors_35_2026-09-06.json.
+#|   relative L2 on the 180 shared validation cases on the gauge-pressure
+#|   scale (p − p_inf, geometric mean over cases; not the recipe metric),
+#|   for three parameter-free reference predictors (gray) and the three
+#|   architectures trained on 35 cases, seed 42 only. One seed suffices
+#|   because this is a calibration of the metric's scale, not a comparison
+#|   between architectures; the two-seed comparison on the recipe metric
+#|   is in @sec-data-efficiency. How to read this: the gray bars are the
+#|   scale of the metric — 1.00 is "predict the freestream pressure
+#|   everywhere" and 0.93 is the best any constant per case can do; the
+#|   coloured bars are the same quantity for trained models. It does not
+#|   show the recipe-metric values used in every later table (where MT2
+#|   reads 0.138 at this rung against 0.25 here); only ratios between bars
+#|   transfer. Data: results/hilift_reference_predictors_35_2026-09-06.json.
 #| code-fold: true
 import json
 from pathlib import Path
@@ -516,12 +561,14 @@ number an aerodynamicist would quote, and one that exposes bias a field
 error can hide.
 
 **Paired per-case statistics.** Because every architecture is scored on
-the same validation cases, each case yields a paired comparison. Pairing
-seed with seed (seed 42 of one model against seed 42 of the other, likewise
-43) gives 360 pairs on the 180-case HiLiftAeroML validation set. Two
-statistics are reported: the fraction of pairs on which one model has the
-lower error, with the exact two-sided binomial sign test on that count, and
-the median and 10th–90th percentile of the per-case error ratio.
+the same 180 HiLiftAeroML validation cases, each case yields one paired
+comparison: the case is scored by each architecture's two-seed mean error,
+giving 180 case-level pairs (seeds are averaged within a case first, never
+counted as separate pairs). Three statistics are reported: the number of
+cases on which MeshTransformer2 has the lower two-seed mean error, with
+the exact two-sided sign test on $n=180$; the stricter count of cases on
+which MeshTransformer2 wins on both seeds individually; and the median and
+10th–90th percentile of the per-case error ratio.
 
 **Seed disagreement as an uncertainty signal.** With two independently
 seeded models of one architecture, the per-case disagreement between them
@@ -633,19 +680,28 @@ of these two forms.
 **One frozen recipe.** Every cross-architecture comparison on the CFD
 datasets uses the same training recipe: 10,000 sampled surface points per
 case per step, 500 epochs, bfloat16 arithmetic, no data augmentation, and
-one learning rate per architecture — $10^{-3}$ for MeshTransformer2 and
-GeoTransolver, $3\times10^{-3}$ for Transolver where stated — chosen for
-each by validation on the full split before any smaller-split experiment
-ran, and never retuned per rung, so a difference between rungs of a ladder
-is a difference in data and nothing else. Every configuration runs at two or more seeds (42 and 43
-unless stated), with the seed range reported next to the mean.
+one learning rate per architecture per dataset, chosen for each by
+validation on that dataset's full split before any smaller-split
+experiment ran and never retuned per rung, so a difference between rungs
+of a ladder is a difference in data and nothing else. The chosen rates:
+MeshTransformer2 $10^{-3}$ on both datasets; GeoTransolver $10^{-3}$ on
+HiLiftAeroML and $3\times10^{-3}$ on DrivAerML; Transolver
+$3\times10^{-3}$ on HiLiftAeroML. Every configuration runs at two or more
+seeds (42 and 43 unless stated), with the seed range reported next to the
+mean.
 
 **Shared validation, sealed test.** All architectures at all rungs of a
 ladder are scored on the same validation cases, which is what makes the
-paired statistics meaningful. A sealed test split is evaluated exactly
+paired statistics meaningful. The checkpoint evaluated is always the
+final-epoch checkpoint: no checkpoint is selected on validation error, and
+the validation set's only role in model selection was the per-architecture
+learning-rate choice on the full split described above. The HiLiftAeroML
+accuracy figures in this book are therefore validation-set figures with no
+checkpoint selection behind them. A sealed test split is evaluated exactly
 once, with the checkpoint and inference configuration declared in writing
-beforehand, and is never used for model selection; checkpoints are selected
-on validation error only.
+beforehand; the HiLiftAeroML test splits were spent only on the
+regime-extrapolation evaluations of @sec-regime-extrapolation, and no
+data-efficiency or full-data experiment touches them.
 
 **Preregistration.** Each experiment is written down before it runs with a
 prediction and a falsifier in its readout units — a relative L2 band, a
@@ -660,7 +716,15 @@ lab notebook (@sec-notebook).
 **Resource matching.** A cross-architecture comparison states the parameter
 count, the tokens per case and the peak training memory of both sides in
 the same sentence. At 10,000 tokens per case MeshTransformer2 has 8.9
-million parameters and trains in 3.6 GB of peak memory; GeoTransolver has
-9.0 million and trains in 4.6 GB; tokens per case and epochs are identical.
-Every figure and table caption ends with the artifact in `results/` from which it is computed,
-and every figure is drawn from that artifact at render time.
+million parameters and GeoTransolver 9.0 million; tokens per case and
+epochs are identical. Peak training memory is stated as two numbers for
+MeshTransformer2, because they differ: every MeshTransformer2 checkpoint
+in this book was trained by an implementation that peaked at 9.8 GB, 2.1x
+GeoTransolver's 4.6 GB; the exact pool-then-project rewrite of the same
+computation — same parameters, same function, float64 maximum difference
+$4\times10^{-15}$ — brings the same model to 3.6 GB. Every memory
+statement in the book carries both figures ("9.8 GB as trained; 3.6 GB
+with the exact pool-then-project rewrite"), and no MeshTransformer2 run
+reported here trained at or below GeoTransolver's 4.6 GB. Every figure and
+table caption ends with the artifact in `results/` from which it is
+computed, and every figure is drawn from that artifact at render time.

@@ -22,8 +22,10 @@ boundary-condition frequency content on linear problems where soft-slice
 and moment decoders do not, and it extrapolates amplitude exactly under a
 declared linearity contract. It also stops where its prior stops: the
 potential-flow structure it encodes is not a usable prior for separated 3D
-aerodynamics, and on the DrivAerML interior it is 8x behind GeoTransolver
-(@sec-industrial-mt1, @sec-interior). MeshTransformer2 (@sec-mt2) is the
+aerodynamics, and on the DrivAerML interior task it is 8x behind
+GeoTransolver-volume, a comparison that is not resource-matched:
+GeoTransolver-volume has 9.0M parameters and MT1's parameter count on that
+task was not recorded (@sec-industrial-mt1, @sec-interior). MeshTransformer2 (@sec-mt2) is the
 architecture that keeps MT1's equivariance and drops its kernel dictionary;
 the last section of this chapter states the relation.
 
@@ -72,8 +74,9 @@ output projection.
 ```{python}
 #| label: fig-mt1-forward
 #| fig-cap: >
-#|   The MT1 forward pass. Grey boxes are data, purple boxes are computation,
-#|   the green box is the output. Encode (left of the cache) runs once per
+#|   The MT1 forward pass. Grey boxes are data (the input mesh, the query
+#|   points, the cached encoding, and the output prediction); purple boxes
+#|   are computation. Encode (left of the cache) runs once per
 #|   boundary in time linear in the number of cells; decode runs per query
 #|   batch at a cost proportional to (queries x cells) and never lets query
 #|   points interact. How to read this: the diagram shows information flow,
@@ -99,8 +102,8 @@ fig, ax = plt.subplots(figsize=(11.0, 4.8))
 ax.set_xlim(0, 14); ax.set_ylim(0, 6.4); ax.axis("off")
 
 def box(x, y, w, h, text, kind):
-    face = {"data": "#f0efec", "stage": "#f1eaf8", "out": "#e6f4ea"}[kind]
-    edge = {"data": BASELINE, "stage": PURPLE, "out": "#2a6a2a"}[kind]
+    face = {"data": "#f0efec", "stage": "#f1eaf8"}[kind]
+    edge = {"data": BASELINE, "stage": PURPLE}[kind]
     ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.12",
                                 fc=face, ec=edge, lw=1.6))
     ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=8.2, color=INK)
@@ -130,7 +133,7 @@ arrow(xc, Y, xc, 3.0)
 # decode row
 box(0.15, 0.35, W, H, "query points\n(any set, any order)", "data")
 box(4.0, 0.35, 5.2, H, "kernel decode, per query\nexact double- + single-layer panel integrals\nx operator-conditioned coefficients", "stage")
-box(10.2, 0.35, 3.6, H, "typed prediction at queries\nscalars, polar vectors", "out")
+box(10.2, 0.35, 3.6, H, "typed prediction at queries\nscalars, polar vectors", "data")
 arrow(0.15 + W, 0.35 + H / 2, 4.0, 0.35 + H / 2)
 arrow(9.2, 0.35 + H / 2, 10.2, 0.35 + H / 2)
 arrow(xc, 2.05, xc, 1.75); ax.plot([6.6, xc], [1.75, 1.75], color=INK2, lw=1.3)
@@ -432,9 +435,14 @@ so no absolute position or orientation enters. The two linearity classes
 are separate Python classes (`LinearKernelBasisCrossDecoder`,
 `NonlinearZeroKernelBasisCrossDecoder`), so a bias added to one cannot
 silently invalidate the other's proof. On the frozen 2D Laplace reference
-bank the kernel decoder cuts the moment decoder's in-distribution error
-by 11.3x (0.4503 to 0.0399, relative L2 as defined in @sec-metrics,
-3-seed means).
+bank (relative L2, 3-seed means, 3,000 updates) the kernel decoder with
+its full dictionary of singular, polynomial, and eight MLP members
+(110,561 parameters) cuts the in-distribution error of the moment decoder
+at the same encoder capacity (135,945 parameters) by 11.3x, 0.4503 to
+0.0399; the two-member dictionary of the reference configuration is priced
+against this full dictionary in @sec-dictionary-ablation, and
+@tbl-mt1-laplace-configs maps every 2D Laplace figure quoted in this
+chapter to its configuration.
 
 ### Two streams {#sec-stream-factorization}
 
@@ -470,8 +478,11 @@ suites, is what the declared-degree modes exist to forbid
 The factorization was priced against a single-stream control that
 re-declares the drive as operator features, matched in parameters within
 0.03%, on 2D Laplace in linear mode (3-seed means, relative L2 on the
-frozen reference bank). The two-stream model wins in-distribution, 0.0485
-against 0.0606, and is the only arm with exact contracts: its zero-drive
+frozen reference bank, both arms in the benchmark-capacity sibling
+configuration of @sec-reference-config: four heads, two layers, two exact
+members, 104,537 parameters). The two-stream model wins in-distribution,
+0.0485 against the single-stream control's 0.0606, and is the only arm
+with exact contracts: its zero-drive
 output is exactly zero and its superposition violation is $10^{-7}$, where
 the control *learns* approximate linearity and plateaus at 0.038 and
 0.042, five decades above the structural contract. The factorization did
@@ -482,24 +493,27 @@ travels with zero preservation: it is correct physics only when the
 homogeneous problem has the zero solution. On the Liouville equation zero
 Dirichlet data has the interior solution $\log 4$, so the contract pins
 the wrong value exactly. A contract can be exactly enforced and exactly
-wrong; each declaration needs a per-problem correctness check
-(`results/learned_bie_2026-07-02.json`, key
-`iteration_26_stream_factorization`).
+wrong; each declaration needs a per-problem correctness
+check.^[`results/learned_bie_2026-07-02.json`, key
+`iteration_26_stream_factorization` (the Laplace arms under `laplace_3seed`,
+the Liouville arms under `liouville_3seed`).]
 
 ### The intrinsic similarity gauge {#sec-intrinsic-gauge}
 
 The reference length is the last externally trusted input, so MT1 derives
 it from the geometry by default (@sec-forward-pass). The measured
 consequences on the frozen 2D Laplace reference bank (3-seed means,
-relative L2): the intrinsic gauge is accuracy-neutral against an explicit
-per-case key (in-distribution 0.0372 against 0.0375; frequency split
-likewise), trained models are similarity-covariant to $3\times10^{-7}$
-under rotations, reflections, translations, and rescalings by 0.2x to 5x,
-and a 3x corruption of the supplied length at evaluation time degrades the
+relative L2, the benchmark-capacity sibling with the double-layer member
+only, 104,261 parameters): the intrinsic gauge is accuracy-neutral against
+an explicit per-case key (in-distribution 0.0372 with the intrinsic gauge
+against 0.0375 with the explicit key; frequency split likewise), trained
+models are similarity-covariant to $3\times10^{-7}$ under rotations,
+reflections, translations, and rescalings by 0.2x to 5x, and a 3x
+corruption of the supplied length at evaluation time degrades the
 explicit-key model 4.64x while the intrinsic model is bitwise unchanged
-because the input it would have trusted no longer exists
-(`results/learned_bie_2026-07-02.json`, key
-`iteration_24_intrinsic_gauge`).
+because the input it would have trusted no longer
+exists.^[`results/learned_bie_2026-07-02.json`, key
+`iteration_24_intrinsic_gauge`.]
 
 The override is a loaded gun. A constant with units of length encodes one
 dataset's absolute size and does not transform with the geometry, so for
@@ -530,20 +544,27 @@ contracts stated in this chapter are those of the exact dense path.
 
 The dictionary is not a guess; it is the survivor of a falsification
 ladder on 2D Laplace with exact conformal-map labels (relative L2 on the
-frozen 64-case reference bank, 3 seeds, 3,000 updates;
-`results/learned_bie_2026-07-02.json`, key `results_3seed_reference_bank`).
-A free-form learned pair kernel of 19,008 parameters reaches 0.107
-in-distribution but 0.642 on unseen boundary frequencies: a value
-interpolator with no operator fidelity. Wrapping it in a learned
-second-kind solve does not help; soft PDE or trace penalties move their
-own diagnostic and nothing else; an exactly harmonic basis under midpoint
-quadrature loses badly, because singular terms cannot mollify near-panel
-quadrature error. Only the combination works: an exactly harmonic basis
-containing the true kernel, exact panel quadrature, and a learned
-drive-linear density solve. A 3-parameter model of this form reaches
-0.0347 in-distribution and 0.0664 on unseen frequencies, and its learned
-singular coefficient lands within 0.8% of the classical $-1/2\pi$ on
-every seed, from random initialization, on interior supervision alone.
+frozen 64-case reference bank, 3 seeds; none of the models in this ladder
+is MT1, so the errors below are not entries of @tbl-mt1-laplace-configs
+and differ from it in parameter count and training length as stated per
+model). A free-form learned pair kernel of 19,008
+parameters reaches 0.107 in-distribution but 0.642 on unseen boundary
+frequencies after 1,000 updates: a value interpolator with no operator
+fidelity. Wrapping it in a learned second-kind solve does not help; soft
+PDE or trace penalties move their own diagnostic and nothing else; an
+exactly harmonic basis under midpoint quadrature loses badly, because
+singular terms cannot mollify near-panel quadrature error. Only the
+combination works: an exactly harmonic basis containing the true kernel,
+exact panel quadrature, and a learned drive-linear density solve. A
+3-parameter model of this form reaches 0.0347 in-distribution and 0.0664
+on unseen frequencies after 3,000 updates, and its learned singular
+coefficient lands within 0.8% of the classical $-1/2\pi$ on every seed,
+from random initialization, on interior supervision
+alone.^[`results/learned_bie_2026-07-02.json`: the pair-kernel control
+under `comparisons_same_bank`, the ladder under `hypothesis_chain`, the
+3-parameter model under `iteration_4_pruning`
+(`confirmation_3seed_reference_bank`). The full-length ladder with its
+per-ingredient table is in @sec-linear-suites.]
 
 The parametric study on screened Laplace disks adds the second rule:
 known operator dependence belongs in a correctly normalized
@@ -588,8 +609,33 @@ A sibling configuration at the frozen benchmark capacity, 4 heads with
 separable ranks 12/4, two encoder layers, the same two exact members,
 104,537 parameters, is used wherever an arm must remain comparable with
 every archived arm on the controlled suites; the two differ in attention
-bookkeeping, not in the decoder. Two caveats travel with the reference
-row. The vector channels are prunable on easy 2D geometry but essential
+bookkeeping, not in the decoder. Because this chapter quotes 2D Laplace
+in-distribution errors for several such configurations, the table below
+maps each figure to the configuration that produced it; the suite results
+themselves live in @sec-linear-suites. All rows are relative L2 on the
+frozen 64-case 2D Laplace reference bank, 3-seed means, 3,000 updates,
+linear drive mode, intrinsic gauge unless stated.
+
+| configuration | parameters | 2D Laplace in-distribution rel-L2 | where in this chapter |
+|---|--:|--:|---|
+| reference configuration: 1 head (ranks 48/16), 1 layer, two exact members | 81,547 | not measured on this bank; selected on the cross-suite evidence of @sec-linear-suites | this section |
+| one head (ranks 48/16), two layers, two exact members | 104,123 | 0.0413 | @sec-linear-suites |
+| benchmark-capacity sibling: 4 heads (ranks 12/4), two layers, two exact members | 104,537 | 0.0485 | @sec-stream-factorization |
+| benchmark-capacity sibling, double-layer member only, explicit length key | 104,261 | 0.0375 | @sec-intrinsic-gauge |
+| benchmark-capacity sibling, double-layer member only, intrinsic gauge | 104,261 | 0.0372 | @sec-intrinsic-gauge |
+| kernel decoder, full dictionary (singular, polynomial, eight MLP members) | 110,561 | 0.0399 | @sec-kernel-decoder |
+| moment decoder at the same encoder capacity | 135,945 | 0.4503 | @sec-kernel-decoder |
+
+: Every MT1 2D Laplace in-distribution error quoted in this chapter,
+by configuration. The learned boundary-integral ladder of
+@sec-learned-bie (0.107 and 0.0347) is excluded because those models are
+not MT1. `results/learned_bie_2026-07-02.json`, keys
+`iteration_31_heads_vs_rank` (rows 2–3), `iteration_11_dictionary_ablation_2d`
+and `iteration_24_intrinsic_gauge` (rows 4–5),
+`iteration_7_kernel_decoder_fix` (rows 6–7); the reference row's count
+is from `iteration_32_one_head_cross_suite`. {#tbl-mt1-laplace-configs}
+
+Two caveats travel with the reference row. The vector channels are prunable on easy 2D geometry but essential
 in 3D and on parametric problems. The single-layer member is decisively
 necessary on multiply connected and deeply cavitated geometry and costs
 some frequency extrapolation on very easy geometry, because its
@@ -639,14 +685,20 @@ kernels can recover the field (@sec-industrial-mt1). On DrivAerML surface
 targets the boundary-trace formulation, not the kernel dictionary,
 carries the gain; the dictionary contributes 0 to 8%
 (@sec-drivaerml-trace-factorial). On the DrivAerML interior task the
-exact-kernel decoder is 8.0x behind GeoTransolver (pressure relative L2
-0.496 against 0.062), and its apparently good far-field pressure is a
-zero-output artefact (@sec-interior). What survives at industrial scale is
-the contract side: exact equivariance and query independence, and the
-best measured robustness to biased sampling density among the
-constant-gauge architectures (1.7x to 2.1x degradation under a 10:1
-density bias, against GeoTransolver's 3.6x; @sec-limits collects the
-scope statements).
+exact-kernel decoder is 8.0x behind GeoTransolver-volume (pressure
+relative L2 0.496 against 0.062, both at 10,000 surface and 10,000
+interior points), and its apparently good far-field pressure is a
+zero-output artefact (@sec-interior). That comparison is not
+resource-matched: GeoTransolver-volume has 9.0M parameters, MT1's
+parameter count on the interior task was not recorded, and the two were
+not held to a common training memory. What survives at industrial scale
+is the contract side: exact equivariance and query independence, and
+robustness to biased sampling density. Under a 10:1 density bias on
+DrivAerML, MT1 degrades about 1.8x (1.6–2.2x over three seeds), against
+GeoTransolver's 3.6x and 13–14.5x for MT2 in the constant-gauge
+configuration behind every MT2 accuracy figure in this book; only MT2 with
+the similarity gauge on, which is not that configuration, does better at
+1.20x (@sec-limits collects the scope statements).
 
 ### Relation to MeshTransformer2
 
@@ -659,11 +711,12 @@ moments. It drops the kernel dictionary, whose potential-flow prior fails
 on the separated flows MT2 targets, and with it the linearity and
 superposition contracts and the per-layer typed scalar/vector streams. It
 also gives up MT1's query independence in its reference configuration:
-MT2's heads read from interacting encoder tokens, and the optional
-`query_independent` configuration with passive read blocks, which is
-exactly query-independent, costs 2.7x to 3.9x in accuracy. In exchange it
-spends its interior on the empirically strongest routing at 8.9M
-parameters, and its accuracy on industrial data is the subject of
-Part II. MT1 remains the architecture of record for the controlled
+MT2's heads read from interacting encoder tokens, so a prediction at one
+point depends weakly on which other points are in the sample; the optional
+`query_independent` configuration with passive read blocks (11.0M
+parameters) is exactly query-independent and costs 3.0x to 3.7x in
+accuracy on DrivAerML. In exchange the reference configuration spends
+its interior on the empirically strongest routing at 8.9M parameters, and
+its accuracy on industrial data is the subject of Part II. MT1 remains the architecture of record for the controlled
 suites, where a known operator makes an exact prior a contract rather
 than a gamble.

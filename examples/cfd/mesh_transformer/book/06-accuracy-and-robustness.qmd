@@ -5,112 +5,115 @@ and GeoTransolver reach the same accuracy on high-lift wings and
 GeoTransolver is 1.085x more accurate on cars; what separates the two
 architectures at full data is not accuracy but behaviour off the tuned
 operating point. MT2 holds its accuracy across a decade of learning rate
-where GeoTransolver degrades 4--14x, loses 1.20x under a 10:1 sampling
-bias where GeoTransolver loses 3.6x, is exactly covariant to rigid
-motions without any frame estimation, and trains in less peak memory
-(3.6 GB against 4.6 GB at 10,000 tokens). Pose covariance, however, is a
-contract rather than an accuracy edge on vehicle data, and exact query
-independence, the property that would make MT2 a true evaluate-anywhere
-surrogate, is an optional configuration that costs 2.7--3.9x in accuracy;
-the reference configuration behind every result in this book does not
-have it.
+where GeoTransolver degrades 4--14x, and is exactly covariant to rigid
+motions without any frame estimation. Sampling-density robustness
+depends on the configuration: MT2 with the similarity gauge loses 1.20x
+under a 10:1 sampling bias where GeoTransolver loses 3.6x, but the
+constant-gauge configuration behind every accuracy number in this book
+loses 13--14.5x, and the gauge costs 8% at 35 training cases. Pose
+covariance is a contract rather than an accuracy edge on vehicle data,
+and exact query independence, the property that would make MT2 a true
+evaluate-anywhere surrogate, is an optional configuration that costs
+3.0--3.7x in accuracy; the reference configuration behind every result
+in this book does not have it. Peak training memory at 10,000 tokens is
+9.8 GB for MT2 as trained, 3.6 GB with the exact pool-then-project
+rewrite, against 4.6 GB for GeoTransolver.
 
 This chapter is the full-data counterpart of the data-efficiency result
-in @sec-data-efficiency, where the two architectures separate by 2.5--2.9x
+in @sec-data-efficiency, where the two architectures separate by 2.5--2.8x
 at 35--210 training cases. Here they do not separate, and the chapter's
 job is to say precisely how they do not, and what else is true of each at
 that operating point.
 
 ## The verdict in one paragraph {#sec-program-review}
 
-The program's question (@sec-problem) was whether declared physical
-structure buys generalization that data coverage does not. At full data
-the answer decomposes. **In-distribution accuracy** at industrial scale
-comes from normalized global routing over rich point features, and
-GeoTransolver already has it; MT2 matches it on HiLiftAeroML and trails
-it by 8.5% on DrivAerML. **Learning-rate robustness** is an architecture
-property that MT2 has and GeoTransolver does not. **Density robustness**
-is a property MT2 has only with the similarity gauge on
-(@sec-mt2). **Pose robustness** is a contract MT2 holds by construction
-and GeoTransolver recovers by canonicalization at 1.01x cost whenever a
-freestream direction and a resolvable principal frame exist, which is
-every vehicle dataset in this program. **Query independence** is not a
-property of the reference configuration, whose predictions depend weakly
-on which other points were sampled, and buying it exactly trades directly
-against accuracy in every design measured. The rest of this chapter gives
-each of these its numbers and its matched resources.
-
-Every cross-architecture number below is a two-seed measurement on one
-validation split per dataset under the frozen protocol of @sec-protocol
-(10,000 sampled surface points per case, 500 epochs, bf16, no
-augmentation), with the parameter counts and peak memory of
-@sec-fair-comparison: MT2 8.9M parameters and 3.6 GB, GeoTransolver 9.0M
-and 4.6 GB. The MT2 checkpoints were trained with a function-identical
-but less memory-efficient implementation of the relational pooling
-(fp64 maximum difference 4e-15; @sec-mt2-cost), so no accuracy result
-depended on memory the current implementation does not use.
+At full data the two architectures are at parity on HiLiftAeroML and MT2
+is 8.5% behind on DrivAerML (@sec-full-data-accuracy), so in-distribution
+accuracy at industrial scale does not separate them. Where they differ
+is off the tuned operating point: MT2 is robust to learning rate
+(@sec-robustness-lr) and exactly pose-covariant (@sec-pose-contract),
+while its density robustness holds only with the similarity gauge on
+(@sec-robustness-density) and its exact query independence is an
+optional configuration bought with accuracy (@sec-query-independence).
+The resources behind every comparison are in @sec-cost, and the
+DrivAerML measurements are collected on one instrument in @tbl-frontier.
 
 ## In-distribution accuracy at full data {#sec-full-data-accuracy}
 
 **At each architecture's best learning rate, MT2 and GeoTransolver are at
 parity on HiLiftAeroML (0.041 vs 0.042) and MT2 is 1.085x behind on
 DrivAerML (0.0577 vs 0.0532).** The metric throughout is the relative L2
-error of surface pressure, ‖p̂ − p‖/‖p − p_∞‖ over the sampled points of a
-case, averaged over the validation cases (@sec-metrics). The HiLift
-number is on the shared 180-case validation set of the curated full
-split (1,260 training cases); the DrivAerML number is on the 48-car
-validation split of the 435-car training set (@sec-splits). Both are
-seed means over seeds 42 and 43.
+error of surface pressure as defined in @sec-metrics: the recipe's
+relative L2 on the standardized pressure field over the sampled points
+of a case, measure-weighted, arithmetic mean over the validation cases.
+The HiLift number is on the shared 180-case validation set of the
+curated full split (1,260 training cases); the DrivAerML number is on
+the 48-car validation split of the 435-car training set (@sec-splits).
+Both are seed means over seeds 42 and 43, evaluated at the final epoch
+of the frozen protocol of @sec-protocol (10,000 sampled surface points
+per case, 500 epochs, bf16, no augmentation); no checkpoint was selected
+on validation error.
 
 The best learning rate was chosen per architecture by validation on the
 full split, from the grid of the next section, before any other
-experiment in this book used it: 1e-3 for both architectures on HiLift,
-1e-3 for MT2 and 3e-3 for GeoTransolver on DrivAerML. At a common rate
-of 1e-3 on DrivAerML GeoTransolver scores 0.0633 and MT2 is nominally
-ahead; the best-vs-best figure is the one that matters, and it favours
-GeoTransolver by 8.5%.
+experiment in this book used it: 1e-3 for MT2 on both datasets, 1e-3 for
+GeoTransolver on HiLift and 3e-3 for GeoTransolver on DrivAerML. The
+DrivAerML gap does not depend on that choice: at MT2's own rate of 1e-3
+GeoTransolver scores 0.0548 (0.0546/0.0550) against MT2's 0.0577, 1.05x
+ahead, and best-vs-best it is 1.085x ahead (0.0532 at 3e-3 against
+0.0577).
 
-The HiLift parity holds case by case, not only on average. Pairing each
-of the 180 validation cases seed-with-seed (seed 42 against seed 42, 43
-against 43) gives 360 paired comparisons, and MT2 has the lower pressure
-error in 258 of them, with a median GeoTransolver/MT2 ratio of 1.06 and
-an interdecile range of 0.90--1.20. The sign test rejects equality, so
-MT2 is nominally ahead, but the per-case advantage is a few percent, far
-smaller than the 3.2x median ratio at 35 training cases
-(@sec-data-efficiency). In force coefficients on the same 180 cases
-(mean absolute error relative to the mean absolute coefficient), MT2
-predicts drag to 1.4% and lift to 0.9%, GeoTransolver to 1.2% and 0.8%.
-Both are at the level where the two are interchangeable for an
-engineering user.
+The HiLift parity holds case by case, not only on average. Scoring each
+of the 180 validation cases by each architecture's two-seed mean error
+gives 180 case-level pairs; MT2 has the lower pressure error in 130 of
+them, and in 103 it is lower on both seeds separately. The median
+GeoTransolver/MT2 ratio is 1.06 with an interdecile range of 0.92--1.18,
+and the exact sign test on n = 180 rejects equality (p = 2e-9), so MT2
+is nominally ahead, but the per-case advantage is a few percent, far
+smaller than the roughly threefold median ratio at 35 training cases
+(@sec-de-paired).^[`results/hilift_paired_stats_case_2026-09-07.json`,
+key `1260`.] In force coefficients on the
+same 180 cases (mean absolute error relative to the mean absolute
+coefficient), MT2 predicts drag to 1.4% and lift to 0.9%, GeoTransolver
+to 1.2% and 0.8%. Both are at the level where the two are
+interchangeable for an engineering user.
 
 The comparison is fair by the criteria of @sec-fair-comparison: matched
 tokens per case and epochs, each architecture at its own best learning
-rate, shared validation cases, and MT2 using less memory (3.6 against
-4.6 GB) at a matched parameter count (8.9M against 9.0M). It is also
-narrow: two seeds, one
-validation split per dataset, and no test-split evaluation of the
-full-split models (the sealed test splits are spent on regime
+rate, shared validation cases, and a matched parameter count (MT2 8.9M
+against GeoTransolver 9.0M). Memory was not matched: the MT2
+checkpoints were trained at 9.8 GB peak against GeoTransolver's 4.6 GB.
+The exact pool-then-project rewrite computes the same function at
+3.6 GB (fp64 maximum difference 4e-15; @sec-cost), so the extra memory
+bought no accuracy, but no MT2 result in this book was produced at or
+below GeoTransolver's footprint. The comparison is also narrow: two
+seeds, one validation split per dataset, and no test-split evaluation of
+the full-split models (the sealed test splits are spent on regime
 extrapolation, @sec-regime-extrapolation).
 
 ## Learning-rate robustness {#sec-robustness-lr}
 
-**Across a decade of learning rate MT2 degrades 1.55x from its best while
-GeoTransolver degrades 4--14x, on both datasets.** The grid is
-{1e-3, 3e-3, 1e-2} on DrivAerML and {1e-3, 3e-3} on HiLift, two seeds per
-cell, every other setting held at the frozen protocol. The quantity in
-@fig-lr-robustness is the validation pressure rel-L2 defined above; a
-point is one seed and the line joins seed means.
+**Across the learning-rate grid MT2's worst point is within 1.55x of its
+best on DrivAerML and 1.14x on HiLiftAeroML, while GeoTransolver
+degrades 4--14x at 1e-2 on DrivAerML and 3.5--9.4x at 3e-3 on HiLift.**
+The grid is {1e-3, 3e-3, 1e-2} on DrivAerML and {1e-3, 3e-3} on HiLift,
+two seeds (42, 43) per cell except the DrivAerML 3e-3 cell, which holds
+the three GeoTransolver seeds (42--44) and five MT2 seeds (42--46) of the
+frozen-protocol training runs; every other setting is held at the frozen
+protocol. The quantity in @fig-lr-robustness is the validation pressure
+rel-L2 defined above; a point is one seed and the line joins seed means.
 
 On DrivAerML, GeoTransolver at 1e-2 scores 0.739 and 0.221 on its two
-seeds against its best of 0.0532, a degradation of 4.1x and 13.9x that
+seeds against its best of 0.0532, a degradation of 13.9x and 4.1x that
 also differs by 3.3x between seeds. MT2 at 1e-2 scores 0.0874 and 0.0914
-against its best of 0.0577, a degradation of 1.55x with the two seeds
-within 5% of each other. On HiLift the same pattern appears one step
-lower on the grid: GeoTransolver at 3e-3 destabilizes to 0.148 and 0.397
-where MT2 spans 0.045--0.049, and across the whole HiLift grid MT2's
-eight lane results lie in 0.040--0.049 while GeoTransolver's lie in
-0.041--0.397. The robust architecture is the one whose worst grid point
-is within a factor of two of its best; only MT2 satisfies that on
+against its best of 0.0577, a degradation of 1.55x on the seed mean with
+the two seeds within 5% of each other. On HiLift the same pattern appears
+one step lower on the grid: GeoTransolver at 3e-3 destabilizes to 0.397
+and 0.148 (9.4x and 3.5x its best of 0.042) where MT2 scores 0.045 and
+0.049 (1.14x its best of 0.041 on the seed mean), and across the whole
+HiLift grid MT2's four results lie in 0.040--0.049 while GeoTransolver's
+lie in 0.041--0.397. The robust architecture is the one whose worst grid
+point is within a factor of two of its best; only MT2 satisfies that on
 either dataset.
 
 ```{python}
@@ -119,8 +122,9 @@ either dataset.
 #|   Learning-rate robustness at full data. Validation pressure rel-L2
 #|   (log scale) against learning rate for GeoTransolver (red circles)
 #|   and MeshTransformer2 (blue squares); small markers are individual
-#|   seeds (42, 43; the DrivAerML 3e-3 cells hold three GeoTransolver
-#|   and five MT2 seeds), lines join seed means. Left: DrivAerML, 435
+#|   seeds (42 and 43 in every cell except DrivAerML 3e-3, which holds
+#|   GeoTransolver seeds 42--44 and MT2 seeds 42--46), lines join seed
+#|   means. Left: DrivAerML, 435
 #|   training cars, 48 validation cars. Right: HiLiftAeroML full split,
 #|   1,260 training cases, the shared 180-case validation set. Protocol:
 #|   10,000 sampled surface points per case, 500 epochs, bf16, no
@@ -152,7 +156,7 @@ RES = Path("..") / "results"
 SW = RES / "mixedres_training_2026-07-31" / "sweep"
 iw = json.load(open(RES / "instrument_wave_reduction_2026-09-01.json"))
 round3 = json.load(open(SW / "round3_reduction.json"))
-v3c = json.load(open(SW / "mt2_v3c_reduction.json"))
+mt2_const = json.load(open(SW / "mt2_v3c_reduction.json"))  # MT2, constant gauge, lr 3e-3
 mega = json.load(open(SW / "mega_reduction.json"))
 hl = json.load(open(RES / "highlift_wave_reduction.json"))
 
@@ -162,7 +166,7 @@ for arch in ("gt", "mt2"):
     for lr_key, lr in (("lr1e3", 1e-3), ("lr1e2", 1e-2)):
         dr[arch][lr] = [iw[f"iw_{arch}_{lr_key}_seed{s}"]["pressure_l2"] for s in (42, 43)]
 dr["gt"][3e-3] = [round3[f"gt_fixed_seed{s}"]["sweep_metrics"]["10000"]["mean"] for s in (42, 43, 44)]
-dr["mt2"][3e-3] = ([v3c[f"mt2_v3c_seed{s}"]["sweep"]["10000"]["mean"] for s in (42, 43, 44)]
+dr["mt2"][3e-3] = ([mt2_const[f"mt2_v3c_seed{s}"]["sweep"]["10000"]["mean"] for s in (42, 43, 44)]
                    + [mega[f"mt2_v3c_seed{s}"]["in10k"]["mean"] for s in (45, 46)])
 # HiLift full split: per-seed pressure rel-L2 at 1e-3 and 3e-3
 hlg = {"gt": {}, "mt2": {}}
@@ -220,7 +224,8 @@ The consequence for practice is that MT2 can be trained at a
 protocol-default learning rate on a new dataset without a sweep, while
 GeoTransolver's best rate must be found per dataset (it differs between
 the two datasets here) and a rate one step too high can cost a factor of
-ten. The scope is two seeds per cell and two datasets; the grid does not
+ten. The scope is two seeds per cell (three to five in the DrivAerML
+3e-3 cell) and two datasets; the grid does not
 extend below 1e-3, and nothing here says where either architecture's
 instability begins on other datasets. Robustness to learning rate and
 robustness to seed are different properties: MT2 has the larger
@@ -231,7 +236,10 @@ seed-to-seed prediction spread on both datasets (@sec-shared-floor).
 **Under a 10:1 spatially biased sampling density, MT2 with the similarity
 gauge degrades 1.20x, GeoTransolver 3.6x, the exact-kernel
 MeshTransformer (MT1) about 1.8x (1.6--2.2x across three seeds), and MT2
-with the constant gauge 13--14.5x.** The probe evaluates a trained DrivAerML model on the 48
+with the constant gauge 13--14.5x.** The 1.20x figure belongs to a
+configuration that produced no accuracy number in this book; every
+accuracy result uses the constant gauge, which is the 13--14.5x row. The
+probe evaluates a trained DrivAerML model on the 48
 validation cars with surface points drawn ten times more densely in one
 region of the car than elsewhere, with exact Horvitz--Thompson measure
 weights so that any weighted integral is unbiased; the readout is the
@@ -268,9 +276,12 @@ results/mixedres_training_2026-07-31/sweep/round3_reduction.json
 (uniform column) and p3v3_reduction.json (biased column) for
 GeoTransolver and MT1. {#tbl-density}
 
-The gauge costs nothing in-family: 0.0638/0.0629 against 0.0636/0.0627
-on pressure with the same seeds, and the same on wall shear. It also
-does nothing for zero-shot transfer to a held-out vehicle family, which
+What the gauge costs depends on the data budget. At full DrivAerML data
+it is neutral in-family: 0.0638/0.0629 against 0.0636/0.0627 on pressure
+with the same seeds, and the same on wall shear. At 35 HiLift training
+cases it costs 8% (0.149 against 0.138 in the single-factor ablation of
+@sec-mechanism), which is why no accuracy result in this book uses it.
+It also does nothing for zero-shot transfer to a held-out vehicle family, which
 stays at mean-predictor level with or without it (@sec-limits), so
 absolute geometric size was not what limited cross-family transfer. MT1's
 intermediate robustness is what its intrinsic gauge and measure contract
@@ -311,7 +322,7 @@ whole of the claim; there is no accuracy dividend to add to it.
 **In its reference configuration MT2's prediction at a surface point
 depends weakly on which other points were sampled with it, about 7%
 against 2% for GeoTransolver; the optional query-independent
-configuration removes that dependence exactly, at a 2.7--3.9x cost in
+configuration removes that dependence exactly, at a 3.0--3.7x cost in
 accuracy.** Query independence means that the prediction at one surface
 point does not depend on which other points are in the same forward
 pass. Neither architecture has it as trained here. In MT2's reference
@@ -333,14 +344,15 @@ same answer, to fp64 roundoff, as the same point in a batch of 10,000.
 It has 11.0M parameters against the reference configuration's 8.9M. Its
 price on DrivAerML pressure is measured two ways. Passive decode of every
 surface point scores 0.203--0.211 against the reference configuration's
-best of 0.0577, 3.5--3.7x. An anchor-conditioned variant, in which a
-fixed core of 2,560 interacting tokens carries all the interaction and
-every surface point decodes passively from it, scores 0.209/0.221 against
-0.0697/0.0671 at matched peak training memory (6.35 GB against 6.56 GB
-for the reference configuration trained at 6,500 tokens per case, both
-with the function-identical implementation of @sec-mt2-cost), 3.1x on
-the seed means. Across the query-independent designs and comparators
-measured the cost lies between 2.7x and 3.9x. The matched-memory
+0.0577 at the same learning rate of 1e-3, 3.5--3.7x. An
+anchor-conditioned variant, in which a fixed core of 2,560 interacting
+tokens carries all the interaction and every surface point decodes
+passively from it, scores 0.209/0.221 against 0.0697/0.0671 for the
+reference configuration trained at 6,500 tokens per case, 3.0--3.3x seed
+by seed; the two runs have matched peak training memory (6.35 GB against
+6.56 GB, both in the as-trained implementation of @sec-cost), which is
+what makes the 6,500-token run the right comparator. Across the two
+measurements the cost lies between 3.0x and 3.7x. The token-count
 control is itself informative: the reference configuration at 6,500
 tokens is 8% worse than at 10,000 (0.0684 against 0.0633 at the same
 learning rate), so the query-independent design lost 3x to a control
@@ -355,21 +367,25 @@ prices the same trade at 2.6x from the other direction (@sec-interior).
 
 ## Cost {#sec-cost}
 
-**At 10,000 tokens per case MT2 peaks at 3.6 GB of training memory and
-283 ms per training step; GeoTransolver peaks at 4.6 GB.** The MT2
-figures are forward plus backward under bf16 autocast on an RTX 4090
-with hidden width 192, 12 layers, 256 slices and batch 1; the
-GeoTransolver figure is the peak of its training run on the same
-protocol, which includes optimizer state (under 0.2 GB for a 9M-parameter
-model). The MT2 number depends on computing the relational readback as
-pool-then-project, an exact identity since the routing weights sum to
-one (@sec-mt2-cost); the same function computed as project-then-pool
-saves a per-point-per-slice activation per layer and peaks at 9.8 GB.
-The checkpoints in this book were trained with the latter, and the two
-implementations agree to 4e-15 in fp64, so the memory saving changed
-nothing about any accuracy result. No matched step-time figure for
-GeoTransolver on the same instrument is among the artifacts, so only
-memory is compared across architectures here.
+**At 10,000 tokens per case MT2's peak training memory is 9.8 GB as
+trained and 3.6 GB with the exact pool-then-project rewrite, against
+GeoTransolver's 4.6 GB; MT2's forward plus backward step takes 283 ms.**
+The MT2 figures are measured under bf16 autocast on an RTX 4090 with
+hidden width 192, 12 layers, 256 slices and batch 1; the GeoTransolver
+figure is the peak of its training run on the same protocol, which
+includes optimizer state (under 0.2 GB for a 9M-parameter model). The
+relational readback can be computed either as project-then-pool, which
+materializes a per-point-per-slice activation in every layer and peaks
+at 9.8 GB, or as pool-then-project, an exact identity since the routing
+weights sum to one (@sec-mt2-cost), which peaks at 3.6 GB. Every MT2
+checkpoint in this book was trained with the former, at 2.1x
+GeoTransolver's memory. The two implementations agree to 4e-15 in fp64
+with the same parameters, so the extra memory bought no accuracy; but
+no MT2 run in this book was carried out at or below GeoTransolver's
+footprint, and the 3.6 GB figure is a property of the rewrite, not of
+the reported results. No matched step-time figure for GeoTransolver on
+the same instrument is among the artifacts, so only memory is compared
+across architectures here.
 
 ## The frontier in one table {#sec-review-frontier}
 
@@ -383,17 +399,19 @@ The columns are:
 - **In-family (x GeoTransolver)**: validation pressure rel-L2 at 10,000
   uniformly sampled points, divided by the GeoTransolver reference row's
   value; 1.00 is GeoTransolver's accuracy, larger is worse.
-- **Zero-shot**: mean normalized pressure L2 on a vehicle family the model
-  never saw in training. For the single-family rows this is the SHIFT-SUV
-  estate family; for the two-family rows, trained on DrivAerML plus the
-  estate family, it is the fastback family. A value of 1.0 is the level
-  of predicting the mean.
+- **Zero-shot (fastback)**: mean normalized pressure L2 on the DrivAer
+  fastback family (@sec-shift-suv), which no row trained on: the
+  single-family rows trained on DrivAerML alone, the two-family rows on
+  DrivAerML plus the estate family. Scoring every row on the same
+  held-out family is what makes the column comparable down its length.
+  A value of 1.0 is the level of predicting the mean.
 - **Density (10:1)**: the degradation ratio of @tbl-density, biased over
   uniform sampling.
 - **Pose (random SO(3))**: the degradation ratio of @sec-pose-contract,
   random poses over native pose; 1.00 is exact invariance.
-- **Peak memory**: peak training memory at 10,000 tokens per case, as
-  defined in @sec-cost.
+- **Peak memory**: peak training memory at 10,000 tokens per case as
+  trained; for the MT2 rows the figure with the exact pool-then-project
+  rewrite follows in parentheses (@sec-cost).
 
 ```{python}
 #| label: frontier-table
@@ -406,7 +424,7 @@ RES = Path("..") / "results"
 SW = RES / "mixedres_training_2026-07-31" / "sweep"
 mega = json.load(open(SW / "mega_reduction.json"))
 round3 = json.load(open(SW / "round3_reduction.json"))
-v3c = json.load(open(SW / "mt2_v3c_reduction.json"))
+mt2_const = json.load(open(SW / "mt2_v3c_reduction.json"))  # MT2, constant gauge, lr 3e-3
 probe = json.load(open(SW / "probe_reduction.json"))
 p3v3 = json.load(open(SW / "p3v3_reduction.json"))
 s1 = json.load(open(RES / "s1_similarity_gauge_2026-09-03.json"))["runs"]
@@ -415,13 +433,14 @@ p1pp = json.load(open(RES / "p1pp_canonical_training_2026-09-03.json"))["results
 def mean(vals):
     return sum(vals) / len(vals)
 
-# GeoTransolver reference: in-family pressure rel-L2 and zero-shot estate, seeds 42-44
+# GeoTransolver reference: in-family pressure rel-L2 and zero-shot fastback, seeds 42-44
 gt10_seeds = {s: round3[f"gt_fixed_seed{s}"]["sweep_metrics"]["10000"]["mean"] for s in (42, 43, 44)}
 gt10 = mean(list(gt10_seeds.values()))
-gt_zs = mean([round3[f"gt_fixed_seed{s}"]["smoke_estate"]["mean"] for s in (42, 43, 44)])
+gt_zs = mean([round3[f"gt_fixed_seed{s}"]["smoke_fastback"]["mean"] for s in (42, 43, 44)])
 # pose: random-SO(3) pressure rel-L2 over native-pose rel-L2, per seed
 gt_pose = [probe["p1_rot"][f"gt_fixed_seed{s}"]["mean"] / gt10_seeds[s] for s in (42, 43, 44)]
-mt2_pose = v3c["mt2_v3c_seed42"]["p1_rot"]["mean"] / v3c["mt2_v3c_seed42"]["sweep"]["10000"]["mean"]
+mt2_pose = (mt2_const["mt2_v3c_seed42"]["p1_rot"]["mean"]
+            / mt2_const["mt2_v3c_seed42"]["sweep"]["10000"]["mean"])
 rot_pose = mega["gt_rotaug_seed42"]["p1_rot"]["mean"] / mega["gt_rotaug_seed42"]["in10k"]["mean"]
 # density: biased over uniform (GeoTransolver seed 42 on the same instrument as the MT2 rows)
 gt_dens = p3v3["gt_fixed_seed42"]["mean"] / gt10_seeds[42]
@@ -429,21 +448,21 @@ mt2_dens_const = [s1[f"mt2_v3c_seed{s}"]["p3_ratio_vs_infamily"] for s in (42, 4
 mt2_dens_gauge = [s1[f"iw_mt2_gauge_seed{s}"]["p3_ratio_vs_infamily"] for s in (42, 43)]
 
 rot_in = mean([mega[f"gt_rotaug_seed{s}"]["in10k"]["mean"] for s in (42, 43)])
-rot_zs = mean([mega[f"gt_rotaug_seed{s}"]["estate"]["mean"] for s in (42, 43)])
+rot_zs = mean([mega[f"gt_rotaug_seed{s}"]["fastback"]["mean"] for s in (42, 43)])
 canon_in = mean([p1pp[f"gt_canon_seed{s}"]["inpose_raw"][0] for s in (42, 43)])
 
-v3c_in = mean([v3c[f"mt2_v3c_seed{s}"]["sweep"]["10000"]["mean"] for s in (42, 43, 44)]
-              + [mega[f"mt2_v3c_seed{s}"]["in10k"]["mean"] for s in (45, 46)])
-v3c_zs = mean([v3c[f"mt2_v3c_seed{s}"]["smoke_estate"]["mean"] for s in (42, 43, 44)])
+mt2c_in = mean([mt2_const[f"mt2_v3c_seed{s}"]["sweep"]["10000"]["mean"] for s in (42, 43, 44)]
+               + [mega[f"mt2_v3c_seed{s}"]["in10k"]["mean"] for s in (45, 46)])
+mt2c_zs = mean([mt2_const[f"mt2_v3c_seed{s}"]["smoke_fastback"]["mean"] for s in (42, 43, 44)])
 gauge_in = mean([s1[f"iw_mt2_gauge_seed{s}"]["infamily"]["pressure_l2"]["mean"] for s in (42, 43)])
-gauge_zs = mean([s1[f"iw_mt2_gauge_seed{s}"]["estate"]["pressure_l2"]["mean"] for s in (42, 43)])
+gauge_zs = mean([s1[f"iw_mt2_gauge_seed{s}"]["fastback"]["pressure_l2"]["mean"] for s in (42, 43)])
 
 mt2m_in = mean([mega[f"mt2_multi_seed{s}"]["in10k"]["mean"] for s in (42, 43, 44)])
 mt2m_zs = mean([mega[f"mt2_multi_seed{s}"]["fastback"]["mean"] for s in (42, 43, 44)])
 gtm_in = mean([mega[f"gt_multi_seed{s}"]["in10k"]["mean"] for s in (42, 43, 44)])
 gtm_zs = mean([mega[f"gt_multi_seed{s}"]["fastback"]["mean"] for s in (42, 43, 44)])
 
-GT_MEM, MT2_MEM = "4.6 GB", "3.6 GB"
+GT_MEM, MT2_MEM = "4.6 GB", "9.8 GB (3.6 GB)"
 rows = [
     ("GeoTransolver (9.0M), native frame", 1.0, gt_zs, f"{gt_dens:.1f}x",
      f"{min(gt_pose):.0f}--{max(gt_pose):.0f}x", GT_MEM),
@@ -451,14 +470,14 @@ rows = [
      f"{rot_pose:.2f}", GT_MEM),
     ("GeoTransolver, canonical frame", canon_in / gt10, None, "not measured",
      "1.00 (canonicalized)", GT_MEM),
-    ("MT2 (8.9M), constant gauge", v3c_in / gt10, v3c_zs,
+    ("MT2 (8.9M), constant gauge", mt2c_in / gt10, mt2c_zs,
      f"{min(mt2_dens_const):.1f}--{max(mt2_dens_const):.1f}x", f"{mt2_pose:.2f} (exact)", MT2_MEM),
     ("MT2 (8.9M), similarity gauge", gauge_in / gt10, gauge_zs,
      f"{mean(mt2_dens_gauge):.2f}x", "1.00 (exact)", MT2_MEM),
     ("GeoTransolver, two families", gtm_in / gt10, gtm_zs, "not measured", "not measured", GT_MEM),
     ("MT2, two families, constant gauge", mt2m_in / gt10, mt2m_zs, "not measured", "1.00 (exact)", MT2_MEM),
 ]
-out = ("| configuration | in-family (x GeoTransolver) | zero-shot | density (10:1) "
+out = ("| configuration | in-family (x GeoTransolver) | zero-shot (fastback) | density (10:1) "
        "| pose (random SO(3)) | peak memory |\n|---|---|---|---|---|---|\n")
 for (n, i, z, d, r_, m) in rows:
     zs = f"{z:.2f}" if z is not None else "not measured"
@@ -467,22 +486,24 @@ print(out)
 print(f": The DrivAerML frontier at full data. In-family: validation pressure "
       f"rel-L2 at 10,000 uniformly sampled points on 48 cars, relative to the "
       f"GeoTransolver native-frame reference ({gt10:.4f}, seeds 42--44); all "
-      f"rows at learning rate 3e-3, 500 epochs, bf16. Zero-shot: mean normalized "
-      f"pressure L2 on a vehicle family absent from training (SHIFT-SUV estate "
-      f"for the single-family rows; fastback for the two-family rows, which "
-      f"train on DrivAerML plus estate); 1.0 is the level of predicting the "
-      f"mean. Density (10:1): pressure rel-L2 under 10:1 spatially biased "
-      f"sampling with exact measure weights, over the same model's rel-L2 under "
-      f"uniform sampling (GeoTransolver seed 42; MT2 seeds 42/43). Pose: "
-      f"pressure rel-L2 under random SO(3) poses over native-pose rel-L2 "
-      f"(GeoTransolver seeds 42--44; augmentation and MT2 seed 42; MT2's "
-      f"covariance is exact by construction and verified in fp64, so its ratio "
-      f"is 1.00 for every checkpoint). Peak memory: training memory at 10,000 "
-      f"tokens per case; MT2 with the relational readback computed as "
-      f"pool-then-project, an exact identity (@sec-cost); GeoTransolver from "
-      f"its training run. Seeds per cell: GeoTransolver reference 3, "
-      f"augmentation 2, canonical frame 2, MT2 constant gauge 5 in-family and 3 "
-      f"zero-shot, MT2 similarity gauge 2, two-family rows 3. Data: "
+      f"rows at learning rate 3e-3, 500 epochs, bf16. Zero-shot (fastback): "
+      f"mean normalized pressure L2 on the DrivAer fastback family, which no "
+      f"row trained on (single-family rows train on DrivAerML alone; "
+      f"two-family rows on DrivAerML plus the estate family); 1.0 is the "
+      f"level of predicting the mean. Density (10:1): pressure rel-L2 under "
+      f"10:1 spatially biased sampling with exact measure weights, over the "
+      f"same model's rel-L2 under uniform sampling (GeoTransolver seed 42; MT2 "
+      f"seeds 42/43). Pose: pressure rel-L2 under random SO(3) poses over "
+      f"native-pose rel-L2 (GeoTransolver seeds 42--44; augmentation and MT2 "
+      f"seed 42; MT2's covariance is exact by construction and verified in "
+      f"fp64, so its ratio is 1.00 for every checkpoint). Peak memory: "
+      f"training memory at 10,000 tokens per case as trained (MT2 with the "
+      f"relational readback computed as project-then-pool; GeoTransolver from "
+      f"its training run); in parentheses, the same MT2 model with the exact "
+      f"pool-then-project rewrite (@sec-cost). Seeds per cell: GeoTransolver "
+      f"reference 3, augmentation 2, canonical frame 2, MT2 constant gauge 5 "
+      f"in-family and 3 zero-shot, MT2 similarity gauge 2, two-family rows 3. "
+      f"Data: "
       f"results/mixedres_training_2026-07-31/sweep/{{mega,round3,mt2_v3c,probe,p3v3}}_reduction.json, "
       f"results/s1_similarity_gauge_2026-09-03.json, "
       f"results/p1pp_canonical_training_2026-09-03.json. {{#tbl-frontier}}")
@@ -491,16 +512,22 @@ print(f": The DrivAerML frontier at full data. In-family: validation pressure "
 Three things to read off the table. First, at the common learning rate
 MT2 is 1.20x behind GeoTransolver in-family; at each architecture's best
 rate the gap is 1.085x (@sec-full-data-accuracy), and the table's
-column is the conservative one for MT2. Second, the zero-shot column is
-at mean-predictor level for every single-family row regardless of
-architecture, gauge or pose handling, and a second training family
-moves it to 0.11--0.13 for both architectures. Cross-family transfer is
-a property of training-data diversity, not of anything in the
-architecture column (@sec-limits). Third, the two robustness columns
-are where the rows differ by more than a seed spread: MT2 with the
-similarity gauge is the only configuration that is both
-sampling-robust and pose-robust without a frame estimate, and it pays
-for this with the in-family column, not with memory.
+column is the conservative one for MT2. Second, on the common held-out
+fastback family no single-family row transfers: GeoTransolver scores
+0.59 (0.82 with rotation augmentation) and MT2 0.95--0.99 in either
+gauge, against 1.0 for predicting the mean, and neither gauge nor pose
+handling moves this; a second training family moves both architectures
+to 0.11--0.13. Cross-family transfer is a property of training-data
+diversity, not of anything in the architecture column (@sec-limits),
+although GeoTransolver's single-family failure is the milder one. Third,
+the two robustness columns are where the rows differ by more than a seed
+spread: MT2 with the similarity gauge is the only configuration that is
+both sampling-robust and pose-robust without a frame estimate. At full
+DrivAerML data it pays nothing for this in the in-family column
+(0.0638/0.0629 against 0.0636/0.0627 for the constant gauge), but at 35
+HiLift cases the gauge costs 8% (@sec-robustness-density), and it is not
+the configuration behind any accuracy number in this book; the memory
+column is the same for every MT2 row.
 
 ## What is shared and what is not at full data {#sec-shared-floor}
 
@@ -511,12 +538,17 @@ understanding is that both architectures approach a common floor set by
 the protocol at this token count.** The measurements behind that
 sentence are three.
 
-The shared residual. Two GeoTransolver and two MT2 checkpoints were
-evaluated on bit-identical validation points (10,000 per case), and the
-fraction of each model's residual energy that lies in the component
-common to all four models was computed, measure-weighted and averaged
-over cases. It is 0.71 on DrivAerML (48 cars) and 0.70 on HiLift (180
-cases). Whatever the two architectures get wrong at full data, they
+The shared residual. Two GeoTransolver and two MT2 full-split
+checkpoints (the learning-rate 3e-3 pairs on DrivAerML, the 1e-3 pairs
+on HiLift) were evaluated on bit-identical validation points (10,000 per
+case) and their four pressure residual fields were averaged point by
+point; the shared fraction of a case is the measure-weighted energy of
+that mean residual divided by the mean of the four models' residual
+energies, so it is 1.0 when the four residuals coincide and 0.25 when
+they are mutually orthogonal with equal norms. Averaged over cases it is
+0.71 on DrivAerML (48 cars) and 0.70 on HiLift (180
+cases).^[`results/n1_noise_floor_2026-09-01.json`, `shared_residual_fraction`.]
+Whatever the two architectures get wrong at full data, they
 mostly get wrong together, and equally so on the two datasets. This is
 a measured fact about the residuals and nothing more; the probe cannot
 separate shared inductive bias from any property of the labels, because
@@ -524,7 +556,11 @@ the four models share training set, pipeline, loss and point subsample.
 
 Seed disagreement. On the HiLift full split, the per-case disagreement
 between a model's two seeds correlates with its per-case error at
-Spearman 0.15 for MT2 and 0.19 for GeoTransolver, against about +0.6 for
+Spearman 0.15 for MT2 and 0.19 for GeoTransolver (this analysis scores
+pressure on the gauge-pressure scale ‖p̂ − p‖/‖p − p_∞‖, a different
+scale from the recipe metric, on which the same checkpoints read
+0.11--0.12 rather than 0.041--0.042; the rank correlations are
+scale-free), against about +0.6 for
 both at 210 training cases and +0.67 for MT2 at 35
 (@sec-data-efficiency). At full data, where a model is uncertain is no
 longer where it is wrong, and two-seed ensembling gains only 3--4%. The
@@ -545,16 +581,16 @@ below it either.
 
 The direct test is to train both architectures on the 1,260-case split
 at 20,000 tokens per case and ask whether the parity point moves down
-together, apart, or not at all. That run is in progress under a
-preregistered readout and this chapter reports no number from it. Until
-it lands, the statement stands as a current understanding supported by
-three consistent measurements, not as a result.
+together, apart, or not at all. That is not yet measured
+(@sec-program-status), so the statement stands as a current
+understanding supported by three consistent measurements, not as a
+result.
 
 This is also the right place to state what the parity result is and is
 not. It is a two-seed, one-split measurement per dataset that MT2 and
 GeoTransolver reach the same accuracy at 1,260 HiLift cases and differ
 by 8.5% at 435 DrivAerML cars under a fixed protocol. It does not say
-that the two architectures are equivalent, which the 2.5--2.9x gap at
+that the two architectures are equivalent, which the 2.5--2.8x gap at
 35--210 cases (@sec-data-efficiency), the robustness columns of
 @tbl-frontier, and the 2.6x interior gap in GeoTransolver's favour
 (@sec-interior) each contradict in a different direction. The

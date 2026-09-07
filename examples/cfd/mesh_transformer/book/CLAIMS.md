@@ -193,9 +193,13 @@ Artifacts `results/hilift_sealed_test_2026-09-04.json`.
   in-regime cases (0.138). MT2 keeps the lower absolute OOD error on both
   axes; GeoTransolver has the smaller ratio because its in-regime floor is
   higher. Coverage of the regime, not architecture, governs this axis.
-- Mechanism test DONE: MT2 with a raw-coordinate channel (breaking SE(3))
-  on the stall split, 2 seeds, one sealed-test evaluation: in-regime val
-  0.0206/0.0201, OOD test ≈0.27 (final numbers in the notebook), d ≈ 13.
+- Mechanism test DONE: MT2 with the similarity gauge ON plus a raw-coordinate
+  channel (breaking SE(3)) — two differences from the constant-gauge ladder
+  reference, of which the gauge did not move the in-regime floor — on the
+  stall split, 2 seeds, one sealed-test evaluation per seed on the full
+  723-case list: in-regime val 0.0206/0.0201; sealed test and d in
+  `results/b1_raw_coordinate_discriminator_2026-09-07.json` (final values;
+  d ≈ 13 on both seeds).
   Preregistered bars: raw coordinates carry the ratio if d ≤ 11.0 and OOD
   pressure < 0.245; they do not if d ≥ 12.0 or ≥ 0.255. Verdict: they do
   not; GeoTransolver's smaller ratio is not explained by its raw-coordinate
@@ -250,6 +254,108 @@ stops". Present-tense, no chronology. Key current statements:
 - Where the line stops: separated 3D aerodynamics (potential-flow oracle
   gate fails); the interior task (8x behind GeoTransolver).
 
+
+## Review-driven conventions (apply everywhere; these override earlier wording)
+
+- **Ratio convention:** every cross-architecture ratio is written as
+  baseline error ÷ MT2 error, so > 1 favours MT2. HiLift full split:
+  GeoTransolver/MT2 = 1.02 (0.042/0.041). DrivAerML full: GeoTransolver/MT2
+  = 0.92 (MT2 is 1.085x behind; write "MT2 8.5% behind"). At 35 HiLift cases
+  the factor is **2.8x** (0.392/0.138 = 2.84; three-seed 2.76) — write 2.8x,
+  not 2.9x.
+- **Memory, as trained vs now:** every MT2 checkpoint in this book was trained
+  by the project-then-pool implementation at **9.8 GB** peak (2.1x
+  GeoTransolver's 4.6 GB at 10,000 tokens). The pool-then-project identity
+  (fp64 max difference 4e-15, same parameters, same function) brings the
+  same model to **3.6 GB**. Every statement of MT2's memory says both: "9.8 GB
+  as trained; 3.6 GB with the exact pool-then-project rewrite". Do not write
+  "trains in less memory than GeoTransolver" as a property of the reported
+  results. The token-count control (6,500 tokens, 6.56 GB in the old
+  implementation, 8% accuracy cost) is a *token-count* control, not a
+  matched-memory control; no MT2 run in the book ran at ≤ 4.6 GB.
+- **Density robustness is configuration-specific:** the 1.20x figure is
+  MT2 *with the similarity gauge*, which is not the configuration behind
+  any accuracy number in the book and costs 8% at 35 cases; the
+  constant-gauge configuration behind every accuracy result degrades
+  13–14.5x under the 10:1 bias, worse than GeoTransolver's 3.6x. Every
+  summary sentence names the configuration.
+- **Query independence price:** passive decode 0.203–0.211 vs the
+  interacting reference 0.0577 at lr 1e-3 → 3.5–3.7x; the anchor-conditioned
+  variant 0.209/0.221 vs the 6,500-token control 0.0697/0.0671 → 3.0–3.3x.
+  Write **3.0–3.7x** (not 2.7–3.9x).
+- **Learning-rate protocol:** each architecture at the rate it prefers on
+  the full split of the dataset in question: MT2 1e-3 on both datasets;
+  GeoTransolver 1e-3 on HiLiftAeroML and 3e-3 on DrivAerML; Transolver 3e-3
+  on HiLiftAeroML. At a common 1e-3 on DrivAerML, GeoTransolver 0.0548 vs
+  MT2 0.0577 (GeoTransolver 1.05x ahead).
+- **Checkpoint selection:** the final-epoch checkpoint is evaluated; no
+  checkpoint is selected on validation error. The validation set was used
+  only for the per-architecture learning-rate choice on the full split.
+  HiLift accuracy figures are therefore validation-set figures with no
+  checkpoint selection; the sealed test split was spent only on the
+  regime-extrapolation and raw-coordinate evaluations.
+- **Metric:** one definition (chapter 1): the recipe's relative L2 on the
+  standardized field over the sampled points of a case (measure-weighted),
+  arithmetic mean over cases. The gauge-pressure form ‖p̂ − p‖/‖p − p_∞‖
+  appears ONLY in the reference-predictor and seed-disagreement analyses
+  and must be labelled as a different scale (MT2 0.25 there ↔ 0.138 on the
+  recipe metric).
+- **Paired statistics:** report the 180 case-level pairs (each case scored
+  by each architecture's two-seed mean), not 360 seed-pairs; use the exact
+  sign test on n = 180 and also report the stricter "MT2 wins on both seeds"
+  count. Artifact: `results/hilift_paired_stats_case_2026-09-07.json`.
+- **Third seed (seed 44) at 35 cases:** MT2 0.1376 (inside the two-seed range
+  0.135–0.141); GeoTransolver 0.359 (below the two-seed range 0.375–0.409);
+  Transolver 0.409 (just above 0.398–0.406). Three-seed means 0.138 / 0.381 /
+  0.404; ratios 2.76 / 2.93. Do not write "inside its two-seed spread" for
+  the baselines.
+- **Transplant test (invariant inputs to the baselines):** Transolver
+  0.294/0.301 (mean 0.297) lands in the preregistered inconclusive band
+  (0.235–0.30); GeoTransolver 0.400/0.388 lands in the falsifier band
+  (≥ 0.30). Write: "inconclusive for Transolver (a 1.35x gain, a quarter of
+  the log-gap), falsified for GeoTransolver; the invariant inputs are not
+  the carrier for GeoTransolver and at most a partial contributor for
+  Transolver." The test is DONE; nowhere "running".
+- **DrivAerML data-efficiency ladder (must be reported with a table):**
+  frozen protocol at lr 3e-3 for both architectures, 500 epochs, 10,000
+  tokens, two seeds, in-family validation pressure rel-L2
+  (`results/ladder_reduction.json`, keys `lad_{gt,mt2}_n{14,27,54,109,218}_seed{42,43}`,
+  field `infamily`): n = 14: GT 0.265/0.273, MT2 0.272/0.273 (GT/MT2 0.99);
+  27: 0.152/0.155 vs 0.179/0.177 (0.86); 54: 0.099/0.102 vs 0.125/0.119
+  (0.82); 109: 0.071/0.072 vs 0.091/0.091 (0.78); 218: 0.060/0.060 vs
+  0.076/0.074 (0.80). On DrivAerML GeoTransolver is 1.2–1.3x MORE accurate
+  than MT2 from 27 cases up (MT2's preferred rate 1e-3 is worth about 1.1x,
+  which does not close this), and the two are tied at 14 cases near the
+  trivial-predictor level. The HiLift advantage does not transfer to
+  DrivAerML; the book states this wherever the data-efficiency claim is
+  summarized.
+- **AirFRANS:** the exact-kernel MeshTransformer matches the AirFRANS-paper
+  baselines on velocity and is about 10x behind MARIO and 70x behind GLOBE
+  in the same table. Do not write "front of the pack".
+- **Slope statement (one sentence everywhere):** "a naive power-law
+  extrapolation of the two curves puts GeoTransolver at 0.015 and MT2 at
+  0.029 at 5,000 cases, a factor of two in GeoTransolver's favour".
+- **Reference length:** all recipe coordinates are nondimensionalized by
+  the dataset's per-case L_ref (5 m on DrivAerML); MT2's constant gauge
+  8.0 is in those nondimensional units (40 m physical on DrivAerML). The
+  interior chapter's distance bands are in metres, converted with L_ref.
+- **Resources on the interior task:** state per arm: GeoTransolver-volume
+  9.0M parameters; MT2 passive-decode configuration 11.0M; exact-kernel
+  MeshTransformer parameter count not recorded; all arms 4–9 GB peak at
+  10,000 surface + 10,000 interior points (state which where known, else
+  say "not resource-matched").
+- **Status language:** polished chapters say "not yet measured" with a
+  pointer to @sec-program-status; never "running", "in progress", "lanes".
+- **Transolver on the controlled suites:** any "27x-larger Transolver"
+  comparison states the training budget (3,000 updates) and that Transolver
+  is still improving at 30,000 updates (0.119), so the matched-budget gap
+  (7.7–20x) is an upper bound on the converged gap.
+- **Datasets to define in chapter 1:** SHIFT-SUV (a second vehicle dataset
+  whose two rear-end families, estate and fastback, are the zero-shot
+  transfer targets: DrivAerML-only models → estate; DrivAerML+estate models
+  → fastback); DrivAerML 484 variants → 435 train / 48 val / 1 excluded
+  (state the exclusion).
+
 ## Do not state (delete wherever found)
 
 - That MT2 is similarity- or scale-equivariant by default (only with the
@@ -260,12 +366,15 @@ stops". Present-tense, no chronology. Key current statements:
 - A 1.6x accuracy dividend from equivariance (canonicalized GeoTransolver
   is pose-invariant at 1.01x).
 - That the DrivAerML MT2–GeoTransolver gap is explained by label noise.
-- "Equal-or-lower cost" *as a retired claim* — it is now simply true
-  (3.6 vs 4.6 GB); state the numbers.
+- "Equal-or-lower cost" as a property of the reported results (they were
+  trained at 9.8 GB); state both memory numbers as above.
 - That no architecture generalizes across boundary-condition frequency
   (the exact-kernel decoder does).
 - Locality as the carrier of cross-family transfer (refuted).
 - Any "provisional" tag on the data-efficiency result (controls are in).
+- "2.9x" (write 2.8x); "2.7–3.9x" (write 3.0–3.7x); "360 pairs"; "trains in
+  less memory" without the as-trained figure; "most density-robust" without
+  naming the gauge configuration.
 - Any statement that the interior gap is closable by latent volume tokens
   along anchor normals (falsified).
 - Any project code names, dates, "retired", "reframed", "critic".

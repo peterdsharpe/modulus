@@ -2,29 +2,33 @@
 
 The program's headline result, that MeshTransformer2 (MT2) is several times
 more accurate than GeoTransolver and Transolver when trained on a few dozen
-high-lift cases and no worse at full data, is established on one dataset over
-a 36-fold range of training-set sizes, and the ingredient that carries it is
-not identified. This chapter states the boundary of each claim as a fact
-about the evidence, lists the open questions with the preregistered outcome
-that settles each, and names what would change the recommendation.
+high-lift cases, and at parity on HiLiftAeroML and 8.5% behind on DrivAerML
+at each architecture's best learning rate, is established on one dataset
+over a 36-fold range of training-set sizes, and the ingredient that carries
+it is not identified. This chapter states the boundary of each claim as a
+fact about the evidence, lists the open questions with the preregistered
+outcome that settles each, and names what would change the recommendation.
 
 ## What is established {#sec-established}
 
-Four things are settled to the standard of the fair-comparison protocol
-(@sec-protocol). MT2 is more data-efficient than GeoTransolver and
-Transolver on HiLiftAeroML surface pressure; the advantage survives every
-learning-rate and training-length control, holds case by case, at every
-angle of attack and on never-seen geometries, and carries through to lift
-and drag coefficients (@sec-data-efficiency, @fig-hilift-data-efficiency).
-At full data the two architectures are at parity on HiLift and within a few
-percent on DrivAerML (@sec-full-data). MT2's contracts are verified: exact
-rotation and translation covariance (@sec-pose) and, with the similarity
-gauge on, insensitivity to biased sampling density (@sec-robustness-density);
-MT2 also tolerates a ten-fold learning-rate change that destabilizes
-GeoTransolver and trains in less peak memory (@sec-mt2-cost). On the
-interior, GeoTransolver's interacting query tokens lead MT2's passive decode
-(@sec-interior). And across a flow-regime boundary nothing tested
-generalizes (@sec-regime-extrapolation).
+Seven results are settled to the standard of the fair-comparison protocol
+(@sec-protocol). Each carries its numbers and its own scope statement in its
+home section; this chapter adds only the limits.
+
+- Data efficiency on HiLiftAeroML surface pressure, with its learning-rate,
+  training-length, paired per-case, stratified and force-coefficient
+  controls (@sec-data-efficiency).
+- Full-data accuracy on HiLiftAeroML and on DrivAerML (@sec-full-data).
+- The pose contract: exact rotation and translation covariance (@sec-pose).
+- Learning-rate robustness, and the memory and compute comparison, as
+  trained and with the exact pool-then-project rewrite (@sec-mt2-cost).
+- Sampling-density robustness of MT2 with the similarity gauge, and the
+  failure of the constant-gauge configuration without it
+  (@sec-robustness-density).
+- Interior accuracy: GeoTransolver's interacting query tokens lead MT2's
+  passive decode (@sec-interior).
+- Regime extrapolation: nothing tested generalizes across a flow-regime
+  boundary (@sec-regime-extrapolation).
 
 ## Limits of each headline claim {#sec-review-honesty}
 
@@ -39,10 +43,9 @@ every rung of the nested splits (@sec-problem, @sec-metrics). The log-log
 slope of a segment is −Δ log(error)/Δ log(cases) between adjacent rungs; a
 larger slope means error falls faster with data. GeoTransolver's slope is
 0.50 from 35 to 210 cases and 0.74 from 210 to 1,260; MT2's is 0.43 and
-then 0.25. GeoTransolver steepens as data grows and MT2 flattens. Extending
-the last segment of each curve as a power law to 5,000 cases gives about
-0.015 for GeoTransolver and 0.029 for MT2: a naive extrapolation puts
-GeoTransolver ahead by a factor of two.
+then 0.25. GeoTransolver steepens as data grows and MT2 flattens. A naive
+power-law extrapolation of the two curves puts GeoTransolver at 0.015 and
+MT2 at 0.029 at 5,000 cases, a factor of two in GeoTransolver's favour.
 
 ```{python}
 #| label: fig-slope-extrapolation
@@ -159,14 +162,35 @@ resolution or label floor looks like (@sec-shared-floor); if both curves
 approach one floor, GeoTransolver's steep segment cannot continue either.
 And the shape is what a bias–variance argument predicts for a model with
 more built-in prior: it starts lower and has less left to learn. None of
-this is a proof; the token-count test, the third seed and the dedicated
-unseen-geometry splits in @sec-open-questions are what would settle it.
+this is a proof; the 20,000-token floor test, the 510-case rung, the third
+seed at 210 cases and the dedicated unseen-geometry splits
+(@sec-open-questions) are what would settle it, and none is yet measured
+(@sec-program-status).
+
+### The HiLift accuracy figures are validation-set figures {#sec-limits-validation}
+
+**Every HiLiftAeroML accuracy number in this book is scored on the shared
+180-case validation set; the sealed 360-case test set has not been spent on
+the accuracy claims.** The protocol evaluates the final-epoch checkpoint of
+every run, so no checkpoint is selected on validation error, and the
+validation set entered a training decision exactly once, for each
+architecture's learning-rate choice on the full 1,260-case split
+(@sec-lr-protocol). The ladder therefore carries no checkpoint-selection
+optimism, but the learning rates were chosen on the same 180 cases the ladder
+is scored on, and every control, ablation and stratified readout in
+@sec-data-efficiency reads the same cases. The sealed test split was spent
+only on regime extrapolation and the raw-coordinate discriminator
+(@sec-regime-extrapolation, @sec-limits-regime), which train on different
+splits. What would settle it is one sealed evaluation of the 35-case
+checkpoints of all three architectures on the 360 test cases; the claim
+stands if the 2.8x factor survives there within the two-seed spread. It is
+not yet measured (@sec-program-status).
 
 ### The mechanism is not identified {#sec-limits-mechanism}
 
 **Five single-factor ablations of MT2 at 35 cases moved its error by at
-most 16%, while its gap to the Transolver family is 190%; the ingredient
-that carries the data efficiency is unknown** (@sec-mechanism). Adding raw
+most 16%, while GeoTransolver's error at that rung is 2.8x MT2's; the
+ingredient that carries the data efficiency is unknown** (@sec-mechanism). Adding raw
 coordinates (which breaks the SE(3) contract), replacing the invariant seeds
 by raw vectors, turning the similarity gauge on, turning the measure weights
 off, and removing the relational routing from the encoder each changed the
@@ -182,13 +206,29 @@ normals and the freestream vector, and must learn every drive-relative
 quantity, above all the local incidence n·d, from data. On HiLift the angle
 of attack spans 4° to 22°, so incidence is the leading-order case-dependent
 physics; on DrivAerML the freestream is fixed, n·d is a raw input already,
-and the same ladder protocol shows the two architectures tied at its
-smallest rung of 14 cases (@sec-nb-g1g2-verdict). That asymmetry is the one
-candidate no ablation touched, and the transplant test in
-@sec-open-questions is running. The stratified evidence says where the
-advantage lives, not why: the baselines' error is flat across every angle
-and geometry while MT2's tracks flow difficulty, but that does not name the
-coupling.
+and the same ladder protocol at a frozen learning rate of 3e-3 for both
+architectures runs the other way: the two are tied at 14 cases
+(GeoTransolver/MT2 0.99, near the trivial-predictor level) and GeoTransolver
+is 1.2–1.3x more accurate than MT2 at every rung from 27 to 218 cases
+(@tbl-drivaerml-dataeff-ladder in @sec-data-efficiency). The HiLift advantage does
+not transfer to DrivAerML.
+
+That asymmetry is the one candidate the ablations could not touch, and the
+transplant test addressed it directly: GeoTransolver and Transolver at 35
+cases with n·d, r̂·d and |r|/L appended to their per-cell inputs, everything
+else frozen, each at its better learning rate, two seeds. The preregistered
+bands were: carrier identified if both reach 0.235 or below (halfway to MT2
+in log-error); falsified at 0.30 or above; inconclusive between. Transolver
+moved from 0.402 to 0.294/0.301 (mean 0.297), inside the inconclusive band:
+a 1.35x gain, a quarter of the log-gap to MT2. GeoTransolver moved from 0.392
+to 0.400/0.388, inside the falsifier band. The invariant inputs are not the
+carrier for GeoTransolver and at most a partial contributor for Transolver;
+the advantage lies in MT2's routing and decoder structure as a whole, and no
+single ingredient has been isolated. The follow-up this leaves, whether
+Transolver's partial gain persists at 210 cases, is not yet measured
+(@sec-program-status). The stratified evidence says where the advantage
+lives, not why: the baselines' error is flat across every angle and geometry
+while MT2's tracks flow difficulty, but that does not name the coupling.
 
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 
@@ -201,8 +241,20 @@ architectures lose about a factor of ten, and the out-of-regime errors
 (0.24–0.33) are worse than MT2 reaches from 35 in-regime cases (0.138). MT2
 keeps the lower absolute error; GeoTransolver has the smaller d because its
 in-regime floor is higher. Coverage of the regime, not architecture, governs
-this axis; whether GeoTransolver's smaller ratio comes from its
-raw-coordinate inputs is open (@sec-open-questions).
+this axis.
+
+Whether GeoTransolver's smaller ratio comes from its raw-coordinate inputs
+was tested directly: MT2 with a raw-coordinate channel appended to its seed
+invariants, which breaks the SE(3) contract, trained on the stall split with
+two seeds and evaluated once on the sealed post-stall test. The
+preregistered bands were: raw coordinates carry the ratio if d is 11.0 or
+below with out-of-regime pressure below 0.245; they do not if d is 12.0 or
+above or pressure is 0.255 or above. Measured: d = 13.1/13.7, against 12.5
+for MT2 as trained and 9.3 for GeoTransolver, with sealed-test pressure
+0.269/0.275. The falsifier fires: raw-coordinate inputs do not give MT2
+GeoTransolver's smaller ratio, and no mechanism for it has been isolated.
+The discriminator the preregistration names next, GeoTransolver with its raw
+coordinates removed, is not yet measured (@sec-program-status).
 
 ### Interior accuracy trails GeoTransolver by 2.6x {#sec-limits-interior}
 
@@ -220,19 +272,21 @@ decode worse by 1.43x. Two designs are named and not measured
 freestream direction, and a request-independent canonical probe lattice that
 interacts GeoTransolver-style and from which queries decode passively.
 
-### Exact query independence costs 2.7–3.9x and is not in the reference configuration {#sec-limits-query-independence}
+### Exact query independence costs 3.0–3.7x and is not in the reference configuration {#sec-limits-query-independence}
 
 **MT2's surface predictions in the reference configuration depend weakly on
 which other points are sampled; making them exactly independent costs
-2.7–3.9x in accuracy, so every surface checkpoint behind the headline
+3.0–3.7x in accuracy, so every surface checkpoint behind the headline
 results is the interacting configuration** (@sec-query-independence). Query
 independence means the prediction at a point does not change when the other
 queried points change. In the reference configuration the heads read from
 the interacting encoder tokens, and swapping the companion set moves a
 point's prediction by about 7% (2% for GeoTransolver at a shared 5,000-cell
 prefix). The optional query-independent configuration replaces the heads
-with passive read blocks; it is exactly independent in fp64 and 2.7–3.9x
-less accurate on DrivAerML surface pressure, including at matched memory.
+with passive read blocks; it is exactly independent in fp64 and 3.0–3.7x
+less accurate on DrivAerML surface pressure: 3.5–3.7x against the
+interacting reference at the same learning rate, 3.0–3.3x against the
+6,500-token control at matched memory.
 Evaluate-anywhere semantics is a contract with a measured price.
 
 ### Cross-family transfer is a data property {#sec-limits-transfer}
@@ -240,8 +294,8 @@ Evaluate-anywhere semantics is a contract with a measured price.
 **No checkpoint of any architecture tested transfers zero-shot across
 vehicle families; what moves cross-family error is the diversity of the
 training data, not the architecture** (@sec-industrial-mt1). The similarity
-gauge, which fixes the sampling-density failure, leaves zero-shot transfer
-unchanged. A claim of family-portable surface physics from any of these
+gauge, which fixes the constant-gauge configuration's sampling-density
+failure (@sec-robustness-density), leaves zero-shot transfer unchanged. A claim of family-portable surface physics from any of these
 architectures would need a corpus in which geometry, pose, scale and regime
 vary one at a time (@sec-open-questions).
 
@@ -262,19 +316,24 @@ matches the PDE.
 ## Open questions, and what would settle each {#sec-open-questions}
 
 Each question has a preregistered prediction in readout units and a
-falsifier (@sec-nb-w2-prereg, @sec-nb-inv-prereg, @sec-nb-lvt-verdict,
-@sec-nb-g5-prereg). Unless stated, the readout is the pressure rel-L2 of
-@sec-limits-data-efficiency and MT2/GT is MT2's error divided by
-GeoTransolver's at the same rung (below 1 means MT2 more accurate).
+falsifier (@sec-nb-w2-prereg, @sec-nb-lvt-verdict, @sec-nb-g5-prereg), and
+none is yet measured (@sec-program-status). Unless stated, the readout is the
+pressure rel-L2 of @sec-limits-data-efficiency. The preregistrations were
+written in MT2/GT, MT2's error divided by GeoTransolver's at the same rung,
+so below 1 favours MT2; this is the inverse of the GeoTransolver/MT2
+convention used elsewhere in the book, and each threshold below is labelled
+with its direction.
 
-- **Is the two-seed result robust?** A third seed at 35 and 210 cases for
-  all three architectures. Settled if every third-seed result lands inside
-  the two-seed spread widened by 1.5x; falsified if any rung mean moves by
-  more than 15%.
+- **Is the two-seed result robust at 210 cases?** A third seed at 210 cases
+  for all three architectures; the 35-case third seed is in and inside the
+  bands (@sec-data-efficiency). Settled if every third-seed result lands
+  inside the two-seed spread widened by 1.5x; falsified if the rung mean
+  moves by more than 15%.
 - **Is the approach to parity smooth?** The 510-case rung between 210 and
   1,260. Prediction: GeoTransolver 0.075–0.095, MT2 0.048–0.056, MT2/GT
-  about 0.6. If MT2/GT is already 0.9 or above, MT2's curve is flat from
-  210 on and the slope objection stands in full.
+  about 0.6 (GeoTransolver 1.7x behind). If MT2/GT is already 0.9 or above
+  (GeoTransolver within 1.1x), MT2's curve is flat from 210 on and the
+  slope objection stands in full.
 - **Is the flattening a protocol floor?** Both architectures at 1,260 cases
   with 20,000 rather than 10,000 sampled points per case. If the floor is
   the protocol's, both improve by a similar factor (within 5 percentage
@@ -284,30 +343,22 @@ GeoTransolver's at the same rung (below 1 means MT2 more accurate).
   GeoTransolver on 126 geometries at a single angle of attack, against a
   matched-size mixed-angle control. If the carrier is the exact
   representation of direction dependence, MT2/GT is 0.40–0.55 on the mixed
-  control and 0.80 or above at the single angle; 0.60 or below at the
-  single angle falsifies it.
+  control (GeoTransolver 1.8–2.5x behind) and 0.80 or above at the single
+  angle (GeoTransolver within 1.25x); 0.60 or below at the single angle
+  (GeoTransolver 1.7x or more behind) falsifies it.
 - **Is the advantage geometry memorization?** The unseen-geometry splits at
   210 and 40 cases, whose validation geometries appear at no angle in
   training. Prediction: MT2/GT within 0.1 of the same-size rungs (about
-  0.41 at 210; 0.35–0.5 at 40). MT2/GT of 0.8 or above on either rung
-  re-attributes the advantage to angle interpolation on seen geometries.
-- **Are the drive-relative invariants the carrier?** GeoTransolver and
-  Transolver at 35 cases with n·d, r̂·d and |r|/L appended to their inputs,
-  everything else frozen (reference: MT2 0.138, Transolver 0.40,
-  GeoTransolver 0.39). Carrier identified if both reach 0.235 or below
-  (halfway to MT2 in log-error), fully identified at 0.16 or below (within
-  1.15x of MT2); falsified if both stay at 0.30 or above. A mixed outcome
-  is read per architecture.
-- **Does GeoTransolver's smaller regime-extrapolation ratio come from raw
-  coordinates?** MT2 with a raw-coordinate channel on the stall split.
-  Confirmed at d of 11.0 or below with out-of-regime pressure below 0.245;
-  refuted at d of 12.0 or above or pressure of 0.255 or above.
+  0.41 at 210; 0.35–0.5 at 40; GeoTransolver 2–3x behind). MT2/GT of 0.8 or
+  above on either rung (GeoTransolver within 1.25x) re-attributes the
+  advantage to angle interpolation on seen geometries.
 - **Can off-surface context be supplied without giving up the passive
   interior decode?** Wake-aligned probe tokens, and a request-independent
   canonical probe set that interacts GeoTransolver-style. The bar the
   previous off-surface design failed is interior pressure within 1.5x of
-  GeoTransolver's. Neither launches until the carrier question is settled,
-  because its answer decides which architecture the interior work builds on.
+  GeoTransolver's. The transplant result (@sec-limits-mechanism) settles
+  which architecture this work builds on: the small-data advantage is not a
+  feature GeoTransolver can adopt, so both designs are MT2 designs.
 - **Which generalization axes does structure buy, one at a time?** A 3D
   RANS corpus generated with counterfactual twin draws per factor (pose,
   scale, Reynolds number, layout, mesh), so each axis is tested exactly.
@@ -327,22 +378,29 @@ project-then-pool, which saves a (points × slices × hidden/2) activation per
 layer for the backward pass; because the projection is affine and the slice
 mixture is a softmax, pooling first and projecting second is an exact
 identity (fp64 maximum difference 4e-15) that saves a (points × 8)
-activation instead. Peak training memory at 10,000 tokens fell from 9.8 GB
-to 3.6 GB, below GeoTransolver's 4.6 GB, with no change in function
-(@sec-mt2-cost, @sec-nb-geo-pool-memory); every trained MT2 checkpoint in
-this book came from the earlier implementation. The headroom is what makes
-the 20,000-token floor test and larger point budgets affordable.
+activation instead. MT2's peak training memory at 10,000 tokens is 9.8 GB as
+trained; 3.6 GB with the exact pool-then-project rewrite, against
+GeoTransolver's 4.6 GB (@sec-mt2-cost, @sec-nb-geo-pool-memory). Every
+trained MT2 checkpoint in this book came from the 9.8 GB implementation, 2.1x
+GeoTransolver's memory, and no MT2 run in the book ran at or below 4.6 GB;
+the headroom is a property of the new implementation, not of any reported
+result. What it buys is prospective: the 20,000-token floor test and larger
+point budgets become affordable.
 
 **Measure weights: a training-time cost and an inference-time gain.** MT2
 weights each surface point by its cell area in the slice routing and the
 pooled anchors. Under uniform 10,000-point sampling the weights are a source
 of gradient variance rather than information: turning them off improves the
-35-case error by 12% (0.88x). Together with the similarity gauge they are
-also what make MT2 insensitive to sampling density at inference: 1.20x
-degradation under a 10:1 biased density against 13–14.5x for the constant
-gauge and 3.6x for GeoTransolver (@sec-robustness-density). The trade has
-not been measured as a trade; training without weights and evaluating under
-biased density would put the cost and the gain on one table.
+35-case error by 12% (0.88x). With the similarity gauge on, they are also
+what make MT2 insensitive to sampling density at inference: MT2 with the
+similarity gauge degrades 1.20x under a 10:1 biased density on DrivAerML,
+against 3.6x for GeoTransolver (@sec-robustness-density). That is not the
+configuration behind any accuracy number in this book: the similarity gauge
+costs 8% at 35 cases, and the constant-gauge configuration behind every
+accuracy result degrades 13–14.5x under the same bias, worse than
+GeoTransolver. The trade has not been measured as a trade; training without
+weights and evaluating under biased density would put the cost and the gain
+on one table.
 
 **Area-proportional sampling, untested.** Sampling points with probability
 proportional to cell area, so that every sampled point carries equal measure
@@ -350,28 +408,33 @@ and the explicit weights become uniform, would remove the gradient-variance
 cost while preserving the measure semantics of the routing. It moves density
 robustness from the model to the sampler, which is acceptable in training
 and a liability at inference if the query cloud is not under the model's
-control. Nothing in the program has measured it.
+control. It is not yet measured (@sec-program-status).
 
 ## What would change the recommendation {#sec-review-roads}
 
 The current recommendation is GeoTransolver where interior accuracy is the
-target, and MT2 for surface prediction where training data are scarce or
-exact pose or density contracts are required (@sec-interior,
-@sec-data-efficiency). Three outcomes would change it.
+target, and MT2 for surface prediction where training data are scarce, an
+exact pose contract is required, or (with the similarity gauge on) sampling
+density at inference is not under the model's control (@sec-interior,
+@sec-data-efficiency, @sec-robustness-density). Three outcomes would change
+it.
 
-**GeoTransolver with invariant inputs becomes the production surface
-model** if the transplant test lands both baselines at 0.16 or below at 35
-cases and the 510-case rung and the 20,000-token test show GeoTransolver
-keeping its steeper large-data slope. The small-data advantage would then be
-a portable feature, three scalars per point, and MT2's remaining case would
-be its contracts, of which the canonical-frame GeoTransolver already matches
-pose invariance at 1.01x cost (@sec-pose).
+**GeoTransolver becomes the surface recommendation at all but the smallest
+training sets** if the 510-case rung and the 20,000-token test show
+GeoTransolver keeping its steeper large-data slope (MT2/GT 0.9 or above at
+510 cases; GeoTransolver improving ten percentage points more than MT2 at
+20,000 tokens). The shorter road to this outcome is closed: the transplant
+test showed the small-data advantage is not three scalars per point that
+GeoTransolver could adopt (@sec-limits-mechanism), so MT2's small-data case
+stands, and its remaining case at full data is its contracts, of which the
+canonical-frame GeoTransolver already matches pose invariance at 1.01x cost
+(@sec-pose).
 
 **MT2 becomes the surface recommendation across the whole data range** if
-the transplant test stays at 0.30 or above for both baselines, the
-unseen-geometry ladder holds within 0.1 of the same-size rungs, the
-510-case rung lands near MT2/GT 0.6, and the token test moves both
-architectures by a similar factor: the advantage is then architectural and
+the unseen-geometry ladder holds within 0.1 of the same-size rungs, the
+510-case rung lands near MT2/GT 0.6 (GeoTransolver 1.7x behind), and the
+token test moves both architectures by a similar factor: with the transplant
+already falsified for GeoTransolver, the advantage is then architectural and
 the flattening is the protocol's floor. The interior stays with
 GeoTransolver until a probe design closes the gap.
 
@@ -380,7 +443,7 @@ canonical probe set brings MT2's interior pressure within 1.5x of
 GeoTransolver's while keeping its surface accuracy and contracts. Such a
 hybrid, MT2's encoder and surface heads with a GeoTransolver-style
 interacting core on a fixed probe lattice, would be priced against MT2's
-query-independent configuration, which pays 2.7–3.9x on the surface task at
-matched memory (@sec-query-independence), and against a canonicalized
+query-independent configuration, which pays 3.0–3.7x on the surface task
+(3.0–3.3x at matched memory; @sec-query-independence), and against a canonicalized
 GeoTransolver rather than against MT2 alone. If none of these fires, the
 recommendation stands as written, with the bounds of this chapter attached.

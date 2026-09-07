@@ -6,11 +6,12 @@ translation-invariant scalars built from the surface geometry and the
 freestream direction, and vector outputs are assembled at the very end
 from an equivariant basis. The result is a surrogate whose rotation and
 translation covariance is exact to floating-point roundoff rather than
-learned, whose parameter count and training memory are below
-GeoTransolver's at the same token budget (8.9M vs 9.0M parameters,
-3.6 GB vs 4.6 GB at 10,000 tokens), and whose accuracy advantage on small
-training sets (@sec-data-efficiency) comes from the combination of its
-parts rather than from any one of them (@sec-mechanism). This chapter
+learned, whose parameter count matches GeoTransolver's (8.9M vs 9.0M)
+and whose peak training memory at 10,000 tokens is 9.8 GB as trained and
+3.6 GB with the exact pool-then-project rewrite (the same function to
+$4\times10^{-15}$; GeoTransolver 4.6 GB), and whose accuracy advantage
+on small training sets (@sec-data-efficiency) comes from the combination
+of its parts rather than from any one of them (@sec-mechanism). This chapter
 describes what MT2 computes, states its contracts as the tests that
 verify them, and prices each design choice with the measurements from
 the results chapters.
@@ -128,8 +129,11 @@ $$
 c = \frac{1}{N}\sum_i x_i, \qquad L = L_{\mathrm{ref}} = 8.0,
 $$
 
-where $L_{\mathrm{ref}}$ is the `reference_length` in the dataset's
-length unit. With the similarity gauge on,
+where $L_{\mathrm{ref}}$ is the `reference_length`. The recipe
+nondimensionalizes every coordinate by the dataset's per-case reference
+length before the model sees it (5 m on DrivAerML), so the constant 8.0
+is in those nondimensional units: 40 m physical on DrivAerML. With the
+similarity gauge on,
 
 $$
 \tilde w_i = \frac{w_i}{\sum_j w_j}, \qquad
@@ -330,7 +334,7 @@ normals, drive and weights; tolerances are absolute.
 | `test_geo_pool_then_project_is_exact` | pooling the eight invariants over slices then projecting equals projecting then pooling, for both block types | $10^{-12}$, rtol 0 |
 | `test_all_parameters_receive_gradients` (5 configurations) | every parameter receives a gradient (a requirement of distributed data parallel) | exact |
 | `test_head_variants_run_under_bf16_autocast` (3 heads) | the head variants run and backpropagate under bf16 autocast with finite outputs | finite |
-| `test_a35b_ablation_flags_run_and_differ`, `test_raw_coord_channel_breaks_equivariance_by_design` | the ablation flags change the output; `use_relational_geo=False` stays exactly equivariant; `seed_mode="raw"` and `raw_coord_channel` break rotation covariance by more than $10^{-3}$ | as stated |
+| `test_a35b_ablation_flags_run_and_differ`, `test_raw_coord_channel_breaks_equivariance_by_design` | the flags of the single-factor ablation at 35 training cases (@sec-mechanism) each run, give finite outputs and change the prediction; `use_relational_geo=False` stays exactly equivariant; `seed_mode="raw"` and `raw_coord_channel` break rotation covariance by more than $10^{-3}$, which is their purpose | as stated |
 
 The rotation test uses a proper rotation ($\det Q = +1$). Under a
 *reflection* the picture is asymmetric, and the tests say so
@@ -374,16 +378,21 @@ What is not a contract:
 ## Cost {#sec-mt2-cost}
 
 **At the recipe dimensions (hidden 192, 12 layers, 256 slices) MT2 has
-8.9M parameters and trains in 3.6 GB at 10,000 tokens per case, below
-GeoTransolver's 9.0M parameters and 4.6 GB at the same token count.**
-The memory and speed figures are for one forward and backward pass in
-bf16 autocast on an RTX 4090 at batch size 1: peak allocated memory
-3.6 GB and 283 ms per training step. GeoTransolver's 4.6 GB is the
-peak recorded during a training run on the same protocol, so it
-includes optimizer state; for a 9M-parameter model that is under
-0.2 GB, which does not change the ordering. The passive decoder adds
-four read blocks (2.1M parameters, 11.0M total) and is not part of the
-configuration behind the results chapters' accuracy numbers.
+8.9M parameters, against GeoTransolver's 9.0M, and its peak training
+memory at 10,000 tokens per case is 9.8 GB as trained and 3.6 GB with
+the exact pool-then-project rewrite, against GeoTransolver's 4.6 GB.**
+Every MT2 checkpoint in this book was trained by the project-then-pool
+implementation at 9.8 GB peak, 2.1x GeoTransolver's memory at the same
+token count; no MT2 run in this book ran at or below 4.6 GB. The
+identity derived below brings the same parameters and the same function
+(fp64 max difference $4\times10^{-15}$) to 3.6 GB. That figure, and the
+283 ms per training step, are for one forward and backward pass in bf16
+autocast on an RTX 4090 at batch size 1. GeoTransolver's 4.6 GB is the
+peak recorded during a training run on the same protocol, so it includes
+optimizer state; for a 9M-parameter model that is under 0.2 GB. The
+passive decoder adds four read blocks (2.1M parameters, 11.0M total) and
+is not part of the configuration behind the results chapters' accuracy
+numbers.
 
 Where the memory goes, and why the ordering of two operations decides
 it. Each slice layer holds the pairwise invariants $g_{is}$, a tensor of
@@ -393,7 +402,7 @@ pooled over slices with $\pi_{is}$. Written as "project, then pool",
 autograd must save the projected tensor $(B, N, S, 96)$ for the
 backward pass: at $N = 10{,}000$ and $S = 256$ that is $2.5\times10^8$
 elements, about 0.5 GB in bf16, per layer, or 5.9 GB across 12 layers,
-more than the whole model now uses. The projection is affine and
+which is the gap between 9.8 GB and 3.6 GB. The projection is affine and
 $\pi_{is}$ sums to one over slices, so
 
 $$
@@ -404,66 +413,63 @@ and "pool, then project" produces the identical tensor while saving
 only $(B, N, 8)$. The same identity applies in the read blocks. The
 contract test checks it at $10^{-12}$ on both block types, and at the
 model level the two orderings with identical weights differ by
-$4\times10^{-15}$ in fp64; checkpoints are interchangeable. The trained
-MT2 checkpoints in this book were produced with the less efficient
-ordering, which evaluates the same function, so no reported accuracy
-depended on the extra memory. The removed projection was also about
-2 GFLOP per layer each way, which is why the step time falls with the
-memory. The remaining $(B, N, S, 8)$ invariants and the $(B, N, S, 3)$
-separation vectors are the dominant activations that remain; MT2's
+$4\times10^{-15}$ in fp64; checkpoints are interchangeable. Because the
+two orderings evaluate the same function, the 9.8 GB at which the
+reported checkpoints were trained bought no accuracy; it was the cost of
+an implementation, not of the model. The removed projection was also
+about 2 GFLOP per layer each way, which is why the step time falls with
+the memory. After the rewrite the $(B, N, S, 8)$ invariants and the
+$(B, N, S, 3)$ separation vectors are the dominant activations; MT2's
 memory is close to linear in tokens per case.
 
 ## Design choices and their measured cost {#sec-mt2-design}
 
 **No single ingredient of MT2 carries its small-data accuracy; the
-choices below are priced individually, and the largest single effect is
-16%.** The reference measurement is the single-factor ablation at 35
-training cases of HiLiftAeroML (@sec-data-efficiency for the split,
-@sec-mechanism for the full readout): pressure relative L2 error on the
-shared 180-case validation set, protocol P0, two seeds, ratio of the
-variant's error to the reference MT2 error of 0.138 (greater than one
-means the variant is worse). Density robustness is measured on
-DrivAerML (@sec-robustness-density): the ratio of pressure error under a
-subsample whose sampling density varies 10:1 across the surface, with
-exact inclusion-probability weights supplied as $w_i$, to the error
-under a uniform subsample of the same size.
+largest single effect measured is 16%, and the two contracts that cost
+the most (density robustness and query independence) are bought by
+configurations other than the one behind the accuracy results.** Each
+choice below carries one headline number and a cross-reference to the
+chapter that defines the measurement and reports the full readout. The
+ablation numbers are ratios of a variant's pressure error to the
+reference MT2 error (0.138) in the single-factor ablation at 35
+HiLiftAeroML training cases under the frozen protocol of @sec-protocol,
+two seeds; greater than one means the variant is worse (@sec-mechanism).
 
-- **Measure weights.** Measure-weighted routing and the measure-weighted
-  gauge exist to make the model read a sampled integral rather than a
-  point population. The gauge delivers that: under 10:1 density bias,
-  MT2 with the similarity gauge degrades 1.20x, against 13–14.5x with
-  the constant gauge, 3.6x for GeoTransolver and 1.7–2.1x for MT1, and
-  in-family accuracy is unchanged within seed spread. At 35 training
-  cases the same choices cost accuracy: turning the routing weights off
-  gives 0.88x (12% better), and turning the similarity gauge on gives
-  1.08x (8% worse). Measure awareness is a robustness property paid for
-  in small-data accuracy, not a source of it.
-- **Relational routing.** Removing the anchor invariants from routing
-  and read-back (`use_relational_geo=False`, Transolver-style
-  feature-only slicing) gives 1.16x: the anchor constellation is worth
-  16% at 35 cases and is the largest single contribution measured.
-- **Exactness of equivariance.** Appending raw gauge-normalized
-  coordinates and normal components to the seeds (`raw_coord_channel`),
-  which breaks rotation covariance, gives 1.04x; replacing the five
-  invariant seeds by the raw vectors $[r_i, \hat n_i, \hat d]$
-  (`seed_mode="raw"`) gives 0.99x. Exact SE(3) equivariance is a
-  contract MT2 delivers, and it removes the need for a canonical frame
-  or a freestream estimate at inference (@sec-pose), but it is not what
-  buys the accuracy at 35 cases. Every variant tested keeps an invariant
-  path through the relational invariants, so what these ablations show
-  is that adding coordinates does not help, not that invariants do not
-  matter.
-- **Query independence.** Making predictions independent of the other
-  queries costs 2.7–3.9x on DrivAerML surface pressure
-  (@sec-query-independence): the passive decoder trained on the frozen
-  protocol reaches 0.203–0.211 against 0.0697/0.0671 for the interacting
-  reference (2.7x) and 3.8–4.0x GeoTransolver's error; the
-  anchor-conditioned variant (`n_anchors`, a fixed interacting core with
-  all points decoding passively) does not recover it, including at
-  matched memory (6.35 vs 6.56 GB): 0.209/0.221 vs 0.0697/0.0671. The
-  iterated write-back of every token is where the surface accuracy comes
-  from. On the boundary→interior task the same trade is 2.6x
-  (@sec-interior).
+**Relational routing** is the largest single contribution. Removing the
+anchor invariants from routing and read-back (`use_relational_geo=False`,
+Transolver-style feature-only slicing) costs 1.16x at 35 cases
+(@sec-mechanism).
+
+**Exactness of equivariance** is a contract, not the source of the
+accuracy. Appending raw coordinates to the seeds (`raw_coord_channel`)
+costs 1.04x and replacing the invariant seeds by raw vectors
+(`seed_mode="raw"`) gives 0.99x, so adding coordinates does not help;
+every variant keeps an invariant path through the relational invariants,
+so these ablations do not show that invariants are dispensable. What the
+contract removes is the need for a canonical frame or a freestream
+estimate at inference (@sec-pose).
+
+**Measure weights** are a robustness property paid for in small-data
+accuracy. Turning the routing weights off gives 0.88x and turning the
+similarity gauge on gives 1.08x at 35 cases (@sec-mechanism). Under a
+10:1 sampling-density bias on DrivAerML, MT2 *with the similarity gauge*
+degrades 1.20x; that configuration is not the one behind any accuracy
+number in this book and costs the 8% just stated. The constant-gauge
+configuration behind every accuracy result degrades 13–14.5x, worse
+than GeoTransolver's 3.6x and MT1's about 1.8x (1.6–2.2x over three
+seeds) (@sec-robustness-density).
+
+**Query independence** costs 3.0–3.7x on DrivAerML surface pressure
+(@sec-query-independence). The passive decoder reaches 0.203–0.211
+against 0.0577 for the interacting reference at learning rate 1e-3, the
+3.5–3.7x end of the range; the anchor-conditioned variant (`n_anchors`,
+a fixed interacting core with all points decoding passively) reaches
+0.209/0.221 against 0.0697/0.0671 for the 6,500-token interacting
+control, the 3.0–3.3x end. The 6,500-token control matches the
+anchor-conditioned variant in memory (6.56 vs 6.35 GB), but it is a
+token-count control, not a matched-memory comparison with GeoTransolver
+(@sec-mt2-cost). On the boundary→interior task the same trade is 2.6x
+(@sec-interior).
 
 The flags that select these variants, and the remaining optional
 channels, are listed once here so the results chapters can name them.

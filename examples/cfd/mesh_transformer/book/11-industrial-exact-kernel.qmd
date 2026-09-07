@@ -2,10 +2,12 @@
 
 On solver-labelled industrial data the exact-kernel MeshTransformer (MT1
 after this point) is an accurate but narrow regressor. On AirFRANS, a 2D
-RANS airfoil benchmark, it reaches the front of the published baseline
-pack on velocity and is second only to GLOBE on surface pressure, and its
-recommended configuration extrapolates to unseen Reynolds numbers and
-angles of attack within 1.2–2x of its in-distribution error. On
+RANS airfoil benchmark, it matches the AirFRANS-paper baselines on
+velocity and is about 10x behind MARIO and 70x behind GLOBE in the same
+table; on surface pressure it is about 4x better than MARIO and about 18x
+behind GLOBE; and its recommended configuration extrapolates to unseen
+Reynolds numbers and angles of attack within 1.2–2x of its
+in-distribution error. On
 DrivAerML, a 3D vehicle benchmark, its gain over the plain architecture
 comes almost entirely from the boundary-trace formulation (3.8x at the
 operating configuration) and from capacity (2.4x); the exact singular
@@ -82,8 +84,9 @@ mechanism helps).
 
 : The AirFRANS mechanism ladder. Each row is a single-factor change on
 the scarce split at 3–5 seeds; the effect is the ratio of x-velocity
-z-score MSE without to with the mechanism. Source: `output/airfrans_sweep`
-run logs summarised in the notebook (@sec-notebook). {#tbl-airfrans-ladder}
+z-score MSE without to with the mechanism. Not reproducible from
+`results/`; transcribed from `output/airfrans_sweep` run logs (notebook
+record @sec-nb-airfrans-v1, @sec-nb-h4-verdict). {#tbl-airfrans-ladder}
 
 Two rows carry lessons beyond this dataset. The decay envelope is
 exactly enforced and exactly wrong: a wake does not decay like a point
@@ -112,15 +115,17 @@ not a resource-matched one.
 
 : Per-sample z-score MSE on the official AirFRANS scarce test set.
 Published columns are single reported values; the MT1 column is the
-range over three seeds. Source: `output/airfrans_sweep` re-scores
-summarised in the notebook. {#tbl-airfrans-headtohead}
+range over three seeds. Not reproducible from `results/`; the MT1 column
+is transcribed from `output/airfrans_sweep` re-score logs.
+{#tbl-airfrans-headtohead}
 
-On velocity MT1 ties the best of the four dataset baselines (GraphSAGE)
-within seed spread; on surface pressure it is about 4x better than MARIO
-and about 18x behind GLOBE. The gap to GLOBE is real and is the
-measure of what GLOBE's bespoke components (hyperlayers, Padé kernels,
-multi-scale expansion) buy over the transformer-native simplification on
-this problem. The parity-odd channel is not in the recommended
+On velocity MT1 matches the AirFRANS-paper baselines (its three-seed
+range brackets GraphSAGE's 0.0146, the best of the four) and is about 10x
+behind MARIO and 70x behind GLOBE in the same table; on surface pressure
+it is about 4x better than MARIO and about 18x behind GLOBE. The gap to
+GLOBE is the measure of what GLOBE's bespoke components (hyperlayers,
+Padé kernels, multi-scale expansion) buy over the transformer-native
+simplification on this problem. The parity-odd channel is not in the recommended
 configuration: at three seeds its surface pressure sits at
 mean-predictor level (z-score MSE 1.0–1.5) even though its velocity is
 competitive, and its velocity gain disappears once the log-radial
@@ -153,8 +158,8 @@ x-velocity z-score MSE:
 : Zero-shot extrapolation on the official held-out AirFRANS splits;
 ranges over seeds. The fifth wide seed reaches 0.101 on the Reynolds
 split while clean in-distribution, the tail anomaly below surfacing under
-extrapolation stress. Source: `output/airfrans_evalx` summarised in the
-notebook. {#tbl-airfrans-extrap}
+extrapolation stress. Not reproducible from `results/`; transcribed from
+`output/airfrans_evalx` run logs. {#tbl-airfrans-extrap}
 
 The recommended configuration extrapolates to within roughly 1.2–2x of
 its own in-distribution error on both axes, where the two-member
@@ -182,8 +187,9 @@ log-radial features 1/5, 16 members 1/3, 32 members 1/3, doubled width
 pin it down. It is deterministic given the seed: an exact replication
 reproduces an anomalous seed's divergence to four significant digits.
 It is learning-rate gated: the log-radial configuration at 0.71x the
-protocol rate shows 0/5 anomalies, the previously anomalous seed dropping
-from 0.100 to 0.0156. And the edge is partly where the accuracy lives:
+protocol rate shows 0/5 anomalies; the seed that scores 0.100 at the
+protocol rate scores 0.0156 at the reduced rate. And the edge is partly
+where the accuracy lives:
 the backoff costs 22% in the clean-seed median (0.0156 against 0.0128).
 The practical consequence is to run learned-member configurations at the
 protocol rate with at least five seeds and report the census, since the
@@ -244,9 +250,9 @@ configuration to its left.
 
 : The DrivAerML ladder in the validation unit (relative MSE; relative L2
 is the square root). "Composition" is the flagship configuration used
-for every factorial below (≈0.8M parameters). Source: `output/drivaer_t2`
-and `output/drivaer_hc2` run logs summarised in the notebook.
-{#tbl-drivaerml-ladder}
+for every factorial below (≈0.8M parameters). Not reproducible from
+`results/`; transcribed from `output/drivaer_t2` and `output/drivaer_hc2`
+run logs. {#tbl-drivaerml-ladder}
 
 The batch step is an optimisation effect, not an architectural one, and
 it does not transfer to GeoTransolver, which finishes within 2% of itself
@@ -308,8 +314,9 @@ deep configuration (0.0213 against 0.0225–0.0227 at epoch 300, one seed).
 #|   GeoTransolver leads by about an order of magnitude at every rung, and
 #|   nothing about generalization. Parameter counts are nominal
 #|   configuration estimates; the counted values for the smallest and
-#|   largest rungs are 0.78M and 11.4M. Values from @tbl-drivaerml-ladder
-#|   (training-run validation metrics; no separate results/ artifact).
+#|   largest rungs are 0.78M and 11.4M. Not reproducible from results/;
+#|   the plotted values are transcribed from the training-run logs behind
+#|   @tbl-drivaerml-ladder.
 #| code-fold: true
 import json, statistics
 from pathlib import Path
@@ -402,8 +409,8 @@ node, 500 epochs, 3 seeds per arm, toggles the two independently.
 | ✓ | ✓ | 0.0138 / 0.0140 / 0.0156 | 0.0145 |
 
 : The trace factorial at flagship capacity, validation relative MSE.
-Source: `output/drivaer_trace_factorial` run logs summarised in the
-notebook. {#tbl-drivaerml-trace-factorial}
+Not reproducible from `results/`; transcribed from
+`output/drivaer_trace_factorial` run logs. {#tbl-drivaerml-trace-factorial}
 
 **The trace formulation is worth 3.8x at flagship capacity** (1.95x in
 relative L2), up from 2.03x at the small reference configuration: its
@@ -433,8 +440,8 @@ the exact boundary-integral structure carries the DrivAerML result.
 | 8 learned only, no exact | 0.0153 / 0.0151 / 0.0167 | 0.0157 |
 
 : The kernel-dictionary factorial at flagship capacity, validation
-relative MSE. Source: `output/drivaer_kernel_factorial` run logs
-summarised in the notebook. {#tbl-drivaerml-kernel-factorial}
+relative MSE. Not reproducible from `results/`; transcribed from
+`output/drivaer_kernel_factorial` run logs. {#tbl-drivaerml-kernel-factorial}
 
 Removing every exact member costs 8% (1.084x) with overlapping seed
 bands; removing every learned member costs nothing (0.0146 against
@@ -466,7 +473,8 @@ spread, so the default keeps them.
 #|   configuration: the trace effect grows with capacity (2.03x to 3.8x)
 #|   while the dictionary effect compresses to noise. How to read it: the
 #|   bars are in-distribution accuracy factors only; none of them is a
-#|   generalization result. Values from @tbl-drivaerml-trace-factorial,
+#|   generalization result. Not reproducible from results/; the values are
+#|   the transcribed run-log figures of @tbl-drivaerml-trace-factorial,
 #|   @tbl-drivaerml-kernel-factorial and @tbl-drivaerml-ladder.
 #| code-fold: true
 import matplotlib.pyplot as plt
@@ -559,8 +567,9 @@ both architectures the direction error is about 3x the magnitude error
 : Degradation ratios (held-out error over the same run's in-distribution
 error, relative L2) on the two within-family held-out sets, ranges over
 five seeds per architecture; both models retrained on the exclusion
-splits under the same harness and protocol. Source: `output/drivaer_ood`
-evaluations summarised in the notebook. {#tbl-drivaerml-within-family}
+splits under the same harness and protocol. Not reproducible from
+`results/`; transcribed from `output/drivaer_ood` evaluation logs.
+{#tbl-drivaerml-within-family}
 
 Three facts follow. First, both models generalize well inside the
 family: pressure degrades 2–7% and wall shear at most 14%, on real
@@ -718,8 +727,9 @@ evaluated zero-shot on the same pilot:
 cases also served as the development set for the reference-length scan
 above, so these are observations on a reused development set, not a
 sealed confirmation; the orders of magnitude involved make that
-distinction immaterial to the conclusion. Source: `output/drivaer_transfer_v2`
-summarised in the notebook. {#tbl-drivaerml-transferv2}
+distinction immaterial to the conclusion. Not reproducible from
+`results/`; transcribed from `output/drivaer_transfer_v2` evaluation logs.
+{#tbl-drivaerml-transferv2}
 
 Every retrained checkpoint is finite (the fixed-gauge rung was not) and
 every one is three to thirteen orders of magnitude past the
@@ -733,7 +743,8 @@ trains closer to the healthy band, transfers worse: at six checkpoints
 spanning thirteen orders this is an observation, not a claim, but it
 means in-family fit and cross-family robustness may be in tension for
 this architecture. Matching the source-measure magnitude between the
-families does not recover transfer either (@sec-notebook).
+families does not recover transfer either (no `results/` artifact; the
+notebook record is @sec-nb-measmech-verdict).
 
 Three independent probes, sampling density (next section), measure
 magnitude and geometry family, support one description: **the trained
@@ -761,9 +772,9 @@ trained at and degrades in both directions, catastrophically above it.
 #|   checkpoint under this sampler, not a statement about the operator at
 #|   random initialisation, whose output varies about 9% under the same
 #|   kind of resampling; it also does not separate the source-count and
-#|   query-count effects, which move together here. Values from the
-#|   resolution sweep summarised in the notebook (no separate results/
-#|   artifact).
+#|   query-count effects, which move together here. Not reproducible from
+#|   results/; the five values are transcribed from the resolution-sweep
+#|   evaluation logs (notebook record @sec-nb-hcc-summary).
 #| code-fold: true
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -908,5 +919,8 @@ order of magnitude above GeoTransolver's at matched sampling, and with
 accuracy specific to one sampling density. The successor architecture,
 MeshTransformer2 (@sec-mt2), keeps the contracts and the boundary-trace
 lesson, replaces the kernel decoder with soft-slice routing, and is
-compared with GeoTransolver at matched resources in @sec-full-data and
-@sec-data-efficiency.
+compared with GeoTransolver under the fair-comparison protocol
+(@sec-fair-comparison) in @sec-full-data and @sec-data-efficiency: 8.9M
+against 9.0M parameters at matched tokens per case, with MT2's peak
+training memory 9.8 GB as trained and 3.6 GB with the exact
+pool-then-project rewrite, against GeoTransolver's 4.6 GB.

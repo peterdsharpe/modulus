@@ -6,8 +6,10 @@ that fixes everything except the architecture: matched sampled points per
 case and epochs, each architecture at its own best learning rate, two or
 more seeds, shared validation cases, and sealed test splits opened once. The
 baselines are strong, not straw: GeoTransolver has at least as many
-parameters as MT2 (9.0M against 8.9M), trains in more memory (4.6 GB against
-3.6 GB at 10,000 tokens), and receives raw coordinates that MT2 never sees.
+parameters as MT2 (9.0M against 8.9M) and receives raw coordinates that MT2
+never sees. Memory is stated both ways throughout: MT2 peaks at 9.8 GB as
+trained and 3.6 GB with the exact pool-then-project rewrite (same function to
+4e-15), against GeoTransolver's 4.6 GB at 10,000 tokens.
 Two questions are settled here so that the results chapters need not carry
 them: MT2's exact equivariance is *not* an accuracy advantage over a
 canonicalized GeoTransolver (exactly pose-invariant at 1.01x cost), and
@@ -39,18 +41,18 @@ input.
 **Transolver** is the same family without the geometry encoder, the control
 that isolates what the encoder contributes. Per point it receives coordinates
 and normal; the freestream vector is broadcast to every point. Eight layers,
-hidden 256, 256 slices, 6.0M parameters. On the recipe datasets it trains at
-learning rate 3e-3, its best of the two rates run, where GeoTransolver and
-MT2 use 1e-3.
+hidden 256, 256 slices, 6.0M parameters. On HiLiftAeroML, the only recipe
+dataset on which it is run, it trains at learning rate 3e-3, its best of the
+two rates run.
 
 **MT2** receives position, unit normal and cell area per point and the unit
 freestream direction as its only global input, consumed through invariants
 and equivariant anchors only (@sec-mt2): 12 layers, hidden 192, 256 slices,
 8.9M parameters.
 
-| architecture | per-point inputs | global input | layers | hidden | slices | parameters | peak memory at 10k tokens |
+| architecture | per-point inputs | global input | layers | hidden | slices | parameters | peak memory at 10k tokens (as trained; with exact rewrite) |
 |---|---|---|--:|--:|--:|--:|--:|
-| MeshTransformer2 | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 3.6 GB |
+| MeshTransformer2 | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 9.8 GB as trained; 3.6 GB with the exact pool-then-project rewrite |
 | GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream velocity vector | 12 | 256 | 256 | 9.0M | 4.6 GB |
 | Transolver | centered coordinates, unit normal | freestream velocity vector, broadcast per point | 8 | 256 | 256 | 6.0M | not measured |
 
@@ -60,21 +62,30 @@ case. *Global input*: the one per-case vector. *Layers*: soft-slice attention
 blocks in the encoder. *Hidden*: width of the per-point feature vector.
 *Slices*: slice tokens per layer. *Parameters*: trainable parameters of the
 recipe configuration. *Peak memory*: largest allocated GPU memory over one
-forward-plus-backward step on one case of 10,000 sampled points in bfloat16
-(GeoTransolver's figure is from its training run, which adds under 0.2 GB of
-optimizer state); not measured for Transolver, which serves only as a
-same-family control on HiLiftAeroML. Configuration source:
+forward-plus-backward step on one case of 10,000 sampled points in bfloat16.
+For MT2 two figures are given: 9.8 GB is the implementation that trained
+every MT2 checkpoint in this book (project-then-pool relational read-back);
+3.6 GB is the pool-then-project rewrite, which evaluates the same function
+with the same parameters (fp64 maximum difference 4e-15, @sec-mt2-cost) and
+is not the implementation behind any reported result. GeoTransolver's figure
+is from its training run, which adds under 0.2 GB of optimizer state. Not
+measured for Transolver, which serves only as a same-family control on
+HiLiftAeroML. Configuration source:
 `unified_external_aero_recipe/conf/model/{mt2,geotransolver,transolver}_surface.yaml`.
 {#tbl-architectures}
 
 ## Transolver on the controlled suites {#sec-part-baseline}
 
 **On the synthetic boundary-to-interior suites (@sec-linear-suites) the
-mainstream baseline is a steel-manned Transolver, and the exact-kernel
-MeshTransformer (MT1, @sec-mt1) beats it by 7.7–20x at matched parameters
-where exact operator structure applies, narrowing to 1.4x where MT1 is itself
-representation-limited.** The comparison ablates the thesis of the controlled
-suites; it does not rank architectures for industrial use.
+mainstream baseline is a steel-manned Transolver, and at matched parameters
+and a training budget of 3,000 updates the exact-kernel MeshTransformer (MT1,
+@sec-mt1) is 7.7–20x more accurate on the 2D Laplace suites and 34–78x on the
+screened-Laplace and 3D suites, narrowing to 1.4x on the multiply-connected
+shell suite where MT1 is itself representation-limited; because Transolver is
+still improving at 30,000 updates (0.119 at native capacity,
+@fig-transolver-steps), each matched-budget gap is an upper bound on the
+converged gap.** The comparison ablates the thesis of the controlled suites;
+it does not rank architectures for industrial use.
 
 ### The matched-capacity comparison {#sec-transolver}
 
@@ -90,16 +101,22 @@ The quantity is relative L2 error of the interior field on the frozen 2D
 Laplace reference banks, in-distribution (ID) and on a held-out band of
 boundary-condition frequencies (frequency-OOD); similarity covariance is the
 relative change of the prediction under a random rotation, translation and
-rescaling. At matched parameters and 3,000 steps Transolver reaches ID 0.769
-against MT1's 0.0375. At native capacity its step curve descends 0.608,
-0.262, 0.119 over 3k, 10k, 30k steps: with 27x the parameters and 10x the
-compute it stays 3.2x above MT1. Frequency-OOD saturates near 0.46 against
-0.0748; similarity covariance stays at 0.08–0.25 at every budget against
-MT1's 3e-7. On Transolver's own fixed-dataset regime the matched-parameter
-gap is 7.7x; on the screened and 3D suites 34–78x; 1.4x on the
-multiply-connected shell suite, where MT1 is itself representation-limited.
-Transolver keeps
-what this benchmark does not test: volumetric and piecewise inputs, which
+rescaling. At matched parameters and 3,000 updates Transolver reaches ID 0.769
+against MT1's 0.0375, a 20x gap. At native capacity its step curve descends
+0.608, 0.262, 0.119 over 3,000, 10,000 and 30,000 updates and has not
+flattened (@fig-transolver-steps): with 27x the parameters and 10x the
+compute it is still 3.2x above MT1 at 3,000 updates, so the 20x is a
+matched-budget figure and an upper bound on the gap Transolver would converge
+to. Frequency-OOD saturates near 0.46 against 0.0748; similarity covariance
+stays at 0.08–0.25 at every budget against MT1's 3e-7. The ranges quoted at
+the head of this section are: 7.7–20x on 2D Laplace, where 7.7x is
+Transolver's own fixed-dataset regime (2,304 training cases, 15 epochs,
+best-checkpoint selection: 0.126–0.136 against MT1's 0.016–0.017) and 20x is
+the streaming regime just described; 34–78x on the in-distribution error of
+the screened-Laplace (78x), 3D sphere (56x) and 3D star (34x) suites at
+matched parameters, three seeds and 3,000 updates; 1.4x on the
+multiply-connected shell suite (0.529 against 0.377). Transolver keeps what
+this benchmark does not test: volumetric and piecewise inputs, which
 boundary-only MT1 cannot ingest. Data: `results/learned_bie_2026-07-02.json`,
 keys `iteration_15_transolver_comparison`, `iteration_17_fixed_dataset_regime`.
 
@@ -119,7 +136,8 @@ Datasets and splits are defined in @sec-problem, the metric in @sec-metrics.
    under-train the baseline.
 3. **Learning rate chosen per architecture on the full split, by
    validation, before any ladder or ablation ran.** From the grid
-   {1e-3, 3e-3, 1e-2}: 1e-3 for MT2 and GeoTransolver, 3e-3 for Transolver,
+   {1e-3, 3e-3, 1e-2}: MT2 1e-3 on both datasets; GeoTransolver 1e-3 on
+   HiLiftAeroML and 3e-3 on DrivAerML; Transolver 3e-3 on HiLiftAeroML; each
    then frozen for every smaller split and ablation. Choosing after seeing
    ladder results would let the tuning budget set the gap (@sec-lr-protocol).
 4. **Two or more seeds per cell, reported individually.** Seed spread is
@@ -152,34 +170,41 @@ a thin noise estimate (@sec-limits).
 
 ## Resource matching {#sec-resource-matching}
 
-**At the recipe operating point MT2 uses no more parameters and less memory
-than GeoTransolver, so no MT2 accuracy figure is bought with resources.**
-Parameters 8.9M against 9.0M; tokens per case 10,000 each; peak training
-memory at 10,000 tokens 3.6 GB against 4.6 GB, with MT2 at 283 ms per
+**At the recipe operating point MT2 matches GeoTransolver on parameters and
+tokens per case but not on memory: every MT2 checkpoint in this book was
+trained at 9.8 GB peak, 2.1x GeoTransolver's 4.6 GB, and the exact
+pool-then-project rewrite that brings the same model to 3.6 GB is not the
+implementation behind any reported result.** Parameters 8.9M against 9.0M;
+tokens per case 10,000 each; peak training memory at 10,000 tokens 9.8 GB as
+trained and 3.6 GB with the exact pool-then-project rewrite (same function to
+4e-15), against 4.6 GB; MT2 with the rewrite runs at 283 ms per
 forward-plus-backward step on an RTX 4090 in bfloat16.
 
-One accounting note. MT2's relational read-back pools eight scalar
-point–anchor invariants over slices and projects them to the hidden width.
-Two implementations compute the same function: projecting each point–slice
-pair and then pooling stores a points x slices x hidden/2 tensor per layer
-for the backward pass, about 0.5 GB per layer, and peaks at 9.8 GB; pooling
-first and then projecting is the same affine map moved through the softmax
-mixture, stores points x 8 per layer, and peaks at 3.6 GB. With identical
-weights the two agree to 4e-15 maximum absolute difference in fp64. The
-trained MT2 checkpoints in this book came from the 9.8 GB implementation, but
-since it evaluates the same function with the same parameters, no reported
-accuracy depended on the extra memory (@sec-nb-geo-pool-memory).
+Why the two MT2 figures describe one model. MT2's relational read-back pools
+eight scalar point–anchor invariants over slices and projects them to the
+hidden width. Projecting each point–slice pair and then pooling stores a
+points x slices x hidden/2 tensor per layer for the backward pass, about
+0.5 GB per layer, and peaks at 9.8 GB; pooling first and then projecting is
+the same affine map moved through the softmax mixture, stores points x 8 per
+layer, and peaks at 3.6 GB. With identical weights the two orderings agree to
+4e-15 maximum absolute difference in fp64 (derivation and contract test in
+@sec-mt2-cost). The extra 6.2 GB at which the checkpoints were trained
+therefore bought no accuracy: it was the cost of an implementation, not of
+the model. What this argument does not provide is a measurement of MT2 at
+GeoTransolver's memory: no MT2 run in this book ran at or below 4.6 GB.
 
-The direct test of whether memory buys MT2 accuracy is to take memory away.
-@tbl-matched-memory reports DrivAerML validation pressure error, relative L2
-per car averaged over 48 cars, at the frozen rate 3e-3 for both architectures
-(not MT2's best rate; the comparison of interest is MT2 against MT2). Cutting
-MT2's tokens from 10,000 to 6,500 brings its peak memory in the pairwise
-implementation to 6.56 GB, 33% less, and costs 8% accuracy. That is a token
-effect, not a memory effect: the same 10,000-token model fits in 3.6 GB.
+The control that does exist is a token-count control, and it should not be
+read as a matched-memory one. @tbl-token-control reports DrivAerML
+validation pressure error, relative L2 per car averaged over 48 cars, at the
+frozen rate 3e-3 for both architectures (not MT2's best rate; the comparison
+of interest is MT2 against MT2). Cutting MT2's tokens from 10,000 to 6,500
+costs 8% accuracy and brings the as-trained peak to 6.56 GB, still 1.4x
+GeoTransolver's 4.6 GB. The 8% is the price of fewer sampled points per
+case, which is why the protocol fixes tokens at 10,000 for every
+architecture; it is not evidence about memory.
 
 ```{python}
-#| label: tbl-matched-memory
+#| label: tbl-token-control
 #| output: asis
 #| code-fold: true
 import json
@@ -188,14 +213,15 @@ from pathlib import Path
 R = Path("..") / "results"
 iw = json.load(open(R / "instrument_wave_reduction_2026-09-01.json"))
 p = lambda k: iw[k]["pressure_l2"]
-mt2_10k = [p(f"ref_mt2_v3c_seed{s}") for s in (42, 43)]
-mt2_65 = [p(f"iw_mt2_v3c_r6500_seed{s}") for s in (42, 43)]
+# artifact keys: "ref_mt2_v3c" is the constant-gauge reference MT2 at lr 3e-3
+mt2_const_10k = [p(f"ref_mt2_v3c_seed{s}") for s in (42, 43)]
+mt2_const_6500 = [p(f"iw_mt2_v3c_r6500_seed{s}") for s in (42, 43)]
 gt_10k = [p(f"ref_gt_fixed_seed{s}") for s in (42, 43)]
 mean = lambda v: sum(v) / len(v)
-ratio = mean(mt2_65) / mean(mt2_10k)
+ratio = mean(mt2_const_6500) / mean(mt2_const_10k)
 rows = [
-    ("MeshTransformer2", "10,000", "3.6 GB (9.8 GB pairwise implementation)", mt2_10k, 1.0),
-    ("MeshTransformer2", "6,500", "6.56 GB (pairwise implementation)", mt2_65, ratio),
+    ("MeshTransformer2", "10,000", "9.8 GB as trained; 3.6 GB with the exact rewrite", mt2_const_10k, 1.0),
+    ("MeshTransformer2", "6,500", "6.56 GB as trained", mt2_const_6500, ratio),
     ("GeoTransolver", "10,000", "4.6 GB", gt_10k, None),
 ]
 out = "| architecture | tokens per case | peak training memory | pressure rel-L2 (seed 42 / 43) | relative to MT2 at 10,000 |\n|---|--:|---|---|--:|\n"
@@ -203,17 +229,17 @@ for n, t, m, v, r in rows:
     rr = "--" if r is None else f"{r:.2f}x"
     out += f"| {n} | {t} | {m} | {v[0]:.4f} / {v[1]:.4f} | {rr} |\n"
 print(out)
-print(": The matched-memory control on DrivAerML. *Tokens per case*: sampled "
+print(": The token-count control on DrivAerML. *Tokens per case*: sampled "
       "surface cells per car in training and validation. *Peak training "
-      "memory*: as defined for @tbl-architectures; the 6,500-token row was "
-      "measured with the pairwise implementation, which produced these "
-      "checkpoints. *Pressure rel-L2*: relative L2 error of surface pressure "
-      "per car, mean over the 48 validation cars, at learning rate 3e-3 for "
-      "every row (not MT2's best rate). The last column divides the row's "
-      "seed mean by that of MT2 at 10,000 tokens. Not shown: wall shear, "
-      "which moves the same way. Data: "
+      "memory*: as defined for @tbl-architectures; 'as trained' is the "
+      "project-then-pool implementation that produced these checkpoints. "
+      "*Pressure rel-L2*: relative L2 error of surface pressure per car, "
+      "mean over the 48 validation cars, at learning rate 3e-3 for every row "
+      "(not MT2's best rate). The last column divides the row's seed mean by "
+      "that of MT2 at 10,000 tokens. This is not a matched-memory control: "
+      "no row of MT2 was trained at or below GeoTransolver's 4.6 GB. Not "
+      "shown: wall shear, which moves the same way. Data: "
       "results/instrument_wave_reduction_2026-09-01.json.")
-print("{#tbl-matched-memory}")
 ```
 
 ## Pose: equivariant by construction, invariant by canonicalization {#sec-pose}
@@ -239,8 +265,8 @@ the roll about it from the area-weighted principal axes of the surface in the
 transverse plane, sign from the third moment. On DrivAerML no case is within
 5% of a principal-axis degeneracy and the sign is consistent across all 48
 validation cars. Estimated from the 10,000 sampled cells the model sees, the
-frame is tilted 0.8° on average from the full-resolution frame
-(@sec-nb-p1-canon-verdict).
+frame is tilted 0.8° on average from the full-resolution frame (key `frame`
+of the artifact cited in @tbl-pose).
 
 @tbl-pose reports DrivAerML validation pressure error, relative L2 per car
 averaged over 48 cars, for GeoTransolver at learning rate 3e-3, 500 epochs,
@@ -289,18 +315,17 @@ print(f": Pose dependence of GeoTransolver on DrivAerML. *In pose*: the 48 "
       f"construction; wall shear behaves the same way. Data: "
       f"results/p1_canonicalization_control_2026-09-02.json (rows 1–2), "
       f"results/p1pp_canonical_training_2026-09-03.json (row 3).")
-print("{#tbl-pose}")
 ```
 
 Three things follow. First, GeoTransolver in the recipe frame is not
-pose-robust: a random orientation takes it to 26–32x its in-pose error,
-worse than predicting the freestream pressure everywhere. Second,
-canonicalization must be in the training pipeline. Applied only at inference
-to a model trained in one exact pose it is pose-invariant but costs 1.6–1.7x,
-because that model is hypersensitive to sub-degree frame tilt (a fixed 1°
-roll costs it 1.7x, 5° costs 6.5x) and the frame estimate carries about 0.8°
-of it; a model that sees the estimator's tilt noise during training learns to
-ignore it, and the penalty falls to 1.01x (@sec-nb-p1pp-verdict). Third, on
+pose-robust: a random orientation takes it to 26–32x its in-pose error.
+Second, canonicalization must be in the training pipeline. Applied only at
+inference to a model trained in one exact pose it is pose-invariant but costs
+1.6–1.7x, because that model is hypersensitive to sub-degree frame tilt (a
+fixed 1° roll costs it 1.7–1.8x, 5° costs 6.5–6.8x; key `stage3` of the same
+artifact) and the frame estimate carries about 0.8° of it; a model that sees
+the estimator's tilt noise during training learns to ignore it, and the
+penalty falls to 1.01x (row 3 of @tbl-pose). Third, on
 this data MT2's exact equivariance and canonicalized GeoTransolver deliver
 the same pose invariance, so no accuracy claim in this book is attributed to
 equivariance; the pose contract is scored as a contract.
@@ -317,105 +342,36 @@ is the difference between a working surrogate and a 26–32x failure.
 
 ## Learning-rate sensitivity is part of the protocol {#sec-lr-protocol}
 
-**The two architectures differ by an order of magnitude in how much accuracy
-they lose at a wrong learning rate, so a protocol sharing one rate would
-measure tuning luck instead of architecture.** @fig-lr reports validation
-pressure error, relative L2 per case averaged over the validation cases, at
-500 epochs and 10,000 tokens, for every rate run on the full splits: on
-DrivAerML (435 training cars, 48 validation) the grid {1e-3, 3e-3, 1e-2},
-two seeds per rung; on HiLiftAeroML (1,260 training cases, 180 validation)
-the grid {1e-3, 3e-3}, two seeds per rung.
-
-```{python}
-#| label: fig-lr
-#| fig-cap: >
-#|   Learning-rate sensitivity on the full splits. Validation pressure
-#|   relative L2 (mean over the 48 DrivAerML cars, left, or the 180
-#|   HiLiftAeroML cases, right) against learning rate, log–log, for
-#|   GeoTransolver (red circles) and MeshTransformer2 (blue squares). Large
-#|   markers joined by lines are two-seed means; small markers are the
-#|   individual seeds; the y axis is shared. Not shown: Transolver, run only
-#|   at the two smaller rates on the sub-splits; wall shear and the other
-#|   fields, which order the same way.
-#|   Data: results/instrument_wave_reduction_2026-09-01.json (DrivAerML)
-#|   and results/highlift_wave_reduction.json (HiLiftAeroML).
-#| code-fold: true
-import json, statistics
-from pathlib import Path
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-# book palette (mirrors figures.py without importing it: that module
-# switches matplotlib to Agg, which suppresses inline output here)
-BLUE, RED, GREY = "#2a78d6", "#e34948", "#52514e"
-INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
-mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
-                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
-                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
-                     "ytick.labelcolor": INK2, "axes.spines.top": False,
-                     "axes.spines.right": False, "legend.frameon": False})
-
-R = Path("..") / "results"
-iw = json.load(open(R / "instrument_wave_reduction_2026-09-01.json"))
-hl = json.load(open(R / "highlift_wave_reduction.json"))
-S = (42, 43)
-drivaer = {
-    "GeoTransolver": {1e-3: [iw[f"iw_gt_lr1e3_seed{s}"]["pressure_l2"] for s in S],
-                      3e-3: [iw[f"ref_gt_fixed_seed{s}"]["pressure_l2"] for s in S],
-                      1e-2: [iw[f"iw_gt_lr1e2_seed{s}"]["pressure_l2"] for s in S]},
-    "MeshTransformer2": {1e-3: [iw[f"iw_mt2_lr1e3_seed{s}"]["pressure_l2"] for s in S],
-                         3e-3: [iw[f"ref_mt2_v3c_seed{s}"]["pressure_l2"] for s in S],
-                         1e-2: [iw[f"iw_mt2_lr1e2_seed{s}"]["pressure_l2"] for s in S]},
-}
-hilift = {
-    "GeoTransolver": {1e-3: [hl[f"gt_hl_lr1_seed{s}"]["pressure_l2"] for s in S],
-                      3e-3: [hl[f"gt_hl_seed{s}"]["pressure_l2"] for s in S]},
-    "MeshTransformer2": {1e-3: [hl[f"mt2_hl_lr1_seed{s}"]["pressure_l2"] for s in S],
-                         3e-3: [hl[f"mt2_hl_seed{s}"]["pressure_l2"] for s in S]},
-}
-style = {"GeoTransolver": (RED, "o"), "MeshTransformer2": (BLUE, "s")}
-
-fig, axes = plt.subplots(1, 2, figsize=(9.2, 3.9), sharey=True)
-panels = ((drivaer, "DrivAerML, 435 training cars", (7e-4, 2.6e-2), (1e-3, 3e-3, 1e-2)),
-          (hilift, "HiLiftAeroML, 1,260 training cases", (7e-4, 6e-3), (1e-3, 3e-3)))
-for ax, (data, title, xlim, ticks) in zip(axes, panels):
-    for name, series in data.items():
-        color, marker = style[name]
-        lrs = sorted(series)
-        means = [statistics.mean(series[lr]) for lr in lrs]
-        ax.plot(lrs, means, "-", color=color, lw=1.6, marker=marker, ms=7,
-                mec="white", mew=1.0, zorder=3)
-        for lr in lrs:
-            for v in series[lr]:
-                ax.plot(lr, v, marker, color=color, ms=3.5, alpha=0.75, zorder=4)
-        ax.annotate(name, (lrs[-1], means[-1]), xytext=(7, 0),
-                    textcoords="offset points", color=color, va="center",
-                    fontsize=9, fontweight="bold")
-    ax.set_xscale("log"); ax.set_yscale("log")
-    ax.set_xlim(*xlim); ax.set_ylim(0.03, 1.0)
-    ax.set_xticks(ticks); ax.set_xticklabels([f"{t:g}" for t in ticks])
-    ax.minorticks_off()
-    ax.set_xlabel("learning rate [–] (log)")
-    ax.set_title(title, fontsize=10, color=INK2, loc="left")
-axes[0].set_ylabel("validation pressure rel-L2 [–] (log)")
-fig.tight_layout()
-plt.show()
-```
+**The two architectures lose very different amounts of accuracy at a wrong
+learning rate: one grid step above its best, GeoTransolver degrades 4–14x on
+DrivAerML and 6.5x on HiLiftAeroML where MT2 degrades 1.55x and 1.14x, so a
+protocol sharing one rate would measure tuning luck instead of
+architecture.** The quantity is validation pressure error, relative L2 per
+case averaged over the validation cases, at 500 epochs and 10,000 tokens,
+for every rate run on the full splits: on DrivAerML (435 training cars, 48
+validation) the grid {1e-3, 3e-3, 1e-2}, two seeds per rung; on HiLiftAeroML
+(1,260 training cases, 180 validation) the grid {1e-3, 3e-3}, two seeds per
+rung. The full grid is plotted and reported as a robustness result in
+@sec-robustness-lr (@fig-lr-robustness); here the point is procedural.
 
 On DrivAerML, GeoTransolver's best rate is 3e-3 (0.0532) and at 1e-2 it
 degrades 4–14x (0.221 and 0.739 on the two seeds); MT2's best is 1e-3
-(0.0577) and at 1e-2 it degrades 1.55x. On HiLiftAeroML both are best at
-1e-3, where they are at parity (@sec-full-data); at 3e-3 GeoTransolver
-destabilizes to 0.148 and 0.397, while MT2's eight lane results across both
-rates and both seeds span 0.040–0.049 (@sec-nb-hl-verdict). The robustness is reported as a
-result in @sec-robustness-lr; here the point is procedural.
+(0.0577) and at 1e-2 it degrades 1.55x (0.0874 and 0.0914). On HiLiftAeroML
+both are best at 1e-3, where they are at parity (@sec-full-data); at 3e-3
+GeoTransolver destabilizes to 0.148 and 0.397, a 6.5x degradation of the
+seed mean, while MT2 moves from 0.040/0.043 to 0.045/0.049, a 1.14x
+degradation, so its four grid points across both rates and both seeds span
+0.040–0.049 (`results/highlift_wave_reduction.json`).
 
 Two consequences are built into the protocol. First, because GeoTransolver's
 best rate differs between datasets (3e-3 on DrivAerML, 1e-3 on HiLiftAeroML),
 "best rate per architecture, chosen on the full split" is the only rule under
 which the GeoTransolver baseline is the strongest version of itself on both.
-The DrivAerML best-vs-best figure is MT2 0.0577 against GeoTransolver 0.0532,
-MT2 1.085x behind; at GeoTransolver's rate it would read 1.19x, at MT2's rate
-1.05x (@sec-full-data). Second, the rate is chosen once and frozen for every
+The DrivAerML best-vs-best figure is MT2 0.0577 (lr 1e-3) against
+GeoTransolver 0.0532 (lr 3e-3), MT2 8.5% behind; at a common 3e-3 it would
+read 1.19x (MT2 0.0633), and at a common 1e-3 on DrivAerML GeoTransolver
+0.0548 is 1.05x ahead of MT2's 0.0577 (@sec-full-data). Second, the rate is
+chosen once and frozen for every
 smaller split: retuning at 35 or 210 training cases would hand the baseline
 search that MT2 did not get, and the steel-man controls in
 @sec-data-efficiency (GeoTransolver at 3e-3 and at 1,000 epochs on the small
