@@ -1,0 +1,1146 @@
+# What exact operator structure buys: the linear suites {#sec-linear-suites}
+
+On linear boundary-value problems with exact labels, an architecture
+whose decoder evaluates the exact singular kernel of the governing
+operator beats a 27x-larger physics-agnostic Transolver in every regime
+tested, generalizes across boundary-condition frequency content where
+soft-slice attention and separable decoders do not, and extrapolates
+boundary-data amplitude exactly because linearity is declared rather
+than learned. This chapter collects those measurements, organized by
+question rather than by suite, and closes with the places the exact
+kernel is not available.
+
+The architecture throughout is the exact-kernel MeshTransformer
+(MT1 after this point; @sec-mt1): one or two boundary self-attention
+layers that produce an operator state per boundary cell, and a decoder
+that writes the interior field at a query point $x$ as a sum over
+boundary cells $j$,
+
+$$
+u(x) = \sum_j \kappa(x, y_j)\, V_j,
+\qquad
+\kappa(x, y_j) = \sum_m C_m(\mathrm{op}_j)\, \varphi_m(x, y_j),
+$$
+
+where $\varphi_m$ are dictionary members integrated exactly over each
+cell (the double-layer member is the signed subtended angle in 2D and
+the signed solid angle in 3D; the single-layer member is the Hess–Smith
+segment form in 2D and a per-edge $\operatorname{asinh}$ form in 3D),
+$C_m$ are coefficients that depend on the encoded operator state of the
+source cell, and $V_j$ is the drive-linear value state (@sec-kernel-decoder,
+@sec-decoder-role). The reference configuration has 82k–105k
+parameters depending on dictionary and depth. Its contracts are
+similarity equivariance through an intrinsic gauge (@sec-intrinsic-gauge),
+drive linearity when declared, parity-typed channels, and bitwise
+query independence.
+
+```{python}
+#| include: false
+import json
+from pathlib import Path
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+
+# book palette (mirrors figures.py without importing it: that module
+# switches matplotlib to Agg, which suppresses inline output here)
+BLUE, RED = "#2a78d6", "#e34948"
+PURPLE, GREY = "#7b4fb3", "#52514e"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+RESULTS = Path("..") / "results"
+BIE = json.load(open(RESULTS / "learned_bie_2026-07-02.json"))
+REF = json.load(open(RESULTS / "reference_2026-07-01.json"))
+```
+
+## The linear suites at a glance
+
+Three exactly solvable families carry the evidence. Each has closed-form
+labels (no solver in the loop), online training data (a fresh random case
+per optimizer step, so there is no finite training set to memorize), and
+frozen evaluation banks that each move one factor away from the training
+distribution. Dataset construction and split definitions are in
+@sec-datasets; the table names what this chapter uses.
+
+| suite | equation | domains | labels | evaluation banks |
+|---|---|---|---|---|
+| 2D Laplace | $\Delta u = 0$, Dirichlet | conformal images of the disk (Laurent modes $\{2,3\}$, certified injective) with random similarity placement | $u = \operatorname{Re} H(z)$, exactly harmonic | interpolation; unseen geometry modes $\{4,5\}$; stronger deformation; mixed modes; unseen boundary frequencies (zero-mean modes 5–8 vs 1–4); 64 cases each |
+| 2D Laplace, hard geometry | $\Delta u = 0$, Dirichlet | multi-body (disk minus two disks) and deep-cavity (slotted disk) | exterior point charges | in-distribution, narrow gap, single body, unseen charge count; deep slot, convex control |
+| screened Laplace | $\Delta u - \kappa^2 u = 0$, Dirichlet | random disks; $\tilde\kappa = \kappa R \in [0.5, 2]$ as a global operator scalar | modified-Bessel series | in-distribution; $\tilde\kappa \in [3,5]$; $\tilde\kappa \in [0.05, 0.3]$; unseen drive modes $\{4,5,6\}$ |
+| 3D Laplace | $\Delta u = 0$, Dirichlet (mixed on shells) | icosphere-based spheres, spherical-harmonic stars, two-surface shells | exterior point charges | sphere; star; star with unseen deformation modes; shell (multiply connected) |
+| exterior potential flow | $\Delta\psi = 0$ outside a body, uniform stream $U_\infty$, circulation $\Gamma$ | certified exterior conformal bodies | closed-form streamfunction and velocity | in-distribution; unseen geometry; wilder shapes; circulation beyond training; far-field queries |
+
+: The linear suites. "Unseen boundary frequencies" is the sharpest
+split: it asks whether the learned operator transfers to right-hand
+sides whose harmonic content was never seen, and its zero-mean
+construction prevents a correctly reproduced constant from masking
+interior error. {#tbl-linear-suites}
+
+![The 2D Laplace training family (top) and two of its evaluation
+axes: unseen shape modes at the training deformation range (middle) and
+stronger deformation of the trained modes (bottom). Boundaries are
+colored by the Dirichlet trace, diverging about each sample's boundary
+mean. Not shown: the random similarity placement (rotation, reflection,
+translation, scale in $[0.2, 5]$) every case carries.
+`figures/gallery_2d.png`.](figures/gallery_2d.png){#fig-gallery2d}
+
+The error measure everywhere in this chapter is the relative $L^2$
+error of the predicted interior field over the query points of one
+case, $\|\hat u - u\| / \|u\|$, averaged over the cases of a bank. A
+predictor that returns zero scores 1.0; the boundary-mean predictor
+scores 0.80 on 2D Laplace interpolation and 1.0 on the unseen-frequency
+bank.^[`results/reference_2026-07-01.json`, block `accuracy`.]
+
+### The 2D Laplace suite {#sec-ds-laplace2d}
+
+Domains are images of the unit disk under $F(z) = z + \sum_m a_m z^m$
+with injectivity certificate $\sum_m m|a_m| < 1$; drives are harmonic
+polynomials in the disk frame, so the interior solution is available at
+any point in closed form. The training family uses shape modes
+$\{2,3\}$, deformation bound in $[0.05, 0.35]$ and drive modes 1–4. The
+hard-geometry extension keeps the exact physics and changes the
+geometry to families where two boundary points can be close in
+$\mathbb R^2$ while the field between them is mediated by the whole
+domain (@sec-encoder-stress).
+
+### The screened suite {#sec-ds-screened}
+
+The modified-Helmholtz equation $\Delta u - \kappa^2 u = 0$ on random
+disks is the program's one parametric linear family. The dimensionless
+screening $\tilde\kappa = \kappa R$ enters MT1 only as a global operator
+scalar that conditions the encoder and, through it, the kernel
+coefficients; the dictionary itself is not told what $\tilde\kappa$
+means. Two banks push the parameter above and below the training band,
+a third moves the drive spectrum at fixed parameter.
+
+### The 3D Laplace suite {#sec-ds-laplace3d}
+
+Exterior point charges give exact harmonic labels on any closed
+triangulated surface. Three tiers vary shape and connectivity
+(@sec-3d-suite): spheres of random radius and orientation; stars,
+$r(\hat u) = R(1 + \sum \varepsilon\, Y_{lm}(\hat u))$ over low-degree
+real spherical harmonics with degree-4 modes held out; and shells, an
+outer surface plus an inward-oriented inner surface with charges in the
+cavity, so the solution carries net flux through the domain. The 3D
+generator assigns boundary-condition types per surface, which makes the
+shell the one tier on which a mixed Dirichlet–Neumann problem can be
+posed (@sec-mixed-bc).
+
+#### Tiers and the shell {#sec-3d-suite}
+
+The shell tier exists to change what a kernel dictionary must
+represent. A double-layer potential integrates to zero net flux through
+any closed surface, so a double-layer-only dictionary cannot carry the
+monopole component $u \sim a + b/r$ that cavity charges induce; the
+single-layer member can. A parameter-free oracle (the exact solid-angle
+double layer with a dense second-kind solve) reads 0.003 on spheres,
+0.002 on stars and 0.753 on shells on the banks used below:^[`results/learned_bie_2026-07-02.json`,
+key `iteration_10_laplace3d_meshtransformer`, setup block.] the shell
+number is a representation fact, not an optimization failure.
+
+### The headline: against a physics-agnostic Transolver {#sec-linear-headline}
+
+Transolver (@sec-transolver) is the strongest physics-agnostic
+attention architecture for PDE surrogacy in this program's comparison
+set. The port is verified against the official implementation and given
+a shared boundary+query token sequence, so its queries attend to each
+other, which is more interaction than MT1's query-independent decoder
+allows. Both sides train on the identical streaming protocol: one fresh
+case per step, AdamW at $3\times10^{-4}$, seeds 17/29/43, the same
+frozen banks. Two Transolver capacities are run: matched (103,053
+parameters against MT1's 104,261) and native (2,809,409; 27x). The
+archive records parameters and steps but not peak training memory for
+these runs; MT1's dense decode costs $O(N_q N_s)$ per case, so the
+matched-parameter comparison is not a matched-FLOP one.
+
+| model | parameters | steps | 2D Laplace ID | unseen frequencies | similarity covariance |
+|---|--:|--:|--:|--:|--:|
+| Transolver, matched | 103,053 | 3,000 | 0.769 | 1.00 | 0.06–0.13 |
+| Transolver, native | 2,809,409 | 3,000 | 0.608 | 0.97 | 0.10–0.25 |
+| Transolver, native | 2,809,409 | 10,000 | 0.262 | 0.77 | 0.18–0.21 |
+| Transolver, native | 2,809,409 | 30,000 | 0.119 | 0.46 | 0.08–0.11 |
+| MT1, singular-only dictionary | 104,261 | 3,000 | **0.0375** | **0.0748** | $3\times10^{-7}$ |
+
+: Three-seed means on the frozen 2D Laplace banks. Similarity
+covariance is the relative disagreement between predictions on a case
+and on its rotated, reflected, translated and rescaled copy, measured
+on the trained checkpoints. `results/learned_bie_2026-07-02.json`,
+key `iteration_15_transolver_comparison`. {#tbl-transolver-linear}
+
+```{python}
+#| label: fig-transolver-steps
+#| fig-cap: >
+#|   Transolver's in-distribution error against online training steps
+#|   (log-log). Grey lines: native capacity (2.8M parameters), one line
+#|   style per seed. Grey open markers: matched capacity (103k) at 3,000
+#|   steps, one marker shape per seed. Purple dashed line: MT1 with the
+#|   singular-only dictionary at 3,000 steps (0.0375). After 10x the
+#|   compute and 27x the parameters Transolver remains 3.2x above the MT1
+#|   reference. Not shown: the unseen-frequency bank, where native
+#|   Transolver saturates near 0.46 at 30,000 steps.
+#|   results/learned_bie_2026-07-02.json, key iteration_15_transolver_comparison.
+#| code-fold: true
+it15 = BIE["iteration_15_transolver_comparison"]
+native = {}
+matched = {}
+for run in it15["runs_3000"] + it15["runs_step_curve"]:
+    if run["parameters"] > 1_000_000:
+        native.setdefault(run["seed"], []).append((run["steps"], run["ID"]))
+    else:
+        matched[run["seed"]] = (run["steps"], run["ID"])
+reference = it15["reference_MT_singonly_3000steps"]["ID"]
+
+styles = {17: "-", 29: "--", 43: ":"}
+markers = {17: "o", 29: "s", 43: "^"}
+fig, ax = plt.subplots(figsize=(6.4, 4.0))
+for seed, points in sorted(native.items()):
+    points.sort()
+    ax.plot([p[0] for p in points], [p[1] for p in points], styles[seed],
+            color=GREY, lw=1.6, marker=markers[seed], ms=6, mfc=GREY,
+            mec="white", mew=1.0,
+            label=f"Transolver, native (2.8M), seed {seed}")
+for seed, (steps, value) in sorted(matched.items()):
+    ax.plot(steps, value, markers[seed], color=GREY, ms=8, mfc="white",
+            mec=GREY, mew=1.6,
+            label=f"Transolver, matched (103k), seed {seed}")
+ax.axhline(reference, color=PURPLE, lw=1.8, ls="--",
+           label="MT1, singular-only (104k), 3,000 steps")
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.set_xlim(2.2e3, 4.5e4)
+ax.set_ylim(0.02, 1.2)
+ax.set_xlabel("online training steps [log]")
+ax.set_ylabel("in-distribution relative $L^2$ [log]")
+ax.legend(fontsize=7.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+fig.tight_layout()
+plt.show()
+```
+
+The same gap holds in Transolver's own regime. On a fixed dataset of
+4,608 finite-element-verified 2D cases (random Fourier Dirichlet traces
+in arc length; solver labels at relative error $\sim10^{-8}$; 2,304
+training cases; 15 epochs; best-checkpoint selection; seeds 17/29), MT1
+reaches 0.016–0.017 in distribution and 0.010–0.013 on unseen trace
+frequencies; matched Transolver reads 0.126–0.136 and 0.112–0.131,
+native Transolver 0.062–0.070 and 0.089–0.108.^[`results/learned_bie_2026-07-02.json`,
+keys `iteration_17_fixed_dataset_regime` and
+`iteration_15_transolver_comparison/screened_and_3d_extension`.] The
+solver-verified labels also show that MT1 is not exploiting the
+manufactured-solution construction of the exact-label suites. Across
+the remaining suites at matched parameters and three seeds, the
+ratio of Transolver's error to MT1's is 78x on screened Laplace
+(0.773 vs 0.0099), 56x on 3D spheres, 34x on stars, 6.8x on stars with
+unseen modes, and 1.4x on shells (0.529 vs 0.377). The gap narrows
+exactly where MT1's own dictionary is representation-limited and widens
+where the exact kernel applies.
+
+## What exact operator structure buys {#sec-part-accuracy}
+
+The accuracy of MT1 on these suites lives in two exact singular kernel
+members with operator-conditioned coefficients. Everything else that
+could have carried it (smooth dictionary members, a second attention
+layer, multiple heads, vector channels on easy geometry, an external
+length scale) was priced by ablation and kept only where measurement
+keeps it. This section gives the evidence, starting from the known-PDE
+oracle that shows what the ceiling is.
+
+### A three-parameter learned boundary-integral solve {#sec-ladder}
+
+When the PDE is known, a learned operator can be built from exactly the
+ingredients of a boundary-integral method and nothing else, and the
+result recovers the classical double-layer kernel from interior data.
+The ingredient ablation below uses one seed (17), 1,000 updates and an
+early 8-case bank per split; the control is a free-form pair kernel, an
+MLP of the joint invariants $(|r|^2, n\cdot r)$ with 19,008 parameters.
+
+| model | parameters | ID | unseen geometry | stronger deformation | unseen frequencies | boundary trace | Laplacian residual |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| free-form pair kernel (control) | 19,008 | 0.091 | 0.101 | 0.124 | 0.605 | 0.150 | 8.0 |
+| MLP kernel inside a Richardson density solve | 19,008 | 0.154 | — | — | 0.756 | — | — |
+| exact harmonic basis, midpoint quadrature, solve | 13 | 0.652 | — | — | 1.014 | 0.002 | $\approx 0$ |
+| exact harmonic basis, direct (no solve), exact panel quadrature | 5 | 0.213 | 0.222 | 0.194 | 0.352 | 0.359 | $\approx 0$ |
+| **exact basis + exact panel quadrature + learned solve** | **13** | **0.035** | **0.038** | **0.055** | **0.090** | 0.0004 | $\approx 0$ |
+| analytic Richardson oracle | 8 | 0.003 | 0.003 | 0.026 | 0.060 | 0.0005 | $\approx 0$ |
+
+: Ingredient ablation of the learned boundary-integral solve on 2D
+Laplace (seed 17, 1,000 updates, early bank). "Laplacian residual" is
+the normalized autograd residual $\|L^2\Delta \hat u\|/\|\hat u\|$;
+"boundary trace" is the relative error of the predicted field's limit
+at the boundary against the Dirichlet data. `results/learned_bie_2026-07-02.json`,
+block `hypothesis_chain`. {#tbl-h1e}
+
+Three ingredients are each necessary and none sufficient. A density
+solve wrapped around a free-form kernel is worse than the kernel alone
+(0.756 on unseen frequencies): the solve exerts no pressure toward
+trace consistency. An exactly harmonic basis under midpoint quadrature
+loses to the free-form MLP (0.652 in distribution): singular kernels
+cannot mollify quadrature error next to a panel, so the optimizer
+suppresses the singular coefficient. With every basis term integrated in
+closed form over each panel (the singular term reduces to the signed
+subtended angle), a 13-parameter model trained from random
+initialization reaches 0.035 in distribution and 0.090 on unseen
+frequencies, the level of the analytic operator. Soft penalties on trace
+or harmonicity at equal weight move only their own diagnostic.^[Same
+artifact, block `ablations_seed17_early_bank`.]
+
+![The learned kernel against the analytic interior double layer
+$-\tfrac{1}{2\pi}\, n\cdot r/|r|^2$: angular profile at $|r|=1$ (left),
+radial decay (center), and the learned coefficient $c_1$ for three seeds
+on the reference bank against $-1/2\pi$ (right). The learned object is
+the classical kernel to within 0.8% on every seed, which is what
+licenses classical acceleration (fast multipole,
+$\mathcal H$-matrices) downstream.
+`figures/kernel_learned_vs_analytic.png`.](figures/kernel_learned_vs_analytic.png){#fig-kernel}
+
+#### Pruning: two scalars carry the operator {#sec-pruning}
+
+Sharing one relaxation across the eight Richardson steps and dropping
+the regular Laurent orders leaves 3 parameters and the same accuracy to
+four decimals (seed 17, 3,000 steps, early bank: 0.0056 in
+distribution, 0.0612 on unseen frequencies, versus 0.0062 and 0.0618 for
+the 13-parameter model).^[`results/learned_bie_2026-07-02.json`, keys
+`iteration_4_pruning` and `resolution_transfer_seed17`.] The learned
+values are $c_1 = -0.15828$ (0.5% from $-1/2\pi$), $d_0 \approx 0$ and
+$\alpha = 1.18$. Cutting the solve to two steps degrades the trace
+160x and inflates the kernel to compensate: solve depth is a
+numerical-convergence knob, not prunable capacity. On the frozen 64-case
+reference bank at 3,000 steps the 3-parameter model reads
+$0.0347 \pm 0.0006$ in distribution and $0.0664 \pm 0.0004$ on unseen
+frequencies over three seeds, Laplacian residual $10^{-4}$, and it
+improves monotonically under boundary refinement from 32 to 256 panels
+(0.183 to 0.038) with no retraining.
+
+#### Neumann boundary conditions {#sec-neumann}
+
+The recipe transfers to flux data. The Neumann model adds the
+single-layer term $c_0\operatorname{Re}\log\zeta$ with exact panel
+integrals and obtains the Neumann trace by autograd differentiation of
+those integrals. One design rule is not optional: the orientation gauge
+of the second-kind system must place the zero-kernel initialization
+inside the solver's convergent regime. In the textbook interior
+orientation $-\tfrac12 I + \tilde K'$ with relaxation near $+1$, a zero
+kernel makes each Richardson step a $1.49\times$ amplifier, and training
+exploits solver divergence as gain (in-distribution 0.081 with a learned
+kernel of zero). In the convergent gauge $+\tfrac12 I + \tilde K'$ the
+model crosses a co-adaptation barrier (validation rises to 3.4 near step
+250) and converges about three times more slowly than Dirichlet: at
+10,000 steps, seed 17, in-distribution 0.0029, unseen frequencies
+0.0021, learned $c_0 = -0.1619$ (1.8% from $-1/2\pi$); the direct
+no-solve control reads 0.122 and 0.658.^[`results/learned_bie_2026-07-02.json`,
+key `iteration_2_neumann`.] Changing the boundary condition costs
+optimization time, not structure.
+
+![Validation trajectories at the deployment discretization (128
+panels, 512 queries). Left, Dirichlet: the 3- and 13-parameter models
+cross below the 19k-parameter pair-kernel control before step 1,000
+and keep descending. Right, Neumann: validation rises to about 3.4
+around step 250 while kernel and solve co-adapt, then descends
+monotonically for 10,000 steps. Session artifacts, not checked in.
+`figures/convergence_trajectories.png`.](figures/convergence_trajectories.png){#fig-convergence}
+
+The three-parameter model is an oracle-in-family: it exists because
+the benchmark PDE is known, and it fixes the ceiling that structure sets
+on this problem. The general architecture is measured against it.
+
+### The angular ceiling of separable decoders {#sec-ceiling}
+
+A decoder that contracts query features against pooled boundary moments
+cannot represent the Laplace solution operator, for a provable reason.
+At an interior query the only query-side vector is the centered position
+$x$; a stack that carries scalars and polar vectors can therefore emit,
+in linear mode with scalar output, only
+$u(x) = c(|x|^2) + b(|x|^2)\cdot x + x^\mathsf T A(|x|^2)\, x$. On any
+circle about the model origin the angular content is limited to Fourier
+orders $m \le 2$; width, heads, rank and depth add radial structure and
+channel multiplicity but cannot create an $m \ge 3$ irreducible
+component. The measured pure-mode response is exactly that nullspace.
+
+```{python}
+#| label: fig-pure-mode
+#| fig-cap: >
+#|   Relative L2 response to a single boundary harmonic mode, one mode
+#|   at a time (3 seeds, 1,000 updates, 8 geometries per mode). Purple
+#|   open markers: MT1 with the separable moment decoder. Grey: the
+#|   free-form pair kernel, which forms joint source-query geometry and
+#|   degrades smoothly instead. A value of 1.0 means no response. The
+#|   moment decoder transmits modes 0-2 and nothing above, although modes
+#|   1-4 occur in training. Not shown: the kernel decoder, whose m >= 3
+#|   ring content is verified nonzero by a paired random-weight test.
+#|   results/reference_2026-07-01.json, block pure_mode_relative_l2.
+#| code-fold: true
+responses = REF["pure_mode_relative_l2"]
+modes = list(range(9))
+mt = [responses["mesh_transformer"][str(m)] for m in modes]
+pk = [responses["invariant_pair_kernel"][str(m)] for m in modes]
+
+fig, ax = plt.subplots(figsize=(6.6, 3.4))
+ax.axhline(1.0, color=INK, lw=1.0, ls="--")
+ax.text(8.4, 1.02, "no response", fontsize=8, color=INK, ha="right", va="bottom")
+ax.axvspan(2.5, 8.5, color=PURPLE, alpha=0.06, lw=0)
+ax.text(8.45, 1.22, "proved $m \\geq 3$ nullspace of the moment decoder",
+        ha="right", fontsize=8.5, color=INK2)
+ax.plot(modes, mt, "o-", color=PURPLE, mfc="white", mec=PURPLE, mew=1.6,
+        ms=7, lw=1.4, label="MT1, moment decoder (135,945 p)")
+ax.plot(modes, pk, "s-", color=GREY, ms=6, lw=1.4,
+        label="free-form pair kernel (19,008 p)")
+ax.set_xticks(modes, [f"m={m}" for m in modes])
+ax.set_xlabel("boundary harmonic mode (modes 1-4 occur in training)")
+ax.set_ylabel("pure-mode relative $L^2$")
+ax.set_ylim(0, 1.32)
+ax.grid(axis="x", visible=False)
+ax.legend(fontsize=8, loc="upper left")
+fig.tight_layout()
+plt.show()
+```
+
+The ceiling is a property of the source–query factorization, not of
+the boundary encoder: replacing the moment decoder by a dense relative
+pair decoder improves in-distribution error by 0.34–0.39, while adding
+the global encoder to the moment decoder changes it by
+0.00026.^[`results/architectural_ablation_2026-07-01.json`.] The kernel-basis
+decoder of @sec-kernel-decoder lifts it; the paired random-weight ring
+test asserts that the moment decoder's $m \ge 3$ content is
+$\le 2\times10^{-11}$ while the kernel decoder's is $\ge 10^{-6}$.
+
+| model (frozen 64-case reference bank, 3,000 updates, 3 seeds) | parameters | ID | unseen frequencies | mode-6 response |
+|---|--:|--:|--:|--:|
+| kernel decoder, full dictionary (singular + polynomial + 8 MLP members) | 110,561 | 0.0399 ± 0.0035 | 0.487 ± 0.047 | 0.48 |
+| kernel decoder, singular + polynomial members | 105,089 | 0.0409 ± 0.0076 | **0.0713 ± 0.0008** | 0.064 |
+| moment decoder (reference capacity) | 135,945 | 0.4503 ± 0.0016 | 1.000 | 1.00 |
+| free-form pair kernel (control) | 19,008 | 0.0398 ± 0.0013 | 0.497 | 0.41 |
+
+: The ceiling and its lift on the reference bank. Every row is trained
+for 3,000 updates, which is why the pair kernel reads 0.0398 here rather
+than its 1,000-update 0.107. `results/learned_bie_2026-07-02.json`, key
+`iteration_7_kernel_decoder_fix`. {#tbl-kernel-refbank}
+
+### Dictionary selection {#sec-dictionary-selection}
+
+The unseen-frequency column of @tbl-kernel-refbank contains the finding
+the rest of the dictionary evidence turns on. With smooth MLP members
+present, unseen-frequency error *worsens with training* (0.12 at 1,000
+updates, 0.49 at 3,000) at unchanged in-distribution error; without
+them it holds at 0.071. The near-zero-initialized smooth members grow
+to absorb residual in-distribution error and slide the kernel toward
+value interpolation on unseen right-hand sides. Training trades
+structure for interpolation, so the data does not select the structured
+members: selection has to be imposed.
+
+#### The dictionary ablations {#sec-dictionary-ablation}
+
+Which members carry the decoder? Four dictionaries at the reference
+protocol (3,000 steps, seeds 17/29/43, frozen 64-case banks):
+
+```{python}
+#| label: fig-dictionary-ablation
+#| fig-cap: >
+#|   The four-arm 2D dictionary ablation at identical protocol. Markers
+#|   are seeds (circle 17, square 29, triangle 43); horizontal bars are
+#|   three-seed means. Top: in-distribution error, where the four arms
+#|   are within seed noise of each other and singular-only is best.
+#|   Bottom (log scale): unseen-frequency error, where every dictionary
+#|   containing MLP members is destroyed and polynomial members amplify
+#|   the harm (0.49 with both present, 0.21 with MLP alone); singular-only
+#|   matches singular + polynomial. Not shown: the geometry banks, on
+#|   which all four arms are within 0.05-0.12.
+#|   results/learned_bie_2026-07-02.json, keys iteration_7_kernel_decoder_fix
+#|   and iteration_11_dictionary_ablation_2d.
+#| code-fold: true
+it7 = BIE["iteration_7_kernel_decoder_fix"]["reference_bank_3seed_3000steps"]
+it11 = BIE["iteration_11_dictionary_ablation_2d"]["runs"]
+arms = [
+    ("singular + poly + MLP\n(12 members)",
+     it7["kernel_full"]["id"], it7["kernel_full"]["freq"]),
+    ("singular + MLP\n(9)",
+     [r["interpolation"] for r in it11["nopoly"]],
+     [r["unseen_boundary_frequencies"] for r in it11["nopoly"]]),
+    ("singular + poly\n(4)",
+     it7["kernel_dictionary_only"]["id"], it7["kernel_dictionary_only"]["freq"]),
+    ("singular only\n(1)",
+     [r["interpolation"] for r in it11["singonly"]],
+     [r["unseen_boundary_frequencies"] for r in it11["singonly"]]),
+]
+seed_markers = ["o", "s", "^"]
+
+fig, axes = plt.subplots(2, 1, figsize=(7.0, 6.2), sharex=True)
+for ax, index, ylabel in [(axes[0], 1, "in-distribution relative $L^2$"),
+                          (axes[1], 2, "unseen-frequency relative $L^2$ [log]")]:
+    for i, arm in enumerate(arms):
+        values = arm[index]
+        mean = sum(values) / len(values)
+        ax.plot([i - 0.2, i + 0.2], [mean, mean], color=PURPLE, lw=2.4, zorder=2)
+        for marker, value in zip(seed_markers, values):
+            ax.plot(i, value, marker, ms=8, color=PURPLE, mfc="white",
+                    mec=PURPLE, mew=1.5, zorder=3)
+    ax.set_ylabel(ylabel)
+    ax.grid(axis="x", visible=False)
+axes[0].set_ylim(0.030, 0.052)
+axes[1].set_yscale("log")
+axes[1].set_ylim(0.05, 0.7)
+axes[1].set_xticks(range(4), [a[0] for a in arms])
+axes[1].set_xlim(-0.5, 3.5)
+fig.tight_layout()
+plt.show()
+```
+
+Singular-only is best on every 2D split: in distribution 0.0375, stronger
+deformation 0.0774, unseen frequencies 0.0748 with the tightest seed
+spread (0.073–0.076), with one member and the fewest parameters
+(104,261). The smooth structure of the solution operator is carried
+entirely by the operator-conditioned coefficients of the exact singular
+member. The interaction by which polynomial members amplify MLP harm is
+measured at one capacity and is not explained.
+
+#### The dictionary in 3D {#sec-dictionary-3d}
+
+The same question in three dimensions, six seeds (17–22), 3,000 steps,
+protocol identical across rows:
+
+| dictionary | members | sphere | star | star, unseen modes | shell (median) | shell seed sd |
+|---|--:|--:|--:|--:|--:|--:|
+| singular + poly + MLP | 12 | 0.0173 | 0.0183 | 0.0871 | 0.3802 | 0.2026 |
+| singular + poly | 4 | 0.0198 | 0.0271 | 0.1185 | 0.4579 | 0.3335 |
+| singular + MLP | 9 | 0.0096 | 0.0140 | 0.0502 | 0.3704 | 0.0222 |
+| **singular only** | **1** | **0.0072** | **0.0121** | 0.0636 | 0.3771 | 0.0415 |
+
+: The 3D dictionary ablation. Sphere, star and unseen-mode columns are
+six-seed means; the shell column is the median with its seed standard
+deviation, because the polynomial-bearing arms have catastrophic seeds
+(one reads 1.17). `results/learned_bie_2026-07-02.json`, keys
+`iteration_10_laplace3d_meshtransformer` and
+`iteration_12_dictionary_ablation_3d`. {#tbl-dictionary-3d}
+
+Dropping the polynomial members improves every 3D split about 2x and
+collapses the shell tier's seed variance from 0.20–0.33 to 0.02–0.04.
+Singular-only matches singular + MLP on every split and beats the
+double-layer oracle on the shell tier (median 0.377 against 0.753): the
+encoder can modulate the kernel per source cell where a fixed-coefficient
+oracle cannot.
+
+#### Universality: linear everywhere, nonlinearity needs a smooth basis {#sec-singonly-universality}
+
+On screened Laplace (three seeds, 2,000 steps) the one-member
+dictionary is again best in class, and the $\tilde\kappa$ conditioning
+survives the pruning: the encoder carries the parameter dependence into
+the coefficients of a single exact kernel.
+
+| screened arm (3-seed means) | ID | $\tilde\kappa$ below band | $\tilde\kappa$ above band | unseen drive modes |
+|---|--:|--:|--:|--:|
+| singular + 8 MLP members | 0.0144 | 0.0443 | 0.1835 | 0.1842 |
+| singular + poly | 0.0120 | 0.0414 | 0.1847 | 0.0192 |
+| **singular only** | **0.0099** | **0.0345** | **0.1657** | 0.0206 |
+
+: Screened Laplace by dictionary, 2,000 steps, seeds 17/18/19.
+`results/learned_bie_2026-07-02.json`, keys
+`iteration_9_screened_meshtransformer` and
+`iteration_13_singonly_universality`. {#tbl-screened-singonly}
+
+The rule is not universal across field modes. In the
+zero-preserving nonlinear field mode used for Liouville's equation, the
+same pruning destroys the model (in-distribution 0.96 / 36.5 / 2.30
+across seeds, one diverged, against 0.46–0.48 for polynomial-bearing
+nonlinear arms; @sec-nonlinear-suites). The rule that survives every
+suite: **the dictionary carries the singularity, conditioning carries
+the smoothness, nonlinearity needs a smooth basis.** In drive-linear
+operation the dictionary is the exact singular member(s) alone; MLP
+members are prunable everywhere.
+
+#### The screened suite through the full architecture {#sec-screened}
+
+Two further facts about the screened suite bound what the conditioning
+buys. Extrapolating the operator parameter is the weak split: above the
+training band the singular-only arm reads 0.166 against 0.010 in
+distribution, because conditioning interpolates the parameter dependence
+it has seen; below the band it holds 0.035. When the operator *is*
+known, the analytic control wins outright: a parameter-free
+double-layer solve with the exact modified-Bessel kernel reads
+0.00110 in distribution, 0.00060 below the band, 0.0035 above it and
+0.0047 on unseen modes over 64 cases per split, 12–66x more accurate
+than the singular-only MT1 means and with exact interior operator
+conformity.^[`results/screened_canonical_double_layer_2026-07-29_job5689394`.]
+MT1's PDE residual $\|(\Delta-\kappa^2)\hat u\|/\|\hat u\|$ on this
+suite is 0.5–0.7: it fits the field without satisfying the screened
+operator, which is the price of not being handed the kernel.
+
+### 3D results {#sec-3d-results}
+
+MT1 trains on the 3D suite with zero core changes and a
+parameter count identical to 2D, because channel counts are
+dimension-independent and the only dimension-aware code is the
+dictionary's dispatch from subtended angle to solid angle
+(@sec-3d-meshtransformer).
+
+```{python}
+#| label: tbl-3d
+#| output: asis
+#| code-fold: true
+agg = BIE["iteration_12_dictionary_ablation_3d"]["aggregates_6seed"]
+singpair = BIE["iteration_16_single_layer_member"]["runs_3d_singpair"]
+transolver = BIE["iteration_15_transolver_comparison"][
+    "screened_and_3d_extension"]["runs"]["laplace3d_transolver_intree_matched"]
+tiers = ["sphere", "star", "star_unseen_modes", "shell_topology"]
+
+
+def mean_over(runs, key):
+    return sum(r[key] for r in runs) / len(runs)
+
+
+def median_over(runs, key):
+    return float(np.median([r[key] for r in runs]))
+
+
+rows = [
+    ("MT1, singular only (6 seeds)",
+     [agg["singonly"][t]["mean"] for t in tiers[:3]]
+     + [agg["singonly"]["shell_topology"]["median"]]),
+    ("MT1, singular + MLP (6 seeds)",
+     [agg["nopoly"][t]["mean"] for t in tiers[:3]]
+     + [agg["nopoly"]["shell_topology"]["median"]]),
+    ("MT1, double + single layer (3 seeds)",
+     [mean_over(singpair, t) for t in tiers[:3]]
+     + [median_over(singpair, "shell_topology")]),
+    ("Transolver, matched parameters (3 seeds)",
+     [mean_over(transolver, t) for t in tiers[:3]]
+     + [median_over(transolver, "shell_topology")]),
+]
+lines = ["| model | sphere | star | star, unseen modes | shell (median) |",
+         "|---|--:|--:|--:|--:|"]
+for name, vals in rows:
+    lines.append(f"| {name} | " + " | ".join(f"{v:.4f}" for v in vals) + " |")
+lines.append(
+    ": 3D Laplace relative $L^2$ by tier, 3,000 steps. Sphere, star and "
+    "unseen-mode columns are seed means; the shell column is the seed "
+    "median. The double-layer oracle on these banks reads 0.003 / 0.002 / "
+    "- / 0.753. `results/learned_bie_2026-07-02.json`, keys "
+    "`iteration_12_dictionary_ablation_3d`, `iteration_16_single_layer_member`, "
+    "`iteration_15_transolver_comparison`. {#tbl-3d}")
+print("\n".join(lines))
+```
+
+On the smooth tiers MT1 sits within 2–6x of the exact-quadrature oracle
+and 34–56x below matched Transolver. On the shell the double-layer-only
+arms are pinned near 0.37, the size of the winding component they
+cannot represent; adding the single-layer member does not fix the shell
+at three seeds (0.305 / 0.368 / 0.704) and the Transolver gap narrows to
+1.4x. Representation limits bind every architecture there. The 3D
+analogue of @sec-pruning holds as well: a two-parameter learned solve
+(one coefficient on the exact solid-angle influence, one shared
+relaxation, eight steps, and no reference frame since solid angles are
+dimensionless) matches the dense oracle to within $3\times10^{-4}$ on
+every simply connected tier, with the learned coefficient at $-1.0029$
+against the gauge-consistent $-1$.^[Session banks; reported in the setup
+block of `iteration_10_laplace3d_meshtransformer`.]
+
+#### The full architecture in 3D {#sec-3d-meshtransformer}
+
+The shell tier's two surfaces are merged into a single boundary mesh,
+so boundary identity reaches the model only through positions and
+normals. Six seeds of the polynomial-bearing arms establish the
+dimensional genericity at 0.017–0.020 on spheres and 0.018–0.027 on
+stars (top rows of @tbl-dictionary-3d); the pruned dictionaries halve
+those numbers and remove the shell tier's catastrophic seeds.
+
+### The single-layer member and hard geometry {#sec-single-layer}
+
+Two exact singular members are the default dictionary for hard
+geometry; the measured cost is worse frequency extrapolation on easy
+geometry. The single-layer member adds 276 parameters (104,537 total)
+and is validated to $\sim10^{-14}$ against brute-force quadrature. On
+the hard-geometry families of @sec-encoder-stress (three seeds unless
+stated; the pair-kernel control is the 1,500-step reference):
+
+| multi-body (3-seed means) | ID | narrow gap | single body | unseen charge count |
+|---|--:|--:|--:|--:|
+| MT1, singular only | 0.115 | 0.246 | 0.153 | 0.153 |
+| **MT1, double + single layer** | **0.065** | **0.160** | **0.102** | **0.087** |
+| free-form pair kernel (control) | 0.097 | 0.242 | 0.161 | 0.160 |
+
+: Multi-body family head-to-head. `results/learned_bie_2026-07-02.json`,
+key `iteration_16_single_layer_member`, block
+`encoder_stress_head_to_head`. {#tbl-multibody}
+
+| deep cavity | ID (2 seeds) | deep slot (3 seeds) | convex control (2 seeds) |
+|---|--:|--:|--:|
+| MT1, singular only | 0.098 | 0.393 | 0.083 |
+| **MT1, double + single layer** | **0.067** | **0.240** | 0.071 |
+| free-form pair kernel (control) | 0.115 | 0.265 | 0.084 |
+
+: Deep-cavity family head-to-head. Same artifact and block as
+@tbl-multibody. {#tbl-deepcavity}
+
+On multiply connected data the single-layer member is decisive: it
+wins all twelve split–seed comparisons against singular-only and beats
+the pair-kernel control everywhere, and without it MT1 loses to the
+pair kernel in distribution (0.115 vs 0.097), exactly where the data
+carries winding content the double layer cannot supply. The gate is not
+purely topological: the deep cavity is simply connected and the member
+still helps (deep slot 0.240 vs 0.393). The cost appears on easy
+geometry, where the 2D unseen-frequency error regresses from 0.075 to
+0.17–0.27 with the member present. The mechanism is coefficient
+freedom: in a classical boundary-integral method the single-layer
+density is determined by the boundary system, whereas here it is freely
+fit, so on easy domains training spends the member's smooth far field
+on interpolation.
+
+## Generalization across boundary conditions {#sec-part-contracts}
+
+Physical structure enters MT1 as declared contracts, and each
+declaration makes a falsifiable prediction about which axis of
+generalization it buys. On the linear suites three axes were measured:
+boundary-data amplitude, boundary-data frequency content, and parity
+under reflection. Linearity buys amplitude exactly; the exact kernel
+buys frequency content; a typed pseudoscalar channel buys the handed
+component. A fourth axis, query radius in exterior problems, is bought
+by licensed decay structure.
+
+### Amplitude and frequency content {#sec-bc-generalization}
+
+Four arms at matched parameters (104k–136k) train on the 2D Laplace
+suite with drive modes 1–4, boundary RMS 1.0 and deformation bound
+$\le 0.3$, three seeds each, identical optimizer and epochs, and are
+evaluated on five banks that each move one factor: an in-range control;
+drive modes 5–8 with the constant removed; boundary amplitude scaled
+2x and 4x; and deformation in $[0.3, 0.6]$. The arms are MT1 with the
+singular-only kernel decoder in linear mode; MT1 with the separable
+moment decoder in place of the kernel decoder (a control for
+@sec-ceiling); MeshTransformer2 (@sec-mt2) with the Dirichlet trace
+supplied as an invariant boundary-scalar seed feature; and a plain
+soft-slice transformer of the Transolver family. Only the two MT1 arms
+declare linearity.
+
+```{python}
+#| label: fig-bc-generalization
+#| fig-cap: >
+#|   Relative L2 (log scale) on the five boundary-condition banks, three
+#|   seeds per arm; markers are seed means, vertical bars the seed
+#|   range. Purple filled: MT1 with the exact-kernel decoder. Purple open:
+#|   MT1 with the separable moment decoder (control). Blue: MT2 with a
+#|   boundary-scalar seed. Grey: plain soft-slice transformer. The two
+#|   declared-linear arms are flat across the amplitude banks by
+#|   construction; only the exact-kernel arm survives the unseen-mode
+#|   bank. Not shown: parameter counts differ by up to 30% across arms
+#|   (104k-136k). results/g3/g3_reduction_with_kernel.json.
+#| code-fold: true
+red = json.load(open(RESULTS / "g3" / "g3_reduction_with_kernel.json"))
+banks = [("T0", "in-range"), ("T1", "unseen modes\n5-8"),
+         ("T2a", "amplitude\n2x"), ("T2b", "amplitude\n4x"),
+         ("T3", "deformation\n0.3-0.6")]
+arms = [
+    ("mt1_kernel", "MT1, exact-kernel decoder", PURPLE, PURPLE, "o"),
+    ("mt1_linear", "MT1, moment decoder (control)", PURPLE, "white", "o"),
+    ("mt2_bscalar", "MT2, boundary-scalar seed", BLUE, BLUE, "s"),
+    ("softslice_2d", "soft-slice transformer", GREY, GREY, "D"),
+]
+x = np.arange(len(banks))
+fig, ax = plt.subplots(figsize=(7.0, 4.2))
+for key, label, color, face, marker in arms:
+    means = [red[key][b]["mean"] for b, _ in banks]
+    lo = [red[key][b]["min"] for b, _ in banks]
+    hi = [red[key][b]["max"] for b, _ in banks]
+    ax.plot(x, means, "-", color=color, lw=1.3, alpha=0.8, zorder=2)
+    ax.errorbar(x, means, yerr=[np.subtract(means, lo), np.subtract(hi, means)],
+                fmt=marker, color=color, mfc=face, mec=color, mew=1.6, ms=8,
+                elinewidth=1.2, capsize=0, zorder=3, label=label)
+ax.axhline(1.0, color=INK, lw=1.0, ls="--")
+ax.text(4.4, 1.05, "no response", fontsize=8, color=INK, ha="right", va="bottom")
+ax.set_yscale("log")
+ax.set_xticks(x, [label for _, label in banks])
+ax.set_xlim(-0.4, 4.4)
+ax.set_ylabel("relative $L^2$ [log]")
+ax.grid(axis="x", visible=False)
+ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+fig.tight_layout()
+plt.show()
+```
+
+| arm | in-range | unseen modes 5–8 | amplitude 2x | amplitude 4x | deformation 0.3–0.6 |
+|---|--:|--:|--:|--:|--:|
+| **MT1, exact-kernel decoder** | **0.0158** | **0.0701** (4.4x) | 0.0163 (1.03x) | 0.0154 (0.97x) | **0.0232** (1.46x) |
+| MT1, moment decoder (control) | 0.0723 | 1.004 (13.9x) | 0.0667 (0.92x) | 0.0632 (0.87x) | 0.0898 (1.24x) |
+| MT2, boundary-scalar seed | 0.0624 | 1.148 (18.4x) | 0.388 (6.2x) | 0.729 (11.7x) | 0.0669 (1.07x) |
+| soft-slice transformer | 0.111 | 1.209 (10.9x) | 0.498 (4.5x) | 0.776 (7.0x) | 0.122 (1.10x) |
+
+: Three-seed mean relative $L^2$; the parenthesized ratio is the bank's
+error divided by the arm's own in-range error.
+`results/g3/g3_reduction_with_kernel.json`. {#tbl-bc-generalization}
+
+**Amplitude extrapolation is exact under declared linearity.** The
+relative $L^2$ error is invariant under scaling of a linear model's
+input, so the two MT1 arms' amplitude ratios of 0.87–1.03 are sampling
+noise around 1. The two arms that must learn the amplitude response pay
+6–12x (MT2) and 4.5–7x (soft-slice), worsening with extrapolation
+distance. For a linear PDE this is the cheapest contract in the
+program: it costs nothing in distribution and removes an axis of
+failure.
+
+**Frequency-content generalization is bought by the exact kernel and
+nothing else measured.** On drive modes never seen in training the
+exact-kernel MT1 reads 0.070, reproducing the 0.075 of the reference
+protocol (@tbl-kernel-refbank) under a different training recipe. The
+moment-decoder control reads 1.00, which is the proved nullspace of
+@sec-ceiling: modes 5–8 with the constant removed are entirely
+$m \ge 3$ content. The two soft-slice arms read 1.15 and 1.21, as bad
+as or worse than predicting zero. Learned routing must have seen each
+mode; an exact Green's-function operator carries the PDE's spectral
+response for every mode at once. Declared linearity alone does not buy
+this axis: the linear moment-decoder control fails it, and the
+stream-factorization ablation below makes the same point on the
+reference protocol.
+
+Pricing the operator/drive two-stream separation of MT1
+(@sec-stream-factorization) against a single-stream control, in which
+the drive is re-declared as operator features with unit-drive
+propagation, confirms which contract carries which axis. The control
+forfeits the zero-drive and superposition contracts by design and
+matches parameters within 0.03%; three seeds, reference protocol:
+
+| 2D Laplace (3-seed means) | ID | unseen geometry | unseen frequencies | zero-drive output | superposition violation |
+|---|--:|--:|--:|--:|--:|
+| **two-stream (the architecture)** | **0.0485** | **0.0686** | 0.2111 | **0 (exact)** | **$10^{-7}$** |
+| single-stream control | 0.0606 | 0.0813 | **0.1794** | 0.0378 | 0.0421 |
+
+: The stream factorization on 2D Laplace with the two-member
+dictionary. "Zero-drive output" is the RMS output at zero boundary data;
+"superposition violation" is the relative defect of
+$u(g_1 + g_2) - u(g_1) - u(g_2)$. `results/learned_bie_2026-07-02.json`,
+key `iteration_26_stream_factorization`. {#tbl-stream-laplace}
+
+The factorization wins in distribution by 3.6 seed standard deviations
+at matched parameters and is the only arm with roundoff-exact
+contracts; the control learns approximate linearity and plateaus five
+decades above the structural value. It does not buy frequency
+extrapolation (the control is slightly better there): spectrum
+extrapolation lives in the dictionary and its conditioning, not in the
+linearity contract. The two-member dictionary used here is why the
+unseen-frequency level is 0.21 rather than the one-member 0.075
+(@sec-single-layer).
+
+### Parity: the pseudoscalar channel {#sec-pseudo-extension}
+
+Potential flow makes the physics handed: circulation flips sign in a
+mirror, so the circulatory part of the velocity field is a pseudoscalar
+times a rotated position, a product the scalar-and-polar-vector type
+system cannot form. Every untyped arm on the circulation-beyond-training
+bank sits on the same floor, 0.645–0.651, the norm of the
+unrepresentable vortex component. Adding a 2D pseudoscalar channel type
+(wedge $v\wedge w$, rotation $p\cdot v^\perp$, and the two scalar
+products that close the set), with circulation declared pseudoscalar,
+removes the floor at five seeds (17–21):
+
+| potential-flow velocity (5-seed means) | parameters | ID | unseen geometry | wilder shapes | circulation beyond training | far-field queries |
+|---|--:|--:|--:|--:|--:|--:|
+| **MT1, two members + pseudoscalar channels** | 132,641 | **0.028** | **0.041** | **0.131** | **0.037** | 0.673 |
+| MT1, full dictionary + pseudoscalar channels | 138,665 | 0.029 | 0.048 | 0.136 | 0.049 | 0.764 |
+| untyped velocity arms (pooled controls) | — | 0.141 | 0.191 | 0.264 | 0.647 | 0.83 |
+
+: The pseudoscalar extension at five seeds against the pooled untyped
+controls. `results/learned_bie_2026-07-02.json`, key
+`iteration_23_pseudoscalar_extension`. {#tbl-pseudo-extension-linear}
+
+Circulation-OOD falls 17x and joins the in-distribution level; the whole
+velocity field improves about 5x because the handed component was
+contaminating every split. The default path is bitwise-preserved at
+zero pseudoscalar width, and reflection equivariance of every product is
+under test.
+
+### The far field of exterior problems {#sec-farfield-ladder}
+
+Queries beyond the training annulus $[1.05, 4]$ body radii degrade
+every potential-flow arm (0.43–0.88; @tbl-pseudo-extension-linear). The cause
+is unbounded radial dependence in the learned coefficients, not the
+dictionary: the member basis is exactly analytic on $[4, 12]$ while the
+prediction super-decays (fitted exponent $-24$ against the exact $-2$),
+and the output gate's collapse at the training edge moves with the
+annulus when the annulus is widened. Widening the annulus to
+$[1.05, 8]$ mitigates (0.694 to 0.179) but leaves the model 6.2x above
+its in-distribution error inside the new annulus.
+
+| configuration (seed 17 unless stated) | far-field relative $L^2$ |
+|---|--:|
+| reference | 0.694 |
+| bounded output gate alone | 2.98 |
+| bounded gate + compactified query position $x \to x/\sqrt{1+|x|^2}$ fed to the coefficients | 0.452 |
+| + exact $r^{-2}$ envelope on the direct drive + monopole-free single layer (5-seed mean) | **0.090 ± 0.048** |
+
+: Far-field error by structural element on potential-flow velocity.
+The kernel members are bitwise pinned to raw positions throughout; only
+the learned coefficients see bounded inputs.
+`results/learned_bie_2026-07-02.json`, keys
+`iteration_28_bounded_gate` through `iteration_30_decay_structure`.
+{#tbl-farfield}
+
+Bounding the gate alone makes the far field 4.3x worse, because the
+collapse had been suppressing polynomially growing query-side drive
+branches. Bounding the coefficients' inputs at the source excludes
+coefficient extrapolation by construction (coefficient traces flat to
+$r = 12$) and isolates the residual as representational: a bounded
+direct branch converges to a direction-dependent constant where the
+exact field decays as $r^{-2}$. Two zero-parameter structures the
+physics licenses for zero-net-flux exteriors close it: an exact
+$1/(1+|x|^2)$ envelope on the direct drive (the leading exterior term is
+the doublet), and a measure-weighted rank-one deflation of the
+single-layer column that gives exact zero net charge for any
+coefficients and, as a corollary, cancels the 2D log gauge. The
+five-seed result is 0.090 ± 0.048 (per-seed 0.036–0.147) at an unchanged
+training annulus, with every other split at family-best levels (ID
+0.0174, circulation 0.0168, unseen geometry 0.0303). One leak remains
+fitted rather than exact: the $r^{-1}$ member tails cancel to $r^{-2}$
+only through learned zero-circulation cancellation.
+
+## What the encoder contributes {#sec-global-flow}
+
+For the Dirichlet problem $u(x) = \int_\Gamma g\, d\omega_x$ with
+harmonic measure $\omega_x$ whose density depends on the whole domain,
+so every boundary patch influences every interior point and no cutoff
+radius survives a change of geometry. MT1 therefore uses all-to-all
+boundary attention with no neighborhoods. How much of that attention
+the linear suites need is a measured question, and the answer is: very
+little for all-Dirichlet problems, one layer where the boundary solve is
+nonlocal, one head everywhere, and vector channels off easy geometry.
+
+### The hard-geometry families {#sec-encoder-stress}
+
+On a deformed disk two boundary points close in $\mathbb R^2$ are close
+along the boundary, so a kernel of pairwise invariants never has to see
+around geometry. Two families remove that convenience, both with
+exterior-charge exact labels and unit-RMS boundary traces, every sample
+certified at build time (queries inside, charges outside, curves
+non-self-intersecting, bodies disjoint). **Multi-body**: a disk minus
+two disjoint disks, three boundaries merged into one mesh, with charges
+biased toward the gap-facing surfaces so that in the narrow-gap regime
+the trace on one body is dominated by a charge hidden inside the other.
+**Deep cavity**: a disk with a deep, narrow, filleted slot and charges
+nestled in the slot, so opposite slot walls are Euclidean-close while
+the field between them is mediated by the whole cavity. The free-form
+pair kernel is the essential control: it is exactly the class that sees
+only pair invariants.
+
+The control's reading in @tbl-multibody and @tbl-deepcavity is
+moderate. The pair kernel is competitive with singular-only MT1 on
+every hard split and loses to the two-member MT1 by 1.1–1.8x; the
+families are a separation dial, and how much pair-blindness costs is
+what the control measures, not a theorem.
+
+### Encoder depth {#sec-encoder-depth}
+
+On the all-Dirichlet multi-body family, zero boundary self-attention
+layers (59,385 parameters) match the full two-layer two-member model at
+two seeds (seed 17: 0.073 vs 0.070 in distribution; seed 18: 0.067
+against the three-seed mean 0.065).^[`results/learned_bie_2026-07-02.json`,
+key `iteration_18_encoder_depth`.] This is the expected result: the Dirichlet double-layer density solves a
+second-kind Fredholm system dominated by the local $\tfrac12 I$ term, so
+the boundary-to-boundary solve is nearly local even though the
+boundary-to-interior map is not.
+
+### Where attention matters: mixed boundary conditions {#sec-mixed-bc}
+
+A mixed Cauchy solve is nonlocal: unknown Dirichlet data on one surface
+must be inferred from Neumann data on another. The shell tier with the
+inner surface carrying the trace and the outer carrying the flux is the
+one mixed tier the generator permits. Three encoder depths, 3,000
+steps, seeds 17/18/19, on the mixed shell bank and a finer-resolution
+copy of it:
+
+| boundary self-attention layers | parameters | seed 17 | seed 18 | seed 19 | mean | finer resolution (mean) |
+|---|--:|--:|--:|--:|--:|--:|
+| 2 | 104,713 | 0.0479 | 0.0374 | 0.0614 | 0.049 | 0.070 |
+| 1 | 82,137 | 0.0534 | 0.0423 | 0.0576 | 0.051 | 0.060 |
+| 0 | 59,561 | 0.0612 | 0.1120 | 0.0650 | 0.079 | 0.102 |
+
+: The mixed-boundary-condition depth sweep on the shell tier.
+`results/learned_bie_2026-07-02.json`, key
+`iteration_19_mixed_bc_discriminator`. {#tbl-mixed-bc}
+
+Without attention the mixed problem degrades (0.079 vs 0.049) and the
+failure mode is unreliability rather than uniform loss: one seed reads
+0.112, and 0.182 at the finer resolution. One layer matches two (0.051
+vs 0.049), so the reference configuration carries one. The mixed shell
+at 0.049 is also 7x easier than the all-Dirichlet shell (0.37):
+handing the model the outer flux removes the winding-inference
+difficulty. Caveats: a single mixed geometry tier, and the drive blocks
+were held at one layer in every arm, so a drive-depth sweep remains the
+sharper follow-up.
+
+### Heads versus rank at fixed score capacity {#sec-heads-vs-rank}
+
+Per attention head the effective score matrix has rank at most
+$R_0 + D R_1$ ($R_0$ scalar rank, $R_1$ vector rank, $D$ the spatial
+dimension), so one layer's pair-coefficient class is fixed by the total
+$H(R_0 + D R_1)$. Heads remain distinct after the scores because the
+value maps are head-blocked. Three two-member arms hold the total at 80
+on the 2D Laplace reference bank (3,000 steps, seeds 17/29/43); the
+pre-registered rule counts a three-seed mean within twice the larger seed
+standard deviation as a match:
+
+| arm | $H$ | $R_0/R_1$ | parameters | ID | unseen geometry | stronger deformation | unseen frequencies |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| reference | 4 | 12/4 | 104,537 | 0.0485 ± 0.0025 | 0.0686 ± 0.0070 | 0.0862 ± 0.0148 | 0.2111 ± 0.0523 |
+| one head | 1 | 48/16 | 104,123 | **0.0413 ± 0.0021** | 0.0624 ± 0.0018 | 0.0825 ± 0.0058 | 0.1831 ± 0.0158 |
+| eight heads | 8 | 6/2 | 104,897 | 0.0461 ± 0.0014 | 0.0669 ± 0.0041 | 0.0812 ± 0.0147 | 0.2077 ± 0.0471 |
+
+: Heads traded against separable ranks at fixed total score capacity
+$H(R_0 + 2R_1) = 80$; bold marks the one cell outside the pre-registered
+tolerance. `results/learned_bie_2026-07-02.json`, key
+`iteration_31_heads_vs_rank`. {#tbl-heads-vs-rank}
+
+Eight heads at halved ranks are bookkeeping: every split matches. One
+full-width head wins in distribution (0.0413 vs 0.0485, 2.9 seed
+standard deviations), is directionally better on all four splits, the
+most seed-stable, and the smallest. Because the score class was matched
+exactly, the gain prices the head-blocking of the value and output maps.
+
+### One head across suites {#sec-one-head-cross-suite}
+
+The same capacity-preserving trade (heads 4 to 1, ranks 12/4 to 48/16)
+was then run at three seeds on screened Laplace, potential-flow velocity
+with the pseudoscalar sector, and 3D Laplace against the archived
+four-head comparators, with a pre-registered rule for a default change:
+flip to one head if every split of at least two suites matches or beats
+and no split anywhere is a decisive loss. Thirteen of thirteen
+suite–split cells match or beat, all three suites pass, and the
+reference configuration is one head (81,547
+parameters).^[`results/learned_bie_2026-07-02.json`, key
+`iteration_32_one_head_cross_suite`.] The Laplace in-distribution win
+did not travel: one head is directionally worse on 11 of 13 cells (both
+exceptions are unseen-mode splits), so the cross-suite evidence is
+non-inferiority and the flip is carried by parsimony. The tolerance keys
+to the larger of the two arms' seed spreads, which favors the noisier
+arm; three seeds bound this as within-tolerance ties, not equivalence.
+
+### Are the vector channels essential? {#sec-scalar-only}
+
+Scalar-only mode removes oriented state transport between cells: the
+latent state carries no vector channels, though normals still enter
+through the decoder's pair invariants and scalar Gram invariants at the
+lift. Parameters drop about 60% (104,261 to 41,941 for singular-only).
+
+| suite / split (3-seed means) | scalar-only | vector-ful | ratio |
+|---|--:|--:|--:|
+| 2D Laplace ID | 0.0400 | 0.0375 | 1.07x |
+| 2D Laplace, unseen frequencies | 0.0733 | 0.0748 | 0.98x |
+| screened ID | 0.0283 | 0.0099 | 2.9x |
+| 3D sphere | 0.0244 | 0.0072 | 3.4x |
+| 3D star | 0.0228 | 0.0121 | 1.9x |
+| 3D star, unseen modes | 0.0524 | 0.0637 | 0.8x |
+| 3D shell | 0.373 | 0.377 | 1.0x |
+
+: Scalar-only against the vector-ful singular-only reference; ratio is
+scalar-only error over vector-ful error. The shell row compares the
+scalar-only mean with the vector-ful six-seed median.
+`results/learned_bie_2026-07-02.json`, key `iteration_14_scalar_only_2d`.
+{#tbl-scalar-only}
+
+On plain 2D Laplace the vector channels are not needed: scalar-only
+matches within 5–15% on every split at 60% fewer parameters, and
+similarity covariance stays at $2.5$–$2.8\times10^{-7}$, so equivariance
+never depended on them. Off that suite they are physics capacity:
+in-distribution error degrades 2–3.4x, and a capacity-matched wide
+scalar control (105,301 parameters) does not recover it (3D sphere 0.024,
+screened 0.024). The gap is oriented transport, not width. The shell
+tier and unseen-mode splits are indifferent, consistent with the shell
+error being representational (@sec-single-layer).
+
+## Discretization and units invariance as measured {#sec-invariances-measured}
+
+The four properties a boundary-driven surrogate should have are defined
+in @sec-four-properties; the linear suites measure two of them
+directly.
+
+**Discretization: refinement converges, subsampling does not.** Holding
+one sphere fixed and refining an icosphere tiling (coverage always
+100%), the operator's error against its converged limit falls 2.51% to
+0.59% to 0.12% as each subdivision quadruples the cell count, at or
+slightly better than second order. Zero-shot resolution transfer on
+trained models shows the same behavior: the kernel-decoder MT1 trained
+at 64 panels in 2D improves from 0.322 to 0.032 as evaluation goes from
+32 to 256 panels (the moment decoder is flat at 0.27), and the
+three-parameter learned solve improves monotonically over the same
+range (@sec-pruning). In 3D:
+
+```{python}
+#| label: tbl-resolution-3d
+#| output: asis
+#| code-fold: true
+scale = BIE["iteration_20_scale_ladder"]["a100"]["resolution_transfer_zero_shot"]
+lines = ["| tier | subdivision 2 (trained) | subdivision 3 | subdivision 4 |",
+         "|---|--:|--:|--:|"]
+for tier in ("sphere", "star"):
+    vals = [scale[f"{tier}_subdiv{s}"] for s in (2, 3, 4)]
+    lines.append(f"| {tier} | " + " | ".join(f"{v:.4f}" for v in vals) + " |")
+lines.append(
+    ": Zero-shot resolution transfer of the one-layer two-member MT1 "
+    "(81,961 parameters) trained at subdivision 2 and evaluated without "
+    "retraining across a 16x range of boundary cell count. Mild degradation, "
+    "no collapse. `results/learned_bie_2026-07-02.json`, key "
+    "`iteration_20_scale_ladder`. {#tbl-resolution-3d}")
+print("\n".join(lines))
+```
+
+Random decimation of a fixed mesh is a different experiment: retaining
+a random 1.6–25% of cells leaves 32–9% error against the full-coverage
+operator, concentrated deep in the interior (222% at the sphere center
+against 0.3% at the wall), and no reweighting of the retained cells
+recovers a missing global integral. The linear suites always present
+the full boundary; industrial pipelines that train on sparse point
+samples do not (@sec-limits).
+
+**Units invariance in length.** The reference length is derived from
+the geometry itself (the measure-weighted RMS boundary radius,
+@sec-intrinsic-gauge). At three seeds on the reference bank this is
+accuracy-neutral (in-distribution 0.0372 against 0.0375 with an
+explicit length key; unseen frequencies 0.0750 against 0.0748), and
+paired similarity covariance is $2.9$–$3.1\times10^{-7}$ including
+0.2x and 5x rescalings. Corrupting an explicit length key by 3x at
+evaluation degrades the explicit-key model 4.64x; the intrinsic-gauge
+model is bitwise unaffected because the input no longer
+exists.^[`results/learned_bie_2026-07-02.json`, key
+`iteration_24_intrinsic_gauge`.] Quadrature weighting against boundary
+measure is checked as an exact test: splitting a panel into
+measure-conserving duplicates leaves the moment operators algebraically
+unchanged.
+
+## Where the linear line stops {#sec-pde-agnostic}
+
+Every result above depends on one fact: the fundamental solution of the
+governing operator was known, so its singular member could be integrated
+exactly and placed in the dictionary. What transfers to problems where
+the operator is not given is narrower.
+
+PDE-agnostic, and carried into every later architecture in this book:
+the factorization of the solution operator into a boundary-to-boundary
+solve composed with a source-to-query propagation; the second-kind
+solve structure with its gauge rule (@sec-neumann); the exact contracts
+(linearity where the physics is linear, similarity covariance,
+quadrature weighting against measure, all-to-all information flow,
+query independence); kernels that are functions of the joint invariants
+of $\{x - y,\ n_y,\ \text{boundary vector data}\}$, the one strong
+structural assumption a homogeneous problem class licenses; and the
+singular-quadrature discipline, since whatever the kernel family is, its
+near-boundary singular structure must be integrated, not sampled
+(@tbl-h1e).
+
+PDE-specific, available on these benchmarks and not in deployment: the
+fundamental-solution family itself, and with it exact operator
+conformity and the maximum-principle bound on interior error. On
+screened Laplace the known-operator control is 12–66x more accurate
+than MT1 (@sec-screened); on the shell tier the double layer's flux
+deficiency binds MT1 and Transolver alike (@tbl-3d).
+
+Three places mark the end of the linear line. Drive-nonlinear problems
+break the singular-only rule and need both a smooth basis and a
+declared drive degree (@sec-nonlinear-suites, @sec-nonlinear-fragility).
+On separated 3D aerodynamics the potential-flow prior fails outright: a
+potential-flow oracle for interior pressure on DrivAerML reads 4.8
+against 0.77 for predicting the case mean, and the exact double-layer
+decoder is 8x behind GeoTransolver on the interior task (@sec-interior);
+on industrial surfaces the kernel dictionary contributes 0–8% and the
+trace formulation carries the gain (@sec-industrial-mt1). Exact spectral
+response from an exact Green's-function operator is a statement about
+linear boundary-value problems with known operators; what replaces it
+when the operator is unknown is the subject of the rest of the book.

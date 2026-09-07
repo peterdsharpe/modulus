@@ -1,2 +1,7 @@
-/.quarto/
-**/*.quarto_ipynb
+*.html
+*_files/
+.quarto/
+.venv/
+__pycache__/
+_book/
+_freeze/

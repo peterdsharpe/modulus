@@ -1,0 +1,14 @@
+{
+ "v0_mt2_lvt_sdf_seed42": {
+  "n": 48,
+  "pressure_l2": 0.2326,
+  "velocity_l2": 0.37256,
+  "nut_l2": 0.58511
+ },
+ "v0_mt2_lvt_sdf_seed43": {
+  "n": 48,
+  "pressure_l2": 0.22395,
+  "velocity_l2": 0.36914,
+  "nut_l2": 0.57699
+ }
+}

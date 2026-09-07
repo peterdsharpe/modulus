@@ -1,0 +1,439 @@
+# Boundary to interior: predicting volume fields from the surface {#sec-interior}
+
+**On the one task that asks for the flow rather than the wall pressure,
+GeoTransolver is 2.6x more accurate than MeshTransformer2 (MT2), and the
+gap is a property of how each architecture treats an interior point.**
+GeoTransolver lets interior query points interact with everything as
+tokens; MT2 decodes them passively, so a prediction at one interior point
+never depends on which other interior points are asked for. That contract is worth
+keeping for a surrogate queried on arbitrary probe sets, and on
+DrivAerML it costs 2.6x in interior pressure error. The deficit is
+smallest at the wall and grows with distance from it: the missing
+ingredient is volumetric context, not local detail. Two attempts to
+supply it without breaking the contract fail: off-surface latent tokens
+along anchor normals make MT2 worse, and the exact double-layer kernel of
+the original architecture is 8x behind because potential flow is the
+wrong prior for a separated wake.
+
+## The task {#sec-interior-task}
+
+A surrogate that returns only wall pressure answers one engineering
+question (forces); one that returns the volume flow answers the rest
+(wake structure, cooling-flow paths, where separation begins). The task
+here is the second, in its strictest form: predict the fields inside the
+fluid domain from the vehicle surface alone.
+
+**Data.** DrivAerML (@sec-datasets), the 435-car training split and the
+48-car validation split used for every DrivAerML comparison in this book.
+Each car contributes 10,000 surface points sampled from the vehicle
+boundary (position, unit normal, cell area as measure weight) and 10,000
+interior query points sampled from the CFD volume mesh. The volume mesh
+holds 150–166 million points per car, so the query sample covers roughly
+6 × 10⁻⁵ of it, and it is overwhelmingly near-wall (median distance to
+the surface 5 mm; @sec-interior-distance returns to this). Targets at
+each query point are the static pressure, the three velocity components,
+and the turbulent eddy viscosity ν_t. The interior sample is bit-identical
+across every trained run.
+
+**Metric.** For one car and one field f, the relative L2 error is
+
+$$
+\varepsilon = \frac{\lVert \hat f - f \rVert_2}{\lVert f \rVert_2}
+$$
+
+over the 10,000 interior sample points, where f is the field in training
+normalisation: pressure as the coefficient C_p = (p − p_∞)/q_∞ with
+p_∞ = 0, velocity as U/|U_∞| with the freestream mean included, Frobenius
+norm over the three components. The number reported for an arm is the
+arithmetic mean of ε over the 48 validation cars; where a table cell is a
+ratio, the numerator is the named arm and the denominator is
+GeoTransolver on the same 48 cars. Velocity's denominator includes the
+freestream and is never small; pressure is a gauge quantity whose
+denominator can be tiny far from the body (@sec-interior-distance).
+
+**Protocol.** 500 epochs, learning rate 1e-3 for every arm (no per-arm
+tuning on this task), bf16, no augmentation, two seeds (42 and 43). MT2
+has 11.0M parameters in the passive-decode configuration this task
+requires (8.9M in the surface configuration, @sec-mt2) and GeoTransolver
+9.0M (@sec-baselines); all arms train in 4–9 GB of memory at roughly
+0.35 s per step. GeoTransolver processes the 10,000 interior
+points as additional tokens, so it interacts over 20,000 tokens per case
+where MT2 interacts over 10,000; that difference is the design choice
+under test, not a confound to remove.
+
+### Query independence as a first-class property {#sec-interior-query-independence}
+
+An interior query in MT2 is never a token. The encoder sees the surface
+only; interior queries are decoded passively, by read blocks
+(@sec-mt2-forward) that read the slice states and the boundary tokens
+and write nothing back, so a prediction at one interior point is
+independent of the other interior points queried (verified in fp64 to
+10⁻¹², @sec-query-independence). This is a property of the interior
+decode: MT2's surface predictions in this book come from a configuration
+whose heads read the interacting encoder tokens, and do not share it. A
+user who asks for one streamline, a plane, or the whole domain gets the
+same answer at every shared point, at a cost linear in the points asked
+for. GeoTransolver's queries are tokens, so its answer at a point depends
+on the other points requested with it.
+
+### How each architecture treats an interior point
+
+*GeoTransolver.* The interior points join the surface points as tokens
+carrying their coordinates, routed to slices and attending through the
+same layers, so an interior token gathers information from the surface
+and from other interior tokens before it is decoded. Nothing about the
+architecture changes between the surface task and this one.
+
+*MT2.* The passive decoder builds every query-side invariant from the
+query position q (relative to the centroid, in gauge units), the
+freestream direction d, and a unit normal n̂ at the query:
+{|q|, log|q|, q̂·d, q̂·n̂, n̂·d}. Surface points have normals; interior
+points do not, so a normal has to be constructed. Two constructions are
+measured.
+
+The first is a *soft-assigned proxy normal*. Each slice s of the encoder
+has an equivariant anchor: a measure-weighted mean position z_s and a
+mean normal m_s. The query is softly assigned to anchors by distance and
+inherits their normals,
+
+$$
+\hat n(q) = \operatorname{normalize}\!\Big(\sum_s a_s(q)\, m_s\Big),
+\qquad
+a_s(q) = \operatorname{softmax}_s\!\big(-|q - z_s|^2 / \rho^2\big),
+$$
+
+with ρ = 0.25 gauge units. It is exactly SE(3)-covariant, smooth,
+defined everywhere and parameter-free; every read block and the vector
+head run unchanged.
+
+The second is the *signed-distance-field gradient*: the data pipeline
+computes, for every interior point, the distance to the full-resolution
+vehicle surface and its gradient, which is the unit normal of the nearest
+wall. Passed as the query normal it overrides the proxy; it is equally
+covariant and carries information about the local wall geometry that the
+proxy does not.
+
+*The exact-kernel MeshTransformer (MT1).* The original architecture
+(@sec-mt1, @sec-kernel-decoder) decodes at interior points natively: its
+decoder evaluates exact singular kernels — the double-layer Laplace
+kernel and screened members — from the boundary sample with learned
+densities, so an interior prediction is a boundary integral at the
+query. It is the surface configuration used elsewhere in this book with
+the trace terms removed; its parameter count on this task is not
+recorded.
+
+## Results {#sec-interior-results}
+
+**Token-level interaction at the query is worth 2.6x on interior
+pressure, and no passive construction tried closes it.** @tbl-interior
+gives the arithmetic-mean relative L2 over the 48 validation cars for
+each arm, both seeds, and the ratio to GeoTransolver; @fig-interior-arms
+draws the pressure column.
+
+| arm | pressure (seed 42 / 43) | velocity | ν_t | pressure ratio to GeoTransolver |
+|---|---|---|---|---|
+| GeoTransolver, queries as interacting tokens | 0.062 (0.0622 / 0.0618) | 0.133 | 0.094 | 1.0 |
+| MT2, passive decode, SDF-gradient normal | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
+| MT2, passive decode, proxy normal | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
+| MT2 + 769 latent volume tokens | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
+| exact-kernel MT1, double-layer decoder | 0.496 (0.499 / 0.492) | 0.549 | 0.727 | 8.0 |
+
+: Interior relative L2 error on the 48 DrivAerML validation cars
+(arithmetic mean over cars, then over two seeds; per-seed pressure in
+parentheses), 10,000 surface tokens and 10,000 interior queries per car,
+500 epochs, learning rate 1e-3. Ratio = arm ÷ GeoTransolver. Seed
+spreads are 1–8% of the means, so every ratio is resolved. Sources:
+`results/a35_v0_reduction_2026-09-05.json` (first, second, third and
+fifth rows) and `results/v0_lvt_reduction_2026-09-07.json` (the
+latent-volume-token row). {#tbl-interior}
+
+```{python}
+#| label: fig-interior-arms
+#| fig-cap: >
+#|   Interior pressure error by architecture on the 48 DrivAerML validation
+#|   cars. Bars are the two-seed mean of the per-car arithmetic-mean relative
+#|   L2 error; the two dots on each bar are the individual seeds (filled =
+#|   seed 42, open = seed 43, same x). Labels above the bars give the ratio to
+#|   GeoTransolver. How to read this: it shows the pressure column of the
+#|   table only; velocity and eddy viscosity rank the arms identically but
+#|   are not drawn. The latent-volume-token bar uses the values in the
+#|   notebook record (@sec-nb-lvt-verdict); the other four come from
+#|   results/a35_v0_reduction_2026-09-05.json.
+#| code-fold: true
+import json, statistics
+from pathlib import Path
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+# book palette (mirrors figures.py without importing it: that module
+# switches matplotlib to Agg, which suppresses inline output here)
+BLUE, RED, PURPLE = "#2a78d6", "#e34948", "#7b4fb3"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+red = json.load(open(Path("..") / "results" / "a35_v0_reduction_2026-09-05.json"))["v0"]
+lvt = json.load(open(Path("..") / "results" / "v0_lvt_reduction_2026-09-07.json"))
+LVT_PRESSURE = {s: lvt[f"v0_mt2_lvt_sdf_seed{s}"]["pressure_l2"] for s in (42, 43)}
+arms = [
+    ("GeoTransolver\nqueries as tokens", lambda s: red[f"v0_gt_vol_seed{s}"]["pressure_l2"], RED),
+    ("MT2\nSDF-gradient normal", lambda s: red[f"v0_mt2_int_sdf_seed{s}"]["pressure_l2"], BLUE),
+    ("MT2\nproxy normal", lambda s: red[f"v0_mt2_int_seed{s}"]["pressure_l2"], BLUE),
+    ("MT2 + 769 latent\nvolume tokens", lambda s: LVT_PRESSURE[s], BLUE),
+    ("exact-kernel MT1\ndouble-layer decoder", lambda s: red[f"v0_mt1k_vol_seed{s}"]["pressure_l2"], PURPLE),
+]
+seeds = (42, 43)
+means = [statistics.mean(get(s) for s in seeds) for _, get, _ in arms]
+gt = means[0]
+fig, ax = plt.subplots(figsize=(8.2, 4.0))
+x = range(len(arms))
+ax.bar(x, means, width=0.58, color=[c for _, _, c in arms], alpha=0.85, zorder=2)
+for i, (_, get, c) in enumerate(arms):
+    ax.plot([i], [get(42)], marker="o", ms=6, mfc=INK, mec=INK, mew=1.0, ls="none", zorder=4)
+    ax.plot([i], [get(43)], marker="o", ms=6, mfc="white", mec=INK, mew=1.0, ls="none", zorder=4)
+    ax.text(i, means[i] + 0.012, f"{means[i]:.3f}\n{means[i] / gt:.1f}x",
+            ha="center", va="bottom", fontsize=9, color=INK2)
+ax.set_xticks(list(x))
+ax.set_xticklabels([n for n, _, _ in arms], fontsize=9)
+ax.set_ylabel("interior pressure rel-L2, mean over 48 cars [–]")
+ax.set_ylim(0, max(means) * 1.25)
+ax.grid(axis="x", visible=False)
+plt.tight_layout()
+plt.show()
+```
+
+Two things in the table carry the section. First, the ordering of the
+two MT2 constructions: the SDF-gradient normal beats the proxy normal by
+1.2x on pressure and on every field, so a true wall normal at the query
+is better information than a covariant blend of anchor normals. Second,
+the size of what remains: even with the better normal, MT2 is 2.6x
+behind on pressure, 2.3x on velocity and 4.0x on eddy viscosity. The
+dominant term is not the normal; it is that GeoTransolver's interior
+tokens gather context and MT2's queries can only read what the
+surface-centred slices hold. The exact-kernel MT1 at 8.0x is taken up in
+@sec-interior-negatives.
+
+The comparison is between each architecture's natural interior mode, not
+a matched-mechanism ablation: GeoTransolver was not run with passive
+interior points, nor MT2 with its queries made tokens. The 2.6x bounds
+the price of MT2's contract as MT2 is built; it does not isolate
+interaction from every other difference between the two models.
+
+## Where the deficit lives {#sec-interior-distance}
+
+**MT2's deficit is smallest at the wall and grows with distance from it,
+the signature of missing volumetric context rather than missing local
+detail.** The interior sample is stratified by the unsigned distance from
+each query to the full-resolution vehicle surface (the SDF magnitude),
+into three bands fixed before the models were evaluated: *near* is less
+than 2 m from the surface, *mid* 2–20 m, *far* beyond 20 m (0.4 and 4.0
+units of the recipe's 5 m reference length). The sampler's near-wall
+bias makes the bands very unequal — 97.8% of points near, 2.0% mid,
+0.12% far, so the far band holds 4–25 points per car. Within each band
+the per-car relative L2 is computed over the band's points only and
+averaged over cars; @fig-interior-bands plots each arm's ratio to
+GeoTransolver, which the sampling bias does not distort.
+
+```{python}
+#| label: fig-interior-bands
+#| fig-cap: >
+#|   Interior error relative to GeoTransolver as a function of distance from
+#|   the wall. For each band, the per-car relative L2 is computed over that
+#|   band's points and averaged over the 48 cars; the line is the ratio of
+#|   two-seed means (arm ÷ GeoTransolver) and the small markers are the
+#|   paired per-seed ratios (filled = seed 42, open = seed 43, same x). Left,
+#|   pressure; right, velocity including the freestream mean. Log axis. The
+#|   hollow purple marker is the exact-kernel MT1 far-band pressure, whose
+#|   output there is identically zero (see text); it is not evidence of
+#|   accuracy. How to read this: a rising line means the arm loses more
+#|   ground to GeoTransolver as queries move away from the body. It does not
+#|   show absolute error, which for pressure in the far band is dominated by
+#|   a near-zero denominator. Data: results/v0_sdf_band_2026-09-05.json.
+#| code-fold: true
+import json, statistics
+from pathlib import Path
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+BLUE, RED, PURPLE = "#2a78d6", "#e34948", "#7b4fb3"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+band = json.load(open(Path("..") / "results" / "v0_sdf_band_2026-09-05.json"))
+scheme = "prereg_Lref8"
+pa = band["per_arm"]["case_mean"]
+bands = band["band_definitions"][scheme]["names"]
+thr = band["band_definitions"][scheme]["sdf_thresholds_nondim"]
+L_m = band["global_data_first_case"]["L_ref"][0]  # metres per nondimensional unit
+frac = band["band_fractions"][scheme]
+edges = [f"< {thr[0] * L_m:g} m", f"{thr[0] * L_m:g}–{thr[1] * L_m:g} m", f"≥ {thr[1] * L_m:g} m"]
+def pct(f):
+    return f"{100 * f:.2g}" if f < 0.01 else f"{100 * f:.1f}"
+ticks = [f"{b}\n{e}\n{pct(frac[b]['case_mean'])}% of points" for b, e in zip(bands, edges)]
+arms = [("MT2, SDF-gradient normal", "mt2_int_sdf", BLUE, "-"),
+        ("MT2, proxy normal", "mt2_int", BLUE, "--"),
+        ("exact-kernel MT1", "mt1k_vol", PURPLE, "-")]
+fig, axes = plt.subplots(1, 2, figsize=(9.2, 4.2), sharey=True)
+import math
+for ax, field, title in zip(axes, ("pressure", "velocity"), ("pressure $C_p$", "velocity $U/|U_\\infty|$")):
+    labels = []
+    for name, key, color, ls in arms:
+        g = [pa["gt_vol"][scheme][b][field] for b in bands]
+        a = [pa[key][scheme][b][field] for b in bands]
+        ratio = [ai["mean"] / gi["mean"] for ai, gi in zip(a, g)]
+        ax.plot(range(3), ratio, color=color, ls=ls, lw=1.8, zorder=3)
+        for i, (ai, gi) in enumerate(zip(a, g)):
+            artefact = key == "mt1k_vol" and field == "pressure" and bands[i] == "far"
+            for s_idx, mfc in enumerate((color, "white")):  # filled = seed 42, open = seed 43
+                r = ai["seeds"][s_idx] / gi["seeds"][s_idx]
+                ax.plot([i], [r], marker="o", ms=5 if not artefact else 8, ls="none",
+                        mfc=mfc if not artefact else "white", mec=color,
+                        mew=1.2 if not artefact else 1.6, zorder=4)
+        labels.append([math.log10(ratio[-1]), name, color])
+    # direct labels at the far band, pushed apart on the log axis where they would collide
+    labels.sort()
+    for j in range(1, len(labels)):
+        if labels[j][0] - labels[j - 1][0] < 0.075:
+            labels[j][0] = labels[j - 1][0] + 0.075
+    for ly, name, color in labels:
+        ax.text(2.08, 10 ** ly, name, color=color, fontsize=8.5, va="center")
+    ax.axhline(1.0, color=RED, lw=1.2, zorder=2)
+    ax.text(-0.35, 1.0, "GeoTransolver", color=RED, fontsize=8.5, va="bottom")
+    ax.set_yscale("log")
+    ax.set_xticks(range(3))
+    ax.set_xticklabels(ticks, fontsize=8.5)
+    ax.set_xlim(-0.4, 3.3)
+    ax.set_title(title, fontsize=10, color=INK2, loc="left")
+    ax.grid(axis="x", visible=False)
+axes[0].set_ylabel("rel-L2 ratio, arm ÷ GeoTransolver [–, log]")
+axes[0].set_yticks([0.5, 1, 2, 5, 10, 20])
+axes[0].set_yticklabels(["0.5", "1", "2", "5", "10", "20"])
+plt.tight_layout()
+plt.show()
+```
+
+For MT2 with the SDF-gradient normal the pressure ratio runs 2.5x near,
+3.7x mid, 3.3x far; velocity runs 2.3x near, 4.7x mid, 5.4x far. The
+proxy-normal construction has the same shape (3.1x → 3.3x → 3.0x on
+pressure, 2.5x → 4.5x → 6.4x on velocity). The near-wall band, where a
+local-detail deficit would show first, is MT2's *best* band on every
+field. The reading is mechanical: MT2's slices and anchors are
+surface-centred and its read blocks consult slice states and boundary
+tokens, so a query 10 m into the wake has nothing off-surface to read.
+GeoTransolver's interior tokens supply that context to each other.
+
+Two cautions about the far band. It holds 573 points across the 48 cars,
+so its ratios move by tens of percent between seeds (the SDF arm's far
+velocity ratio is 6.4x on one seed and 4.4x on the other). And far-band
+*pressure* relative L2 is a poor readout for every architecture,
+GeoTransolver included: 20 m from a car the true C_p has an RMS of
+0.0055, so GeoTransolver's absolute error of about 0.01 in C_p gives it a
+far-band pressure relative L2 of 1.71 — worse than predicting zero —
+while its far-band velocity error is 0.021 |U_∞|. The 1.71 is a
+denominator two orders of magnitude below the near-wall one, not an
+engineering failure; the velocity panel, whose denominator is the
+freestream, is the well-conditioned view of the far field.
+
+## What does not work {#sec-interior-negatives}
+
+Two mechanisms were tested as ways to give MT2 interior context or an
+interior prior without giving up query independence. Both fail, for
+different reasons.
+
+**Latent volume tokens along anchor normals make the passive decode
+worse, by 1.43x on pressure.** The construction: before the encoder,
+each of the 256 slices has a geometric anchor (weighted mean position
+z_s, mean normal m_s, and an RMS radius ρ_s of the points it owns). Three
+tokens are placed off each anchor at z_s + c ρ_s m_s for c ∈ {0.5, 1, 2},
+plus one at the centroid: 769 tokens whose positions are built
+covariantly from the surface alone. They enter the slice routing as
+interacting tokens with a separately learned measure weight and are
+readable by interior queries through the ordinary read blocks; SE(3)
+covariance and interior query independence survive. With the
+SDF-gradient normal as base, the
+result on the 48 cars is pressure 0.228 against 0.160 without the tokens
+(0.233 / 0.224 against 0.166 / 0.153 by seed), velocity 0.371 against
+0.308, eddy viscosity 0.581 against 0.372. The tokens did not fail to
+help; they hurt, on both seeds. The likeliest reasons sit in the
+construction: 769 near-body tokens with nearly identical invariant seeds
+enter the measure-weighted routing on which the surface tokens rely, and
+offsets of 0.5–2 anchor radii never reach the mid and far bands where
+the deficit is largest. The supported statement is narrow:
+**off-surface latent tokens placed along anchor normals, as interacting
+tokens in MT2's routing, degrade the interior decode.** It does not show
+that interaction at the query itself is the only remedy.
+
+**The exact double-layer kernel is not a usable prior for separated
+flow.** Two measurements establish this. The first is a zero-parameter
+oracle: on the 45 of 48 validation cars whose remesh passes a
+watertightness and Gauss-identity check, exact inviscid potential flow —
+single- and double-layer integrals on the closed remesh, Neumann data
+U_∞·n, second-kind solve, Bernoulli C_p — is evaluated at the recipe's
+surface points and compared to the CFD pressure. Its measure-weighted
+relative L2 is **4.8** (median 1.97, every car above 1.6); on the same
+points, predicting C_p = 0 scores 1.00 and predicting each car's mean
+C_p scores **0.77**. No numerical control rescues it (an oracle-optimal
+affine rescale reaches 0.73; a remesh-resolution sweep is flat; the
+solver is exact on a sphere to 0.07%). The physics is the reason: 69% of
+a DrivAerML surface carries C_p in [−0.5, 0], the separated-base deficit,
+where inviscid flow predicts roughly 0 to +0.13, and inviscid suction
+peaks are two to three times too strong. A decoder built as "exact
+Laplace kernel plus learned correction" starts from a field worse than a
+constant.
+
+The second is the trained exact-kernel MT1 in @tbl-interior at 8.0x,
+together with its far-band behaviour in @fig-interior-bands. Its
+far-band pressure ratio of 0.59x GeoTransolver is not accuracy: its
+far-field pressure output has decayed to identically zero (|C_p| below
+10⁻⁶ on every far point, against a true RMS of 0.0055), which yields the
+trivial relative L2 of 1.000 on all 48 cars and both seeds and beats
+GeoTransolver's 1.71 only through the denominator problem above. On
+far-band velocity, the well-conditioned readout, MT1 is **16.7x**
+GeoTransolver (RMS velocity error 0.34 |U_∞| against 0.027), and there
+is no distance band under any definition in which the double-layer
+decoder is within 1.5x of GeoTransolver on velocity. The
+exact-kernel line is closed for separated three-dimensional aerodynamics
+on every readout in this book; what it buys on problems whose operator
+it matches is the subject of @sec-linear-suites.
+
+## Standing and open designs {#sec-interior-open}
+
+**GeoTransolver is the architecture to use for interior accuracy; MT2 is
+the architecture to use when exact SE(3) covariance and interior query
+independence are contractual, at a 2.6x price in interior pressure error
+on DrivAerML.** Neither passive construction of a query normal closes
+the gap, the SDF gradient is the better of the two by 1.2x, and the
+distance stratification locates the missing quantity as volumetric
+context available to the query. The exact-kernel MT1 is not a contender
+on this task.
+
+Two designs would supply that context without making a prediction depend
+on the batch of queries. Neither has been measured; both are designs,
+not results.
+
+*Wake-aligned probe tokens.* The failed latent tokens sat along anchor
+normals within two anchor radii of the body; the region where MT2 loses
+the most ground is downstream. A probe set built covariantly from the
+surface and the freestream direction d — tokens placed along d behind
+the body, at offsets scaled by the reference length — would put
+interacting off-surface tokens where the volumetric structure of an
+external flow lives, while remaining a function of the surface alone.
+
+*A request-independent canonical probe set.* The alternative is to give
+the decoder interaction with a fixed lattice rather than with the other
+queries: a small query-side self-attention over a canonical set of probe
+points recomputed per request from the surface, never depending on which
+points the request contains. Queries would decode from the probe set
+GeoTransolver-style; predictions at shared points would still agree
+exactly across requests, at the cost of a fixed probe budget per
+inference.
+
+Whether to build either on MT2 or on GeoTransolver depends on what
+carries MT2's small-data advantage on the surface task (@sec-mt2), the
+open question that gates this one. @sec-limits collects the interior
+deficit alongside the book's other limits.

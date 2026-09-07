@@ -1,0 +1,669 @@
+# The exact-kernel MeshTransformer {#sec-mt1}
+
+The exact-kernel MeshTransformer (MT1 from here on) is a boundary-to-field
+operator learner that puts the singular part of potential theory into the
+network as closed-form panel integrals and learns only the smooth
+coefficients that multiply them. One layer of signed, quadrature-weighted
+attention over the boundary cells plays the role of the boundary solve; a
+decoder then evaluates two exact free-space kernels, the double-layer and
+the single-layer Laplace potentials, integrated exactly over every boundary
+cell, with coefficients conditioned on the encoded boundary. Everything the
+network computes is an invariant scalar or a polar vector, positions are
+nondimensionalized by a gauge derived from the geometry itself, and the
+boundary data enters through a stream whose algebraic law (linear,
+degree-two, degree-one, or merely zero-preserving) is declared per problem.
+The result is a model of about 82k parameters whose contracts, similarity
+equivariance, drive linearity when declared, parity typing, and query
+independence, hold for any weights and are asserted as tests.
+
+This design is what the controlled suites of Part III measure
+(@sec-linear-suites, @sec-nonlinear-suites). It generalizes across
+boundary-condition frequency content on linear problems where soft-slice
+and moment decoders do not, and it extrapolates amplitude exactly under a
+declared linearity contract. It also stops where its prior stops: the
+potential-flow structure it encodes is not a usable prior for separated 3D
+aerodynamics, and on the DrivAerML interior it is 8x behind GeoTransolver
+(@sec-industrial-mt1, @sec-interior). MeshTransformer2 (@sec-mt2) is the
+architecture that keeps MT1's equivariance and drops its kernel dictionary;
+the last section of this chapter states the relation.
+
+## The architecture {#sec-architecture}
+
+MT1 computes one thing: given the boundary of a domain, its shape, the
+type of boundary condition on each patch, and the boundary values, predict
+a physical field at any set of points (@sec-problem states the problem
+class). Encoding runs once per boundary; decoding runs for any number of
+query points afterwards and reuses the encoding.
+
+The input is a boundary mesh: surface cells (line segments in 2D,
+triangles in 3D), each carrying its centroid, its measure (length or
+area), its outward normal, a one-hot label naming the boundary patch it
+belongs to, and whatever fields are declared on that patch. Domain-level
+scalars (a material parameter, a screening constant) and vectors (a
+freestream direction) arrive as global data. Every declared field has one
+of two *roles*: **operator** fields describe the problem (geometry,
+material, PDE coefficients) and may be used nonlinearly; **drive** fields
+are the data the solution depends on (boundary values, fluxes, a far-field
+velocity), and zero drive must produce zero output. The output is a typed
+prediction at each query point, invariant scalars and polar vectors by
+declared rank, written to the query mesh. Nothing about the interior is
+supplied: no interior mesh, no initial guess, no source term.
+
+### The forward pass {#sec-forward-pass}
+
+Five stages, in words. First, **nondimensionalize**: subtract the
+measure-weighted centre of the boundary and divide every length by a
+reference length derived from the boundary itself (its measure-weighted
+RMS radius); downstream, nothing ever sees an absolute position or size.
+Second, **lift**: each cell's normalized position, normal, patch label,
+and operator fields become a small set of scalar channels and vector
+channels, and a shared pointwise typed block enriches them without any
+interaction. Third, **boundary self-attention**: one layer in which every
+cell reads a signed, measure-weighted combination of every other cell's
+state, the global coupling of an elliptic boundary-value problem. Fourth,
+**drive read-in**: the boundary and global drive fields are lifted by a
+map that is linear in the drive at fixed operator state, then propagated
+boundary-to-boundary by field blocks of the declared algebraic class.
+Fifth, **kernel decode**: for each query point the two exact singular
+kernels are integrated in closed form over every cell and summed with
+coefficients read from the encoded boundary, followed by a bias-free typed
+output projection.
+
+```{python}
+#| label: fig-mt1-forward
+#| fig-cap: >
+#|   The MT1 forward pass. Grey boxes are data, purple boxes are computation,
+#|   the green box is the output. Encode (left of the cache) runs once per
+#|   boundary in time linear in the number of cells; decode runs per query
+#|   batch at a cost proportional to (queries x cells) and never lets query
+#|   points interact. How to read this: the diagram shows information flow,
+#|   not tensor shapes or parameter counts; the reference configuration
+#|   (@sec-reference-config) has exactly one attention layer, one query
+#|   block, and two exact members. Schematic; not computed from an artifact.
+#| code-fold: true
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from matplotlib.patches import FancyBboxPatch
+
+# book palette (mirrors figures.py without importing it: that module
+# switches matplotlib to Agg, which suppresses inline output here)
+BLUE, RED, PURPLE = "#2a78d6", "#e34948", "#7b4fb3"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+fig, ax = plt.subplots(figsize=(11.0, 4.8))
+ax.set_xlim(0, 14); ax.set_ylim(0, 6.4); ax.axis("off")
+
+def box(x, y, w, h, text, kind):
+    face = {"data": "#f0efec", "stage": "#f1eaf8", "out": "#e6f4ea"}[kind]
+    edge = {"data": BASELINE, "stage": PURPLE, "out": "#2a6a2a"}[kind]
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.12",
+                                fc=face, ec=edge, lw=1.6))
+    ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=8.2, color=INK)
+
+def arrow(x0, y0, x1, y1):
+    ax.annotate("", xy=(x1, y1), xytext=(x0, y0),
+                arrowprops=dict(arrowstyle="-|>", color=INK2, lw=1.3, shrinkA=0, shrinkB=0))
+
+# encode row: five equal slots
+W, H, Y = 2.45, 1.15, 3.9
+xs = [0.15 + i * 2.8 for i in range(5)]
+labels = [("boundary mesh\ncentroid, measure,\nnormal, patch label, fields", "data"),
+          ("nondimensionalize\ncentre c, gauge L\n(intrinsic RMS radius)", "stage"),
+          ("typed lift\nscalar + vector channels", "stage"),
+          ("self-attention x1\nsigned weights,\nmeasure-weighted, no softmax", "stage"),
+          ("drive read-in\nlinear in drive at fixed\noperator state", "stage")]
+for x, (text, kind) in zip(xs, labels):
+    box(x, Y, W, H, text, kind)
+for x in xs[:-1]:
+    arrow(x + W, Y + H / 2, x + 2.8, Y + H / 2)
+
+# cache, below the last encode stage
+xc = xs[-1] + W / 2
+box(xs[-1], 2.05, W, 0.95, "encoded boundary\n(states, c, L) -- cached", "data")
+arrow(xc, Y, xc, 3.0)
+
+# decode row
+box(0.15, 0.35, W, H, "query points\n(any set, any order)", "data")
+box(4.0, 0.35, 5.2, H, "kernel decode, per query\nexact double- + single-layer panel integrals\nx operator-conditioned coefficients", "stage")
+box(10.2, 0.35, 3.6, H, "typed prediction at queries\nscalars, polar vectors", "out")
+arrow(0.15 + W, 0.35 + H / 2, 4.0, 0.35 + H / 2)
+arrow(9.2, 0.35 + H / 2, 10.2, 0.35 + H / 2)
+arrow(xc, 2.05, xc, 1.75); ax.plot([6.6, xc], [1.75, 1.75], color=INK2, lw=1.3)
+arrow(6.6, 1.75, 6.6, 0.35 + H)
+
+ax.text(0.15, 5.55, "encode: once per boundary, cost ~ cells", color=PURPLE, fontsize=9.5, fontweight="bold")
+ax.text(0.15, 1.9, "decode: per query batch, cost ~ queries x cells; queries never interact",
+        color=PURPLE, fontsize=9.5, fontweight="bold")
+plt.show()
+```
+
+The gauge step is the one place where a convention could enter, so it is
+worth writing down. With cell centroids $y_j$ and effective cell measures
+$w_j$ (geometric measure times any declared sampling weight), the code
+(`gauge.measure_weighted_rms_radius`, called from
+`MeshTransformer.encode` when `reference_length_key` is `None`) forms
+
+| symbol | meaning | code |
+|---|---|---|
+| $c$ | measure-weighted boundary centre | `center` in `encode` |
+| $L$ | reference length: measure-weighted RMS radius about $c$ | `measure_weighted_rms_radius` |
+| $z_j,\ \zeta_i$ | normalized source centroid, normalized query point | `source_points`, query points / `L` |
+| $\omega_j$ | normalized cell measure $w_j / L^{D-1}$ | `cell_measures(source_mesh)` |
+
+$$
+c=\frac{\sum_j w_j\,y_j}{\sum_j w_j},\qquad
+L=\sqrt{\frac{\sum_j w_j\,\lVert y_j-c\rVert^2}{\sum_j w_j}},\qquad
+z_j=\frac{y_j-c}{L},\quad \zeta_i=\frac{x_i-c}{L}.
+$$
+
+$L$ is positively homogeneous of degree one in the geometry: scale the
+boundary by $s$ and $L$ scales by exactly $s$, so the normalized
+coordinates are unchanged. Scale equivariance therefore does not depend on
+a caller supplying a consistent length. A `reference_length_key` override
+exists for canonically dimensioned problems (an aerodynamic chord); it is
+discussed with its cost in @sec-intrinsic-gauge.
+
+### Typed channels and the mirror test {#sec-typed-channels}
+
+Every latent quantity in MT1 is one of two types, and the distinction is
+physical. An **invariant scalar** is a number every observer agrees on
+under rotation or reflection: a distance, a dot product, a temperature. A
+**polar vector** is an ordinary arrow, a displacement, a velocity, a
+surface normal: rotate the scene and it rotates with it. The type MT1
+deliberately excludes is exposed by the mirror test. Hold a spinning wheel
+before a mirror: its velocity arrows reflect like ordinary arrows, but its
+spin axis does not; the image spins the other way, so the reflected axis
+points where "reflect like an arrow" says it should not. Such quantities,
+cross products, curls, rotation axes, are **axial vectors**; the analogous
+sign-flipping number (a signed area or volume) is a **pseudoscalar**.
+
+```{python}
+#| label: fig-mirror
+#| fig-cap: >
+#|   The mirror test. Left: a polar vector (velocity) reflects like an
+#|   ordinary arrow. Right: an axial vector (the wheel's spin axis) comes back
+#|   flipped relative to naive reflection because the mirror image spins the
+#|   other way. MT1 carries scalars and polar vectors only; axial quantities
+#|   are rejected at construction time. How to read this: a schematic of
+#|   transformation laws, not a measurement. Not computed from an artifact.
+#| code-fold: true
+import numpy as np
+import matplotlib.pyplot as plt
+
+INK, INK2, PURPLE, RED = "#0b0b0b", "#52514e", "#7b4fb3", "#e34948"
+fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.0))
+for ax, title, flipped in ((axes[0], "polar vector (velocity)", False),
+                           (axes[1], "axial vector (spin axis)", True)):
+    ax.plot([0, 0], [-1.05, 1.15], color=INK, lw=2.5)
+    ax.text(0, 1.22, "mirror", ha="center", va="bottom", fontsize=9, color=INK)
+    ax.add_patch(plt.Circle((-1.0, 0.0), 0.52, fill=False, color=INK2, lw=1.4))
+    ax.add_patch(plt.Circle((1.0, 0.0), 0.52, fill=False, color=INK2, lw=1.4, ls="--"))
+    if not flipped:
+        ax.annotate("", xy=(-0.35, 0.0), xytext=(-1.0, 0.0),
+                    arrowprops=dict(arrowstyle="-|>", color=PURPLE, lw=2.4))
+        ax.annotate("", xy=(0.35, 0.0), xytext=(1.0, 0.0),
+                    arrowprops=dict(arrowstyle="-|>", color=PURPLE, lw=2.4, ls="--"))
+    else:
+        for cx, up, ls in ((-1.0, True, "-"), (1.0, False, "--")):
+            dy = 0.62 if up else -0.62
+            ax.annotate("", xy=(cx, dy), xytext=(cx, 0.0),
+                        arrowprops=dict(arrowstyle="-|>", color=RED, lw=2.4, ls=ls))
+            theta = np.linspace(0.35 * np.pi, 1.15 * np.pi, 40)
+            direction = 1.0 if up else -1.0
+            ax.plot(cx + 0.40 * np.cos(direction * theta), 0.40 * np.sin(direction * theta),
+                    color=INK2, lw=1.1)
+    ax.set_title(title, fontsize=10)
+    ax.set_xlim(-1.9, 1.9); ax.set_ylim(-1.05, 1.5)
+    ax.set_aspect("equal"); ax.axis("off")
+plt.tight_layout()
+```
+
+The problem class has no handedness: reflect a Laplace problem and its
+solution reflects. Scalars and polar vectors are two irreducible
+representations of the rotation-reflection group $O(D)$, and MT1 uses
+exactly these two. `ScalarVectorState` holds scalar channels of shape
+$(N, C_s)$ and vector channels of shape $(N, C_v, D)$; `TypedProjection`
+implements the only allowed combinations: any function of scalars is a
+scalar, dot products of vectors are scalars (this is how vector
+information reaches scalar channels), and new vectors are made only as
+scalar-weighted sums of existing vectors, never from raw components. A
+layer that would produce anything else fails at construction. Because no
+learned map ever sees a Cartesian component, equivariance holds to
+floating point for any weights.
+
+One typed extension exists for 2D problems whose target is parity-odd (a
+circulation): pseudoscalar channels (`0o`) with the wedge product as a
+typed operation. The reference configuration does not use them; the 3D
+analogue (axial vectors) is excluded.
+
+### Attention as a boundary solve {#sec-attention-role}
+
+Elliptic boundary-value problems are global: the solution at one end of
+the domain depends on data at the other. Boundary-integral methods make
+this explicit by solving a dense linear system over all boundary
+elements. MT1's boundary self-attention is the learned analogue, and it
+departs from textbook attention in three ways, each forced by the
+physics: the pair weights are **signed** (no softmax; boundary-integral
+kernels change sign), sources contribute in proportion to their **measure**
+(so refinement converges rather than double-counting), and the coupling is
+**separable**, factored through a small set of global moments so the encode
+cost is linear in the cell count. How much attention the physics needs is
+an empirical question with a measured answer on the controlled suites: one
+layer, one full-width head (@sec-linear-suites). All-Dirichlet problems
+nearly work with none; mixed Dirichlet/Neumann problems need one.
+
+### The decoder: exact kernels, learned coefficients {#sec-decoder-role}
+
+The decoder asks: given the encoded boundary, what is the field at $x$?
+Any solution of a homogeneous elliptic problem is a boundary integral of
+known singular kernels against unknown boundary densities (the Green
+representation). MT1's decoder mirrors this: for each query and each
+boundary cell it evaluates the free-space double-layer and single-layer
+Laplace kernels *integrated exactly over the cell*, closed forms rather
+than point samples, and multiplies them by smooth coefficients produced
+from the encoded boundary state. The learning is in the coefficients; the
+singular structure is exact.
+
+Why closed forms matter is easiest to see one panel at a time.
+
+```{python}
+#| label: fig-panel-integral
+#| fig-cap: >
+#|   Why the decoder integrates rather than samples. For a query point
+#|   approaching the midpoint of a unit 2D panel, the exact cell integral of
+#|   the double-layer kernel (the signed subtended angle over 2 pi, as in
+#|   kernel_decoder.exact_double_layer_member) saturates at 1/2, while the
+#|   midpoint-quadrature estimate (length x kernel value at the centroid)
+#|   diverges like 1/distance. A learned coefficient cannot repair a factor
+#|   that blows up under infinitesimal displacement. How to read this: the
+#|   grey curve is a query at 0.75 panel-lengths off the panel's span, where
+#|   both agree; the figure shows the near-field failure of point sampling,
+#|   not a trained model. Computed from the closed form; not from an artifact.
+#| code-fold: true
+import numpy as np
+import matplotlib.pyplot as plt
+
+INK2, PURPLE, MUTED, GRID = "#52514e", "#7b4fb3", "#898781", "#e1e0d9"
+h = 1.0
+d = np.logspace(-3, 0.5, 200)
+
+def exact(x0, d):
+    # signed subtended angle of the panel [-h/2, h/2] x {0} seen from (x0, d), over 2 pi
+    return (np.arctan2(d, x0 - h / 2) - np.arctan2(d, x0 + h / 2)) / (2 * np.pi)
+
+def midpoint(x0, d):
+    # length x (n . r) / (2 pi |r|^2) with n = (0, 1), r = (x0, d)
+    return h * d / (2 * np.pi * (x0**2 + d**2))
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(d, exact(0.0, d), color=PURPLE, lw=2.2, label="exact panel integral (query over panel centre)")
+ax.plot(d, midpoint(0.0, d), color=PURPLE, lw=1.6, ls="--", label="midpoint quadrature (same query)")
+ax.plot(d, exact(0.75 * h, d), color=MUTED, lw=1.6, label="exact, query 0.75 h off the span")
+ax.plot(d, midpoint(0.75 * h, d), color=MUTED, lw=1.2, ls="--", label="midpoint, query 0.75 h off the span")
+ax.axhline(0.5, color=INK2, lw=0.9, ls=":")
+ax.text(1.15e-3, 0.62, "1/2: the one-sided limit on the panel", fontsize=8, color=INK2, va="bottom")
+ax.set_xscale("log"); ax.set_yscale("log")
+ax.set_xlabel("distance from panel [panel lengths]")
+ax.set_ylabel("double-layer cell integral [dimensionless]")
+ax.set_ylim(1e-3, 3e2)
+ax.legend(fontsize=8, loc="upper right")
+plt.tight_layout()
+```
+
+Two exact members make up the dictionary in the reference configuration.
+The **double-layer member** (`exact_double_layer_member`) is the exact
+cell integral of $\partial_{n_y} G$: in 2D the signed subtended angle of
+the segment, with the orientation factor $\sigma = n\times\tau$ that makes
+the value odd in the normal as the double layer requires; in 3D the
+van Oosterom–Strackee signed solid angle of the triangle, whose entries at
+an interior point of a closed boundary sum to exactly $-1$. The
+**single-layer member** (`exact_single_layer_member`) is the exact cell
+integral of $G$ itself: the Hess–Smith constant-strength source-panel
+closed form in 2D and a per-edge $\operatorname{asinh}$ form plus solid
+angle in 3D. It is even in the normal and carries the net flux that a pure
+double-layer representation cannot (through the handles of a multiply
+connected domain, for instance). Both are validated against brute-force
+quadrature to about $10^{-14}$. Neither has a learned parameter of its
+own; the learning is in the coefficient that multiplies each member.
+
+A declared **boundary-trace mode** (`trace_of`) extends the decoder to
+boundary-to-boundary targets such as surface pressure. A layer potential
+is discontinuous across its own layer (the double layer's exterior and
+interior traces differ from the principal value by $\pm 1/2$), so a query
+placed on its own source panel receives whichever branch floating point
+selects, and no coefficient can repair a term that flips sign under
+infinitesimal displacement. The mode declares that the query mesh is the
+named boundary's cell centroids, index-aligned, and licenses exactly two
+changes: own-panel double-layer entries take the exterior one-sided
+limit, exactly $+1/2$ in 2D and 3D (`exterior_trace_self_entries`; the
+single layer is continuous and needs none), and each query reads its own
+cell's encoded state. Every contract survives; query independence holds
+given the declared identity map.
+
+Two further knobs are opt-in and off in the reference configuration: a
+declared auxiliary length scale (`kernel_auxiliary_scale_key`), which
+rescales the pair invariants to a second physical scale such as a
+boundary layer for the learned smooth members only, and a monopole-free
+deflation of the single-layer member for exterior fields with zero net
+flux, which is not licensed where net flux is the physics.
+
+## The mathematics {#sec-mesh-attention}
+
+This section is keyed to `physicsnemo/experimental/nn/mesh_attention/`
+(`attention.py`, `block.py`, `model.py`, `kernel_decoder.py`, `gauge.py`).
+The stack generalizes GLOBE (arXiv 2511.15856), keeping its invariant-only
+learned maps, all-to-all quadrature-weighted boundary coupling, and
+nondimensionalization, and replacing its bespoke kernel MLPs with
+attention blocks, residual streams, and typed projections.
+
+### Signed moment attention
+
+`MeshAttention` is a finite-rank separable signed integral operator.
+Typed projections of the operator state give, per head $h$, scalar and
+vector query and key features, and the pair coefficient is a sum of scalar
+products and vector dot products.
+
+| symbol | meaning | code |
+|---|---|---|
+| $q^0_{ihr}, k^0_{jhr}$ | scalar query/key features, rank index $r\le R_0$ | `TypedQK`, `scalar_rank` |
+| $q^1_{ihr}, k^1_{jhr}\in\mathbb R^D$ | vector query/key features, $r\le R_1$ | `vector_rank` |
+| $a_{ijh}$ | signed pair coefficient, receiver $i$, source $j$, head $h$ | inside `MeshAttention.forward` |
+| $\omega_j$ | normalized cell measure | `cell_measures(source_mesh)` |
+| $v_{jhf}$ | typed value channel $f$ (scalar or vector) | `TypedValues` |
+| $M$ | source moments, four typed blocks | `AttentionMoments`, `integrate_moment` |
+
+$$
+a_{ijh}=\frac{1}{\sqrt{R_0+DR_1}}\Bigl(\sum_{r\le R_0} q^0_{ihr}k^0_{jhr}
++\sum_{r\le R_1} q^1_{ihr}\!\cdot\!k^1_{jhr}\Bigr),
+\qquad
+o_{ihf}=\sum_j \omega_j\,a_{ijh}\,v_{jhf}.
+$$
+
+There is no softmax (kernels are signed), no distance envelope or cutoff
+(elliptic problems are global), and no normalization (it would break drive
+linearity). Because $a_{ijh}$ is bilinear in query and key features, the
+all-pairs sum reassociates exactly into source moments built once,
+$M^{00}_{hrf}=\sum_j\omega_j k^0_{jhr}v^0_{jhf}$ and its three typed
+siblings, and contracted at each receiver; encode is linear in the cell
+count and the rearrangement is exact (a dense `forward_reference` backs
+value- and gradient-equality tests). The price is rank: per head the pair
+kernel has rank at most $R_0+DR_1$, so one layer cannot represent an
+arbitrary pair function, and in particular not a singular Green kernel.
+Heads and ranks are capacity knobs, not physics.
+
+### From the angular ceiling to the kernel decoder {#sec-kernel-decoder}
+
+The rank limit becomes a theorem at the query. At an ordinary interior
+query the only query-side vector is the normalized position $\zeta$, so a
+separable moment decoder in linear mode with scalar output can only
+produce $u(\zeta)=c(|\zeta|^2)+b(|\zeta|^2)\cdot\zeta+\zeta^{\mathsf T}A(|\zeta|^2)\zeta$:
+on any circle about the origin the angular content is limited to Fourier
+orders $m\le 2$, whatever the width, depth, or rank. A paired random-weight
+ring test (`test_kernel_decoder.py`) asserts the moment decoder's $m\ge 3$
+content is below $2\times10^{-11}$ and the kernel decoder's above
+$10^{-6}$. The fix changes what the decoder *is*: `query_decoder="kernel"`
+replaces the moment contraction with a dense, operator-conditioned
+pair-kernel dictionary.
+
+| symbol | meaning | code |
+|---|---|---|
+| $\varphi_m(\zeta, z_j)$ | dictionary member $m$: exact cell integral of a kernel over cell $j$ | `exact_double_layer_member`, `exact_single_layer_member` |
+| $C_{mh}(\mathrm{op}_j)$ | member coefficient, a linear map of source $j$'s operator invariants | `coefficient_map` |
+| $V_{jhf}$ | bias-free typed value of the drive state at source $j$ | `value_projection` |
+| $u_{hf}(\zeta)$ | decoded field at the query, head $h$, channel $f$ | message assembled in `KernelBasisCrossDecoder.forward` |
+
+$$
+u_{hf}(\zeta)=\sum_j \kappa_h(\zeta, z_j)\,V_{jhf},\qquad
+\kappa_h(\zeta, z_j)=\sum_m C_{mh}(\mathrm{op}_j)\,\varphi_m(\zeta, z_j).
+$$
+
+The operator invariants feeding $C_{mh}$ are the source's operator scalars
+plus the Gram invariants of its operator vectors; in the linear class the
+coefficients and pair features never read the drive, so the message is
+exactly linear in the drive at fixed geometry. All pair features are joint
+$O(D)$ invariants of $\{\zeta - z_j,\ n_j,\ \text{source-state vectors}\}$
+(`PairInvariantFeatures`: $\lVert r\rVert^2$, $n\cdot r$, $v_c\cdot r$),
+so no absolute position or orientation enters. The two linearity classes
+are separate Python classes (`LinearKernelBasisCrossDecoder`,
+`NonlinearZeroKernelBasisCrossDecoder`), so a bias added to one cannot
+silently invalidate the other's proof. On the frozen 2D Laplace reference
+bank the kernel decoder cuts the moment decoder's in-distribution error
+by 11.3x (0.4503 to 0.0399, relative L2 as defined in @sec-metrics,
+3-seed means).
+
+### Two streams {#sec-stream-factorization}
+
+Input fields flow through two streams that are different Python classes.
+The **operator stream** (`MeshOperatorBlock`: typed RMS norm, moment
+attention, equivariant feed-forward, LayerScale residuals) may use biases
+and nonlinearities because it describes the operator, not the solution
+amplitude. The **drive stream** carries the data the solution depends on,
+and its class is declared per problem by `field_mode`:
+
+| mode | class | law of the drive-to-output map at fixed geometry |
+|---|---|---|
+| `linear` | `LinearMeshFieldBlock` | exactly linear: zero drive gives zero, superposition holds to floating point |
+| `quadratic` | `QuadraticFieldReadIn` | exact polynomial of degree at most 2: the linear path plus one bilinear typed composition at the query read-in |
+| `homogeneous` | `HomogeneousFieldReadIn` | degree one without additivity: $f(F)=\lVert F\rVert\,g(F/\lVert F\rVert)$ with $g$ a biased nonlinear typed map |
+| `zero_preserving_nonlinear` | `NonlinearZeroMeshFieldBlock` | zero drive gives zero; keys and values read the drive through multiplicative updates; degree unconstrained |
+
+In `linear` mode, queries and keys read only the operator state, values
+are bias-free and linear in the drive, and the pointwise maps are
+`GeometryConditionedLinear`: geometry may convert types (field vector dot
+geometry vector to scalar; field scalar times geometry vector to vector;
+a dyad branch for anisotropic maps like $(v\cdot n)n$) while staying
+exactly linear in the field. The `quadratic` composition sits at the
+read-in rather than in a stackable block because residual bilinear
+updates would compose to degree $2^k$. The `homogeneous` mode fits
+targets that depend nonlinearly on the drive's *shape* but linearly on
+its *amplitude* (nondimensional surface loads under a unit freestream)
+and is wrong where amplitude nonlinearity is the physics. The nonlinear
+mode's implicit drive degree, measured at about 21 on the synthetic
+suites, is what the declared-degree modes exist to forbid
+(@sec-nonlinear-fragility).
+
+The factorization was priced against a single-stream control that
+re-declares the drive as operator features, matched in parameters within
+0.03%, on 2D Laplace in linear mode (3-seed means, relative L2 on the
+frozen reference bank). The two-stream model wins in-distribution, 0.0485
+against 0.0606, and is the only arm with exact contracts: its zero-drive
+output is exactly zero and its superposition violation is $10^{-7}$, where
+the control *learns* approximate linearity and plateaus at 0.038 and
+0.042, five decades above the structural contract. The factorization did
+not improve frequency extrapolation (0.211 against the control's 0.179);
+spectral generalization lives in the dictionary and its conditioning
+(@sec-dictionary-ablation), not in the linearity contract. One caveat
+travels with zero preservation: it is correct physics only when the
+homogeneous problem has the zero solution. On the Liouville equation zero
+Dirichlet data has the interior solution $\log 4$, so the contract pins
+the wrong value exactly. A contract can be exactly enforced and exactly
+wrong; each declaration needs a per-problem correctness check
+(`results/learned_bie_2026-07-02.json`, key
+`iteration_26_stream_factorization`).
+
+### The intrinsic similarity gauge {#sec-intrinsic-gauge}
+
+The reference length is the last externally trusted input, so MT1 derives
+it from the geometry by default (@sec-forward-pass). The measured
+consequences on the frozen 2D Laplace reference bank (3-seed means,
+relative L2): the intrinsic gauge is accuracy-neutral against an explicit
+per-case key (in-distribution 0.0372 against 0.0375; frequency split
+likewise), trained models are similarity-covariant to $3\times10^{-7}$
+under rotations, reflections, translations, and rescalings by 0.2x to 5x,
+and a 3x corruption of the supplied length at evaluation time degrades the
+explicit-key model 4.64x while the intrinsic model is bitwise unchanged
+because the input it would have trusted no longer exists
+(`results/learned_bie_2026-07-02.json`, key
+`iteration_24_intrinsic_gauge`).
+
+The override is a loaded gun. A constant with units of length encodes one
+dataset's absolute size and does not transform with the geometry, so for
+any geometry from a different family the scale contract provides no
+protection. The rule: if the gauge is overridden, override it with a
+similarity-covariant functional of the input geometry (a per-case chord or
+diameter), never with a number in a config file. Separately, geometric
+scale is a symmetry of the *architecture*, not necessarily of the
+*problem*: rescaling lengths at fixed dimensional viscosity changes the
+Reynolds number, so the contract applies only when the complete
+nondimensional problem transforms consistently.
+
+### Cost and scale {#sec-scale}
+
+Encode is linear in the number of boundary cells because attention is
+separable. Decode is dense: $O(N_q N_s)$ work for $N_q$ queries and $N_s$
+cells, chunked over queries so the forward peak is one chunk. During
+training autograd retains every chunk's pair activations, so the
+retained memory is the full $O(N_q N_s)$; the `kernel_checkpoint_query_chunks`
+knob recomputes each chunk in the backward pass instead, and because the
+decoder is RNG-free and shape-deterministic the recomputation is bitwise,
+changing what is stored and nothing else, at the price of one extra
+decode forward per backward. A Barnes–Hut backend exists as a separate
+approximate numerical backend converging to the dense oracle; the
+contracts stated in this chapter are those of the exact dense path.
+
+## Where the kernel came from {#sec-learned-bie}
+
+The dictionary is not a guess; it is the survivor of a falsification
+ladder on 2D Laplace with exact conformal-map labels (relative L2 on the
+frozen 64-case reference bank, 3 seeds, 3,000 updates;
+`results/learned_bie_2026-07-02.json`, key `results_3seed_reference_bank`).
+A free-form learned pair kernel of 19,008 parameters reaches 0.107
+in-distribution but 0.642 on unseen boundary frequencies: a value
+interpolator with no operator fidelity. Wrapping it in a learned
+second-kind solve does not help; soft PDE or trace penalties move their
+own diagnostic and nothing else; an exactly harmonic basis under midpoint
+quadrature loses badly, because singular terms cannot mollify near-panel
+quadrature error. Only the combination works: an exactly harmonic basis
+containing the true kernel, exact panel quadrature, and a learned
+drive-linear density solve. A 3-parameter model of this form reaches
+0.0347 in-distribution and 0.0664 on unseen frequencies, and its learned
+singular coefficient lands within 0.8% of the classical $-1/2\pi$ on
+every seed, from random initialization, on interior supervision alone.
+
+The parametric study on screened Laplace disks adds the second rule:
+known operator dependence belongs in a correctly normalized
+fundamental-solution kernel, while learned coefficient conditioning
+interpolates within its parameter range and cannot be assumed to
+extrapolate beyond it. Together these fix MT1's division of labour: the
+dictionary carries the singularity, the conditioning carries the
+smoothness. Under the program's scope the governing equations are not
+given, so the Laplace kernels are a prior rather than a specification;
+how far that prior reaches is what the rest of the book measures.
+
+## Declared contracts {#sec-mt1-contracts}
+
+Each contract is a structural property that holds for any weights, and
+each is asserted as a test rather than averaged into a score.
+
+| contract | mechanism | test |
+|---|---|---|
+| similarity equivariance (rotation, reflection, translation, scale) | typed channels; intrinsic gauge | paired transformed cases agree to $128\,\epsilon_{\mathrm{fp32}}$; measured $\sim 3\times10^{-7}$ on trained models |
+| zero drive gives zero output | bias-free drive path in every field mode | zero-drive evaluation, every mode |
+| drive linearity, when declared | `linear` mode: keys read operator state only, values bias-free | two-drive superposition to $\sim10^{-7}$ |
+| declared drive degree | `quadratic` / `homogeneous` read-ins | drive-scaling probe fits the declared polynomial to fp64 roundoff |
+| parity typing | scalars and polar vectors only; opt-in `0o` in 2D | construction-time rejection; reflection tests |
+| query independence | decode reads only the cached encoding and the query's own position | bitwise row-stability across query subsets and orderings |
+| exact singular quadrature | closed-form panel integrals | agreement with brute-force quadrature to $\sim10^{-14}$ |
+
+## The reference configuration {#sec-reference-config}
+
+The configuration the controlled-suite evidence selects (@sec-linear-suites,
+@sec-dictionary-ablation) is the smallest that matches everything
+measured. Parameter counts are for the 2D Laplace scalar-output problem.
+
+| piece | setting |
+|---|---|
+| typed lift | scalar/vector channels 32/8 (operator), 48/12 (drive) |
+| boundary self-attention | 1 layer, 1 full-width head, separable ranks 48 (scalar) + 16 (vector) |
+| drive read-in | zero-preserving; `linear` on linear problems, `quadratic` or `homogeneous` on known-degree targets, `zero_preserving_nonlinear` otherwise |
+| decoder dictionary | 2 exact members (double layer + single layer), no polynomial or MLP members |
+| total parameters | 81,547 |
+
+A sibling configuration at the frozen benchmark capacity, 4 heads with
+separable ranks 12/4, two encoder layers, the same two exact members,
+104,537 parameters, is used wherever an arm must remain comparable with
+every archived arm on the controlled suites; the two differ in attention
+bookkeeping, not in the decoder. Two caveats travel with the reference
+row. The vector channels are prunable on easy 2D geometry but essential
+in 3D and on parametric problems. The single-layer member is decisively
+necessary on multiply connected and deeply cavitated geometry and costs
+some frequency extrapolation on very easy geometry, because its
+coefficient is freely fit rather than determined by a boundary system.
+Industrial variants (@sec-industrial-mt1) are wider but keep this
+structure.
+
+## What the architecture excludes {#sec-mt1-exclusions}
+
+Each exclusion is a falsifiable statement with a test attached.
+
+| never | because | consequence |
+|---|---|---|
+| read an absolute coordinate, orientation, or index | equivariance for any weights | no positional encodings, Fourier features, PCA frames, or vertex embeddings anywhere |
+| mix types outside the allowed products | no symmetry leaks, no hidden axial quantities | construction-time rejection |
+| couple query points to each other | streaming evaluation; predictions independent of the query set | no interior mesh, graph, or neighbourhood |
+| respond to zero drive | a homogeneous problem with no data has the zero solution | exact in every field mode (and exactly wrong where that premise fails, as on Liouville) |
+| break superposition in `linear` mode | when the problem is linear its law should be structural | one class per declared law |
+| point-sample a singular kernel | near-boundary accuracy | closed-form members only |
+| use a distance cutoff, neighbourhood, or tree in the exact path | elliptic problems are global | dense decode, with its cost stated in @sec-scale |
+
+Also excluded, by ablation rather than principle: polynomial and MLP
+smooth members on linear problems (they trade structure for interpolation
+and damage frequency extrapolation; @sec-dictionary-ablation), extra
+attention layers, and multiple heads at fixed score capacity.
+
+## What this design buys, and where it stops {#sec-mt1-scope}
+
+On controlled linear problems the exact kernels buy exactly what the
+Green representation promises. On the 2D Laplace, screened, and mixed
+boundary-condition families with exact labels, the exact-kernel decoder
+reaches relative L2 0.070 on the held-out frequency band where soft-slice
+and moment-decoder arms sit at about 1.0, meaning no response at all
+(@sec-linear-suites). Under a declared linearity contract it extrapolates
+amplitude exactly, and leaving linearity undeclared costs 4.5x to 12x on
+the same problems. Its two exact members, with no learned parameters of
+their own, match a dictionary of eight learned kernel members
+(@sec-dictionary-ablation). On the nonlinear suites the implicit drive
+degree of the unconstrained mode is diagnosed and then declared away
+(@sec-nonlinear-suites, @sec-nonlinear-fragility).
+
+The line stops where the prior stops. On separated 3D aerodynamics the
+potential-flow structure MT1 encodes is not a usable prior: the
+potential-flow oracle reaches relative L2 4.8 where predicting each case's
+mean pressure reaches 0.77, so no coefficient conditioning of these
+kernels can recover the field (@sec-industrial-mt1). On DrivAerML surface
+targets the boundary-trace formulation, not the kernel dictionary,
+carries the gain; the dictionary contributes 0 to 8%
+(@sec-drivaerml-trace-factorial). On the DrivAerML interior task the
+exact-kernel decoder is 8.0x behind GeoTransolver (pressure relative L2
+0.496 against 0.062), and its apparently good far-field pressure is a
+zero-output artefact (@sec-interior). What survives at industrial scale is
+the contract side: exact equivariance and query independence, and the
+best measured robustness to biased sampling density among the
+constant-gauge architectures (1.7x to 2.1x degradation under a 10:1
+density bias, against GeoTransolver's 3.6x; @sec-limits collects the
+scope statements).
+
+### Relation to MeshTransformer2
+
+MeshTransformer2 (MT2, @sec-mt2) inverts this chapter's central trade.
+It keeps exact rotation and translation covariance, enforced once at the
+network's edges by reducing every point to invariants and expanding
+vector outputs in an equivariant basis, and it keeps global routing, now
+through soft-slice attention with equivariant anchors rather than signed
+moments. It drops the kernel dictionary, whose potential-flow prior fails
+on the separated flows MT2 targets, and with it the linearity and
+superposition contracts and the per-layer typed scalar/vector streams. It
+also gives up MT1's query independence in its reference configuration:
+MT2's heads read from interacting encoder tokens, and the optional
+`query_independent` configuration with passive read blocks, which is
+exactly query-independent, costs 2.7x to 3.9x in accuracy. In exchange it
+spends its interior on the empirically strongest routing at 8.9M
+parameters, and its accuracy on industrial data is the subject of
+Part II. MT1 remains the architecture of record for the controlled
+suites, where a known operator makes an exact prior a contract rather
+than a gamble.

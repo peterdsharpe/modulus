@@ -1,737 +1,153 @@
-# What this program is about {.unnumbered}
+# What this book establishes {.unnumbered}
 
-This book documents a research program on **surrogates for steady, homogeneous,
-boundary-driven PDEs**, developed around the `MeshTransformer` /
-`MeshAttention` stack in `physicsnemo/experimental/nn/mesh_attention/` and the
-exact/manufactured-label and solver-verified benchmark suite in
-`examples/cfd/mesh_transformer/`.
+This book reports a research program on **surrogates for steady,
+boundary-driven, three-dimensional PDE problems**: given a discretized
+boundary (a surface mesh with normals and areas) and a few global conditions
+such as the freestream direction, predict the fields on that boundary and in
+the volume around it. The program built two architectures and measured them
+against the strongest available mainstream baseline, GeoTransolver, under one
+frozen, resource-matched protocol on exact-label suites and on three
+production aerodynamics datasets (AirFRANS, DrivAerML, HiLiftAeroML). The
+audience is applied mathematicians and machine-learning researchers; every
+term is defined at first use and every number is computed live from a
+checked-in artifact.
 
-The audience is applied mathematicians and ML researchers. The style is
-first-principles: every architectural decision is stated as a hypothesis, and
-the chapters record which hypotheses were supported or refuted.
+## The result in one paragraph
 
-::: {.callout-important title="Start with the program review"}
-**The one result to see first:** on HiLiftAeroML's data-efficiency splits, MeshTransformer2 is 2.9x more accurate than GeoTransolver at 35 training cases and 2.5x at 210, converging to parity at 1,260 (@fig-hilift-data-efficiency; provisional until the remaining preregistered GeoTransolver small-n controls land), while on the same ladder's regime-extrapolation axes both architectures degrade about 10x across a sealed angle-of-attack or stall boundary, with MT2 keeping the lower absolute error (@fig-hilift-ood).
+**MeshTransformer2 (MT2)**, an SE(3)-equivariant soft-slice transformer, is **2.9x more accurate than GeoTransolver and
+than plain Transolver when trained on 35 high-lift wing cases**, 1.3–2.5x more
+accurate at 210 cases depending on the baseline, and at parity at 1,260
+cases. The advantage holds on every one of 360 paired validation cases at 35
+cases, at every angle of attack including one absent from training, on
+geometries never seen in training, and after every steel-man control we could
+construct for the baselines (higher learning rate, doubled epochs, a third
+seed, the same attention family without a geometry encoder). In engineering
+terms, from 35 CFD runs MT2 predicts lift and drag coefficients of unseen
+configurations to about 3%, where the baselines reach 8–17%. At full data the
+two architectures are indistinguishable on HiLiftAeroML (0.98) and MT2 is
+1.085x behind on DrivAerML; MT2 trains stably across a learning-rate decade
+where GeoTransolver degrades 4–14x, is the most sampling-density-robust model
+measured (1.20x under a 10:1 density bias against GeoTransolver's 3.6x), is
+exactly rotation- and translation-covariant by construction, and trains in
+less peak memory (3.6 GB against 4.6 GB at 10,000 tokens). Where
+GeoTransolver leads is the interior: predicting volume fields from the surface
+alone, its token-level interaction at the query is worth 2.6x over MT2's
+passive decode. Where nothing leads is regime extrapolation: across an
+angle-of-attack or stall boundary every architecture tested loses about a
+factor of ten, so coverage, not architecture, governs that axis.
 
-The authoritative, current synthesis of this program is
-@sec-program-review-2026-08 — one chapter holding the frozen-instrument
-frontier table, the five campaign verdicts, and their scope. The
-short version: the program's product is `MeshTransformer2` (MT2), an
-SE(3)-equivariant soft-slice transformer that is at in-family parity
-with GeoTransolver on HiLiftAeroML (MT2/GT = 0.98) and 1.085× behind on
-DrivAerML at best-vs-best learning rates; it is markedly more
-learning-rate robust (1.55× degradation across a decade where
-GeoTransolver loses 4--14×), the most density-robust architecture
-measured once its similarity gauge is on (1.20× under 10:1 sampling bias
-vs GeoTransolver's 3.6×), and — since an exact pool-then-project rewrite
-of its relational readback on 2026-09-05 — cheaper in peak training memory
-(3.6 GB vs 4.6 GB; it was 9.8 GB). Its exact rotation equivariance is a contract, not an
-accuracy edge: canonically trained GeoTransolver is exactly pose-invariant
-at 1.01× cost on these datasets. Cross-family transfer turned out to be a
-property of training-data diversity, not of any architecture tested;
-query-independence is measured to trade 2.7--3.1× against accuracy and is
-shelved with its price tag attached. An independent critic review on
-2026-09-02 (`results/critic_review_2026-09-02.md`, @sec-nb-critic-review)
-found that earlier versions of this book claimed contracts MT2 did not
-have — similarity (scale) equivariance, measure completeness, equal cost,
-a 1.6× equivariance dividend, and a label-noise explanation of the
-DrivAerML gap; @sec-review-reframing records each retirement and the
-measurement that replaced it. The live status of every experiment is the
-tech tree of @sec-tech-tree. Everything below and in earlier chapters is
-the historical evidence behind those sentences; the dated lab notebook
-(@sec-notebook) holds every preregistration and verdict, including the
-failed ones.
-:::
-
-## The thesis, in one paragraph
-
-> The `MeshTransformer` treats physical structure as a set of **declared,
-> per-problem contracts**, enforced by construction rather than learned:
-> similarity equivariance always, with the scale gauge derived
-> intrinsically from the geometry; drive-linearity when the problem is
-> linear; parity typing when quantities are handed; drive-degree when the
-> nonlinearity's order is known. Everything unknown — the PDE
-> itself — is carried by operator-conditioned coefficients on a
-> two-member exact singular dictionary. Each contract was earned by a
-> falsification ladder recorded in this book, and several of those
-> ladders fired against our own designs before they settled. The
-> reference configuration is one attention layer, one full-width head,
-> and two exact kernel members — roughly 82k parameters; its $\sim$104k
-> benchmark-frozen sibling, kept fixed for comparability with every
-> archived arm, outperforms a 27$\times$-larger physics-agnostic
-> baseline in every regime tested
-> (@sec-architecture states the design; @sec-benchmarks holds the
-> evidence; @sec-notebook holds the history).
-
-One scope line the industrial campaign added (2026-07-18): the
-paragraph above is the *synthetic-program* thesis for the original
-`MeshTransformer` (MT1), and there it is best supported within the
-tested controlled suites. It does **not** describe the current product.
-`MeshTransformer2` keeps exact rotation and translation covariance and
-drops everything else in that paragraph — the kernel dictionary, the
-superposition contract, query independence, and (until the 2026-09-03
-similarity gauge, @sec-nb-s1-verdict) the intrinsic scale gauge itself;
-@sec-mt2-architecture states what MT2 is. At industrial scale
-the causal picture measured differently —
-the completed attribution factorials showed the DrivAerML gains are
-DOMINATED by the trace formulation — measured 3.8× at flagship
-capacity, its two sub-mechanisms (exact jump correction, learned
-own-cell readouts) near-perfect substitutes for the essential
-boundary self-identification signal
-(@sec-drivaerml-trace-factorial) — with capacity second and the
-exact singular dictionary itself contributing 0–8% (its remaining
-advantage is parameter efficiency: two zero-parameter closed-form
-members match eight learned ones, @sec-drivaerml-factorial). The
-industrial model is accurately described as boundary-integral-inspired;
-its strongest measured industrial asset is out-of-distribution
-behavior (@sec-drivaerml), where the deep-S1 wall-shear-direction
-degradation-ratio differential against the strongest baseline is
-consistent at five seeds per side but remains provisional: the paired
-sample is too small for a two-sided 5% exact sign decision, the metric
-record is contradictory, and the baseline's absolute WSS error is
-still 2.5–2.7× lower. The pressure differential is suggestive only
-(@sec-program-review).
-
-A second scope line, corrected by the 2026-07-27 audit: the
-out-of-distribution asset is measured **within** the DrivAer family.
-Pushed to a different vehicle family, zero-shot, every tested
-checkpoint diverged while a gauge-agnostic baseline stayed structured
-(@sec-drivaerml-crossfamily). The exploratory gauge dose-response did
-not identify the cause: intrinsic-gauge retraining also failed, and
-the supposedly train-only calibration included held-out cases. More
-decisively, offset-free diagnostics show that every tested field
-pattern is essentially unrelated to truth. The supported industrial
-generalization claim is therefore within-family and provisional
-(@sec-program-review).
-
-## Problem statement and scope
-
-The object to learn is a single mapping:
-
-$$
-\{\text{boundary geometry},\ \text{BC types},\ \text{BC values}\}
-\;\longmapsto\;
-\text{interior field at specified query points}.
-$$
-
-This is not a time update. In contrast to most neural-PDE work there is no
-volume state to advance: no volume mesh, no time stepping, and no data of
-any kind attached to the interior query points — they are bare coordinates
-at which the steady field is requested.
-
-The admitted problem class is **well-posed** (in the Hadamard sense),
-**homogeneous** steady PDEs — no position-dependent interior source terms —
-governed by the **same equations everywhere** in the domain (no piecewise
-materials; those are future coupled subproblems). The eventual targets are
-steady RANS and steady Euler.
-
-Critically, **the governing equations are not given.** For the real targets
-they are not even perfectly knowable: turbulence closures are empirical
-curve fits, not derived operators. Exact fundamental solutions are therefore
-unavailable *by problem statement* — a learned kernel family may be *biased
-toward* typical-PDE behavior (a singularity dictionary as an inductive
-prior), but no rigorous PDE specialization can be assumed in deployment.
-
-What the problem class *does* license is one strong structural assumption:
-because the equations are homogeneous and identical everywhere in the
-domain, the boundary-to-interior propagation law is **equivariant under the
-similarity group** — translations, rotations/reflections, and positive
-scalings. Translations force kernels of the relative displacement $x - y$;
-rotational symmetry is broken *only* by directional data on the boundary
-(the normal $n_y$, and the direction of any vector-valued boundary values).
-Kernels therefore depend on the geometry through **joint invariants of
-$\{x - y,\ n_y,\ \text{boundary vector data}\}$** — never through absolute
-position or absolute orientation. Boundary *scalar* data (Dirichlet traces,
-flux magnitudes, global parameters like the nondimensional screening
-constant $\tilde\kappa = \kappa R$) enters the kernels
-freely: scalars are directionless, so they can modulate everything without
-ever breaking rotational symmetry. The domain dependence lives in the
-boundary solve, not in the kernel (@sec-pde-theory).
-
-The benchmarks in this book pose the simplest members of the
-class — problems like
-
-$$
-\Delta u = 0 \ \text{ in } \Omega,
-\qquad u = g \ \text{ on } \partial\Omega,
-$$
-
-whose answers *are* known — because exact labels and exact fundamental
-solutions make every structural claim falsifiable. Keeping the two settings
-distinct is the job of this section: the *benchmarks* know the PDE; the
-*product* does not.
-
-The goal is *not* only in-distribution accuracy. A learned operator is only
-useful if it behaves like an operator, which the program measures along four
-independent out-of-distribution axes:
-
-1. **geometry** — unseen shape modes, stronger deformations, new topology;
-2. **boundary data** — the boundary values driving the solution (the
-   "drive"): frequencies never seen in training;
-3. **PDE parameters** — e.g. the screening constant of $\Delta u - \kappa^2 u = 0$;
-4. **resolution** — boundary discretizations finer or coarser than training.
-
-## Design constraints
-
-Every model in the program must satisfy, *by construction rather than by
-augmentation*:
-
-- **Equivariance / similarity covariance.** Translation invariance,
-  O($D$) covariance for scalars and polar vectors, and positive-scale
-  covariance when the declared reference length transforms with the geometry.
-- **Dimensional consistency.** All fields enter nondimensionalized; the
-  reference length rescales only coordinates and measures. What is banned
-  is any length that fails to transform covariantly — fitted constants,
-  training-set statistics; a per-instance, similarity-covariant functional
-  of the input geometry (the radius-of-gyration gauge of
-  @sec-forward-pass) is licensed precisely because it transforms with the
-  data. MT2 violated this constraint for a month without anyone
-  noticing — its reference length was a constant pinned in a config
-  file — until the critic review of 2026-09-02 (@sec-nb-critic-review);
-  the `similarity_gauge` repair of @sec-nb-s1-verdict restores it.
-- **All-to-all information flow.** Elliptic solutions couple every boundary
-  point to every interior point (@sec-global-flow); graph neighborhoods,
-  distance cutoffs, and locality heuristics are excluded.
-- **Zero-drive preservation always; exact linearity when the problem is
-  linear.** A homogeneous problem with zero boundary data has the zero
-  solution — structural in every field mode. Superposition is an additional
-  per-problem contract, enforced to floating point when (and only when) the
-  governing PDE is declared linear; it is never an assumption of the
-  architecture.
-- **Exact query-point independence.** The prediction at $x$ must not depend on
-  which other query points are requested.
-
-## The headline
-
-The comparison below spans two fundamentally different *model classes*, and it
-is important to read it that way:
-
-- **General-purpose architectures** (red/orange) know nothing about Laplace's
-  equation. `MeshTransformer` accepts arbitrary named boundary-condition
-  schemas, scalar and vector fields, and global parameters; the free-form
-  pair kernel is an unconstrained MLP of pair invariants. Their capacity is
-  spent *learning* what the PDE does. The purple circle — `MeshTransformer`
-  with the kernel-basis query decoder that repairs qualification 2 below, in
-  its dictionary-only variant (@sec-kernel-decoder) — is this same
-  architecture class with one explicit asterisk: its kernel
-  dictionary contains one Laplace-family member (the exact double-layer
-  singular kernel) alongside PDE-agnostic polynomial members, which is why
-  it wears its own color.
-- **PDE-conforming learned BIE models** (green/blue) know the PDE family and
-  learn only *which member* of the analytic layer-potential family solves the
-  problem. The pruned **"3-parameter BIE"** (`HarmonicPanelBIE`) is exactly
-  this: its three scalars are (i) $c_1$, a learned multiple of the Laplace
-  double-layer kernel, integrated *exactly* over boundary panels; (ii)
-  $\alpha$, the relaxation of an unrolled eight-step second-kind boundary
-  solve; and (iii) $d_0$, a constant-kernel coefficient that trains to
-  $\approx 0$. Nothing else. It is a boundary-element method whose kernel
-  coefficient and solver relaxation are the only things learned.
-
-The benchmark is *exactly* Laplace — favorable to the specialist by
-construction. The PDE-conforming results are
-**oracle-in-family diagnostics**: on a problem whose answer is known, they
-quantify the value of each structural ingredient (factorization, kernel
-basis, singular quadrature, learned solve) and characterize what a learned
-kernel family must look like to behave as an operator. They are *not* the
-product design — under the scope above, the deployed model cannot assume a
-known kernel.
+## The result in one picture
 
 ```{python}
+#| label: fig-headline
 #| fig-cap: >
-#|   Parameter count versus in-distribution relative L2 error on the frozen
-#|   64-case reference bank (identical evaluation protocol for every model;
-#|   data from the checked-in results/learned_bie_2026-07-02.json).
-#|   Circles: general-purpose, PDE-agnostic architectures. Squares:
-#|   Laplace-specific learned boundary-integral models. The purple circle is
-#|   the kernel-decoder repair (dictionary-only variant): general-purpose
-#|   architecture whose kernel dictionary contains one Laplace-family member
-#|   (the exact double-layer singular kernel) -- hence its own color. The
-#|   Every row uses 3,000 training updates and 3 seeds on this bank,
-#|   except the 13-parameter model, whose only reference-bank protocol is
-#|   1,000 updates (its 3,000-update values exist only on the early
-#|   bank).
-import json
+#|   Data efficiency on HiLiftAeroML. Surface-pressure relative L2 error on
+#|   the shared 180-case validation set versus number of training cases, for
+#|   GeoTransolver (red circles), MeshTransformer2 (blue squares) and plain
+#|   Transolver (grey triangles, dashed). Lines join seed means; bands span
+#|   the seeds; annotated factors are each baseline's error divided by MT2's
+#|   at the same rung. Protocol: 10,000 sampled surface points per case, 500
+#|   epochs, bfloat16, no augmentation, each architecture at its best
+#|   learning rate, two seeds; the test split is sealed. The full figure, the
+#|   paired per-case statistics, the force-coefficient errors and the controls
+#|   are in @sec-data-efficiency. It does not show scaling beyond 1,260 cases
+#|   (@sec-limits). Data: results/hilift_ladder_reduction_2026-09-03.json,
+#|   results/t1_transolver_control_reduction_2026-09-05.json.
+#| code-fold: true
+import json, statistics
 from pathlib import Path
-
 import matplotlib.pyplot as plt
-
-results = json.load(open(Path("..") / "results" / "learned_bie_2026-07-02.json"))
-comparisons = results["comparisons_same_bank"]
-confirmation = results["iteration_4_pruning"]["confirmation_3seed_reference_bank"]
-refbank = results["iteration_7_kernel_decoder_fix"][
-    "reference_bank_3seed_3000steps"]
-kernel_dict = refbank["kernel_dictionary_only"]
-
-
-def mean(values):
-    return sum(values) / len(values)
-
-
-models = [
-    ("MeshTransformer\n(moment decoder)",
-     comparisons["mesh_transformer_reference"]["parameters"],
-     mean(refbank["moment_decoder"]["id"]), "#e34948", "o",
-     "general-purpose (PDE-agnostic)"),
-    ("free-form invariant\npair kernel",
-     comparisons["invariant_pair_kernel"]["parameters"],
-     mean(refbank["pair_kernel_control"]["id"]), "#eda100", "o",
-     "general-purpose (PDE-agnostic)"),
-    ("MeshTransformer\n(kernel decoder, dictionary-only)",
-     kernel_dict["parameters"],
-     sum(kernel_dict["id"]) / len(kernel_dict["id"]), "#8352c9", "o",
-     "general-purpose + one Laplace-family\ndictionary member"),
-    ("harmonic-panel BIE (13 p)", 13,
-     results["results_3seed_reference_bank"]["interpolation_relative_l2"]["mean"],
-     "#1baf7a", "s", "PDE-conforming learned BIE"),
-    ("harmonic-panel BIE,\npruned (3 p)", 3,
-     confirmation["interpolation"]["mean"], "#2a78d6", "s",
-     "PDE-conforming learned BIE"),
-]
-
-label_style = {
-    "harmonic-panel BIE,\npruned (3 p)": dict(xytext=(10, -4), ha="left"),
-    "free-form invariant\npair kernel": dict(xytext=(-10, 2), ha="right"),
-    "MeshTransformer\n(kernel decoder, dictionary-only)":
-        dict(xytext=(10, -14), ha="left"),
-}
-
-fig, ax = plt.subplots(figsize=(6.4, 3.9))
-seen = set()
-for label, params, err, color, marker, cls in models:
-    ax.plot(params, err, marker, ms=9, color=color, zorder=3,
-            label=cls if cls not in seen else None)
-    seen.add(cls)
-    style = label_style.get(label, dict(xytext=(8, 2), ha="left"))
-    ax.annotate(label, (params, err), textcoords="offset points",
-                fontsize=8.5, color="#52514e", **style)
-ax.set_xscale("log")
-ax.set_yscale("log")
-ax.set_xlim(1, 3e6)
-ax.set_xlabel("trainable parameters")
-ax.set_ylabel("ID relative $L^2$ (64-case bank)")
-ax.grid(True, color="#e1e0d9", lw=0.8)
-ax.legend(loc="upper left", fontsize=8.5, frameon=False)
-for spine in ("top", "right"):
-    ax.spines[spine].set_visible(False)
+import matplotlib as mpl
+BLUE, RED, GREY = "#2a78d6", "#e34948", "#52514e"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
+t1 = json.load(open(Path("..") / "results" / "t1_transolver_control_reduction_2026-09-05.json"))
+rungs = [(35, "lad_hl_{a}_super_scarce_seed{s}"), (210, "lad_hl_{a}_scarce_seed{s}"), (1260, "{a}_hl_lr1_seed{s}")]
+data = {}
+for arch in ("gt", "mt2"):
+    xs, means, lo, hi = [], [], [], []
+    for n, pat in rungs:
+        v = [lad[pat.format(a=arch, s=s)]["pressure_l2"] for s in (42, 43) if pat.format(a=arch, s=s) in lad]
+        xs.append(n); means.append(statistics.mean(v)); lo.append(min(v)); hi.append(max(v))
+    data[arch] = (xs, means, lo, hi)
+xs, means, lo, hi = [], [], [], []
+for n, pat in [(35, "t1_hl_transolver_super_scarce_{lr}_seed{s}"), (210, "t1_hl_transolver_scarce_{lr}_seed{s}")]:
+    best = None
+    for lr in ("lr1e3", "lr3e3"):
+        v = [t1[pat.format(lr=lr, s=s)]["pressure_l2"] for s in (42, 43) if pat.format(lr=lr, s=s) in t1]
+        if len(v) == 2 and (best is None or statistics.mean(v) < statistics.mean(best)):
+            best = v
+    xs.append(n); means.append(statistics.mean(best)); lo.append(min(best)); hi.append(max(best))
+data["t"] = (xs, means, lo, hi)
+fig, ax = plt.subplots(figsize=(7.0, 4.6))
+style = {"gt": (RED, "GeoTransolver", "o", "-", 2.2), "t": (GREY, "Transolver", "^", "--", 1.6), "mt2": (BLUE, "MeshTransformer2", "s", "-", 2.2)}
+for arch in ("gt", "t", "mt2"):
+    xs, means, lo, hi = data[arch]; c, name, mk, ls, lw = style[arch]
+    ax.fill_between(xs, lo, hi, color=c, alpha=0.18, lw=0)
+    ax.plot(xs, means, color=c, lw=lw, ls=ls, marker=mk, ms=7, zorder=3)
+ax.annotate("GeoTransolver", (35, data["gt"][1][0]), xytext=(14, 2), textcoords="offset points", color=RED, fontweight="bold", va="center")
+ax.annotate("MeshTransformer2", (210, data["mt2"][1][1]), xytext=(14, -14), textcoords="offset points", color=BLUE, fontweight="bold", va="center")
+xm, ym = (35 * 210) ** 0.5, (data["t"][1][0] * data["t"][1][1]) ** 0.5
+ax.annotate("Transolver", (xm, ym), xytext=(8, -12), textcoords="offset points", color=GREY, fontsize=9.5, va="top")
+for i, n in enumerate((35, 210)):
+    r_gt = data["gt"][1][i] / data["mt2"][1][i]; r_t = data["t"][1][i] / data["mt2"][1][i]
+    ymid = (data["gt"][1][i] * data["mt2"][1][i]) ** 0.5
+    ax.annotate("", (n, data["mt2"][1][i]), (n, data["gt"][1][i]), arrowprops=dict(arrowstyle="<->", color=INK2, lw=0.9, shrinkA=4, shrinkB=4))
+    ax.text(n * 1.08, ymid, f"GeoTransolver {r_gt:.1f}x MT2\nTransolver {r_t:.1f}x MT2", color=INK2, fontsize=9, va="center", linespacing=1.3,
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+r_full = data["gt"][1][2] / data["mt2"][1][2]
+ax.annotate(f"{r_full:.2f}x (parity)", (1260, (data["gt"][1][2] * data["mt2"][1][2]) ** 0.5), xytext=(14, 30), textcoords="offset points", color=INK2, fontsize=9, va="bottom")
+ax.set_xscale("log"); ax.set_yscale("log")
+ax.set_xticks([35, 210, 1260]); ax.set_xticklabels(["35", "210", "1,260"])
+ax.set_yticks([0.04, 0.06, 0.1, 0.2, 0.4]); ax.set_yticklabels(["0.04", "0.06", "0.10", "0.20", "0.40"])
+ax.set_xlim(22, 3200)
+ax.set_xlabel("Training cases [count]", color=INK2)
+ax.set_ylabel("Surface pressure error\nrel-L2 [–]", color=INK2, rotation=0, ha="right", va="center", labelpad=28)
+ax.set_title("Data efficiency on HiLiftAeroML (shared 180-case validation set)", color=INK, loc="left", fontsize=11, pad=10)
+ax.grid(True, which="major", color=GRID); ax.grid(False, which="minor")
 fig.tight_layout()
 plt.show()
 ```
 
-(The kernel-decoder repair of qualification 2 below is plotted from its
-three-seed reference-bank rows — same frozen 64-case bank, 3,000 updates —
-so the figure mixes no banks. The plotted variant is *dictionary-only*: at
-3,000 updates the full dictionary's near-zero-initialized smooth MLP
-members grow to absorb ID error at the expense of frequency-OOD (0.12
-$\to$ 0.49), and ablating them restores freq-OOD 0.0713 at identical ID —
-the dictionary-selection finding of @sec-kernel-decoder.^[Why the purple
-point wears its own color: the architecture is fully general-purpose —
-arbitrary BC schemas, fields, global parameters — but its kernel
-dictionary contains one Laplace-family member, the exact double-layer
-singular kernel, so it is not as PDE-agnostic as the red/orange class on
-this benchmark.])
+## How to read this book
 
-::: {.callout-note title="How to read this figure"}
-This is **not** a like-for-like architecture ranking, and it does not say
-"attention is worse." It says that on a fixed, known, homogeneous linear PDE
-— the benchmark setting, not the product setting — encoding the PDE's
-fundamental-solution structure in the decoder lets a 3-parameter model
-match the strongest generic control in-distribution at matched budget
-(0.035 vs 0.040) with over four orders of magnitude fewer parameters —
-and beat it 7–10$\times$ on frequency-OOD (0.066 vs 0.50–0.64, matched
-and 1,000-update protocols respectively). Three qualifications matter:
+Part I defines the problem, the datasets and splits, the metrics and the
+protocol (@sec-problem), then the two architectures — MeshTransformer2
+(@sec-mt2) and the exact-kernel MeshTransformer from which it descends
+(@sec-mt1) — and the baselines with the fair-comparison rules
+(@sec-baselines). Part II is the evidence on production aerodynamics: data
+efficiency (@sec-data-efficiency), accuracy at full data and the robustness
+contracts (@sec-full-data), regime extrapolation (@sec-regime-extrapolation),
+and boundary-to-interior prediction (@sec-interior). Part III is what exact
+operator structure buys on controlled problems and where it stops
+(@sec-linear-suites, @sec-nonlinear-suites, @sec-industrial-mt1). Part IV
+states the limits of every claim and the experiments that would move them
+(@sec-limits) and holds the live status ledger of the program
+(@sec-program-status). The appendix is the dated lab notebook
+(@sec-notebook): every preregistration, launch and verdict, including the
+failed ones, in the order they happened.
 
-1. The specialist is the measuring instrument, not the goal. It cannot leave
-   its PDE family, and under the program's scope the deployed model must:
-   the target problems' equations are not given. The generalist path —
-   unknown operators, nonlinear closures, learned conditioning (where, in
-   the parametric study of @sec-parametric, conditioned models beat the pure
-   basis *in distribution* by a factor of six) — is the actual product goal;
-   the specialist rows calibrate how much each piece of structure is worth.
-2. The `MeshTransformer` point sits high partly because of a *diagnosed*
-   defect — the proved $m \le 2$ angular ceiling of its moment decoder
-   (@sec-mesh-attention) — not because attention over boundaries is
-   inherently limited. The direct repair is confirmed — three seeds, 3,000
-   updates, on this figure's reference bank: a kernel-basis query decoder
-   (`query_decoder="kernel"`) removes the ceiling and cuts ID error
-   11.3$\times$ (0.4503 $\to$ 0.0399); its dictionary-only variant is the
-   purple circle above (ID 0.0409, freq-OOD 0.0713) (@sec-kernel-decoder).
-3. All models satisfy the same exact contracts (equivariance, superposition,
-   query independence); the comparison isolates representation, not
-   constraint discipline.
-:::
+Three habits of this book: a comparison is only reported when parameters,
+tokens per case, epochs and peak memory are matched or the mismatch is
+stated in the same sentence; a claim is only reported with the split it was
+measured on and the statistic behind it; and a limit is stated next to the
+claim it limits, not in a separate place.
 
-The pruned model reaches ID relative $L^2$ of $0.0347\pm0.0006$ on the
-reference bank, with frequency-OOD error $0.0664\pm0.0004$, and its kernel
-coefficient converges to the analytic double-layer constant $-1/2\pi$ within
-$0.8\%$ on every seed. On the easier early evaluation bank (seed 17, same
-3,000-step budget) it approaches the analytic oracle itself (ID $0.0056$ vs
-oracle $0.003$). The same recipe transfers to Neumann data (ID $0.0029$ at
-10,000 steps) and, with the screening parameter placed in the kernel basis,
-to the screened Laplace family.
+## What this book does not claim
 
-The interesting part is not the small model per se — it is the
-**falsification ladder** that isolated *why* it works (@sec-ladder). Each of
-the three ingredients was refuted individually:
-
-| Ingredient removed | What happens |
-|---|---|
-| learned solve without a PDE-conforming kernel | frequency-OOD *worsens* (0.61 → 0.76) |
-| harmonicity as a soft penalty instead of exact structure | residual halves; frequency-OOD *worsens* (0.61 $\to$ 0.71) |
-| exact harmonic kernel without singular quadrature | loses even to the free-form MLP (ID 0.65) |
-
-: The three single-ingredient refutations (seed 17, early bank; details in @sec-ladder). {#tbl-refutations}
-
-## The program at a glance
-
-Where the headline figure shows depth on one suite, the figure below
-shows breadth: every benchmark suite in the program, with the
-parameter-free floor, the best `MeshTransformer` arm, the strongest
-comparator run on that suite, and the oracle where one exists.
-
-```{python}
-#| label: fig-program-glance
-#| fig-cap: >
-#|   The program at a glance: each suite's headline in-distribution
-#|   relative L2 (log scale). Gray dots: the parameter-free floor
-#|   (boundary-mean predictor) where archived. Blue dots: the best
-#|   raw-drive MeshTransformer arm on that suite (on potential flow the
-#|   trace-driven arm reaches 0.013, but it receives boundary-trace
-#|   inputs the raw arms do not, so it is not plotted). Red markers: the
-#|   strongest comparator run there -- filled circles are the
-#|   steel-manned Transolver; open diamonds are non-Transolver controls
-#|   (the free-form pair kernel on the encoder-stress suites, and on
-#|   potential flow the trace-informed control, which receives boundary data
-#|   the MeshTransformer does not receive). Open
-#|   black circles: the exact or PDE-conforming oracle where one exists.
-#|   Every value is from the checked-in archive; per-suite provenance is
-#|   commented in the source.
-import matplotlib.pyplot as plt
-
-# (floor, best raw-drive MT, comparator, comparator-is-transolver,
-# oracle) -- archive keys in comments; None = not defined/archived.
-suites = [
-    # reference_2026-07-01 boundary-mean; it11 singonly; it15 matched@3k;
-    # it1 analytic oracle
-    ("2D Laplace", 0.800, 0.0375, 0.769, True, 0.003),
-    # it13 singonly; it15 screened ext (in-tree); it3 Yukawa-basis specialist
-    ("screened", None, 0.0099, 0.773, True, 0.0033),
-    # it12 singonly sphere; it15 3D ext; it10 protocol oracle
-    ("3D Laplace", None, 0.0072, 0.402, True, 0.003),
-    # it8: boundary-mean floor 1.06; nonlinear arm mean
-    ("Liouville", 1.06, 0.464, None, None, None),
-    # it16 head-to-head: singpair ID; pair-kernel control
-    ("multi-body", None, 0.065, 0.097, False, None),
-    ("deep cavity", None, 0.067, 0.115, False, None),
-    # it23 singpair_pseudo ID (5 seeds); it22 trace-informed control
-    ("potential flow", None, 0.028, 0.178, False, None),
-    # it25 floor arm; nl_pseudo combined ID (5 seeds)
-    ("Euler–Bernoulli", 1.0, 0.046, None, None, None),
-    # it33 floor arm; it35 q2 combined ID (3 seeds)
-    ("rotational Euler", 0.944, 0.072, None, None, None),
-    # it36 boundary_mean eval_id combined; nl_pseudo eval_id combined;
-    # it36 transolver_intree_matched eval_id combined
-    ("Navier–Stokes", 1.193, 0.231, 0.953, True, None),
-]
-
-fig, ax = plt.subplots(figsize=(7.2, 4.2))
-x = range(len(suites))
-series = [
-    (1, None, "parameter-free floor",
-     dict(marker="o", ms=7, color="#898781", mec="white", mew=1.0)),
-    (3, True, "Transolver (steel-manned)",
-     dict(marker="o", ms=7, color="#e34948", mec="white", mew=1.0)),
-    (3, False, "control (pair-kernel / trace-informed)",
-     dict(marker="D", ms=6, mfc="none", mec="#e34948", mew=1.5)),
-    (5, None, "oracle",
-     dict(marker="o", ms=8, mfc="none", mec="#0b0b0b", mew=1.5)),
-    (2, None, "best raw-drive MeshTransformer arm",
-     dict(marker="o", ms=9, color="#2a78d6", mec="white", mew=1.2)),
-]
-dodge = {1: -0.18, 3: -0.06, 5: 0.18, 2: 0.06}
-for index, flag, label, style in series:
-    xs = [i + dodge[index] for i, s in enumerate(suites)
-          if s[index] is not None and (flag is None or s[4] is flag)]
-    ys = [s[index] for s in suites
-          if s[index] is not None and (flag is None or s[4] is flag)]
-    ax.plot(xs, ys, linestyle="none", label=label, zorder=3, **style)
-ax.set_yscale("log")
-ax.set_xticks(list(x), [s[0] for s in suites], rotation=30, ha="right",
-              fontsize=8.5)
-ax.set_xlim(-0.6, len(suites) - 0.4)
-ax.set_ylim(1.5e-3, 3.0)
-ax.set_ylabel("headline ID relative $L^2$ (log)")
-ax.grid(axis="y", color="#e1e0d9", lw=0.8)
-ax.grid(axis="x", visible=False)
-ax.legend(fontsize=7.5, loc="lower center", ncols=3, frameon=False,
-          bbox_to_anchor=(0.5, 1.01))
-for spine in ("top", "right"):
-    ax.spines[spine].set_visible(False)
-fig.tight_layout()
-plt.show()
-```
-
-
-## Research tech tree {#sec-tech-tree}
-
-The generalization campaign — the program's current phase — is run as an
-explicit tech tree: every experiment is a node with a preregistered
-question, a dependency, an acceptance criterion, and a dated verdict in
-the lab notebook (@sec-notebook). Three architectures recur throughout.
-**MeshTransformer2 (MT2)** is the program's product: an SE(3)-equivariant
-slice-routing surrogate — exact under rotations and translations by
-construction, with a measure-weighted similarity gauge (measure-weighted
-centroid and RMS-radius reference length) as the reference configuration
-for new runs since 2026-09-03; the checkpoints most of this book reports
-predate that gauge and saw absolute scale through a constant reference
-length (@sec-mt2-architecture). **GeoTransolver** is the strongest
-external baseline, a soft-slice global-attention architecture with
-pointwise raw-coordinate features and no equivariance contract.
-**MeshTransformer (MT1)** is the original GLOBE-lineage architecture,
-retained where its drive-linearity contract and exact kernel decoder make
-it the exactness reference. The central open question the tree is
-organized around is the **G2 transfer gap**: on the frozen
-DrivAerML→SHIFT-SUV instrument, GeoTransolver's zero-shot error on a
-held-out vehicle family improves with in-family training data (0.784 →
-0.657 across five rungs, two seeds per rung, with per-seed reversals
-inside the spread) while MT2's stays flat — the one measured axis where
-the baseline generalizes and the structured model does not.
-
-```{mermaid}
-%%| fig-cap: >
-%%|   The generalization-campaign tech tree as of 2026-09-04. Green: done,
-%%|   with the verdict in the node. Amber: running. Gray dashed: planned,
-%%|   gated on an upstream readout. Red: a verdict that was later
-%%|   retracted, voided, or overturned; the node that did so is its
-%%|   downstream neighbour. Every node has a ledger row below with its
-%%|   acceptance criterion and notebook evidence link.
-flowchart TB
-    classDef done fill:#eaf7ea,stroke:#2a6a2a,color:#1a1a1a
-    classDef running fill:#fff8e8,stroke:#8a6d1a,color:#1a1a1a
-    classDef planned fill:#f2f1ec,stroke:#898781,color:#1a1a1a,stroke-dasharray:4 3
-    classDef retracted fill:#fbeaea,stroke:#a33a3a,color:#1a1a1a
-
-    NSTAR["NSTAR: generalization north star<br/>(measure curves, not points)<br/>DONE - framing adopted"]:::done
-    G1G2["G1G2: data-scaling + transfer ladder<br/>DONE - GeoTransolver's transfer compounds<br/>with data; MT2's is flat (2 seeds/rung)"]:::done
-    LOC["LOC: locality-hypothesis ladder<br/>DONE - REFUTED as the transfer carrier<br/>(constant 3-5% in-family offset only)"]:::done
-    M1["M1: scale-relaxation arm<br/>DONE - verdict VOID: MT2 already saw<br/>absolute scale (constant gauge)"]:::retracted
-    M2["M2: v5a4 anchor-conditioned decode<br/>DONE - CLOSED at pilot gate<br/>(0.01517 vs 0.01500 bar)"]:::done
-    M3["M3: invariant-completeness audit<br/>DONE - PARTIAL: ceiling real, not<br/>DrivAerML-scale; parity defect found"]:::done
-    M4["M4: NEO normalization audit<br/>DONE - closure RETRACTED (unweighted<br/>centroid), then REFUTED by S1"]:::retracted
-    G3["G3: 2D BC-generalization ladder<br/>DONE - amplitude extrapolation exact<br/>under linearity; T1 frequency verdict<br/>OVERTURNED by G3K"]:::retracted
-    HL["HL: high-lift wave (HiLiftAeroML)<br/>DONE - parity at best lr (MT2/GT 0.98);<br/>DrivAerML gap does not transfer"]:::done
-    N1["N1: DrivAerML noise-floor probe<br/>DONE - NON-DISCRIMINATING (shared<br/>residual 0.71 vs 0.70 on HiLift)"]:::done
-    R1["R1: symmetric lr-robustness grid<br/>DONE - CONFIRMED: GT 4-14x at lr 1e-2,<br/>MT2 1.55x; best-vs-best 1.085x"]:::done
-    V6["V6: anchor decode at matched VRAM<br/>DONE - 3.1x worse; M2 closed for good"]:::done
-    PAR["W1, W1', L2, W2, W2': parity thread<br/>DONE - CLOSED NEGATIVE: exact O(3)<br/>costs >= 12% wall shear or fails to train"]:::done
-    L1["L1 / L1b: label + prediction covariance<br/>DONE - labels mirror-covariant to <1%;<br/>default head already covariant"]:::done
-    CRIT["CRIT: independent critic review<br/>DONE - similarity-equivariance and<br/>measure-completeness claims contradicted<br/>by the code; program reframed"]:::done
-    G3K["G3K: G3 rerun, kernel decoder<br/>DONE - OVERTURNS G3-T1: kernel MT1<br/>generalizes frequency (0.070 vs 1.00)"]:::done
-    K0["K0: potential-flow oracle gate<br/>DONE - GATE FAILED (rel-L2 4.8 vs 0.77);<br/>K1 / K2 STOPPED"]:::done
-    P1C["P1' / P1'': GT canonicalization control<br/>DONE - canonically trained GT exactly<br/>pose-invariant at 1.01x; 1.6x headline retired"]:::done
-    S1["S1: similarity gauge (weighted centroid<br/>+ RMS radius)<br/>DONE - free in-family; P3 13-14.5x -> 1.20x;<br/>zero-shot unchanged; gauge ADOPTED"]:::done
-    HLGEN["HLGEN: HiLift generalization ladder<br/>DONE - MT2 2.9x / 2.5x more accurate at<br/>35 / 210 cases, parity at 1,260; both arms<br/>degrade ~10x across a regime boundary"]:::done
-    CTRL["CTRL: GeoTransolver small-n steel-man<br/>controls (lr 3e-3; 1,000 epochs; 35 and 210)<br/>DONE - 4 of 4 landed, none near the<br/>falsifier (best 0.373 vs bar 0.166 at 35;<br/>0.128 vs 0.077 at 210)"]:::done
-    T1["T1: plain Transolver same-family control<br/>(35 and 210 cases)<br/>DONE - 2.9x behind MT2 at 35 (in GT's band);<br/>1.3x at 210, where it beats GT 1.8x"]:::done
-    A35["A35: MT2 single-factor ablations at 35<br/>DONE - raw coords 1.04x: equivariance is NOT<br/>the carrier; measure weights off 0.88x"]:::done
-    A35B["A35b: raw seeds / no relational geometry<br/>at 35 cases<br/>DONE - 0.99x / 1.16x: DISTRIBUTED; no single<br/>MT2 contract carries the advantage"]:::done
-    INV["INV: drive invariants [n.d, r.d, |r|/L] as INPUTS<br/>to GeoTransolver and Transolver at 35 cases<br/>RUNNING - carrier if both <= 0.235;<br/>falsified if >= 0.30"]:::running
-    W2["W2: power (seed 44), 510-case rung, 20k-token<br/>floor test, single-AoA mechanism, forces<br/>RUNNING - W2-E done: 360/360 paired wins at 35;<br/>CL/CD 3% vs 11-17%"]:::running
-    V0["V0: boundary-to-interior (DrivAerML volume)<br/>DONE - GT 0.062; MT2-interior 2.6-3.1x worse;<br/>kernel MT1 8x worse, CLOSED on far band"]:::done
-    LVT["LVT: equivariant latent volume tokens<br/>(Branch V)<br/>STOPPED - FALSIFIED: 3.68x GT and 1.43x<br/>worse than the plain interior decode"]:::retracted
-    STEST["STEST: sealed OOD test (aoa, stall)<br/>DONE - both ~10x worse OOD; MT2 lower<br/>absolute error; GeoTransolver smaller ratio d;<br/>Branch B triggered on stall (0.74)"]:::done
-    B1["B1: raw-coordinate discriminator<br/>(MT2 + raw_coord_channel, stall split)<br/>RUNNING - gated by Branch B"]:::running
-    MT3["MT3: MT3 preregistration<br/>PLANNED - gated on B1 + INV + W2"]:::planned
-    G5["G5: single-factor generalization on the<br/>cfd-datagen corpus (pose/scale/Re/mesh twins,<br/>held-out banks and BC profiles)<br/>PLANNED - gated on corpus launch"]:::planned
-
-    NSTAR --> G1G2
-    NSTAR --> G3
-    G1G2 --> LOC
-    G1G2 --> M1
-    G1G2 --> M2
-    G1G2 --> M3
-    G1G2 --> M4
-    G1G2 --> HL
-    LOC --> HL
-    M1 --> HL
-    HL --> N1
-    HL --> R1
-    M2 --> V6
-    M3 --> PAR
-    PAR --> L1
-    N1 --> CRIT
-    R1 --> CRIT
-    M1 --> CRIT
-    M4 --> CRIT
-    CRIT --> G3K
-    G3 --> G3K
-    G3K --> K0
-    CRIT --> P1C
-    CRIT --> S1
-    M4 --> S1
-    HL --> HLGEN
-    HLGEN --> CTRL
-    HLGEN --> T1
-    T1 --> A35
-    A35 --> A35B
-    A35B --> INV
-    T1 --> INV
-    HLGEN --> W2
-    CTRL --> W2
-    INV --> MT3
-    W2 --> MT3
-    HLGEN --> STEST
-    STEST --> B1
-    S1 --> V0
-    K0 --> V0
-    V0 --> LVT
-    B1 --> MT3
-    CTRL --> MT3
-    A35B --> MT3
-    LVT --> MT3
-    G3K --> G5
-    S1 --> G5
-    G5 --> MT3
-    P1C --> MT3
-    S1 --> MT3
-    K0 --> MT3
-    L1 --> MT3
-```
-
-The refutation wave of 2026-08-20/21 resolved every mechanism candidate
-then on the table, and the instrument wave and critic review of
-2026-09-01/03 then re-examined the premises. Two of the wave's closures
-did not survive: M1 tested a scale symmetry MT2 never had (its reference
-length was a constant), and M4 declared measure-complete a model whose
-centroid was an unweighted mean; S1 repaired both and measured the
-effect. With MT2 genuinely similarity-covariant, its zero-shot transfer
-did not move, so absolute size is ruled out as the G2 carrier
-(@sec-nb-s1-verdict). What remains as the candidate explanation of the
-G2 transfer gap is GeoTransolver's **pointwise raw coordinate features**
-and its **non-equivariant global encoder**. The HiLift generalization
-ladder (HLGEN) has now read out on both halves: MT2 is 2.9x and 2.5x more
-accurate than GeoTransolver at 35 and 210 training cases
-(@sec-nb-hl-ladder-dataeff), and on the sealed regime-extrapolation test
-both architectures degrade about 10x, MT2 with the lower absolute error
-and GeoTransolver with the smaller ratio (STEST,
-@sec-nb-hl-sealed-test). That ratio fired the preregistered Branch B
-trigger on the stall axis, so the discriminating experiment now in flight
-is B1, MT2 with a raw-coordinate channel that breaks its equivariance on
-purpose; the GeoTransolver small-n steel-man controls (CTRL) run alongside
-it, and MT3 waits on both. The data-efficiency result has since been
-steel-manned from three sides: three of four GeoTransolver controls
-(higher learning rate, twice the epochs) did not move it; the same-family
-control T1 shows plain Transolver collapsing with GeoTransolver at 35
-cases (2.9x behind MT2) but recovering faster at 210, where MT2's edge over
-the best Transolver-family baseline is 1.3x rather than 2.5x
-(@sec-nb-t1-210-verdict); and the single-factor ablation A35 found that
-breaking MT2's equivariance costs only 4% at 35 cases, so exact SE(3)
-symmetry is *not* what buys the advantage (@sec-nb-a35-verdict) — A35b is
-testing the invariant seed set and the relational routing as the
-remaining candidates. The program's first boundary→interior measurement
-(V0, DrivAerML volume) put GeoTransolver's token-level query interaction
-2.6–3.1x ahead of MT2's passive equivariant decode and closed the
-exact-kernel line on 3D aerodynamics for good (@sec-nb-v0-verdict,
-@sec-nb-v0-sdf-band); MT2's deficit grows with distance from the wall,
-which is the signature of missing volumetric context, and the running
-Branch V arm (LVT, equivariant latent volume tokens) is the preregistered
-attempt to supply it without giving up query independence. The
-exact-kernel line that G3K revived generalizes across boundary-condition
-frequency content on 2D Laplace, but the K0 gate showed that inviscid
-potential flow is not a usable prior for separated bluff-body
-aerodynamics, so it does not launch on DrivAerML.
-
-| ID | Status | Question and why it matters | Depends on | Acceptance criterion | Evidence |
-|---|---|--------|---|------|---|
-| NSTAR | DONE | Reframe the program's goal: multi-family transfer was a coverage demonstration, not generalization; measure generalization as curves (error vs training-set size, error beyond the training hull), not points. Sets the ledger G1–G4. | — | Preregistered framing adopted (sha 02ca9432) with a declared ladder design. | @sec-nb-generalization-northstar |
-| G1G2 | DONE | Do MT2's contracts improve performance per sample (G1), and does either architecture's zero-shot transfer improve with in-family data (G2)? The G2 slope is the program's first measured architecture-carried generalization. | NSTAR | 22-lane nested ladder, n ∈ {14…435}, 2 seeds per rung; preregistered predictions scored. | @sec-nb-g1g2-verdict |
-| LOC | DONE — refuted | Is GeoTransolver's data-compounding transfer carried by *local* features? If yes, MT2's flag-gated local patch-integral channel should bend MT2's G2 curve downward. | G1G2 | Preregistered (p ~ 0.45): monotone zero-shot decrease across n ∈ {27, 109, 218}; a flat curve refutes locality as sufficient. Verdict: refuted — the local channel is a constant 3–5% in-family offset with no G2 slope change, and destabilizes transfer at n=218 (seed spread 0.12). | @sec-nb-locality-verdict |
-| M1 | DONE — verdict VOID | Is MT2's exact scale equivariance an over-symmetrization (aerodynamics depends on Reynolds number, hence absolute size)? Literature wave arm, prereg 69a81e2a. | G1G2 | Preregistered: >5% in-family gain at n=218 from scale conditioning; falsifier: within the ±3% seed band. Read as refuted (1.3–2.0% gain). Voided by CRIT: MT2's constant reference length already fed absolute size to the backbone, so the appended log-size feature was redundant and the null was guaranteed; the hypothesis was never tested. | @sec-nb-m1-verdict-wave-close; @sec-nb-critic-review |
-| M2 | DONE — closed | Does AB-UPT-style anchor-conditioned decoding (fixed 2,560-token interacting core, all queries passive) recover the accuracy the fully passive v5a3 decode lost? | G1G2 | Preregistered pilot gate: 50-epoch validation loss ≤ v5a3 pilot × 1.15 (= 0.01500). Verdict: fail at 0.01517 (1.2% over); arm closed per prereg. The campaign review flagged this accuracy-only closure as a judgment error (the arm ran at 65% of v3c's memory); V6 re-opened it resource-normalized. | @sec-nb-v5a4-gate; @sec-nb-campaign-review |
-| M3 | DONE — partial | Does MT2's invariant-only feature set have a provable expressivity ceiling (geometry pairs it cannot separate)? | G1G2 | Analytic fp64 probe: constructed pairs separate at roundoff vs controls. Verdict: ceiling real (rotationally symmetric geometries, separations 5e-16–2e-15) but not DrivAerML-relevant; by-product: a reflection-covariance defect in the vector head, which opened the parity thread (PAR). | @sec-nb-m3-verdict |
-| M4 | DONE — RETRACTED, then refuted | Does MT2 miss a measure-weighted (NEO-style) normalization somewhere, explaining the P3 density floor? | G1G2 | Code audit claimed every point-population normalization carries measure weights and closed the arm by derivation. Retracted by CRIT: the centroid was an unweighted mean (0.94 RMS-radii shift under 10:1 bias). Refuted by S1: the weighted gauge cuts the P3 penalty 13–14.5× → 1.20×, so the floor was an implementation gap, not information-limited. | @sec-nb-lit-wave-prereg; @sec-nb-critic-review; @sec-nb-s1-verdict |
-| G3 | DONE — T1 verdict overturned | Which boundary-condition generalization axes can architecture or contracts improve? Exact-label 2D conformal-Laplace suite; three arms (MT2+BC-scalar, soft-slice/GeoTransolver-family, MT1-linear); prereg ae2dee91. | NSTAR | Preregistered per-axis degradation fingerprints. Amplitude verdict stands: the linearity contract guarantees *exact* amplitude extrapolation (undeclared linearity costs 4.5–12×). Frequency verdict ("no arm generalizes", rel-L2 ≈ 1.0) overturned by G3K: the MT1 arm used the moment decoder, whose proved m ≤ 2 nullspace made the T1 modes unrepresentable. | @sec-nb-g3-verdict; @sec-nb-g3-kernel-rerun |
-| HL | DONE — parity | Does the DrivAerML frontier (MT2 within 1.10× of GeoTransolver) extend to harder, Reynolds-varying physics? GeoTransolver vs MT2-v3c on the HiLiftAeroML curated full split, 2 seeds × 2 learning rates each. | G1G2, LOC, M1 | Preregistered H1/H2 readouts with the mid-flight lr-parity amendment (each architecture reports its best lane over {3e-3, 1e-3}). Verdict: at best lr (1e-3 for both) MT2/GT = 0.98 — parity, MT2 nominally ahead on every field; both architectures beat their DrivAerML levels; GeoTransolver destabilizes at 3e-3 (0.148/0.397) where MT2 spans 0.040–0.049. The DrivAerML gap does not transfer. | @sec-nb-hl-lr-amendment; @sec-nb-hl-verdict |
-| N1 | DONE — non-discriminating | Was the DrivAerML 1.10–1.18× GeoTransolver lead a property of noisy time-averaged labels rather than of the architectures? Eval-only: shared residual across two GeoTransolver and two MT2 checkpoints on bit-identical val points, HiLift as the cleaner-label control. Prereg 1f6cb942. | HL | Prediction: cross-architecture disagreement D larger on HiLift than on DrivAerML; falsifier D ≥ 0.8 with weak correlation. Verdict: shared-residual fraction 0.713 (DrivAerML) vs 0.703 (HiLift) — the control shows the same or more shared structure; the "gap = label noise" attribution is unsupported. Disclosed: thresholds not mutually calibrated; shared residual is only an upper bound on label noise. | @sec-nb-n1-verdict |
-| R1 | DONE — confirmed | Is learning-rate robustness a reproducible MT2 architecture property, or a HiLift step-count artefact? Symmetric grid {1e-3, 3e-3, 1e-2} × 2 seeds × both architectures on DrivAerML. Prereg 1f6cb942. | HL | Predictions: GeoTransolver degrades > 2× at 1e-2 (held: 4–14×); MT2 < 1.5× (missed narrowly: 1.55×). Spreads differ by far more than the 20% falsifier band. By-product: MT2's best DrivAerML lr is 1e-3 (0.0577), fixing the best-vs-best gap at 1.085×. | @sec-nb-instrument-wave-verdict |
-| V6 | DONE — M2 closed for good | Does anchor-conditioned decode (v5a4) win once compared at matched peak VRAM, the resource frame M2's pilot gate omitted? Prereg 1f6cb942. | M2 | Matched VRAM: v5a4 6.35 GB vs v3c at 6,500 tokens 6.56 GB; closure bar 1.3×. Verdict: 0.209/0.221 vs 0.0697/0.0671 — 3.1× worse, and a slower validation step on DrivAerML. Frontier by-product: v3c at 6,500 tokens costs 8% accuracy for 33% less memory than at 10,000 (9.81 GB). | @sec-nb-instrument-wave-verdict |
-| PAR | DONE — closed negative | Can MT2's vector head be made exactly reflection-covariant (full O(3)) at no accuracy cost? Trained constructions: W1 raw pseudoscalar gate, W1' tanh gate, true5/true7 all-true-vector bases (`vector_basis`), W2 and W2' odd-coefficient heads (`odd_head`). | M3, L1 | Preregistered per arm in readout units: wall shear within 3% of v3c (≤ 0.094); falsifier > 10% worse (> 0.100). Verdict: every exact construction cost ≥ 12% wall shear (+12.6% to +26%, pressure also worse) or failed to train (W2 collapsed to 0.77/0.74; W2' NaN at epoch 95). Default head retained; flags stay as documented negative results. | @sec-nb-instrument-wave-verdict; @sec-nb-w1p-verdict; @sec-nb-l2-verdict; @sec-nb-w2-verdict; @sec-nb-parity-thread-closed |
-| L1 | DONE — labels covariant; L1 nil | Are DrivAerML's labels mirror-covariant (L1), and does the unconstrained head exploit any asymmetry (L1b)? Data-only mirror-pairing on 48 val cars at full resolution. | PAR | L1 prediction if labels explain the parity penalty: wall-shear antisymmetric energy ≳ 10%. Measured 0.67% (pressure 0.93%) — falsifier fires; disclosed threshold miscalibration (converted, the unfittable part is worth at most +9.8%). L1b: the unconstrained head's predictions are as mirror-symmetric as the constrained heads' (excess −0.002 vs labels' +0.012–0.016), so the penalty is a representation effect, not a labels effect. | @sec-nb-l1-verdict; @sec-nb-l1b-l2-prereg |
-| CRIT | DONE — program reframed | Independent fresh-context review of the whole written record against the code and artifacts; seventeen graded claims (`results/critic_review_2026-09-02.md`). | N1, R1, M1, M4 | Verified in-session before acceptance: MT2 is not scale-equivariant (constant `reference_length`; 63% output change under 2× rescale — M1 void); not measure-complete (unweighted centroid — M4 retracted); the drive-degree-1 contract is vacuous on unit-direction inputs; peak memory 9.8 GB vs GeoTransolver 4.6 GB; the label-noise framing survived in chapter 17 after N1 retracted it. Actions preregistered: S1, P1', G3'. | @sec-nb-critic-review |
-| G3K | DONE — overturns G3-T1 | Does the exact double-layer kernel decoder generalize across BC frequency content where G3's moment-decoder arm could not (chapter 6's 0.075 vs G3's 1.00)? Post-hoc decoder control, labelled as such; 3 seeds, otherwise G3's protocol. | CRIT, G3 | Falsifier for chapter 6: kernel MT1 T1 > 0.5; falsifier for G3: T1 < 0.15. Verdict: T1 **0.070** (14× better than the moment decoder's 1.004), best arm on every axis (T0 0.016, exact amplitude extrapolation, geometry-OOD 0.023). The soft-slice family and the moment decoder fail on the frequency axis; an exact Green's-function operator does not. | @sec-nb-g3-kernel-rerun |
-| K0 | DONE — gate failed; K1/K2 STOPPED | Is inviscid potential flow a usable prior for DrivAerML pressure, so that "exact kernel = Laplace, viscous = learned correction" could carry the G3K mechanism into 3D? Zero-parameter oracle: Morino second-kind solve on a closed remesh, Bernoulli Cp, at the recipe's exact evaluation points. | G3K | Preregistered gate: oracle rel-L2 < 0.90. Verdict: measure-weighted rel-L2 **4.79** (median 1.97, every case > 1.6) against 0.774 for predicting the case mean; no numerical control rescues it (oracle-optimal affine rescale 0.73; remesh sweep flat; sphere validation exact). The physics is separation. K1 (symmetric feature arm) and K2 (mechanism arm) do not launch; K-alt (learned density through the exact 3D double layer on the boundary→interior problem) deferred. | @sec-nb-kernel3d-scoping; @sec-nb-k0-verdict |
-| P1C | DONE — 1.6× headline retired | Does GeoTransolver recover pose invariance for free by canonicalizing its input frame (U_inf → +x, principal-axis roll), rather than by the augmentation the 1.6× headline compared against? P1' eval-only on frozen checkpoints; P1'' trains in the canonical frame. | CRIT | P1' falsifier for the headline: canonicalized GT P1 ratio ≈ 1.00 at in-pose 1.00×. P1': exactly pose-invariant but 1.6–1.7× in-pose (sub-degree tilt hypersensitivity: 1° roll costs 1.7–1.8×; 1.15–1.19× with a 1M-cell frame estimate). P1'' prediction ≤ 1.05×: **held at 1.01×** — canonically trained GT is exactly pose-invariant at 1% cost. MT2's equivariance is a contract (no freestream or resolvable frame needed), not an accuracy edge on vehicle data. | @sec-nb-p1-canon-verdict; @sec-nb-p1pp-verdict |
-| S1 | DONE — gauge adopted | Does a real similarity gauge (measure-weighted centroid + measure-weighted RMS-radius reference length, geometric-scale contract test added) change in-family accuracy, the P3 density floor, or zero-shot transfer? v3c + `similarity_gauge`, 2 seeds, seed-matched against v3c. | CRIT, M4 | Predictions in readout units: in-family ≤ 0.066 (held: 0.0638/0.0629); P3 density ratio < 2× (held decisively: 13–14.5× → **1.20×**, now the most density-robust architecture measured — GeoTransolver 3.6×, kernel MT1 1.7–2.1×); zero-shot estate improves (falsifier fired: 0.949 vs 0.967, inside seed spread — absolute size was not the transfer leak). `similarity_gauge=true` is the reference configuration for new runs; frozen checkpoints keep the constant gauge. | @sec-nb-s1-verdict |
-| HLGEN | DONE — both halves read out | The HiLift analogue of the G1/G2 ladder: data-efficiency rungs (35/210/1260 cases) and OOD axes (AoA extrapolation, pre-to-post-stall) — does GeoTransolver's transfer compounding, the remaining G2-gap discriminator, reproduce on Reynolds-varying physics? | HL | Launched at LR_GT = LR_MT2 = 1e-3 per the preregistered gate rule (prereg 499bcfe8, `results/hilift_generalization_ladder_preregistration_2026-08-24.json`); MT2 lanes are constant-gauge v3c (they predate S1). Data-efficiency verdict: prediction P1 held, MT2/GT = 0.35 at 35 cases (Branch A condition r(35) ≤ 0.85 met), 0.41 at 210, 0.98 at 1,260, seed spreads an order of magnitude below the gaps; provisional on CTRL. OOD half: in-distribution MT2/GT 0.69 (aoa) and 0.70 (stall) on the low-side populations; the sealed test is STEST. | @sec-nb-hl-ladder-dataeff; @sec-nb-hl-ladder-ood-indist |
-| CTRL | DONE — 4 of 4 landed, falsifier not approached | Steel-man for the data-efficiency result: is GeoTransolver's collapse at 35 and 210 cases a learning-rate mismatch or under-training at fixed epochs (about 4,500 optimizer steps at 35 cases) rather than an architectural property? GeoTransolver `super_scarce` and `scarce` at lr 3e-3 (500 epochs) and at lr 1e-3 (1,000 epochs), 2 seeds each. | HLGEN | Preregistered: the best control stays ≥ 2x MT2 at 35 cases; falsifier: any control within 1.2x of MT2 at 35 cases (≤ 0.166) voids the Branch A decision. Landed: lr 3e-3 at 35 cases 0.392 / 0.481; 1,000 epochs at 35 cases 0.373 / 0.429 (ladder 0.375 / 0.409); lr 3e-3 at 210 cases 0.220 / 0.290 (ladder 0.159, worse). 1,000 epochs at 210 cases 0.152 / 0.128 (the only control better than its ladder lane, by 1.13x; bar 0.077). Neither lr nor training length moves GeoTransolver toward MT2 at small n. | @sec-nb-hl-ladder-dataeff; @sec-nb-hl-ladder-ood-indist |
-| T1 | DONE — advantage MT2-specific, size baseline-dependent | Same-family control for the data-efficiency result: plain Transolver (GeoTransolver's attention family, no geometry encoder, none of MT2's contracts) on the 35- and 210-case rungs, 2 seeds, lr 1e-3 (+ lr 3e-3 at 35 and, launched later, at 210). Separates "MT2's structure buys small-data accuracy" from "GeoTransolver's geometry encoder loses it". | HLGEN | Preregistered falsifier: Transolver ≤ 1.3x MT2 (≤ 0.18 at 35; ≤ 0.084 at 210). At 35: 0.634 / 0.616 (lr 1e-3), 0.406 / 0.398 (lr 3e-3) — in GeoTransolver's band, 2.9x MT2. At 210: 0.092 / 0.089 (lr 1e-3) and 0.089 / 0.083 (lr 3e-3) — above the bar (1.34x MT2 at its better lr) but 1.8x better than GeoTransolver (0.159), so most of the 2.5x MT2/GT gap at 210 is GeoTransolver falling behind its own backbone. Honest statement: 2.9x at 35 against both baselines; 1.3x (Transolver) to 2.5x (GeoTransolver) at 210; parity at 1,260. | @sec-nb-transolver-control-prereg; @sec-nb-t1-35-verdict; @sec-nb-t1-210-verdict |
-| A35 | DONE — equivariance is not the carrier | Which MT2 ingredient buys the 35-case advantage? Single-factor ablations at 35 cases, 2 seeds: raw-coordinate channel (breaks SE(3)), measure weights off, similarity gauge on. | T1 | Prediction: breaking equivariance costs ≥ 1.5x (≥ 0.21); falsifier: within 1.15x of 0.138. Verdict: raw coordinates 0.143 / 0.143 (1.04x) — falsifier fires, exact equivariance is not what buys small-data accuracy; measure weights off 0.121 / 0.123 (0.88x, *better*: area weights are gradient variance at uniform 10k sampling); gauge on 0.151 / 0.147 (1.08x). | @sec-nb-a35-verdict |
-| A35B | DONE — distributed | The two surviving candidates from A35, one flag each at 35 cases, 2 seeds: `seed_mode=raw` (the invariant seeds replaced by raw [r, n, d]; GeoTransolver-style inputs) and `use_relational_geo=false` (anchor-relational invariants removed from slice routing; Transolver-style feature-only slicing, still exactly equivariant). | A35 | Preregistered: the carrier degrades ≥ 1.5x (≥ 0.21) while the other stays within 1.15x; if neither moves ≥ 1.3x the advantage is distributed ("the soft-slice design as a whole"). Falsifier for the whole line: both within 1.15x. Verdict: raw seeds 0.1377 / 0.1366 (0.99x), relational routing off 0.1579 / 0.1629 (1.16x) — distributed; and the A35 reading is corrected: every MT2 variant retained an invariant path, so invariant *information* (not exactness) is the untested candidate → INV. | @sec-nb-a35-verdict; @sec-nb-a35b-verdict |
-| INV | RUNNING | Transplant test of the small-data carrier: give GeoTransolver and Transolver MT2's drive-relative invariants [n·d, r̂·d, \|r\|/8] as per-cell input features (job-local `ComputeDriveInvariants`, ported to the recipe with tests) at 35 cases, each at its better learning rate, 2 seeds. Retrodiction: DrivAerML's fixed freestream makes these raw inputs already, predicting the observed G1 null. | A35B, T1 | Carrier identified if both baselines ≤ 0.235 (log-midpoint to MT2's 0.138); fully if ≤ 0.16; falsifier ≥ 0.30 (< 20% of the log-gap closed) → the advantage is in MT2's routing/decoder structure as a whole. | @sec-nb-inv-prereg |
-| W2 | RUNNING — W2-E done | Make the data-efficiency result robust, useful and honestly bounded: (A) third seed at 35/210 for all three architectures; (B) the curated 510-case `medium` rung; (C) 1,260 cases at 20,000 tokens for MT2 and GeoTransolver (is the flattening a shared protocol floor?); (D) `single_aoa_12` vs a matched mixed-AoA control (is the carrier the freestream-direction dependence?); (E) paired per-case statistics and force coefficients from existing evaluations; (F, queued) unseen-geometry ladder. | HLGEN, CTRL | Per-arm predictions and falsifiers in readout units at @sec-nb-w2-prereg. W2-E: MT2 wins 360/360 paired cases vs both baselines at 35 (median ratio 3.2x), 354/360 vs GT at 210, 258/360 at 1,260 (median 1.06); CL/CD rel-MAE 3.0/3.3% (MT2) vs 11/17% (GT) vs 8/12% (Transolver) at 35 cases. | @sec-nb-w2-prereg; @sec-nb-w2e-paired |
-| V0 | DONE — GeoTransolver leads the interior 2.6–3.1x; kernel line closed | The first boundary→interior measurement, the task closest to the restated north star: predict DrivAerML volume fields (pressure, velocity, nut) from the surface alone. Four arms, 500 epochs, 2 seeds: GeoTransolver-volume (queries as interacting tokens), MT2-interior with a soft-assigned proxy normal, MT2-interior with the SDF gradient as query normal, and the exact-kernel MeshTransformer (K-alt). | S1, K0 | Preregistered: MT2-interior/GT in [1.3, 2.5] (falsifiers ≤ 1.2, ≥ 3.0); kernel/GT in [1.5, 3.0] with far-band (SDF ≥ 0.5 L_ref) pressure ≤ 1.0x GT or the kernel line closes. Verdict: GT 0.062; MT2-int-SDF 0.160 (2.57x, inside band); MT2-int proxy 0.193 (3.11x, falsifier); kernel 0.496 (8.0x). SDF-band stratification: the kernel's "0.59x far-band pressure" is a zero-output artefact (far velocity 16.7x GT) — kernel line CLOSED on all readouts; MT2's deficit *grows* with distance from the wall (2.5x near → 3.3–5.4x far): missing volumetric context, not local detail. | @sec-nb-v0-prereg; @sec-nb-v0-pilot; @sec-nb-v0-verdict; @sec-nb-v0-sdf-band |
-| LVT | STOPPED — falsified | Branch V: can interior queries receive interaction while staying exactly query-independent? K = 3·n_slices + 1 latent tokens placed equivariantly off each slice anchor along its mean normal (plus the centroid) join the encoder as interacting tokens; queries still decode passively. Contracts preserved exactly (SE(3), measure completeness, query independence). | V0 | Preregistered: LVT/GT ≤ 1.5 on interior pressure confirms; ≥ 2.0 falsifies ("interaction at the query itself is required" → next candidate is a canonical probe-set decode). Stratified prediction: gain over the SDF-normal base largest in the mid/far bands. Pilot (50 ep): 0.340 vs base 0.269. Full (500 ep, 2 seeds): 0.2326 / 0.2239 → LVT/GT 3.68 (falsifier fires) and 1.43x worse than the plain interior decode. Closed as built; wake-aligned probes and a canonical probe-set hybrid recorded, not launched, pending INV. | @sec-nb-v0-verdict; @sec-nb-v0-sdf-band; @sec-nb-lvt-verdict |
-| STEST | DONE — Branch B triggered on stall | The one-shot sealed test of the OOD lanes: eight checkpoints (aoa and stall × both architectures × seeds 42/43) on their own curated test lists (900 high-AoA, 723 post-stall cases), frozen inference configuration, protocol declared before any test case was read. Readout d_axis = OOD test pressure rel-L2 / in-distribution val pressure rel-L2. | HLGEN | Predictions: d_stall > d_aoa for both (held for MT2 only); d_GT < d_MT2 on at least one axis (held on both). Verdict: both architectures degrade about 10x (GeoTransolver d 10.5 / 9.3, MT2 11.8 / 12.5 on aoa / stall); MT2 keeps the lower absolute OOD pressure error (0.244 vs 0.315 aoa, 0.260 vs 0.276 stall); GeoTransolver has the smaller ratio because its in-distribution floor is higher (0.030 vs 0.021). Branch B trigger d_GT ≤ 0.8 d_MT2: aoa 0.89 not triggered; stall 0.74 with disjoint seed intervals, triggered. No reruns, no failures. | @sec-nb-hl-ladder-ood-indist; @sec-nb-hl-sealed-test |
-| B1 | RUNNING | Branch B mechanism discriminator: is GeoTransolver's residual transfer-ratio edge carried by pointwise raw-coordinate features? MT2 with the similarity gauge plus a `raw_coord_channel` that appends raw gauge-normalized coordinates and normals to the seed invariants, deliberately breaking SE(3) equivariance (24/24 contract tests, one asserting the break); 2 seeds, stall split, lr 1e-3, 500 epochs, otherwise frozen. One additional sealed `stall_test` evaluation, limited to the two B1 checkpoints, declared before the lanes existed. | STEST | Preregistered in readout units: raw features carry transfer if d ≤ 11.0 (at least halfway from MT2's stall d toward GeoTransolver's 9.3) *and* OOD stall pressure < 0.245; they do not if d ≥ 12.0 or OOD pressure ≥ 0.255, in which case the next discriminator is a GeoTransolver ablation removing its raw coordinates. Stated caveat: the trigger is denominator-driven, so the absolute OOD readout is weighed at least as heavily as the ratio. | @sec-nb-hl-sealed-test |
-| G5 | PLANNED | Single-factor generalization on the forthcoming cfd-datagen 3D RANS corpus: exact-symmetry axes (pose and scale twins) versus coverage axes (Reynolds twins, held-out geometry banks, held-out boundary-condition profiles), with mesh twins defining the per-stratum label floor — the 3D test of what G3 found in 2D. | Corpus launch with twin draws (see dataset feedback); S1 gauge; G3K | Each arm's prediction and falsifier is stated in readout units in the preregistration; between-architecture differences below the A4 floor are reported as not resolvable | @sec-nb-g5-prereg |
-| MT3 | PLANNED | The successor design brief, now evidence-constrained: keep exact rotation/translation; adopt the similarity gauge; keep a local channel (cheap in-family offset); carry parity-odd features in the trunk rather than a bolt-on odd head, or drop reflection covariance explicitly; treat Reynolds as explicit conditioning only where data varies it; and address what B1 says about the remaining G2-gap candidate. HLGEN's data-efficiency half is the Branch A condition (met: r(35) = 0.35); its sealed test fired Branch B on stall, which is why B1 runs first. | B1, INV, W2, CTRL, A35B, LVT, HLGEN, STEST, P1C, S1, K0, L1 | Gated on the B1 readout, the CTRL controls (if any control lands within 1.2x of MT2 at 35 cases, the Branch A premise is void), A35b (which ingredient to keep) and LVT (whether the interior task needs interaction at the query); a preregistration with falsifiers, not a build, is the deliverable. | @sec-nb-hl-sealed-test; @sec-nb-parity-thread-closed; @sec-nb-p1pp-verdict; @sec-nb-s1-verdict |
-
-: The tech-tree ledger. Every status is as of 2026-09-06; evidence links go to the dated lab-notebook entry holding the preregistration and verdict. Rows whose verdicts were later voided, retracted, or overturned say so and link both the original and the correcting entry. {#tbl-tech-tree}
-
-## How the book is organized
-
-- @sec-pde-theory develops the PDE background: Green representation, boundary
-  integral equations, the second-kind Fredholm structure, and the similarity
-  group — the theory every design decision traces back to — and closes by
-  separating what is PDE-agnostic (assumable under the product scope) from
-  what is specific to a known fundamental solution.
-- @sec-architecture is the plain-language source of truth for what the
-  `MeshTransformer` *is*: inputs, outputs, the forward pass, the typed
-  scalar/vector channels, and the reference configuration that current
-  evidence selects.
-- @sec-mesh-attention is the mathematics behind that description — the
-  exact layer forms, the contracts, the proved angular ceiling, and the
-  kernel-basis query decoder that removes it. The stack is a
-  transformer-native generalization of GLOBE (arXiv
-  [2511.15856](https://arxiv.org/abs/2511.15856)).
-- @sec-learned-bie walks the falsification ladder to the learned
-  boundary-integral model, including the Neumann extension and the pruning
-  study.
-- @sec-parametric asks where a global PDE parameter should enter a learned
-  surrogate — basis or conditioning — and answers it experimentally.
-- @sec-benchmarks is the results reference, organized by message in six
-  parts: how we evaluate; the declared contracts and their walls; what
-  carries the accuracy; generalization stress-tests; the Transolver
-  steel-man; and solver-labeled viscous flow.
-- @sec-future reviews where the program stands, lays out the redirected
-  agenda, and keeps a candid engineering review.
-- @sec-notebook is the lab notebook: the dated, iteration-by-iteration
-  record of hypotheses, refutations, and course corrections behind every
-  claim in the clean chapters.
-
-## Provenance and caveats
-
-All quantitative claims come from two kinds of artifacts, and the text marks
-which is which:
-
-- **Checked-in results** under `examples/cfd/mesh_transformer/results/`
-  (`reference_2026-07-01.json`, `architectural_ablation_2026-07-01.json`,
-  `learned_bie_2026-07-02.json`) — frozen banks, fixed seeds, recorded
-  protocols.
-- **Session artifacts** under `/tmp` on the original machine (training
-  histories, checkpoints). Figures built from these are labeled; they have not
-  been reproduced elsewhere.
-
-Standing caveats, stated once here: the benchmark evidence is 2D and 3D
-on exact-label suites (Laplace, screened Laplace, Liouville, potential
-flow, Euler–Bernoulli, rotational Euler) plus two FEM-labeled dataset
-suites — the linear Laplace catalog and the iteration-36 steady
-Navier–Stokes suite (@sec-ns-cavity), whose label-noise floor is
-measured and reported; solver-labeled RANS remains the next ledge;
-several early
-ablations are seed-17-only where noted; the early external baselines
-(GLOBE, and radius-free GeoTransolver — an in-tree geometry-conditioned
-Transolver variant) were limited to 1,000-update controls and have since
-been superseded as evidence by the steel-manned Transolver
-comparison in both training regimes; and the complete, current caveat
-ledger is the standing-caveats section of @sec-future, which is kept
-up to date as results become available.
+MT2's data-efficiency advantage is a statement about 35 to 1,260 training
+cases on one dataset family; its curve flattens where GeoTransolver's
+steepens, and a naive extrapolation would favour GeoTransolver by a few
+thousand cases (@sec-limits). The mechanism that carries the advantage is
+not yet identified: no single MT2 ingredient accounts for more than 16% of
+it (@sec-mechanism). MT2's exact equivariance is a contract, not an
+in-distribution accuracy edge on vehicle data: GeoTransolver trained in a
+canonical frame is exactly pose-invariant at 1% cost (@sec-pose). Neither
+architecture generalizes across a flow-regime boundary, and neither
+transfers zero-shot to a different vehicle family
+(@sec-regime-extrapolation, @sec-industrial-mt1).

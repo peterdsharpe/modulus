@@ -1,0 +1,1507 @@
+# Nonlinear and fluid suites: declared contracts and their walls {#sec-nonlinear-suites}
+
+The exact-kernel MeshTransformer (MT1, @sec-mt1) states its contracts
+for linear operators: drive linearity, zero preservation, parity typing,
+similarity equivariance. The five suites in this chapter measure what
+happens when the operator is nonlinear, when labels come from a solver
+instead of a closed form, and when a Reynolds number grades the
+nonlinearity continuously. The result is uniform across the suites: **a
+declared contract that matches the problem costs nothing or helps; a
+contract that mismatches the problem produces an exact, often provable
+wall; and every wall measured here was crossed by declaring a different
+contract, never by adding capacity.** The chapter also records where the
+declarations stop paying: a nonlinear read-in whose implicit polynomial
+degree detonates off-range, a zero-preservation contract that is exactly
+wrong on a problem whose homogeneous solution is nonzero, and a viscous
+suite where the declared degree is only an approximation.
+
+## Why nonlinear suites, and what each one tests
+
+The linear suites (@sec-linear-suites) cannot falsify linearity as an
+assumption, because their solution operators are linear. Each suite here
+removes one thing the linear contracts rely on. Throughout, the *drive*
+is everything the model receives besides geometry: the boundary trace
+and any global scalars or vectors (a freestream direction, a
+circulation, a PDE coefficient). The *drive degree* of a target is the
+polynomial degree of the solution map in the drive at fixed geometry.
+MT1's decoder reads the drive through one of three declared *field
+modes*: the linear mode (output exactly linear in the drive), a
+zero-preserving nonlinear mode (multiplicative updates that read drive
+invariants, zero output at zero drive, no degree bound), and a
+declared-degree mode (the linear path plus exactly one bilinear
+composition at the query read-in, so the output is a polynomial of
+degree at most two in the drive for any weights). Parity typing adds an
+optional sector of two-dimensional pseudoscalar (mirror-odd) channels
+(@sec-typed-channels); "parity channels" below always means that sector.
+
+| suite | PDE and target | label source | what the model sees | evaluation | what it tests |
+|---|---|---|---|---|---|
+| Liouville | $\Delta u + 2e^{u} = 0$ on star-deformed disks; scalar $u$ | closed form (spherical-metric potentials) | Dirichlet trace on 64 panels; 128 queries | streamed training, 1,500 steps, 3 seeds; 16 cases per split | nonlinearity with exact labels; the superposition wall; zero preservation as a misspecified contract |
+| potential flow | $\Delta\psi = 0$ outside a body; streamfunction or velocity | closed form (exterior conformal maps) | body outline on 160 panels, freestream vector, circulation scalar; 256 queries | 3,000 steps, 3 or 5 seeds; 16 cases per split | vector drive; handed (pseudoscalar) targets; trace-driven versus raw-drive inputs |
+| Euler–Bernoulli | same flows; velocity (degree 1) and Bernoulli pressure (degree 2) | closed form | as potential flow | 3,000 steps, 3 or 5 seeds | two fields of known, different drive degree in one sample |
+| rotational Euler | $\Delta\psi = -\tilde c^{2}\psi$ on disks; velocity and pressure | closed form (Bessel series; momentum balance certified to $10^{-15}$) | boundary velocity on 64 panels, coupling $\tilde c$; 128 queries | 3,000 steps, 3 seeds; 16 cases per split | vortical flow with exact labels; an operator parameter approaching a resonance |
+| Navier–Stokes cavity | steady incompressible Navier–Stokes; velocity and pressure | Taylor–Hood P2–P1 finite elements, per-case certification | tangential wall drive on 64 panels, $1/\mathrm{Re}$; 160 queries | fixed catalog of 1,400 cases (840 train), 15 epochs, 3 seeds | solver labels with a measured noise floor; nonlinearity graded by Reynolds number |
+
+: The five suites, in the order the chapter treats them. Geometry
+families and split definitions are those of @sec-datasets. "Streamed
+training" draws a fresh case every step from the generator; the
+Navier–Stokes suite is the only one with a fixed catalog. {#tbl-nonlinear-suites}
+
+The metric everywhere is the relative $L^2$ error of a field over the
+query points of one case, $\|\hat u - u\| / \|u\|$, averaged
+arithmetically over the evaluation cases of a split. Where a suite has
+two fields, "combined" concatenates velocity and pressure before taking
+the norm. The parameter-free reference in every table that records it
+is the *boundary-mean predictor*: the mean of the boundary trace,
+returned at every query. Every MT1 arm in this chapter uses the one-head
+configuration and the two-member exact kernel dictionary (double-layer
+and single-layer members, @sec-kernel-decoder); arms differ only in the
+declared field mode and in whether parity channels are on.
+
+The figure below shows, on the Liouville suite, why a nonlinear operator
+defeats the linear contract: two exact solutions on the same domain sum
+to a field that is not a solution.
+
+```{python}
+#| label: fig-nonlinear-superposition
+#| fig-cap: >
+#|   Why the linear contract fails on a nonlinear operator, rendered live
+#|   from the Liouville generator. Left and center: two exact solutions on
+#|   the same star-deformed domain (interior field with the boundary trace
+#|   drawn on top; shared color scale); each satisfies the PDE to machine
+#|   precision. Right: the PDE residual of their sum, which the equation
+#|   gives in closed form as $2(e^{u_1+u_2} - e^{u_1} - e^{u_2})$. It is
+#|   nonzero, so the sum of two solutions is not a solution, and a model
+#|   whose output is linear in the boundary data cannot be exact. For a
+#|   linear suite this panel would be identically zero. Not shown: any
+#|   model output. Generator: `problems/liouville.py`.
+#| code-fold: true
+import json
+import math
+import sys
+from pathlib import Path
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from matplotlib.collections import LineCollection
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.tri import Triangulation
+
+# book palette (mirrors figures.py without importing it: that module
+# switches matplotlib to Agg, which suppresses inline output here)
+BLUE, RED = "#2a78d6", "#e34948"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+# architecture hues: exact-kernel MeshTransformer purple, Transolver grey.
+# MT1 arms that differ only by declared contract share the hue and are
+# separated by lightness and marker.
+PURPLE, PURPLE_LIGHT, PURPLE_DARK = "#7b4fb3", "#b89ad9", "#4b2c7f"
+TRANSOLVER = "#52514e"
+DIVERGING = LinearSegmentedColormap.from_list(
+    "book_diverging", ["#2a78d6", "#f0efec", "#e34948"])
+SEQ_PURPLE = LinearSegmentedColormap.from_list(
+    "book_seq_purple", ["#f0efec", PURPLE])
+
+RESULTS = Path("..") / "results"
+import warnings
+
+warnings.filterwarnings("ignore")  # the generators import physicsnemo.experimental
+for _entry in (Path("..").resolve(), Path("..").resolve() / "problems"):
+    if str(_entry) not in sys.path:
+        sys.path.insert(0, str(_entry))
+from conformal_laplace import conformal_map
+from liouville import (
+    build_liouville_sample,
+    liouville_solution,
+    sample_liouville_field,
+)
+
+
+def disk_triangulation(n_rings=28, n_theta=96):
+    radii = np.linspace(0.0, 1.0, n_rings + 1)[1:]
+    theta = np.linspace(0.0, 2.0 * np.pi, n_theta, endpoint=False)
+    points = [np.zeros((1, 2))]
+    for r in radii:
+        points.append(np.stack([r * np.cos(theta), r * np.sin(theta)], axis=1))
+    points = np.concatenate(points)
+    triangles = [[0, 1 + j, 1 + (j + 1) % n_theta] for j in range(n_theta)]
+    for i in range(n_rings - 1):
+        a, b = 1 + i * n_theta, 1 + (i + 1) * n_theta
+        for j in range(n_theta):
+            k = (j + 1) % n_theta
+            triangles += [[a + j, b + j, b + k], [a + j, b + k, a + k]]
+    return points, np.array(triangles)
+
+
+sample = build_liouville_sample(5)
+geometry, field_1 = sample.geometry, sample.field
+radius_bound = float(1.0 + geometry.coefficients.abs().sum().item())
+pre_points, triangles = disk_triangulation()
+z_grid = torch.complex(torch.tensor(pre_points[:, 0]), torch.tensor(pre_points[:, 1]))
+physical = conformal_map(geometry, z_grid)
+angles = torch.linspace(0.0, 2.0 * math.pi, 257, dtype=torch.float64)
+ring = conformal_map(geometry, torch.polar(torch.ones_like(angles), angles))
+ring_xy = torch.stack((ring.real, ring.imag), dim=-1).numpy()
+ring_mid = 0.5 * (ring[:-1] + ring[1:])
+
+u1 = liouville_solution(field_1, physical).numpy()
+field_2 = None
+for candidate_seed in range(1000, 1200):
+    candidate = sample_liouville_field(candidate_seed, domain_radius_bound=radius_bound)
+    u2 = liouville_solution(candidate, physical).numpy()
+    if np.abs(u2).max() <= 4.0 and u2.max() - u2.min() >= 2.0:
+        field_2 = candidate
+        break
+if field_2 is None:
+    raise RuntimeError("no admissible second Liouville field found")
+residual = 2.0 * (np.exp(u1 + u2) - np.exp(u1) - np.exp(u2))
+
+u_amp = max(np.abs(u1).max(), np.abs(u2).max())
+u_norm = Normalize(-u_amp, u_amp)
+r_amp = np.abs(residual).max()
+r_norm = Normalize(-r_amp, r_amp)
+
+fig = plt.figure(figsize=(9.2, 3.6))
+grid = fig.add_gridspec(1, 3, left=0.02, right=0.84, top=0.88, bottom=0.10, wspace=0.08)
+panels = [
+    (u1, u_norm, r"$u_1$ (exact solution)", r"residual $\equiv 0$"),
+    (u2, u_norm, r"$u_2$ (exact, same domain)", r"residual $\equiv 0$"),
+    (residual, r_norm, r"$\Delta(u_1{+}u_2) + 2e^{u_1+u_2}$", r"residual $\neq 0$: not a solution"),
+]
+for col, (values, norm, title, note) in enumerate(panels):
+    ax = fig.add_subplot(grid[0, col])
+    tri = Triangulation(physical.real.numpy(), physical.imag.numpy(), triangles)
+    cs = ax.tricontourf(tri, values, levels=np.linspace(norm.vmin, norm.vmax, 27),
+                        cmap=DIVERGING, alpha=0.82)
+    cs.set_edgecolor("face")
+    if col < 2:
+        trace = liouville_solution(field_1 if col == 0 else field_2, ring_mid)
+        segments = np.stack([ring_xy[:-1], ring_xy[1:]], axis=1)
+        ax.add_collection(LineCollection(
+            segments, colors=DIVERGING(norm(trace.numpy())), linewidths=3.2,
+            zorder=4, capstyle="round"))
+    else:
+        ax.plot(ring_xy[:, 0], ring_xy[:, 1], color=INK, lw=2.4, zorder=4)
+    ax.text(0.5, -0.04, note, transform=ax.transAxes, ha="center", va="top",
+            fontsize=8.5, color=INK2 if col < 2 else INK)
+    lo, hi = ring_xy.min(axis=0), ring_xy.max(axis=0)
+    mid, half = (lo + hi) / 2, (hi - lo).max() / 2 * 1.10
+    ax.set_xlim(mid[0] - half, mid[0] + half)
+    ax.set_ylim(mid[1] - half, mid[1] + half)
+    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_title(title, fontsize=10, color=INK)
+cax_u = fig.add_axes([0.865, 0.18, 0.016, 0.55])
+cbar = fig.colorbar(plt.cm.ScalarMappable(cmap=DIVERGING, norm=u_norm), cax=cax_u)
+cbar.set_label(r"$u$  [-]", fontsize=8); cbar.ax.tick_params(labelsize=7)
+cax_r = fig.add_axes([0.945, 0.18, 0.016, 0.55])
+cbar = fig.colorbar(plt.cm.ScalarMappable(cmap=DIVERGING, norm=r_norm), cax=cax_r)
+cbar.set_label("residual  [-]", fontsize=8); cbar.ax.tick_params(labelsize=7)
+plt.show()
+```
+
+## The nonlinear-fragility ladder: implicit degree diagnosed, then declared {#sec-nonlinear-fragility}
+
+**The zero-preserving nonlinear read-in carries an implicit drive degree
+near 21, which is invisible on the training range and detonates off it;
+declaring the degree removes the mechanism rather than damping it.**
+This is the single most consequential finding of the nonlinear suites,
+because it decides which field mode is safe to deploy wherever the drive
+can leave its training range, including the industrial datasets
+(@sec-industrial-mt1).
+
+The diagnosis rests on one probe: scale the joint drive by a factor
+$\alpha$ at fixed geometry and fit the log-log slope of the output's RMS
+against $\alpha$. For a target of drive degree $d$ the exact slope is
+$d$. On Euler–Bernoulli arms trained in the nonlinear mode, the fitted
+slope over the training band $\alpha \in [0.5, 1.5]$ is 1.56 for the
+velocity (target 1) and 3.82 for the pressure (target 2); over the
+extrapolation band $\alpha \in [2, 4]$ it is **21.3 and 20.8**. Training
+suppresses the spurious high-degree terms where the data lives and
+nowhere else; a snapshot at step 200 already reads 18.1 and 17.4, so the
+degree is built in from initialization. Two rival explanations were
+excluded on the rotational-Euler suite, whose nonlinear arms fail by
+$10^{6}$–$10^{13}$ near the operator's first eigenvalue
+(@sec-euler-rotational). Sweeping the coupling through that band at a
+pinned drive moves nothing in the conditioned stack (worst ratio of
+near-eigenvalue to training-band activations 1.61), so operator
+conditioning is not the failure. Renormalizing the near-eigenvalue cases
+by their known physical amplification (dividing velocity by $A$ and
+pressure by $A^2$, which leaves them exact solutions) brings the same
+checkpoint from $5.6\times10^{6}$ to 0.240. The parameter-axis failure
+is the amplitude axis in disguise: the operator amplifies the drive by up
+to 77 times, and $1.6^{21}$ is already $2\times10^{4}$.
+
+The fix declares the degree the way linearity is declared. The
+declared-degree mode keeps the linear path end to end (drive lift, linear
+field blocks, linear kernel decode) and adds exactly one bilinear,
+operator-conditioned composition at the query read-in,
+$F = u + B(L_2 u, L_3 u)$. Every learned ingredient is linear in the
+drive, bilinear in the drive, or drive-independent, so the output is a
+polynomial of degree at most two for any weights. The composition sits at
+the read-in rather than in a stackable block because residual bilinear
+updates would compose to degree $2^k$, which is the escalation the mode
+exists to forbid. The acceptance test is the diagnosis probe run on the
+trained checkpoints in float64: fitted slopes of 1.00 (velocity) and
+2.00 (pressure) on- and off-range on every seed of both suites, and the
+exact polynomial $c_1\alpha + c_2\alpha^2$ reproduces the model to a
+worst relative residual of $2.1\times10^{-15}$. The same probe on the
+nonlinear mode fails by eleven orders of magnitude, so the contract is a
+discriminating unit test, not a metric.
+
+```{python}
+#| label: fig-declared-degree
+#| fig-cap: >
+#|   The implicit degree and its removal. Left: velocity RMS response to
+#|   joint drive scaling at fixed geometry on trained Euler–Bernoulli
+#|   arms, log-log (case 0 of each artifact). The nonlinear read-in tracks
+#|   the exact degree-1 response on the training range and leaves it at
+#|   slope near 21 beyond alpha of about 1.5; the declared-degree arm's
+#|   response is a degree-2 polynomial (fit residual 2e-15) and is
+#|   indistinguishable from the exact slope at every alpha. Right:
+#|   rotational-Euler combined relative L2 error versus the vorticity
+#|   coupling; the nonlinear arm (one seed) detonates approaching the
+#|   first eigenvalue while the declared-degree arm (3-seed mean, band =
+#|   seed range) stays below 1.0 on cases the linear arm handles at about
+#|   0.2. How to read this: both panels probe trained checkpoints; neither
+#|   shows in-distribution accuracy, which @tbl-euler-bernoulli and
+#|   @tbl-euler-rotational carry. Data: results/nonlinear_fragility_2026-07-04.json,
+#|   results/declared_degree_2026-07-05.json.
+#| code-fold: true
+diagnosis = json.load(open(RESULTS / "nonlinear_fragility_2026-07-04.json"))
+fix = json.load(open(RESULTS / "declared_degree_2026-07-05.json"))
+
+fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.9))
+nl_rows = diagnosis["eb_amplitude_cases"][0]["rows"]
+q2_rows = fix["results"]["euler_bernoulli"]["per_seed"][0]["amplitude_probe_cases"][0]["rows"]
+alphas = [r["alpha"] for r in nl_rows]
+ax = axes[0]
+ax.loglog(alphas, [r["velocity_exact_rms"] for r in nl_rows], "--", color=INK, lw=2.0,
+          label="exact (degree 1)", zorder=4)
+ax.loglog(alphas, [r["velocity_rms"] for r in nl_rows], "o-", ms=3.5, color=PURPLE_LIGHT,
+          lw=1.2, label="MT1, nonlinear read-in (slope 21.3 off-range)")
+ax.loglog([r["alpha"] for r in q2_rows], [r["velocity_rms"] for r in q2_rows], "s-", ms=3.5,
+          color=PURPLE_DARK, lw=1.2, label="MT1, declared degree 2")
+ax.axvspan(2.0, 4.0, color=GRID, alpha=0.5, zorder=0)
+ax.text(2.8, 2e-2, "extrapolated\nband", fontsize=7.5, ha="center", color=INK2)
+ax.set_xlabel(r"drive scale $\alpha$ [-]")
+ax.set_ylabel("velocity RMS response [-]")
+ax.set_title("Euler–Bernoulli: the degree probe", fontsize=9)
+ax.legend(fontsize=7.5, loc="upper left")
+
+nl_sweep = diagnosis["er_amplification_sweep"]
+q2_sweeps = [entry["amplification_sweep"] for entry in fix["results"]["euler_rotational"]["per_seed"]]
+couplings = [e["coupling"] for e in nl_sweep]
+q2_matrix = np.array([[e["mean_combined"] for e in sweep] for sweep in q2_sweeps])
+ax = axes[1]
+ax.semilogy(couplings, [e["mean_combined"] for e in nl_sweep], "o-", ms=3.5, color=PURPLE_LIGHT,
+            lw=1.2, label="MT1, nonlinear read-in (one seed)")
+ax.semilogy(couplings, q2_matrix.mean(axis=0), "s-", ms=3.5, color=PURPLE_DARK, lw=1.2,
+            label="MT1, declared degree 2 (3-seed mean)")
+ax.fill_between(couplings, q2_matrix.min(axis=0), q2_matrix.max(axis=0), color=PURPLE_DARK,
+                alpha=0.2, lw=0)
+ax.axhline(1.0, color=INK, lw=1.0, ls="--")
+ax.text(1.02, 1.25, "acceptance bar (1.0)", fontsize=7.5, color=INK)
+ax.axvline(2.4048, color=INK2, lw=1.0, ls=":")
+ax.text(2.39, 3e-2, r"$j_{0,1}$", fontsize=8, ha="right", color=INK2)
+ax.set_xlabel(r"vorticity coupling $\tilde c$ [-]")
+ax.set_ylabel("combined relative $L^2$ [-] (log)")
+ax.set_title("rotational Euler: error vs operator parameter", fontsize=9)
+ax.legend(fontsize=7.5, loc="upper left")
+fig.tight_layout()
+plt.show()
+```
+
+What declaring the degree buys, and what it costs, at matched parity
+typing:
+
+- The detonation is gone, not damped. The rotational near-eigenvalue
+  tier falls from $10^{6}$–$10^{13}$ to 0.670 ± 0.111 combined; the
+  unseen-mode split from 160 ± 178 to 0.144 ± 0.013. Parity channels
+  alone had reduced the detonation by orders of magnitude without
+  removing it; the declared degree removes the exploding monomials by
+  construction.
+- In-distribution accuracy is not the price. The declared-degree arms
+  are more accurate in-distribution than the nonlinear arms on both
+  exact-label suites (rotational Euler velocity/pressure 0.037/0.106 vs
+  0.061/0.181; Euler–Bernoulli with parity channels 0.029/0.035 vs
+  0.031/0.063) and far more seed-stable off-range (Euler–Bernoulli
+  circulation-OOD seed spread 0.003 vs 0.40 without parity channels).
+- Degree and parity are orthogonal declarations, and the amplitude axis
+  needs both. Without parity channels the declared-degree arm's
+  circulation-OOD is pinned at 0.682, the parity floor of
+  @sec-ds-potential-flow; with them it reaches 0.086 ± 0.059 against the
+  nonlinear-with-parity arm's 0.35.
+- What remains is amplitude, not degree. On the near-eigenvalue tier the
+  declared-degree velocity reaches 0.216, the level of the renormalized
+  probe, while the pressure, amplified by $A^2$ of 150–6,000, sits at
+  0.686. The structural probe on the same checkpoints shows no response
+  above degree two.
+- The cost appears where the true degree is unbounded. On Navier–Stokes
+  every polynomial order is present in the solution map, and the
+  declared-degree arm trails the nonlinear arm in-distribution (0.278 vs
+  0.231 combined, @tbl-ns-arms): there the declaration is an
+  approximation hypothesis, and a degree-2 truncation is measurably
+  short.
+
+## The fluid suites with exact labels: potential flow and Euler–Bernoulli {#sec-fluid-suites}
+
+These two suites share one exterior-flow family and add, in turn, a
+vector drive with a handed target and a second target of a different
+drive degree. Both are linear or polynomial in the drive with exact
+labels, so every wall in them is a theorem the tables confirm.
+
+### Potential flow {#sec-ds-potential-flow}
+
+**Given the same inputs as a trace-informed control, MT1 solves the
+exterior problem with circulation to relative error 0.013; given only the
+raw drive, it is at no-response on a streamfunction target, by a parity
+argument, and the fix is a typed channel, not capacity.** Smooth
+two-dimensional bodies (conformal images of the unit circle, restricted to
+orientation-preserving placements) sit in a uniform stream $U_\infty$
+with prescribed circulation $\Gamma$. The exact flow is classical
+potential theory: $\Delta\psi = 0$ outside the body, $\psi = 0$ on it,
+$\nabla\psi \to U_\infty^{\perp}$ at infinity. Splits: in-distribution,
+unseen geometry modes, wilder shapes (deformation bound 0.45–0.70
+against the training 0.05–0.35), circulation beyond the training band,
+and far-field queries beyond the training annulus.
+
+The primary target, the disturbance streamfunction $\psi_d$, is a
+two-dimensional *pseudoscalar*: reflect the whole problem in a mirror and
+the exact solution is the mirrored field with its sign flipped, because
+the uniform-flow part is the wedge $U_x y - U_y x$. Every quantity MT1's
+default type system builds from dot products of polar vectors is a true
+scalar, equal to its mirror image. An untyped model therefore predicts
+the same field for a problem and its mirror image, and the best it can do
+is the even part of the target.
+
+```{python}
+#| label: fig-potential-parity
+#| fig-cap: >
+#|   The parity wall, drawn from the exact generator. Left: a circulatory
+#|   flow (filled streamfunction). Right: the mirrored problem, with
+#|   reflected geometry, reflected freestream and negated circulation,
+#|   whose exact solution is the reflected field with opposite sign. Every
+#|   dot-product invariant of geometry and drive is identical for the two
+#|   problems, so an untyped model must predict the same field for both.
+#|   Not shown: any model output. Generator: `problems/potential_flow.py`.
+#| code-fold: true
+from potential_flow import (
+    body_to_physical,
+    build_potential_flow_sample,
+    complex_to_points,
+    total_streamfunction,
+)
+
+sample = build_potential_flow_sample(6, dtype=torch.float64)
+radii = torch.linspace(1.0005, 2.6, 80, dtype=torch.float64)[None, :]
+angles = torch.linspace(0.0, 2 * np.pi, 240, dtype=torch.float64)[:, None]
+z = (radii * torch.exp(1j * angles)).to(torch.complex128)
+psi = total_streamfunction(sample.body, sample.canonical_freestream, 1.4, z).numpy()
+phys = complex_to_points(body_to_physical(sample.body, z)).numpy()
+X, Y = phys[..., 0], phys[..., 1]
+span = np.abs(psi).max()
+loop = sample.boundary_loop.numpy()
+
+fig, (axa, axb) = plt.subplots(1, 2, figsize=(9.2, 4.4))
+for ax, (Xp, Yp, P, label) in zip(
+        (axa, axb),
+        ((X, Y, psi, "flow with circulation $+\\Gamma$"),
+         (X, -Y, -psi, "mirrored problem: exact answer is $-\\Gamma$"))):
+    ax.contourf(Xp, Yp, P, levels=np.linspace(-span, span, 27), cmap=DIVERGING)
+    ax.contour(Xp, Yp, P, levels=np.linspace(-span, span, 27), colors="#00000022", linewidths=0.5)
+    yy = loop[:, 1] if Yp is Y else -loop[:, 1]
+    ax.fill(loop[:, 0], yy, facecolor="#eae8e1", edgecolor=INK, linewidth=1.6, zorder=3)
+    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_title(label, fontsize=10, color=INK)
+fig.tight_layout()
+plt.show()
+```
+
+The control semantics matter more here than anywhere else in the book.
+The *pair-kernel control* is a learned two-point kernel that receives the
+exact disturbance trace as per-cell boundary data; it is *trace-informed*.
+The raw-drive MT1 arms receive only the body outline, $U_\infty$ and
+$\Gamma$, and must reconstruct the trace themselves. A trace-driven arm
+therefore holds strictly more information than a raw-drive arm, and the
+two must never be compared as equals: the trace-informed row is a
+reference for what the *data* supports, not a competitor. The table
+reports 3-seed means of the relative $L^2$ error of $\psi_d$ after 3,000
+streamed steps.
+
+```{python}
+#| label: tbl-potential-flow
+#| output: asis
+#| code-fold: true
+bie = json.load(open(RESULTS / "learned_bie_2026-07-02.json"))
+it21 = bie["iteration_21_fluid_families_pseudoscalar_wall"]["runs_partial"]
+it22 = bie["iteration_22_representable_reformulations"]["runs"]
+pf_splits = [("in_distribution", "in-distribution"), ("unseen_geometry_modes", "unseen geometry"),
+             ("wilder_shapes", "wilder shapes"), ("circulation_ood", "circulation OOD"),
+             ("farfield_queries", "far-field")]
+
+
+def split_means(runs):
+    return {k: sum(r[k] for r in runs) / len(runs) for k, _ in pf_splits}
+
+
+def row(label, runs, bold=False):
+    m = split_means(runs)
+    cells = " | ".join(f"{m[k]:.3f}" for k, _ in pf_splits)
+    return f"| {label} | {cells} |"
+
+
+lines = ["| arm (3-seed means) | " + " | ".join(n for _, n in pf_splits) + " |",
+         "|---|" + "--:|" * len(pf_splits)]
+lines.append(row("MT1, raw drive $\\{U_\\infty, \\Gamma\\}$, streamfunction target (no response)",
+                 it21["potential_flow_mesh_transformer_kernel"]))
+lines.append(row("pair-kernel control, trace-informed", it21["potential_flow_pair_kernel"]))
+lines.append(": Exterior potential flow, streamfunction target: relative $L^2$ "
+             "error, 3,000 steps, seeds 17/18/19. The raw-drive arm sits at "
+             "no-response on every seed (in-distribution 0.98–1.00) although a "
+             "gradient diagnostic shows the drive path is alive; the output cannot "
+             "be handed. The control's 0.178 is what the trace supports, not a "
+             "matched comparison. Data: results/learned_bie_2026-07-02.json, key "
+             "`iteration_21_fluid_families_pseudoscalar_wall`. {#tbl-potential-flow}")
+print("\n".join(lines))
+```
+
+Two reformulations make the target representable. *Trace-driven* MT1
+arms receive the same certified trace as the control, so the handedness
+arrives in the data; they predict $\psi_d$. *Velocity* arms keep the raw
+drive and change the target to the flow velocity, a polar vector, which
+the type system represents as-is.
+
+```{python}
+#| label: tbl-potential-flow-resolved
+#| output: asis
+#| code-fold: true
+lines = ["| arm (3-seed means) | " + " | ".join(n for _, n in pf_splits) + " |",
+         "|---|" + "--:|" * len(pf_splits)]
+lines.append(row("**MT1, trace-driven, two exact members, $\\psi_d$ target**",
+                 it22["potential_flow_mesh_transformer_kernel_singpair_trace"]))
+lines.append(row("MT1, trace-driven, full dictionary, $\\psi_d$ target",
+                 it22["potential_flow_mesh_transformer_kernel_trace"]))
+lines.append(row("MT1, raw drive, velocity target, two exact members",
+                 it22["potential_flow_velocity_mesh_transformer_kernel_singpair"]))
+lines.append(row("MT1, raw drive, velocity target, double-layer only",
+                 it22["potential_flow_velocity_mesh_transformer_kernel_singonly"]))
+lines.append(row("MT1, raw drive, velocity target, full dictionary",
+                 it22["potential_flow_velocity_mesh_transformer_kernel"]))
+lines.append(row("pair-kernel control, trace-informed (from @tbl-potential-flow)",
+                 it21["potential_flow_pair_kernel"]))
+lines.append(": The representable reformulations, same protocol as "
+             "@tbl-potential-flow. Rows 1–2 and the control share the same inputs "
+             "and may be compared; rows 3–5 receive less information than any of "
+             "them. \"Full dictionary\" adds learned smooth members to the two "
+             "exact kernels. Data: results/learned_bie_2026-07-02.json, key "
+             "`iteration_22_representable_reformulations`. {#tbl-potential-flow-resolved}")
+print("\n".join(lines))
+```
+
+Three facts follow. Given identical data, MT1 reaches 0.013
+in-distribution and 0.020 on circulation-OOD against the control's
+0.178, so the encode-and-solve path handles the exterior problem with
+circulation; the wall was target type alone. The velocity arms fit
+(0.14 in-distribution) but their circulation-OOD is pinned at
+0.646–0.649 across every arm and seed, a spread too tight for optimization
+noise: the vortex velocity is $\Gamma\,x^{\perp}/(2\pi|x|^2)$, and with
+$\Gamma$ typed as a true scalar that product is an axial vector the
+system cannot represent, so the error is exactly the norm of the vortex
+component. Adding the pseudoscalar channel sector (wedge products and
+rotations as typed operations, circulation declared odd) removes that
+exclusion:
+
+```{python}
+#| label: tbl-pseudo-extension
+#| output: asis
+#| code-fold: true
+m5 = bie["iteration_23_pseudoscalar_extension"]["means_5seed"]
+keys = ["ID", "geo", "wilder", "circOOD", "farfield"]
+names = [("untyped_controls_n5", "MT1, raw drive, velocity target, no parity channels (pooled)"),
+         ("singpair_pseudo", "**MT1, raw drive, velocity target, two exact members + parity channels**"),
+         ("kernel_pseudo", "MT1, raw drive, velocity target, full dictionary + parity channels")]
+lines = ["| arm (5-seed means) | " + " | ".join(n for _, n in pf_splits) + " |",
+         "|---|" + "--:|" * len(pf_splits)]
+for key, label in names:
+    lines.append(f"| {label} | " + " | ".join(f"{m5[key][k]:.3f}" for k in keys) + " |")
+lines.append(": Velocity target with and without parity channels, 5 seeds "
+             "(17–21), 3,000 steps. Circulation-OOD drops from the type-exclusion "
+             "floor 0.647 to 0.037, and the whole field improves about 5x, "
+             "because two-dimensional potential-flow velocity carries wedge "
+             "content everywhere, not only in the vortex term. Data: "
+             "results/learned_bie_2026-07-02.json, key "
+             "`iteration_23_pseudoscalar_extension`. {#tbl-pseudo-extension}")
+print("\n".join(lines))
+```
+
+The two exact members remain the best dictionary under the extension.
+The far-field column is the weakest split for every arm in all three
+tables: it measures radial extrapolation beyond the training annulus,
+a question about exterior decay rather than about nonlinearity, and is
+not pursued in this chapter. Parity channels are two-dimensional and
+opt-in; the three-dimensional analogue (axial vectors) is out of scope.
+
+### Euler–Bernoulli: two fields, two drive degrees {#sec-ds-euler-bernoulli}
+
+**A linear-mode arm's pressure error is exactly 1.000 on every split and
+seed, by parity, while the same arm's velocity is fine; declaring
+nonlinearity breaks the wall and composing it with parity channels wins
+every column.** The suite reuses the exterior-flow family with two
+targets at shared queries: the velocity $u = U_\infty + u_d$, a polar
+vector of drive degree 1, and the Bernoulli pressure
+$p^{*} = \tfrac12(|U_\infty|^2 - |u|^2)$, exactly degree 2. The labels
+are exact and mutually consistent. Because the drive distribution is
+symmetric under negation, every degree-2 target is orthogonal to the
+span of any drive-linear model, whose best pressure prediction is
+therefore zero.
+
+```{python}
+#| label: fig-eb-degree-ladder
+#| fig-cap: >
+#|   The parity-of-degree wall. Top: a drive-linear model spans targets of
+#|   drive degree at most 1, where the velocity lives; the Bernoulli
+#|   pressure is exactly degree 2 and, for a sign-symmetric drive
+#|   distribution, orthogonal to that span, so the best linear-mode
+#|   pressure is zero and its relative error exactly 1. Bottom: measured
+#|   in-distribution pressure error of the three MT1 arms (5-seed means).
+#|   How to read this: the bottom panel is one column of
+#|   @tbl-euler-bernoulli; the velocity of the linear arm is not shown and
+#|   is fine (0.134). Data: results/learned_bie_2026-07-02.json, key
+#|   `iteration_25_euler_bernoulli_multifield`.
+#| code-fold: true
+m = bie["iteration_25_euler_bernoulli_multifield"]["means_key_splits"]
+
+fig, (ax, ax2) = plt.subplots(2, 1, figsize=(7.6, 5.6), gridspec_kw={"height_ratios": [1, 1.3]})
+ax.axhline(0, color=INK2, lw=1.0)
+for d in (0, 1, 2, 3):
+    ax.plot([d], [0], "o", color=INK, ms=5)
+    ax.text(d, -0.22, f"degree {d}", ha="center", fontsize=9, color=INK2)
+ax.axvspan(-0.3, 1.3, color=PURPLE, alpha=0.15)
+ax.text(0.5, 0.42, "span of a drive-linear model", ha="center", fontsize=10, color=PURPLE)
+ax.plot([1], [0.18], "v", color=INK, ms=9)
+ax.text(1, 0.55, "velocity\n(degree 1)", ha="center", fontsize=9, color=INK)
+ax.plot([2], [0.18], "v", color=INK, ms=9)
+ax.text(2, 0.55, "Bernoulli pressure\n(exactly degree 2)", ha="center", fontsize=9, color=INK)
+ax.annotate("orthogonal to the span:\nbest linear answer = 0,\nrelative error = 1 exactly",
+            xy=(2, 0.1), xytext=(2.85, 0.35), fontsize=9, color=INK,
+            arrowprops=dict(arrowstyle="-", color=INK2, lw=0.9))
+ax.set_xlim(-0.5, 3.9); ax.set_ylim(-0.5, 1.0); ax.set_axis_off()
+
+arms = [("linear mode", m["linear"]["prs_ID"], PURPLE_LIGHT, "o"),
+        ("nonlinear mode", m["nl"]["prs_ID"], PURPLE, "^"),
+        ("nonlinear + parity channels", m["nl_pseudo"]["prs_ID"], PURPLE_DARK, "s")]
+xs = np.arange(len(arms))
+for x, (label, v, color, marker) in zip(xs, arms):
+    ax2.plot([x], [v], marker, ms=11, color=color, mec="white", mew=1.2, zorder=3)
+    ax2.annotate(f"{v:.3g}", (x, v), textcoords="offset points", xytext=(12, 0), fontsize=10,
+                 color=INK, va="center")
+ax2.axhline(1.0, color=INK, lw=1.0, ls=":", alpha=0.7)
+ax2.text(2.35, 1.0, "the wall (exactly 1)", fontsize=8.5, color=INK, va="bottom", ha="right")
+ax2.set_yscale("log")
+ax2.set_xticks(xs, [a[0] for a in arms], fontsize=10)
+ax2.set_ylabel("pressure relative $L^2$ [-] (log)")
+ax2.set_xlim(-0.5, 2.6)
+ax2.grid(axis="x", visible=False)
+fig.tight_layout()
+plt.show()
+```
+
+#### Results {#sec-euler-bernoulli}
+
+```{python}
+#| label: tbl-euler-bernoulli
+#| output: asis
+#| code-fold: true
+splits = [("vel_ID", "velocity, in-distribution"), ("prs_ID", "pressure, in-distribution"),
+          ("circ_v", "velocity, circulation OOD"), ("circ_p", "pressure, circulation OOD")]
+names = {"linear": "MT1, linear mode (wall control)", "nl": "MT1, nonlinear mode",
+         "nl_pseudo": "**MT1, nonlinear mode + parity channels**"}
+lines = ["| arm (5-seed means) | " + " | ".join(s[1] for s in splits) + " |",
+         "|---|" + "--:|" * len(splits)]
+for arm in ("linear", "nl", "nl_pseudo"):
+    lines.append(f"| {names[arm]} | " + " | ".join(f"{m[arm][k]:.3f}" for k, _ in splits) + " |")
+lines.append(": Euler–Bernoulli, relative $L^2$ error at 5 seeds, 3,000 steps. "
+             "The linear arm's pressure columns are the wall, held to the fourth "
+             "decimal on every seed. Data: results/learned_bie_2026-07-02.json, "
+             "key `iteration_25_euler_bernoulli_multifield`. {#tbl-euler-bernoulli}")
+print("\n".join(lines))
+```
+
+The two declared mechanisms fix different deficits and compose: the
+nonlinear mode breaks the degree wall (pressure 1.000 to 0.210) and the
+parity channels carry the handedness, and the composed arm is 5x and 3x
+better than plain nonlinear mode on velocity and pressure. Circulation-OOD
+is the composed arm's weakest split at 0.35; that is the drive-amplitude
+axis, and the declared-degree mode composed with parity channels brings it
+to 0.086 (@sec-nonlinear-fragility).
+
+## Rotational Euler and Liouville
+
+### Rotational Euler: exact vorticity and an operator parameter {#sec-ds-euler-rotational}
+
+**Where the velocity map is exactly drive-linear, the linear mode is the
+best velocity model (0.026, 2.3x better than nonlinear mode) and degrades
+gracefully on every axis; the nonlinear mode buys the pressure at a
+velocity cost and detonates near the operator's eigenvalue.** Disks with
+randomized radius, center and panel rotation carry boundary velocity for
+a steady two-dimensional Euler flow with vorticity proportional to the
+streamfunction, $\omega = \tilde c^{2}\psi$. The streamfunction then
+solves the Helmholtz equation $\Delta\psi + \tilde c^{2}\psi = 0$, whose
+Bessel-series solutions on a disk are exact; the velocity is
+$\nabla^{\perp}\psi$ (degree 1 in the drive) and the pressure follows
+from the rotational Bernoulli relation, $p = -\tilde c^{2}\psi^{2}/2 -
+|u|^{2}/2$, exactly degree 2. Float64 autograd puts the steady-Euler
+momentum residual of every label at $10^{-16}$ to $10^{-15}$. The model
+sees the boundary velocity as a rank-1 drive on 64 panels and the
+dimensionless coupling $\tilde c$ as a global operator scalar, nothing
+else. Splits: in-distribution ($\tilde c \in [0.5, 1.8]$, drive modes
+0–3), unseen coupling ($[1.9, 2.2]$), unseen modes (4–6), and a
+near-eigenvalue tier ($[2.25, 2.38]$) retained because its labels stay
+exact.
+
+The coupling has a hard ceiling. At the first Dirichlet eigenvalue of
+the disk, $j_{0,1} \approx 2.405$, the homogeneous problem acquires a
+nonzero solution and the interior is no longer determined by boundary
+data; approaching it, the interior response to unit boundary data grows
+like $1/J_0(\tilde c)$, up to about 77x at the band edge.
+
+```{python}
+#| label: fig-er-amplification
+#| fig-cap: >
+#|   The resonance dial: interior response amplitude (maximum of the
+#|   exact target over a fixed-seed sample with unit-RMS boundary data) as
+#|   the coupling approaches the first Dirichlet eigenvalue (dotted line),
+#|   with the three coupling splits shaded. The near-eigenvalue band's
+#|   amplification is what the fragility ladder measured accuracy against.
+#|   Not shown: any model output. Generator: `problems/euler_rotational.py`.
+#| code-fold: true
+from euler_rotational import build_euler_rotational_sample
+
+couplings = np.linspace(0.5, 2.39, 28)
+amplitudes = []
+for c in couplings:
+    s = build_euler_rotational_sample(11, coupling_range=(float(c), float(c)),
+                                      modes=(0, 1, 2, 3), n_query=400, dtype=torch.float64)
+    amplitudes.append(max(float(s.targets["velocity"].abs().max()),
+                          float(s.targets["pressure"].abs().max())))
+
+fig, ax = plt.subplots(figsize=(7.4, 3.8))
+ax.semilogy(couplings, amplitudes, "o-", color=INK, ms=4, lw=1.4)
+ax.axvline(2.405, color=RED, ls=":", lw=1.6)
+ax.text(2.36, 60, "$j_{0,1}$: interior no longer\ndetermined by boundary data",
+        ha="right", fontsize=9, color=RED)
+for lo, hi, label, y in ((0.5, 1.8, "training band", 4.4), (1.9, 2.2, "unseen\ncoupling", 4.0),
+                         (2.25, 2.38, "near\neigenvalue", 12.0)):
+    ax.axvspan(lo, hi, color=MUTED, alpha=0.12)
+    ax.text((lo + hi) / 2, y, label, ha="center", fontsize=8, color=INK2)
+ax.set_xlabel(r"vorticity coupling $\tilde c$ [-]")
+ax.set_ylabel("max |target| [-] (log)")
+fig.tight_layout()
+plt.show()
+```
+
+#### Results {#sec-euler-rotational}
+
+```{python}
+#| label: tbl-euler-rotational
+#| output: asis
+#| code-fold: true
+agg = bie["iteration_33_euler_rotational"]["aggregates_mean_sd"]
+q2 = bie["iteration_35_declared_degree"]["runs_3000steps_3seed"]["euler_rotational/mt_singpair_q2"]
+cols = [("in_distribution/velocity", "velocity, ID"), ("in_distribution/pressure", "pressure, ID"),
+        ("unseen_coupling/velocity", "velocity, unseen $\\tilde c$"),
+        ("unseen_coupling/pressure", "pressure, unseen $\\tilde c$"),
+        ("near_eigenvalue/velocity", "velocity, near eigenvalue"),
+        ("near_eigenvalue/pressure", "pressure, near eigenvalue")]
+names = {"floor": "boundary-mean predictor (floor)",
+         "mt_singpair_linear": "MT1, linear mode (wall control)",
+         "mt_singpair_nl": "MT1, nonlinear mode",
+         "mt_singpair_nl_pseudo": "MT1, nonlinear mode + parity channels"}
+
+
+def fmt(x):
+    return f"{x:.3f}" if x < 100 else f"{x:.1e}"
+
+
+lines = ["| arm (3-seed means) | " + " | ".join(c[1] for c in cols) + " |",
+         "|---|" + "--:|" * len(cols)]
+for arm in ("floor", "mt_singpair_linear", "mt_singpair_nl", "mt_singpair_nl_pseudo"):
+    lines.append(f"| {names[arm]} | " + " | ".join(fmt(agg[arm][k]["mean"]) for k, _ in cols) + " |")
+q2_mean = {k: sum(r[k] for r in q2) / len(q2) for k, _ in cols}
+lines.append("| **MT1, declared degree 2** | " + " | ".join(fmt(q2_mean[k]) for k, _ in cols) + " |")
+lines.append(": Rotational Euler, relative $L^2$ error, 3 seeds, 3,000 steps, 16 "
+             "cases per split. The linear arm's pressure is pinned at 1.000 on every "
+             "split and seed (worst deviation $7\\times10^{-4}$); the nonlinear arms' "
+             "near-eigenvalue cells are the detonation of @sec-nonlinear-fragility. "
+             "The floor is the boundary-mean predictor, one seed. Data: "
+             "results/learned_bie_2026-07-02.json, keys "
+             "`iteration_33_euler_rotational` and `iteration_35_declared_degree`. "
+             "{#tbl-euler-rotational}")
+print("\n".join(lines))
+```
+
+The third instance of the degree wall holds bitwise: twelve of twelve
+linear-arm pressure cells read 1.000. Nonlinear mode breaks it (0.181),
+parity channels nearly halve that again (0.103) even though no parity
+wall exists for a polar-in, polar-out map, because the problem's natural
+latent, $\psi^2$, is a pseudoscalar squared. The linear arm's velocity
+is not merely competitive: at 0.026 it beats the nonlinear arms 2.3x
+in-distribution and stays at 0.20 on the near-eigenvalue tier where they
+reach $10^{9}$–$10^{12}$. Because the velocity map is representable in
+every mode, that blowup prices the mode, not the problem. The
+declared-degree arm keeps the linear arm's graceful extrapolation while
+supplying the pressure (0.106 in-distribution; 0.686 near the
+eigenvalue, the amplitude residue discussed above).
+
+### Liouville: the superposition wall, and a contract that is exactly wrong {#sec-liouville}
+
+**A drive-linear model cannot beat its best linear approximation of a
+nonlinear solution operator; on this suite that wall sits at 0.769 and
+no capacity moves it, while the declared nonlinear mode reaches 0.46.**
+Star-deformed disks carry Dirichlet data for
+$\Delta u + 2e^{u} = 0$, whose exact solutions are the spherical-metric
+potentials $u = \log\big(4|f'|^2/(1+|f|^2)^2\big)$ for holomorphic $f$
+(the constant 2 is autograd-verified as a unit test). Solutions are
+strictly superharmonic, so interior values exceed the harmonic extension
+of the trace everywhere; no map linear in the data can be exact.
+Splits: in-distribution, unseen geometry modes, stronger deformation.
+
+The suite also carries the sharpest lesson about zero preservation. Take
+$f(w) = w$ on the unit disk: the exact solution
+$u = \log\big(4/(1+|w|^2)^2\big)$ has identically zero boundary data and
+$u(0) = \log 4 \approx 1.386$ at the center. Every zero-preserving model,
+linear or nonlinear, at any capacity, returns exactly zero on this
+problem and scores relative error exactly 1. Zero preservation is exact
+structure for the linear class and exactly wrong here.
+
+```{python}
+#| label: fig-liouville-zerodata
+#| fig-cap: >
+#|   Zero data, nonzero solution: the exact Liouville solution on the unit
+#|   disk with identically zero Dirichlet data (black ring) and log 4 at
+#|   the center; right, its radial profile against the output of every
+#|   zero-preserving model, which is the flat line at zero. On the general
+#|   samples of the suite, whose data are nonzero, the zero-point error is
+#|   graded rather than total. Not shown: any trained model.
+#| code-fold: true
+theta = np.linspace(0, 2 * np.pi, 240)
+r = np.linspace(0, 1.0, 90)
+R, T = np.meshgrid(r, theta)
+Xd, Yd = R * np.cos(T), R * np.sin(T)
+U = np.log(4.0 / (1.0 + R**2) ** 2)
+
+fig, (ax, ax2) = plt.subplots(1, 2, figsize=(9.2, 4.2), gridspec_kw={"width_ratios": [1.15, 1]})
+cs = ax.contourf(Xd, Yd, U, levels=np.linspace(0, np.log(4), 21), cmap=SEQ_PURPLE)
+ax.plot(np.cos(theta), np.sin(theta), color=INK, lw=3.2)
+ax.annotate("boundary data $g \\equiv 0$", xy=(np.cos(0.8), np.sin(0.8)), xytext=(1.12, 1.12),
+            fontsize=10, color=INK, arrowprops=dict(arrowstyle="-", color=INK2, lw=0.9))
+ax.annotate(r"$u(0) = \log 4$", xy=(0, 0), xytext=(-1.55, -1.2), fontsize=10, color=INK,
+            arrowprops=dict(arrowstyle="-", color=INK2, lw=0.9))
+fig.colorbar(cs, ax=ax, shrink=0.8, label="exact solution $u$ [-]")
+ax.set_aspect("equal"); ax.set_axis_off()
+
+radial = np.linspace(0, 1, 200)
+ax2.plot(radial, np.log(4.0 / (1.0 + radial**2) ** 2), color=INK, lw=2.4)
+ax2.axhline(0.0, color=PURPLE, lw=2.4)
+ax2.text(0.03, np.log(4) - 0.06, "exact solution $u(r)$", color=INK, fontsize=10, va="top")
+ax2.text(0.03, 0.05, "every zero-preserving model\n(and the harmonic extension of $g$)",
+         color=PURPLE, fontsize=10, va="bottom")
+ax2.set_xlabel("radius $r$ [-]")
+ax2.set_ylabel("$u$ [-]")
+fig.tight_layout()
+plt.show()
+```
+
+The arms below share the fixed-compute protocol of every Liouville
+baseline: 1,500 streamed steps, seeds 17/18/19, in-distribution relative
+$L^2$ error. The strong-form column is
+$\|\Delta \hat u + 2e^{\hat u}\| / \|e^{\hat u}\|$ of the prediction on
+32 interior points of two cases, where the exact solution scores 0 and
+any harmonic prediction scores exactly 2.
+
+```{python}
+#| label: tbl-liouville-arms
+#| output: asis
+#| code-fold: true
+it8 = bie["iteration_8_liouville_nonlinear_wall"]
+rep = it8["replication_p2b"]["summary_1500_steps_3_seeds"]
+arms17 = it8["arms_seed17"]
+rows = [("MT1, linear mode (wall control)", "mesh_transformer_kernel_linear", "linear_ID"),
+        ("MT1, nonlinear mode, two exact members + 8 learned smooth members", "mesh_transformer_kernel_nl", "nl_ID"),
+        ("MT1, nonlinear mode, dictionary only (no learned members)", "mesh_transformer_kernel_nl_nomlp", "nl_nomlp_ID")]
+lines = ["| arm | parameters | seed 17 | seed 18 | seed 19 | mean | strong-form residual (seed 17) |",
+         "|---|--:|--:|--:|--:|--:|--:|"]
+for label, key17, keyrep in rows:
+    vals = rep[keyrep]
+    lines.append(f"| {label} | {arms17[key17]['parameters']:,} | "
+                 + " | ".join(f"{v:.3f}" for v in vals)
+                 + f" | {sum(vals) / len(vals):.3f} | {arms17[key17]['pde_residual']:.2f} |")
+sing = bie["iteration_13_singonly_universality"]["liouville_nl_singonly_1500steps"]["runs"]
+lines.append("| MT1, nonlinear mode, double-layer member only | — | "
+             + " | ".join(f"{r['in_distribution']:.2f}" for r in sing) + " | unstable | — |")
+lines.append(": Liouville in-distribution relative $L^2$ error, 1,500 steps. The "
+             "archive records the drive-linear superposition bound at about 0.79; "
+             "the linear arm lands on it. The last row's seed 18 detonates to 36.5: "
+             "the exact-members-only dictionary that wins every linear suite is "
+             "unstable on a nonlinear one. Data: results/learned_bie_2026-07-02.json, "
+             "keys `iteration_8_liouville_nonlinear_wall` and "
+             "`iteration_13_singonly_universality`. {#tbl-liouville-arms}")
+print("\n".join(lines))
+```
+
+```{python}
+#| label: fig-liouville-arms
+#| fig-cap: >
+#|   The superposition wall and its break: in-distribution relative L2
+#|   error of the three MT1 arms of @tbl-liouville-arms, seeds
+#|   distinguished by marker (circle 17, square 18, triangle 19) at the
+#|   same horizontal position; the bar is the 3-seed mean. The worst
+#|   nonlinear seed (0.564) is better than the best linear seed (0.749).
+#|   Not shown: the OOD splits, which improve similarly (unseen geometry
+#|   modes 0.77 to 0.59, stronger deformation 0.72 to 0.46). Data:
+#|   results/learned_bie_2026-07-02.json, key
+#|   `iteration_8_liouville_nonlinear_wall`.
+#| code-fold: true
+arms = [("linear mode", rep["linear_ID"], PURPLE_LIGHT),
+        ("nonlinear mode,\n+ learned members", rep["nl_ID"], PURPLE),
+        ("nonlinear mode,\ndictionary only", rep["nl_nomlp_ID"], PURPLE_DARK)]
+markers = ["o", "s", "^"]
+fig, ax = plt.subplots(figsize=(6.4, 3.8))
+ax.axhline(1.0, color=MUTED, lw=1.2, ls=":")
+ax.text(2.45, 1.008, "no response (1.0)", ha="right", va="bottom", fontsize=8, color=INK2)
+for i, (label, values, color) in enumerate(arms):
+    mean = sum(values) / len(values)
+    ax.plot([i - 0.22, i + 0.22], [mean, mean], color=color, lw=2.4, zorder=2)
+    for v, mk in zip(values, markers):
+        ax.plot(i, v, mk, ms=8, color=color, mec="white", mew=1.2, zorder=3)
+    ax.annotate(f"mean {mean:.3f}", (i + 0.24, mean), fontsize=8, color=INK2, va="center")
+ax.set_xticks(range(3), [a[0] for a in arms])
+ax.set_xlim(-0.6, 2.9); ax.set_ylim(0.0, 1.12)
+ax.set_ylabel("in-distribution relative $L^2$ [-]")
+ax.grid(axis="x", visible=False)
+fig.tight_layout()
+plt.show()
+```
+
+Three facts carry beyond this suite. The wall is representational and
+shared: the linear control is the same architecture minus permission to
+read drive invariants, so the 0.769-to-0.464 gap is attributable to drive
+nonlinearity alone. The field is fit while the operator is not: the
+nonlinear arms' strong-form residual (3.0) is farther from the operator
+than the linear control's (2.3) even as their $L^2$ error halves, so the
+nonlinear correction bends the field toward the data, not toward
+$\Delta u = -2e^{u}$. And the dictionary lesson inverts: exact members
+alone suffice on every linear suite, but a nonlinear read-in needs learned
+smooth members to stay stable.
+
+The stream factorization (@sec-stream-factorization) prices the
+zero-preservation misspecification directly. At matched parameters, MT1's
+operator/drive two-stream form and a single-stream control that forfeits
+the zero-drive contract tie on nonlinear Liouville (0.533 ± 0.145 vs
+0.478 ± 0.097 in-distribution, 3 seeds), while the two-stream arm's
+response to zero drive is exactly 0 and the control learns 0.55–0.70,
+the physically correct nonzero answer. On the linear Laplace suite the
+same factorization wins in-distribution (0.0485 vs 0.0606) with
+roundoff-exact contracts. The general statement: **a structural prior
+needs a per-problem correctness check, because a contract can be exactly
+enforced and exactly wrong.**
+
+## Navier–Stokes star cavity: the solver-labelled viscous suite {#sec-part-ns}
+
+**With solver labels whose noise floor is measured three decades below
+model error, the degree wall becomes a function of Reynolds number: the
+linear mode's pressure gap to the nonlinear mode is zero in the
+near-Stokes band and 0.45–0.54 in the convection-dominated band, and its
+velocity gap, once parity channels are matched, follows the same graded
+shape at a tenth the height.** This is the suite where exactness ends
+and the industrial datasets' conditions begin.
+
+### The problem and its label credential {#sec-ds-navier-stokes}
+
+Star-shaped cavities from the book's geometry family hold viscous fluid
+driven by a tangential wall-velocity band: a generalized lid-driven
+cavity whose lid is a smooth arc-length window of moving wall (25–50% of
+the perimeter, a $C^\infty$ bump times a band-limited modulation, unit
+peak speed), randomized in position, width and profile. The flow solves
+steady incompressible Navier–Stokes,
+
+$$
+(u\cdot\nabla)u = -\nabla p + \tfrac{1}{\mathrm{Re}}\Delta u,
+\qquad \nabla\cdot u = 0,
+\qquad u = g \ \text{on } \partial\Omega,
+$$
+
+with unit reference length so $\mathrm{Re} = 1/\nu$ exactly; the model
+receives $\tilde\nu = 1/\mathrm{Re}$ as a global operator scalar. A
+tangential drive has zero normal flux pointwise, so the incompressibility
+compatibility condition holds exactly at the continuous level. Targets
+are velocity and pressure at 128 interior queries (wall distance at least
+0.12) plus 32 near-wall queries (distance 0.02–0.08). The production
+catalog has 1,400 cases: 840 train and 140 in-distribution evaluation
+cases at $\mathrm{Re} \in [10, 200]$ (log-uniform), and 140 each for
+unseen Reynolds number $(200, 300]$, unseen geometry (deformation
+0.45–0.65), and unseen drive profile (modulation modes 3–5 against the
+training 0–2).
+
+```{python}
+#| label: fig-ns-sample
+#| fig-cap: >
+#|   One training case as posed: the cavity wall colored by tangential
+#|   drive speed (the moving band; the rest is no-slip), the 160 query
+#|   points inside with the near-wall band visible, and the case's own
+#|   certification. Every case in the catalog carries these numbers. Not
+#|   shown: the solution fields, which @fig-ns-gallery carries. Data:
+#|   datasets/ns_cavity_star/v1/case_00000.npz.
+#| code-fold: true
+CATALOG = Path("..") / "datasets" / "ns_cavity_star" / "v1"
+case = np.load(CATALOG / "case_00000.npz")
+params = json.loads(str(case["__params__"]))
+pts = case["boundary_points"]; cells = case["boundary_cells"]
+speed = np.linalg.norm(case["boundary_velocity"], axis=1)
+queries = case["query_points"]
+
+fig, ax = plt.subplots(figsize=(6.2, 5.6))
+norm = Normalize(0, speed.max())
+segs = pts[cells]
+ax.add_collection(LineCollection(segs, colors=SEQ_PURPLE(norm(speed)), linewidths=3.6,
+                                 capstyle="round", zorder=3))
+ax.plot(queries[:, 0], queries[:, 1], ".", color=INK, ms=3.5)
+driven = speed > 0.05 * speed.max()
+band_mid = segs[driven].mean(axis=(0, 1))
+ax.annotate("moving-wall band\n(tangential drive)", xy=tuple(band_mid), xytext=(0.02, 0.97),
+            textcoords="axes fraction", fontsize=10, color=INK, va="top",
+            arrowprops=dict(arrowstyle="-", color=INK2, lw=0.9))
+ver = params["verification"]
+ax.text(0.98, 0.02,
+        "this case's certification:\n"
+        f"Newton residual {ver['relative_residual']:.1e}\n"
+        f"momentum balance {ver['momentum_balance_error']:.1e}\n"
+        f"velocity noise floor {ver['label_noise_floor_velocity']:.1e}\n"
+        f"pressure noise floor {ver['label_noise_floor_pressure']:.1e}",
+        transform=ax.transAxes, ha="right", va="bottom", fontsize=8.5, color=INK2,
+        bbox=dict(facecolor="#f4f3ef", edgecolor=GRID))
+fig.colorbar(plt.cm.ScalarMappable(cmap=SEQ_PURPLE, norm=norm), ax=ax, shrink=0.7,
+             label="wall speed $|g|$ [-]")
+ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+for spine in ax.spines.values():
+    spine.set_visible(False)
+fig.tight_layout()
+plt.show()
+```
+
+A solver-labelled suite is only as good as its labels, and model errors
+near $10^{-1}$ demand labels at least an order better. The solver is a
+Taylor–Hood P2–P1 finite-element discretization with exact-Jacobian
+Newton, a Stokes initial guess, backtracking and viscosity continuation,
+a zero-mean pressure gauge, and direct linear solves. Its credential has
+four legs: manufactured-solution convergence order and accuracy, a
+finer-mesh re-solve on a deterministic subset that bounds the *label
+noise floor* (the relative change of the labels under mesh refinement by
+1.5x), and the discrete balance identities of every case.
+
+```{python}
+#| label: tbl-ns-verification
+#| output: asis
+#| code-fold: true
+ver = json.load(open(RESULTS / "ns_solver_verification_2026-07-05.json"))
+suite = json.load(open(RESULTS / "ns_cavity_star_2026-07-05.json"))
+conv = ver["mms_square_convergence"]
+star_by_h = {row["target_h"]: row for row in ver["mms_star_resolutions"]["rows"]}
+manifest_ver = suite["dataset"]["verification"]
+entries = [e for e in manifest_ver.values() if isinstance(e, dict)]
+floor_v = max(e.get("label_noise_floor_velocity_max", 0.0) for e in entries)
+floor_p = max(e.get("label_noise_floor_pressure_max", 0.0) for e in entries)
+mom_max = max(e.get("momentum_balance_error_max", 0.0) for e in entries)
+flux_max = max(e.get("boundary_flux_max_abs", 0.0) for e in entries)
+rej = sum(e.get("rejected_attempts_total", 0) for e in entries)
+n_cases = suite["dataset"]["n_cases"]
+rows = [
+    ("manufactured-solution convergence order (unit square)", "velocity ~3, pressure ~2",
+     f"{conv['velocity_order']:.2f} / {conv['pressure_order']:.2f}"),
+    ("manufactured-solution velocity rel-$L^2$, star domain, production $h = 0.0105$",
+     "$\\le 10^{-6}$", f"{star_by_h[0.0105]['velocity_rel_l2']:.1e} ({star_by_h[0.0105]['seconds']:.0f} s/solve)"),
+    ("label noise floor, velocity (vs $h/1.5$, worst split)", "$\\le 10^{-3}$", f"{floor_v:.1e}"),
+    ("label noise floor, pressure (vs $h/1.5$, worst split)", "$\\le 10^{-3}$", f"{floor_p:.1e}"),
+    ("momentum-balance assembly identity (worst case)", "roundoff", f"{mom_max:.1e}"),
+    ("discrete boundary flux $|\\oint u_h\\cdot n|$ (worst case)", "small, reported", f"{flux_max:.1e}"),
+    ("rejected-and-resampled Newton attempts", "reported", f"{rej} (over {n_cases} cases)"),
+]
+print("| check | bar | measured |")
+print("|---|---|---|")
+for name, bar, measured in rows:
+    print(f"| {name} | {bar} | {measured} |")
+print()
+print(": The label credential of the Navier–Stokes catalog. The pressure floor "
+      "is the binding one: it exceeds $10^{-3}$ on one split (unseen drive "
+      "profile, 1.26e-3, reported as-is); the velocity floor is below "
+      "$6\\times10^{-5}$ everywhere. Data: results/ns_solver_verification_2026-07-05.json, "
+      "results/ns_cavity_star_2026-07-05.json. {#tbl-ns-verification}")
+```
+
+```{python}
+#| label: fig-ns-gallery
+#| fig-cap: >
+#|   How the Reynolds number grades the family: velocity magnitude of the
+#|   finite-element solution for three samples (rows; geometry and drive
+#|   pinned within each row, re-solved at four Reynolds numbers) across
+#|   Re = 10, 50, 150, 300 (columns), wall ring colored by tangential drive
+#|   speed. Color is square-root-scaled in speed on one shared scale so
+#|   that the thin wall jet near speed 1 does not hide the cavity-scale
+#|   recirculation near speed 0.1. Reading across a row, the wall jet
+#|   penetrates further and the recirculation loses its Stokes-flow
+#|   symmetry as Re grows. Not shown: the pressure, and any model output.
+#|   Data: book/data/ns_gallery_fields_2026-07-07.npz (h = 0.02 solves).
+#| code-fold: true
+import matplotlib.tri as mtri
+from matplotlib.colors import PowerNorm
+
+GALLERY = np.load(Path("data") / "ns_gallery_fields_2026-07-07.npz")
+seeds = GALLERY["geometry_seeds"]
+res = GALLERY["reynolds_values"]
+
+
+def smooth_panel(ax, k, show_re=None):
+    tri = mtri.Triangulation(GALLERY[f"case{k}_points"][:, 0], GALLERY[f"case{k}_points"][:, 1],
+                             triangles=GALLERY[f"case{k}_triangles"])
+    speed = np.linalg.norm(GALLERY[f"case{k}_velocity"], axis=1)
+    ax.tripcolor(tri, speed, shading="gouraud", cmap=SEQ_PURPLE,
+                 norm=PowerNorm(0.5, vmin=0.0, vmax=1.0), rasterized=True)
+    loop = GALLERY[f"case{k}_loop"]
+    wall = GALLERY[f"case{k}_wall_speed"]
+    closed = np.vstack([loop, loop[:1]])
+    segs = np.stack([closed[:-1], closed[1:]], axis=1)
+    ax.add_collection(LineCollection(segs, colors="#9a988f", linewidths=0.9, capstyle="round", zorder=3))
+    driven = wall > 0.02
+    if driven.any():
+        ax.add_collection(LineCollection(segs[driven],
+                                         colors=SEQ_PURPLE(PowerNorm(0.5, vmin=0, vmax=1)(wall[driven])),
+                                         linewidths=2.6, capstyle="round", zorder=4))
+    lo_b, hi_b = loop.min(axis=0), loop.max(axis=0)
+    mid, half = (lo_b + hi_b) / 2, (hi_b - lo_b).max() / 2 * 1.06
+    ax.set_xlim(mid[0] - half, mid[0] + half); ax.set_ylim(mid[1] - half, mid[1] + half)
+    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    if show_re is not None:
+        ax.set_title(rf"$\mathrm{{Re}} = {show_re:.0f}$", fontsize=9, color=INK)
+
+
+fig, axes = plt.subplots(len(seeds), len(res), figsize=(9.4, 7.4))
+for row_i in range(len(seeds)):
+    for col in range(len(res)):
+        smooth_panel(axes[row_i, col], row_i * len(res) + col, show_re=res[col] if row_i == 0 else None)
+    axes[row_i, 0].set_ylabel(f"sample {row_i + 1}", fontsize=9, color=INK2)
+    axes[row_i, 0].yaxis.set_visible(True)
+fig.tight_layout()
+plt.show()
+```
+
+### Arms, and the Reynolds-graded wall {#sec-ns-cavity}
+
+For Navier–Stokes the solution map is analytic in the drive with every
+polynomial order present: the Stokes component is drive-linear and each
+convection correction raises the degree. The linear mode's wall is
+therefore a function of Reynolds number rather than an all-or-nothing
+barrier, and the declared-degree mode is an approximation hypothesis.
+Five arms train on the 840-case split for 15 epochs at 3 seeds: MT1 in
+linear mode, nonlinear mode with parity channels, declared degree 2 with
+parity channels, the boundary-mean predictor, and Transolver
+(@sec-transolver) at matched parameter count on the same token contract
+(coordinates, normals, panel measures, the rank-1 drive, and $\tilde\nu$
+as a constant channel). All MT1 arms use the one-head configuration and
+the two exact members. Cells are the combined velocity-and-pressure
+relative $L^2$ error, mean ± sd over seeds.
+
+```{python}
+#| label: tbl-ns-arms
+#| output: asis
+#| code-fold: true
+arms = suite["arms"]
+order = ["mt_singpair_q2_pseudo", "mt_singpair_nl_pseudo", "mt_singpair_linear",
+         "transolver_intree_matched", "boundary_mean"]
+labels = {"mt_singpair_q2_pseudo": "MT1, declared degree 2 + parity channels",
+          "mt_singpair_nl_pseudo": "**MT1, nonlinear mode + parity channels**",
+          "mt_singpair_linear": "MT1, linear mode (wall control)",
+          "transolver_intree_matched": "Transolver, matched parameters",
+          "boundary_mean": "boundary-mean predictor (floor)"}
+splits = ["eval_id", "eval_unseen_Re", "eval_unseen_geometry", "eval_unseen_drive_profile"]
+split_names = ["in-distribution", "unseen Re", "unseen geometry", "unseen drive"]
+headers = ["arm", "parameters"] + split_names
+print("| " + " | ".join(headers) + " |")
+print("|---|--:|" + "--:|" * len(splits))
+for arm in order:
+    row_cells = [labels[arm], f"{arms[arm]['parameters']:,}"]
+    for split in splits:
+        cell = arms[arm]["splits"][split]["combined"]
+        row_cells.append(f"{cell['mean']:.3f} ± {cell['sd']:.3f}")
+    print("| " + " | ".join(row_cells) + " |")
+print()
+n_train = suite["dataset"]["split_sizes"]["train"]
+print(": Navier–Stokes cavity, combined relative $L^2$ error, mean ± sd over 3 "
+      f"seeds, 15 epochs on the {n_train}-case train split, 140 cases per "
+      "evaluation split. Per-field and near-wall values are in the artifact; "
+      "@fig-ns-wall shows the per-field Reynolds dependence. The Transolver row "
+      "is its first measurement on a solver-labelled nonlinear suite at this "
+      "budget, which may undertrain it; no ordering was preregistered for it. "
+      "Data: results/ns_cavity_star_2026-07-05.json. {#tbl-ns-arms}")
+```
+
+```{python}
+#| label: fig-ns-wall
+#| fig-cap: >
+#|   The Reynolds-graded wall on the production catalog: per-case relative
+#|   L2 error pooled over the in-distribution and unseen-Re splits (3
+#|   seeds), binned by case Reynolds number in five log bins, velocity
+#|   left and pressure right. The pressure gap between the linear mode and
+#|   the nonlinear arms grows 4.2x from the lowest to the highest bin; the
+#|   velocity gap is flat near 0.19 across Re 10–300, which @sec-ns-lowre
+#|   resolves. How to read this: the gap between arms, not the absolute
+#|   level, is the wall; all arms share dataset, protocol and seeds. Data:
+#|   results/ns_cavity_star_2026-07-05.json.
+#| code-fold: true
+wall = suite["re_wall"]["per_arm"]
+style = {
+    "mt_singpair_linear": (PURPLE_LIGHT, "o--", "MT1, linear mode"),
+    "mt_singpair_nl_pseudo": (PURPLE, "^-", "MT1, nonlinear + parity"),
+    "mt_singpair_q2_pseudo": (PURPLE_DARK, "s-", "MT1, declared degree 2 + parity"),
+    "transolver_intree_matched": (TRANSOLVER, "d-", "Transolver"),
+}
+fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.8), sharex=True)
+for ax, field in zip(axes, ("velocity", "pressure")):
+    for arm, (color, marker, label) in style.items():
+        entry = wall[arm]
+        ax.loglog(entry["bin_centers"], entry[field], marker, ms=4, lw=1.3, color=color, label=label)
+    floor = wall["boundary_mean"]
+    ax.loglog(floor["bin_centers"], floor[field], ":", lw=1.2, color=INK, label="boundary-mean floor")
+    ax.set_xlabel("case Reynolds number [-]")
+    ax.set_ylabel(f"{field} relative $L^2$ [-]")
+    ax.set_title(field, fontsize=9)
+    ax.grid(which="both")
+handles, labels_ = axes[0].get_legend_handles_labels()
+fig.legend(handles, labels_, fontsize=8, loc="lower center", ncols=5, bbox_to_anchor=(0.5, -0.01))
+fig.tight_layout(rect=[0, 0.08, 1, 1])
+plt.show()
+```
+
+Three preregistered rules decide the figure. The pressure gap between
+the linear mode and the nonlinear arms grows from 0.11 in the lowest bin
+to 0.47 in the highest (ratio 4.2, bar 3): the graded wall. The
+declared-degree arm is within twice the seed standard deviation of the
+nonlinear arm in-distribution (0.278 ± 0.060 vs 0.231 ± 0.005), but
+behind it on every split: a degree-2 truncation is short where all
+orders are present. The boundary-mean predictor's pressure error is
+exactly 1.000, because the pressure has zero mean by gauge. The velocity
+gap, however, is flat at about 0.19 from Re 10 to Re 300 rather than
+vanishing toward the Stokes limit. Re 10 at unit drive speed is not
+Stokes, so the production catalog cannot decide whether the flat gap is
+physics or a deficit of the linear read-in.
+
+### The near-Stokes band, and what the velocity gap was {#sec-ns-lowre}
+
+**In the near-Stokes band the linear mode matches the nonlinear mode on
+velocity once parity channels are matched; the flat velocity gap on the
+production catalog was a missing parity sector, not the read-in class.**
+A supplementary catalog slice of 180 cases (108 train, 18 per evaluation
+split) moves only the Reynolds axis: train and in-distribution at
+$\mathrm{Re}$ log-uniform in $[0.5, 5]$, unseen Reynolds at $(5, 10]$,
+with the production geometry, drive family, mesh resolution and
+certification. Three arms train on it and on the production catalog at
+the identical protocol: the linear mode, the nonlinear mode with parity
+channels, and the *fair control*, the linear mode plus the same parity
+sector as the nonlinear arm. Parameters are 106,408, 233,108 and
+131,248; the parity sector adds 24,840 parameters, and the remaining
+difference to the nonlinear arm is the nonlinear read-in stack, which is
+the treatment variable. The per-case gap of each arm to the nonlinear
+reference joins across the two catalogs into one curve from Re 0.5 to
+300; each side is internally controlled, so the gap crosses the catalog
+seam even though absolute errors do not.
+
+```{python}
+#| label: fig-ns-lowre-gap
+#| fig-cap: >
+#|   The gap to the nonlinear reference (arm minus nonlinear-with-parity,
+#|   per-case mean per log-Re bin, in-distribution and unseen-Re pooled
+#|   over 3 seeds) across Re 0.5–300, velocity left and pressure right.
+#|   Filled circles: the low-Re slice (108-case train split); open squares:
+#|   the production catalog (840-case train split); dashed vertical line:
+#|   the catalog seam. The plain linear mode's velocity gap is flat at
+#|   0.13–0.23 everywhere, including the drive-linear band; the fair
+#|   control (same linear read-in plus parity channels) collapses it to zero
+#|   or below across the near-Stokes band and leaves a graded remainder
+#|   rising to 0.10–0.12 by Re 100–213. Both arms' pressure gaps are zero at
+#|   low Re and grow to about 0.5: no parity sector rescues a drive-linear
+#|   read-in from a drive-nonlinear target. Not shown: absolute errors,
+#|   which @tbl-ns-arms and @tbl-ns-lowre carry. Data:
+#|   results/ns_linear_pseudo_confound_2026-07-05.json.
+#| code-fold: true
+confound = json.load(open(RESULTS / "ns_linear_pseudo_confound_2026-07-05.json"))
+joined = confound["re_gap_curves"]["joined"]
+seam = 10.0
+gap_arms = (("mt_singpair_linear", PURPLE_LIGHT, "MT1, linear mode (106k)"),
+            ("mt_singpair_linear_pseudo", PURPLE_DARK, "MT1, linear mode + parity channels (131k)"))
+fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.8), sharex=True, sharey=True)
+for ax, field in zip(axes, ("velocity", "pressure")):
+    low_edge = min(joined[gap_arms[0][0]]["bin_centers"]) / 1.4
+    ax.axvspan(low_edge, 1.0, color="#eceaf4", zorder=0)
+    ax.axhline(0.0, color=GRID, lw=1.0, zorder=1)
+    ax.axvline(seam, color=BASELINE, lw=1.0, ls="--", zorder=1)
+    for arm, color, label in gap_arms:
+        entry = joined[arm]
+        centers = np.array(entry["bin_centers"])
+        values = np.array(entry[f"{field}_gap"])
+        catalog = np.array(entry["catalog"])
+        ax.plot(centers, values, "-", lw=1.3, color=color, label=label, zorder=2)
+        for cat, marker, face in (("v1-lowre", "o", color), ("v1", "s", "white")):
+            mask = catalog == cat
+            ax.plot(centers[mask], values[mask], marker, ms=5, lw=0, color=color,
+                    markerfacecolor=face, markeredgecolor=color, zorder=3)
+    ax.set_xscale("log")
+    ax.set_ylim(-0.12, 0.6)
+    ax.set_xlabel("case Reynolds number [-]")
+    ax.set_title(f"{field} gap to the nonlinear reference", fontsize=9)
+    ax.grid(which="both", axis="x")
+axes[0].set_ylabel("arm $-$ nonlinear reference, relative $L^2$ [-]")
+axes[0].text(0.72, -0.108, "near-Stokes\n(drive-linear)", fontsize=7.5, color=INK2, ha="center", va="bottom")
+axes[0].text(90.0, -0.108, "convection-dominated", fontsize=7.5, color=INK2, ha="center", va="bottom")
+axes[0].annotate("catalog seam", (seam, 0.34), xytext=(3, 0), textcoords="offset points",
+                 fontsize=7, color=INK2, rotation=90, va="bottom")
+axes[0].legend(fontsize=8, loc="upper left")
+fig.tight_layout()
+plt.show()
+```
+
+The preregistered rule for the fair control was a bottom-bin velocity
+gap at or below 0.05 (parity, not read-in class) against at or above 0.1
+(read-in class). Measured: $-0.024$, with the plain linear mode's 0.184
+reproduced bin for bin in the same rerun. With the confound removed the
+velocity gap has the graded shape the physics predicts, near zero across
+Re 0.5–7 and 0.10–0.12 at Re 100–213. The pressure sharpens the same
+statement from the other side: the parity sector does nothing for the
+pressure gap (0.016 at the bottom bin, 0.45–0.54 at the top, bin for bin
+the plain linear mode's curve), and on the production catalog the
+nonlinear arm still wins pressure decisively (0.356 vs 0.684
+in-distribution). The graded Reynolds-tracking wall is real for both
+fields; the velocity's is an order of magnitude smaller than the parity
+artefact that sat on top of it. One caveat stands: the fair control
+matches the nonlinear arm's sector structure, not its width (131k vs
+233k), so capacity and parity are separated from the read-in class but
+not from each other.
+
+The low-Re slice also carries the suite's first strong-form fidelity
+columns: the momentum residual
+$\|\tilde\nu\Delta\hat u - (\hat u\cdot\nabla)\hat u - \nabla\hat p\| /
+\|(\hat u\cdot\nabla)\hat u\|$ and the divergence norm of the model's own
+prediction, by float64 autograd on 32 interior queries of two cases per
+split, with $\tilde\nu$ taken from the case. The instrument is certified
+in-tree (the exact Kovasznay solution scores near zero only with the
+case's $\tilde\nu$; a rigid rotation with its pressure dropped scores
+exactly 1). Near Stokes the true advection is small while $\tilde\nu$ is
+order one, so the advection-normalized residual amplifies
+second-derivative error; the $O(10)$ values say the predictions'
+derivatives do not satisfy the operator, as on every suite.
+
+```{python}
+#| label: tbl-ns-lowre
+#| output: asis
+#| code-fold: true
+lowre = confound["arms_lowre"]
+order = ["mt_singpair_nl_pseudo", "mt_singpair_linear_pseudo", "mt_singpair_linear"]
+labels = {"mt_singpair_nl_pseudo": "MT1, nonlinear mode + parity channels",
+          "mt_singpair_linear_pseudo": "MT1, linear mode + parity channels (fair control)",
+          "mt_singpair_linear": "MT1, linear mode"}
+headers = ["arm", "parameters"] + split_names + ["momentum residual (ID)", "divergence (ID)"]
+print("| " + " | ".join(headers) + " |")
+print("|---|--:|" + "--:|" * (len(splits) + 2))
+for arm in order:
+    row_cells = [labels[arm], f"{lowre[arm]['parameters']:,}"]
+    for split in splits:
+        cell = lowre[arm]["splits"][split]["combined"]
+        row_cells.append(f"{cell['mean']:.3f} ± {cell['sd']:.3f}")
+    for key in ("momentum_residual", "divergence_residual"):
+        cell = lowre[arm]["fidelity"][key]["eval_id"]
+        row_cells.append(f"{cell['mean']:.1f} ± {cell['sd']:.1f}")
+    print("| " + " | ".join(row_cells) + " |")
+print()
+n_train = confound["dataset"]["lowre_split_sizes"]["train"]
+print(": The near-Stokes slice (Re 0.5–5 train, 5–10 unseen Re): combined "
+      f"relative $L^2$ error, mean ± sd over 3 seeds, {n_train}-case train split, "
+      "18 cases per evaluation split, with the strong-form fidelity columns. The "
+      "three arms tie on combined error in-distribution; the fidelity columns "
+      "order them as the velocity gap does, with the plain linear mode 2–3x above "
+      "the other two. Data: results/ns_linear_pseudo_confound_2026-07-05.json. "
+      "{#tbl-ns-lowre}")
+```
+
+### The wide-Reynolds sweep {#sec-ns-e1}
+
+**Accuracy versus Reynolds number is U-shaped across three decades, the
+label-noise floor sits three orders of magnitude below model error
+everywhere, and the sweep ends where steady solutions stop being
+computable.** Three additional log-banded catalogs, generated under the
+production verification protocol, place the nonlinear-with-parity arm at
+$\mathrm{Re} \in [1, 10]$, $[10, 100]$ and $[100, 1000]$, each trained
+at 3 seeds under the frozen protocol, alongside the production band
+$[10, 200]$. The table gives the in-distribution combined error (3-seed
+median and range), the error on each band's unseen-Reynolds slice
+directly above it, and the measured label-noise floor.
+
+| training band, Re | in-distribution (3-seed) | unseen Re | label-noise floor |
+|---|---|---|---|
+| [1, 10] | 0.312 (0.275–0.349) | 0.344 | 0.00020 |
+| [10, 100] | 0.257 (0.239–0.276) | 0.375 | 0.00021 |
+| [10, 200] (production) | 0.230 (0.219–0.239) | 0.358 | 0.00024 |
+| [100, 1000] | 0.348 (0.320–0.401) | 0.369 | 0.00038 |
+
+: The Reynolds bands (catalogs `v2-re1`, `v2-re10`, `v1`, `v2-re100`
+under `datasets/ns_cavity_star/`). The unseen-Re penalties are not
+comparable across bands, because each band's unseen slice sits at a
+different relative distance from its training range. Values transcribed
+from the cluster run reports; see @sec-nb-e1-curve. {#tbl-ns-reynolds-bands}
+
+```{python}
+#| label: fig-ns-reynolds-sweep
+#| fig-cap: >
+#|   Combined relative L2 error versus Reynolds number for the
+#|   nonlinear-with-parity MT1 arm, one independently trained 3-seed arm
+#|   per band. Horizontal bars show each band's Reynolds extent (two bands
+#|   overlap), vertical bars the seed range, open squares the unseen-Re
+#|   slice. The curve is U-shaped: the middle decades are easiest and both
+#|   the near-Stokes and advective ends are harder. Lower panel: the
+#|   measured label-noise floor, which rises 2x across the sweep and sits
+#|   three orders of magnitude below the model error, so it never limits
+#|   the result. The shaded region is the measured steady-solver ceiling.
+#|   How to read this: the arm and protocol were fixed on the production
+#|   band in the middle of the sweep, so the U cannot be separated from
+#|   fixed-protocol regime sensitivity without per-band retuning, which
+#|   was not done. Values as in @tbl-ns-reynolds-bands.
+#| code-fold: true
+bands = [
+    ("[1, 10]", (1, 10), 0.312, 0.275, 0.349, 0.344, 0.00020),
+    ("[10, 100]", (10, 100), 0.257, 0.239, 0.276, 0.375, 0.00021),
+    ("[10, 200]", (10, 200), 0.230, 0.219, 0.239, 0.358, 0.00024),
+    ("[100, 1000]", (100, 1000), 0.348, 0.320, 0.401, 0.369, 0.00038),
+]
+centers = [np.sqrt(lo * hi) for _, (lo, hi), *_ in bands]
+median = np.array([b[2] for b in bands])
+lo_err = median - np.array([b[3] for b in bands])
+hi_err = np.array([b[4] for b in bands]) - median
+unseen = [b[5] for b in bands]
+floor_vals = [b[6] for b in bands]
+
+fig, (ax, ax_floor) = plt.subplots(2, 1, figsize=(6.9, 4.6), sharex=True,
+                                   gridspec_kw={"height_ratios": [3.1, 1.0], "hspace": 0.12})
+for axis in (ax, ax_floor):
+    axis.axvspan(4200, 20000, color=RED, alpha=0.07, lw=0)
+ax.text(4550, 0.412, "steady-solver\nceiling (measured)", fontsize=7.5, color="#a83a39", va="top")
+for (label, (lo, hi), med, *_), center in zip(bands, centers):
+    ax.plot([lo, hi], [med, med], color=PURPLE, lw=1.0, alpha=0.45, solid_capstyle="butt", zorder=2)
+ax.plot(centers, median, "-", color=PURPLE, lw=1.8, alpha=0.6, zorder=3)
+ax.errorbar(centers, median, yerr=[lo_err, hi_err], fmt="o", ms=8, color=PURPLE, ecolor=PURPLE,
+            elinewidth=1.4, capsize=4, mec="white", mew=1.2, zorder=4, label="in-band evaluation (3 seeds)")
+ax.plot(centers, unseen, "s", ms=6.5, mfc="none", mec=INK2, mew=1.6, zorder=4, label="unseen-Re slice")
+label_offsets = {"[1, 10]": (40, 8), "[10, 200]": (16, -15), "[10, 100]": (-44, 14),
+                 "[100, 1000]": (58, -14)}
+for (label, *_), center, med in zip(bands, centers, median):
+    dx, dy = label_offsets[label]
+    ax.annotate(f"Re {label}", (center, med), textcoords="offset points", xytext=(dx, dy),
+                ha="center", fontsize=8, color=INK2)
+ax.set_ylim(0.20, 0.45)
+ax.set_ylabel("combined relative $L^2$ [-]")
+ax.legend(fontsize=8, loc="lower center", ncols=2, bbox_to_anchor=(0.5, 1.01))
+ax_floor.plot(centers, floor_vals, "-o", color=MUTED, lw=1.5, ms=5, zorder=3)
+ax_floor.set_ylim(1.2e-4, 9e-4)
+ax_floor.set_yscale("log")
+ax_floor.set_yticks([2e-4, 4e-4, 8e-4], ["2e-4", "4e-4", "8e-4"])
+ax_floor.minorticks_off()
+ax_floor.set_ylabel("noise floor [-]")
+ax_floor.set_xscale("log")
+ax_floor.set_xlim(0.8, 12000)
+ax_floor.set_xlabel("Reynolds number [-]")
+plt.show()
+```
+
+The confound is part of the current understanding, not a footnote: the
+arm and protocol were tuned on the production band $[10, 200]$, the
+middle of the sweep, so the U may measure fixed-protocol regime
+sensitivity rather than intrinsic difficulty, and the two are not
+separable without per-band retuning, which the program's rule against
+protocol tuning reserves for an experiment about the protocol itself.
+The floor measurement retires a different question: labels are not what
+limits this suite anywhere in the sweep.
+
+The sweep stops for a physical reason. Generating a $[1000, 10000]$ band
+reached 450 cases before an unseen-split case drawing
+$\mathrm{Re} \in [4166, 4667]$ stalled the Newton solve on all eight
+retry attempts, while every case at $\mathrm{Re} \le 4000$ solved
+cleanly; bracket probes place the onset of stalls near
+$\mathrm{Re} \approx 4200$, thickening toward 5000
+(@sec-nb-re-ceiling-final). Steady cavity solutions stop being
+practically computable there, and that is a measured limit of the
+benchmark rather than of any model.
+
+## What carries across the suites
+
+Four things hold on every suite in this chapter, and they are what the
+industrial chapters inherit.
+
+**The walls are decided at the read-in, not in the encoder.** Every wall
+here is crossed by changing what the decoder is permitted to read
+(drive invariants, a bilinear composition, a parity sector) at a
+parameter change of at most a few percent, and none is crossed by width
+or depth. Where the target is representable and the inputs are the same,
+the encoder does its job well: the trace-driven MT1 reaches 0.013 on the
+exterior problem against the trace-informed control's 0.178, and the
+linear mode is the best velocity model on rotational Euler. The
+one-head configuration and the two exact kernel members (@sec-mt1) are
+used unchanged on all five suites; the one dictionary lesson that
+changes with nonlinearity is that a nonlinear read-in needs learned
+smooth members to stay stable, where exact members alone suffice on
+every linear suite.
+
+**Declarations compose.** Parity typing, drive nonlinearity or declared
+degree, and the linear-mode-grade equivariance are orthogonal
+declarations that multiply on one arm; the axes that need two of them
+(circulation-OOD on Euler–Bernoulli, pressure on rotational Euler) show
+it, and no single declaration substitutes for another.
+
+**Declared degree is safe where the degree is known and short where it
+is not.** It is more accurate and far more stable than the nonlinear
+mode on the exact Euler suites, and behind it on Navier–Stokes. The
+nonlinear mode's implicit degree near 21 is a standing hazard wherever
+the drive can leave its training range.
+
+**The parameter-free floor is the reference.** Where the archive records
+it (rotational Euler, Navier–Stokes), the boundary-mean predictor
+appears in the table, and the pressure floor of exactly 1.000 under a
+zero-mean gauge is the calibration against which the linear mode's
+pressure wall is read. The earlier exact-label archives (Liouville,
+potential flow, Euler–Bernoulli) do not record a boundary-mean row;
+their no-response rows at 1.0 serve the same role.
+
+## Where these suites stop
+
+Everything here is two-dimensional, steady and laminar, with sixteen to
+a few hundred evaluation cases per split and labels that are exact or
+certified to $10^{-3}$. The Navier–Stokes suite reaches Reynolds 1,000
+in training and is bounded by a steady solver near 4,200. None of the
+suites has separated flow, a wake, or a three-dimensional surface, and
+none has the sampling density, label noise or case-count regime of an
+industrial surface-pressure dataset. The industrial datasets add exactly
+those conditions: solver-labelled three-dimensional aerodynamics on
+hundreds to thousands of cases, where MT1's potential-flow prior fails
+on separated flow and the trace formulation carries the gain
+(@sec-industrial-mt1), and the data-efficiency comparison against
+GeoTransolver and Transolver in which the equivariant soft-slice
+MeshTransformer2 replaces the exact kernels (@sec-data-efficiency). The
+limits chapter (@sec-limits) collects what this chapter's suites cannot
+speak to.

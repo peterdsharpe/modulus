@@ -596,7 +596,7 @@ The correction remained useful, but earlier gains were overstated by roughly
 four to ten times. It supports singularity-aware numerical treatment, not a
 complete industrial-transfer explanation.
 
-### The industrial branch stopped widening {#sec-program-review}
+### The industrial branch stopped widening {#sec-nb-industrial-branch-stopped}
 
 The failed untouched-family test and unresolved measurement confounds shifted
 the branch from architecture search to evidence repair. This anchor names
@@ -6087,3 +6087,91 @@ line of evidence for the shared-floor reading of the flattened curve
 **What this does not establish.** Calibration (whether the spread is
 the right *size*) is not tested; only the ranking is. The
 force-coefficient-level version is a cheap follow-up.
+
+## 2026-09-07 — INV verdict: giving the baselines MT2's drive-relative invariants as inputs buys Transolver 1.35x and GeoTransolver nothing; the invariant inputs are not the small-data carrier {#sec-nb-inv-verdict}
+
+**Setting.** The transplant test preregistered at @sec-nb-inv-prereg added
+the three per-cell invariants MeshTransformer2 (MT2) builds internally —
+the local incidence n·d, the radial cosine r̂·d and the radius |r|/8 — as
+plain input features to GeoTransolver and to Transolver at 35 HiLift
+training cases, each at its better learning rate, 2 seeds, frozen
+protocol, shared 180-case validation set. The hypothesis was that the
+baselines' small-data collapse comes from having to learn the
+freestream-direction coupling from data.
+
+**Result** (`results/inv_transplant_2026-09-07.json`):
+
+| model @ 35 cases | without invariants | **with invariants** | change | vs MT2 (0.138) |
+|---|---|---|---|---|
+| Transolver (lr 3e-3) | 0.406 / 0.398 | **0.294 / 0.301** | 1.35x better | 2.15x |
+| GeoTransolver (lr 1e-3) | 0.375 / 0.409 | **0.400 / 0.388** | none | 2.85x |
+
+**Preregistered reading.** Carrier if both ≤ 0.235; falsifier if both
+≥ 0.30. Transolver lands at 0.297, a hair inside the "partial" band;
+GeoTransolver does not move at all. **The invariant inputs are not the
+carrier.** Transolver gains a quarter of the log-gap; GeoTransolver —
+which already has a geometry encoder that could in principle form these
+features — gains nothing, so the coupling n·d is not what its small-data
+failure is about. Combined with the five single-factor ablations of MT2
+(@sec-nb-a35-verdict, @sec-nb-a35b-verdict), the program has now
+excluded, one at a time: exactness of equivariance, the invariant seed
+parameterization, the similarity gauge, measure weights, encoder
+relational routing, and (from the baseline side) the availability of
+drive-relative invariant inputs. None accounts for more than 16% on the
+MT2 side or 35% on the baseline side, against a 190% gap. The honest
+statement is that MT2's small-data advantage is a property of its
+soft-slice design as a whole — equivariant anchors, relational routing
+and readback, measure-weighted aggregation, invariant seeds, and the
+training dynamics they induce together — and that no single transplantable
+ingredient has been found. The mechanism question stays open; the next
+discriminators (single-angle split, unseen-geometry ladder) test *where*
+the advantage lives rather than *which knob* carries it.
+
+**Retrodiction check.** The hypothesis predicted no small-data advantage
+on DrivAerML (fixed freestream). That null is real, but the transplant
+shows it cannot be attributed to the invariant inputs; the DrivAerML–HiLift
+contrast remains unexplained and is recorded as such.
+
+## 2026-09-07 — W2-A first readout: the third seed lands inside the two-seed spread for all three architectures at 35 cases (MT2 0.138, GeoTransolver 0.359, Transolver 0.409) {#sec-nb-w2a-35}
+
+Seed 44, frozen protocol, shared val: MT2 **0.1376** (seeds 42/43:
+0.1352/0.1410), GeoTransolver **0.3588** (0.375/0.409), Transolver at
+lr 3e-3 **0.4089** (0.406/0.398). Every third seed is inside its
+two-seed spread ×1.5 (prediction held; falsifier of a 15% move in any
+rung mean not approached: three-seed means 0.138 / 0.381 / 0.404, i.e.
+GT/MT2 2.76x, T/MT2 2.93x). The 210-case third seeds are still training.
+
+## 2026-09-07 — B1 verdict: a raw-coordinate channel does not give MT2 GeoTransolver's smaller stall-extrapolation ratio (d = 13.1 / 13.7 vs GeoTransolver's 9.3); the falsifier fires {#sec-nb-b1-verdict}
+
+**Setting.** On the sealed stall test (@sec-nb-hl-sealed-test)
+GeoTransolver's degradation ratio d = test/val was 9.3 against MT2's
+12.5, with MT2 keeping the lower absolute error. The preregistered
+discriminator asked whether that ratio edge is carried by GeoTransolver's
+raw-coordinate inputs: MT2 with the similarity gauge plus a
+raw-coordinate channel (breaking SE(3) equivariance on purpose), 2
+seeds, stall split, one permitted sealed-test evaluation. Bars: raw
+features carry the ratio if d ≤ 11.0 *and* OOD pressure < 0.245; they do
+not if d ≥ 12.0 or OOD pressure ≥ 0.255.
+
+**Result** (`results/b1_raw_coordinate_discriminator_2026-09-07.json`;
+pressure rel-L2):
+
+| MT2 + raw coordinates, stall split | in-regime val (135) | sealed test (723) | d |
+|---|---|---|---|
+| seed 42 | 0.0206 | 0.269 | **13.1** |
+| seed 43 | 0.0201 | 0.275 | **13.7** |
+| MT2 reference (ladder) | 0.0204 / 0.0210 | 0.261 / 0.259 | 12.5 |
+| GeoTransolver (ladder) | 0.0289 / 0.0304 | 0.274 / 0.277 | 9.3 |
+
+**Both falsifier conditions fire** (d ≥ 12.0; OOD pressure ≥ 0.255). The
+raw-coordinate channel leaves in-regime accuracy unchanged and makes the
+sealed-test error slightly *worse* (0.272 vs 0.260), so the ratio edge
+is not a property of raw-coordinate inputs. What remains is the reading
+the sealed-test entry already favoured: GeoTransolver's smaller ratio is
+arithmetic of a higher in-regime floor, not better transfer, and both
+architectures land at the same absolute OOD error (0.26–0.28). No
+mechanism for a transfer advantage has been isolated because, on the
+absolute readout, there is none to explain. This closes the last branch
+of the earlier decision rule for a successor design; the design
+question now rests on the small-data carrier and the interior
+(@sec-nb-inv-verdict, @sec-nb-lvt-verdict).

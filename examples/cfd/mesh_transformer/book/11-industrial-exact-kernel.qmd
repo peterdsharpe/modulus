@@ -1,0 +1,912 @@
+# The exact-kernel MeshTransformer on industrial data: AirFRANS and DrivAerML {#sec-industrial-mt1}
+
+On solver-labelled industrial data the exact-kernel MeshTransformer (MT1
+after this point) is an accurate but narrow regressor. On AirFRANS, a 2D
+RANS airfoil benchmark, it reaches the front of the published baseline
+pack on velocity and is second only to GLOBE on surface pressure, and its
+recommended configuration extrapolates to unseen Reynolds numbers and
+angles of attack within 1.2–2x of its in-distribution error. On
+DrivAerML, a 3D vehicle benchmark, its gain over the plain architecture
+comes almost entirely from the boundary-trace formulation (3.8x at the
+operating configuration) and from capacity (2.4x); the exact singular
+kernels that motivate the architecture contribute 0–8%. Every tested
+checkpoint diverges when evaluated zero-shot on a different vehicle
+family, and every checkpoint's accuracy is specific to the surface
+sampling density it was trained at. The exact-kernel line's measured
+strengths on industrial data are parameter efficiency and the exact
+contracts it carries, not accuracy or transfer.
+
+The controlled suites (@sec-linear-suites) establish what exact operator
+structure buys when the labels are exact and the PDE is linear. The two
+datasets here add what those suites cannot: labels from a turbulence
+closure that no exact kernel describes, Reynolds-number variation across
+cases, and real geometry with real meshing. The datasets and splits are
+defined in @sec-datasets; the metric conventions in @sec-metrics; the
+fair-comparison protocol in @sec-fair-comparison.
+
+## AirFRANS {#sec-airfrans}
+
+AirFRANS is 1,000 steady incompressible RANS solutions (OpenFOAM,
+eddy-viscosity closure) over NACA airfoils at Reynolds numbers of 2–6
+million and angles of attack from −5° to +15°, with velocity, pressure
+and turbulent viscosity at roughly 180,000 mesh points per case. It maps
+onto the boundary-to-field problem of @sec-problem directly: the airfoil
+boundary carries a no-slip label and geometry only, the freestream enters
+as a global unit drive direction, and the Reynolds number enters as one
+dimensionless global scalar, ln Re. The model predicts the disturbance
+velocity ΔU = U − U∞ normalised by |U∞| (the freestream is the exact
+solution at infinity, so it is added back rather than learned), the
+pressure coefficient C_p, and ln(1 + ν_t/ν) at interior query points.
+Two contracts from the exact-label suites are deliberately not declared:
+drive linearity (RANS is nonlinear) and monopole-free deflation (a
+lifting airfoil carries net circulation, which that contract removes).
+
+The task is the official `scarce` split: 200 training cases and 200 test
+cases. Validation for checkpoint selection is 8 cases carved from the
+training cases by a fixed protocol seed (192 cases train), and the
+official test set is scored once per checkpoint. Training uses the full
+airfoil boundary every step and 4,096 volume query points per iteration
+(GLOBE's sampling), a Huber loss, and a cosine learning-rate schedule
+from 1.41 × 10⁻³ to 1/64 of that value; 3–5 seeds per configuration.
+Cases with energy-conservation violations (C_pt > 1.02, 0.003% of points)
+are excluded identically from training and evaluation of every arm.
+
+The metric is the benchmark's own: per-sample z-score mean squared
+error. For each test case and field, the squared error is divided by the
+variance of that case's true field and averaged over its points; the
+result is averaged over cases. A mean predictor scores 1.0. Lower is
+better, and all published AirFRANS numbers are in this unit. Where the
+text says "pooled convention" the normalisation is instead the pooled
+training-set variance of the physical field; within-program ratios are
+the same in both conventions to within seed spread, but absolute values
+are not, and the two are never mixed in one table.
+
+### Results {#sec-airfrans-results}
+
+Five mechanisms, each tested as a single-factor change against the
+reference configuration (one encoder layer, one head, two exact singular
+kernel members, nonlinear field mode), account for the whole accuracy
+ladder, and the largest rung is a feature change with zero new
+parameters. The table gives each mechanism's effect on the x-velocity
+z-score MSE at 3–5 seeds; the effect column is the ratio of the error
+without the mechanism to the error with it (greater than 1 means the
+mechanism helps).
+
+| mechanism | what it adds | effect on u_x error |
+|---|---|---|
+| cosine schedule to GLOBE's endpoints | replaces a flat learning rate | 1.13x |
+| 2D pseudoscalar (parity-odd) channel | a handed sector for lift and circulation | ~1.15x at reference capacity; no gain once log-radial features are present |
+| far-field decay envelope (r⁻² on the direct drive) | the exterior-domain structure that closes the exact-label far-field ladder | 0.8x (worse) |
+| eight learned smooth kernel members | a learned pair-radial pathway beside the two exact members | 6x |
+| log-radial pair features (ln(a+ε), b/√(a+ε), v·r/√(a+ε)) fed to the learned members | power-law radial scales made linearly learnable | 1.66x |
+
+: The AirFRANS mechanism ladder. Each row is a single-factor change on
+the scarce split at 3–5 seeds; the effect is the ratio of x-velocity
+z-score MSE without to with the mechanism. Source: `output/airfrans_sweep`
+run logs summarised in the notebook (@sec-notebook). {#tbl-airfrans-ladder}
+
+Two rows carry lessons beyond this dataset. The decay envelope is
+exactly enforced and exactly wrong: a wake does not decay like a point
+singularity, so a contract that is correct for exterior Laplace problems
+costs 20% here. The learned-member rung is a parsimony result: a variant
+that declares the viscous scale (Re^{−1/2} times the gauge, entering the
+pair kernels as additional r/δ-normalised invariants) loses by about 6x
+to identical members without the declaration. The reference decoder has
+no learned dependence on pair distance at all (its only radial structure
+is the two exact members), so the deficit is a missing pathway, not a
+missing physical constant.
+
+**The head-to-head on the scarce split.** The recommended configuration
+(learned members with log-radial features) at three seeds, official test
+set scored once, against the published single-run values. GLOBE has
+117k parameters; the recommended arm has ≈202k; the other published
+models are larger. Training budgets are matched to GLOBE's sampling
+(4,096 queries per iteration) but not audited against the published
+models' schedules, so this is a comparison against published tables,
+not a resource-matched one.
+
+| field | best dataset baseline | Transolver | MARIO | GLOBE | MT1, members + log-radial |
+|---|---|---|---|---|---|
+| u_x | 0.0146 | 0.0211 | 0.0015 | 0.00021 | 0.0145–0.0159 |
+| C_p on the surface | 0.147 | 0.2367 | 0.027 | 0.00039 | ≈0.007 |
+
+: Per-sample z-score MSE on the official AirFRANS scarce test set.
+Published columns are single reported values; the MT1 column is the
+range over three seeds. Source: `output/airfrans_sweep` re-scores
+summarised in the notebook. {#tbl-airfrans-headtohead}
+
+On velocity MT1 ties the best of the four dataset baselines (GraphSAGE)
+within seed spread; on surface pressure it is about 4x better than MARIO
+and about 18x behind GLOBE. The gap to GLOBE is real and is the
+measure of what GLOBE's bespoke components (hyperlayers, Padé kernels,
+multi-scale expansion) buy over the transformer-native simplification on
+this problem. The parity-odd channel is not in the recommended
+configuration: at three seeds its surface pressure sits at
+mean-predictor level (z-score MSE 1.0–1.5) even though its velocity is
+competitive, and its velocity gain disappears once the log-radial
+features are present (composed, 0.0135–0.0155 pooled at three seeds
+against 0.0128 for the features alone): both supply the same missing
+power-law radial structure, and the feature carrier is cheaper.
+
+**Learned log-radial scales are the largest single rung.** The
+log-radial features add no parameters and declare nothing; they change
+the arguments of the learned members so that a power law in pair
+distance is a linear function of the inputs. Pooled convention, test
+split, seeds free of the tail anomaly described below: members alone
+0.0213 (5/5 seeds), members with log-radial features 0.0128 (4/5), a
+1.66x gain. This is the same conclusion as the viscous-scale result by a
+different route: the boundary-layer scale the declaration tries to
+inject is better learned.
+
+**Reynolds and angle-of-attack extrapolation.** The official
+`reynolds` and `aoa` extrapolation tasks hold out Reynolds numbers and
+angles of attack outside the training range. Evaluated zero-shot from
+scarce-trained checkpoints (no fine-tuning), per-sample convention,
+x-velocity z-score MSE:
+
+| configuration | Re extrapolation | AoA extrapolation | in-distribution |
+|---|---|---|---|
+| two exact members only | 0.118–0.122 | 0.119–0.123 | — |
+| members + log-radial features | 0.0147–0.0190 | 0.0208–0.0268 | 0.0128 (pooled) |
+| members, doubled width (1.13M parameters) | 0.0159–0.0224 (4/5 seeds) | 0.0212–0.0297 | — |
+
+: Zero-shot extrapolation on the official held-out AirFRANS splits;
+ranges over seeds. The fifth wide seed reaches 0.101 on the Reynolds
+split while clean in-distribution, the tail anomaly below surfacing under
+extrapolation stress. Source: `output/airfrans_evalx` summarised in the
+notebook. {#tbl-airfrans-extrap}
+
+The recommended configuration extrapolates to within roughly 1.2–2x of
+its own in-distribution error on both axes, where the two-member
+reference configuration degrades about 10x. Scope: the extrapolation
+checkpoints were selected under a validation partition drawn from the
+scarce test cases, which the extrapolation splits do not contain; the
+in-distribution column is the clean-partition value.
+
+**The surface task.** A companion task with the airfoil panel centroids
+as queries tests whether the boundary-trace formulation that dominates
+the DrivAerML result (@sec-drivaerml-trace-factorial) also helps in 2D.
+It helps weakly: the trace arm wins on 4 of 5 seeds under both metric
+conventions, by 1.2–1.35x in the median, inside the arm's own seed
+spread. Consistent with DrivAerML, the trace defect is a learnable but
+slow bias, absorbed where the budget allows (2D, 1,000 epochs) and worth
+several-fold where it does not (3D, 500 epochs). The trace mode is exact
+and free, so it stays on.
+
+**The tail anomaly is learning-rate gated, deterministic and partly
+essential.** Across the learned-member configurations at the protocol
+learning rate, a minority of seeds diverge in a single velocity field
+while the other fields stay clean. The census: members 0/5, members with
+log-radial features 1/5, 16 members 1/3, 32 members 1/3, doubled width
+0/5, learning rate halved 1/5, quartered 0/5. Three measured properties
+pin it down. It is deterministic given the seed: an exact replication
+reproduces an anomalous seed's divergence to four significant digits.
+It is learning-rate gated: the log-radial configuration at 0.71x the
+protocol rate shows 0/5 anomalies, the previously anomalous seed dropping
+from 0.100 to 0.0156. And the edge is partly where the accuracy lives:
+the backoff costs 22% in the clean-seed median (0.0156 against 0.0128).
+The practical consequence is to run learned-member configurations at the
+protocol rate with at least five seeds and report the census, since the
+anomalies are single-field, detectable and seed-pinned.
+
+## DrivAerML {#sec-drivaerml}
+
+DrivAerML is 484 parametrically morphed DrivAer notchback variants with
+time-averaged surface pressure and wall shear from scale-resolving CFD on
+vehicle surfaces of roughly 8.8 million cells each (@sec-datasets). The
+curated variant used here carries the posed boundary-value problem: five
+typed boundary meshes (vehicle, no-slip ground plane, slip tunnel walls
+and ceiling, inlet, outlet) and per-case freestream values. MT1 consumes
+typed boundaries natively, but feeding all five boundaries does not help
+on the surface task: vehicle-only 0.1019, all five 0.1026, per-boundary
+pooled 0.1036 (one seed each, matched protocol, in the validation unit
+defined next). At 722 panels for an entire ground plane the far
+boundaries carry no exploitable signal beyond the freestream vector, so
+every result below uses the vehicle surface only, the same information
+diet as GeoTransolver.
+
+The split is 435 training and 48 validation cars. Every case is
+represented by 10,000 surface cells sampled from the vehicle mesh; the
+same cells are the sources and the queries (the trace formulation
+declares the query mesh to be the boundary). Training is 500 epochs, one
+node (108 optimizer steps per epoch) unless stated, and the model
+predicts surface pressure and the wall-shear vector at the sampled
+cells.
+
+**The validation unit.** The training recipe's validation metric is
+target-normalised relative mean squared error: for each case and field,
+Σ(ŷ − y)² / Σy² with area weights over the 10,000 cells, averaged over
+the two fields and the 48 cars. It is the *square* of the relative L2
+error used elsewhere in this book (@sec-metrics), so a ratio of 4x in
+this unit is 2x in relative L2. Every number in the ladder, the
+factorials and the frontier below is in this unit; the evaluation-harness
+numbers in the generalization sections are relative L2 and are labelled
+as such.
+
+### Results {#sec-drivaerml-results}
+
+Seven named steps take the reference MT1 from 0.1019 to 0.0058 in the
+validation unit; one of them is protocol rather than architecture, and
+the endpoint sits 2.34x above the matched GeoTransolver control at
+matched parameter count. Each step is a single change on the
+configuration to its left.
+
+| step | change | validation rel. MSE | factor |
+|---|---|---|---|
+| reference | one encoder layer, two exact members, 16-GPU protocol | 0.1019 | — |
+| trace | exterior-trace formulation (jump correction + own-cell readouts) | 0.0503 | 2.03x |
+| batch | same configuration, one node (108 vs 27 steps/epoch) | 0.0288 | 1.75x |
+| depth | two encoder layers (3 seeds: 0.0228/0.0224/0.0212) | 0.0224 | 1.29x |
+| composition | + eight learned members + doubled width (3 seeds: 0.0138/0.0140/0.0156) | 0.0140 | 1.60x |
+| scale, width | channel dimensions ×2 (4 runs: 0.0090–0.0114) | 0.0098 | 1.43x |
+| scale, depth | + four encoder layers | 0.00702 | 1.40x |
+| scale, depth | + eight encoder layers | 0.005828 | 1.20x |
+
+: The DrivAerML ladder in the validation unit (relative MSE; relative L2
+is the square root). "Composition" is the flagship configuration used
+for every factorial below (≈0.8M parameters). Source: `output/drivaer_t2`
+and `output/drivaer_hc2` run logs summarised in the notebook.
+{#tbl-drivaerml-ladder}
+
+The batch step is an optimisation effect, not an architectural one, and
+it does not transfer to GeoTransolver, which finishes within 2% of itself
+at one node and at 16 GPUs. A 16-GPU run for 2,000 epochs, matching the
+one-node run's optimizer-update count, finishes at 0.0212 against 0.0221
+for 500 epochs and 0.0140 at one node: quadrupling the updates recovers
+about 11% of the small-batch advantage, so the effect is gradient noise,
+not step count. The penalty holds at every scale (1.56–2.2x for
+four-node against one-node twins), which is why every rung is trained on
+one node.
+
+Within the capacity ladder, depth is selective and rank is not: doubling
+the attention rank changes nothing (0.0284 against 0.0288), doubling the
+encoder depth gains 26%, and exchange rounds at matched parameters give
+nothing (4 rounds 0.0146, 8 rounds 0.0198 against 0.0140). Pure width
+bends under a learning-rate constraint: the ×4-width rung freezes at
+initialisation at the shared learning rate in both seeds and, trained at
+a quarter of it, finishes at 0.0123, worse than ×2 width with four times
+the parameters. The frontier below therefore runs along the mixed
+width-and-depth direction.
+
+**The matched GeoTransolver control and where the gap lives.**
+GeoTransolver (9.0M parameters, 12 layers, hidden 256, 256 slices;
+@sec-baselines) trained on the identical trainer, split, sampling,
+epochs and one-node protocol finishes at 0.00249. Against the flagship
+that is 5.6x in relative MSE (2.4x in relative L2); against the
+largest rung, 11.4M parameters by count, 2.34x (1.53x in relative L2).
+Resources are not matched: GeoTransolver trains in 4.6 GB peak memory
+and about 3.6 hours (500 epochs, four GB300 GPUs, 10,000 cells), the
+0.8M-parameter flagship needs 35.8 GB and about 12.8 hours, and the
+11.4M rung 104 GB (55.8 GB with checkpointed decode) and about 14
+hours. The kernel decoder's dense pairwise evaluation is where the
+memory goes (@sec-scale-ckpt); the extra memory buys MT1 no accuracy,
+since the same function evaluated chunk-wise gives the same result.
+GeoTransolver also reaches any given error about 25x earlier in epochs
+on this trainer; local-geometry shortcuts are excluded as the reason,
+because adding local geometric information to the decoder, restricting it
+to a subtended-angle near field, or replacing it with a matched-width
+global latent moves neither the efficiency curve nor the floor on the
+deep configuration (0.0213 against 0.0225–0.0227 at epoch 300, one seed).
+
+```{python}
+#| label: fig-mt1-scalelaw
+#| fig-cap: >
+#|   The exact-kernel MeshTransformer's parameter frontier on DrivAerML in
+#|   the validation unit (relative MSE; relative L2 is the square root),
+#|   one node, 500 epochs, learning-rate-stable rungs only. Six rungs fit
+#|   0.0125 P_M^-0.33 (P_M = millions of parameters) with rms log-residual
+#|   0.052; the newest doubling's local slope is 0.27. The x4-width rung
+#|   (hollow) is excluded: it trains only at a quarter of the shared
+#|   learning rate and finishes worse than x2 width. GeoTransolver's
+#|   matched-protocol control (red) sits 2.34x below the curve at the same
+#|   parameter count; the dashed extension shows where pure scaling would
+#|   have to reach to match it (about 134M parameters at the global slope,
+#|   about 230M at the local slope). The error bars are the measured 4-run
+#|   spread of the x2 rung (about 12%) applied to every single-seed rung.
+#|   How to read it: this is an in-distribution accuracy-per-parameter
+#|   curve; it says nothing about memory or wall-clock, on which
+#|   GeoTransolver leads by about an order of magnitude at every rung, and
+#|   nothing about generalization. Parameter counts are nominal
+#|   configuration estimates; the counted values for the smallest and
+#|   largest rungs are 0.78M and 11.4M. Values from @tbl-drivaerml-ladder
+#|   (training-run validation metrics; no separate results/ artifact).
+#| code-fold: true
+import json, statistics
+from pathlib import Path
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import numpy as np
+# book palette (mirrors figures.py without importing it: that module
+# switches matplotlib to Agg, which suppresses inline output here)
+BLUE, RED = "#2a78d6", "#e34948"
+PURPLE, GREY = "#7b4fb3", "#52514e"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+# (label, nominal params in millions, validation relative MSE, learning-rate-stable?)
+rungs = [
+    ("flagship", 0.6, 0.0140, True),
+    ("4 layers", 1.2, 0.0120, True),
+    ("8 layers", 2.4, 0.0102, True),
+    ("×2 width", 2.4, 0.00979, True),
+    ("×2 width, 4 layers", 4.8, 0.00702, True),
+    ("×2 width, 8 layers", 9.6, 0.005828, True),
+    ("×4 width", 9.6, 0.0123, False),
+]
+stable = [(p, v) for _, p, v, ok in rungs if ok]
+params = np.array([p for p, _ in stable])
+vals = np.array([v for _, v in stable])
+amplitude, slope, local_slope = 0.0125, -0.33, -0.27
+gt_params, gt_val = 9.5, 0.00249
+
+fig, ax = plt.subplots(figsize=(6.8, 4.2))
+grid = np.logspace(np.log10(0.5), np.log10(400), 200)
+ax.plot(grid, amplitude * grid**slope, color=PURPLE, lw=1.6, zorder=2,
+        label="fit $0.0125\\,P_\\mathrm{M}^{-0.33}$")
+anchor_p, anchor_v = 9.6, 0.005828
+far = grid[grid >= anchor_p]
+ax.fill_between(far, anchor_v * (far / anchor_p) ** slope,
+                anchor_v * (far / anchor_p) ** local_slope,
+                color=PURPLE, alpha=0.10, lw=0, zorder=1)
+ax.plot(far, anchor_v * (far / anchor_p) ** local_slope, color=PURPLE, lw=1.2, ls=":", zorder=2)
+ax.errorbar(params, vals, yerr=vals * 0.12, fmt="none", ecolor=MUTED, elinewidth=1.0,
+            capsize=3, alpha=0.7, zorder=3)
+ax.plot(params, vals, "o", ms=8, color=PURPLE, mec="white", mew=1.2, zorder=4,
+        label="exact-kernel MeshTransformer, learning-rate-stable rungs")
+ax.plot(9.6, 0.0123, "o", ms=9, mfc="none", mec=PURPLE, mew=1.8, zorder=4,
+        label="×4 width: learning-rate constrained, excluded from fit")
+ax.plot(gt_params, gt_val, "*", ms=17, color=RED, mec="white", mew=1.0, zorder=5,
+        label="GeoTransolver, matched protocol")
+for label, p, v, ok in rungs:
+    offset = (7, -13) if label in ("×2 width", "×4 width") else (7, 5)
+    ax.annotate(label, (p, v), textcoords="offset points", xytext=offset, fontsize=8, color=INK2)
+ax.annotate("", xy=(9.6, gt_val), xytext=(9.6, 0.005828),
+            arrowprops=dict(arrowstyle="<->", color=INK, lw=1.2))
+ax.text(10.6, 0.0037, "2.34×\nmeasured", fontsize=8.5, color=INK)
+ax.axvline(134, color=MUTED, lw=1.0, ls="--")
+ax.text(126, 0.00186, "parity by pure scaling:\n~134M (global slope)\n~230M (local slope) ",
+        fontsize=7.5, color=MUTED, va="bottom", ha="right")
+ax.set_xscale("log"); ax.set_yscale("log")
+ax.set_xlim(0.45, 420); ax.set_ylim(0.0018, 0.022)
+ax.set_xticks([1, 10, 100], ["1", "10", "100"])
+ax.set_yticks([0.002, 0.005, 0.01, 0.02], ["0.002", "0.005", "0.010", "0.020"])
+ax.minorticks_off()
+ax.set_xlabel("trainable parameters [millions, log scale]")
+ax.set_ylabel("validation relative MSE [–, log scale]")
+ax.grid(True, color=GRID, lw=0.8); ax.set_axisbelow(True)
+ax.legend(fontsize=8, loc="upper right")
+fig.tight_layout()
+plt.show()
+```
+
+### The trace formulation carries the gain {#sec-drivaerml-trace-factorial}
+
+Surface queries sit exactly on the double-layer kernel's jump
+discontinuity. Evaluated naively, the closed form returns the interior
+limit (−½ times the density) where the physics needs the exterior trace
+(+½). Declaring the query mesh to be the boundary licenses two things: an
+exact one-sided jump correction (zero parameters) and learned own-cell
+readouts, a typed channel that tells the decoder a query is the boundary
+at its own panel. A 2×2 factorial at the flagship configuration, one
+node, 500 epochs, 3 seeds per arm, toggles the two independently.
+
+| jump correction | own-cell readouts | finals (3 seeds) | mean |
+|---|---|---|---|
+| – | – | 0.0525 / 0.0524 / 0.0604 | 0.0551 |
+| ✓ | – | 0.0148 / 0.0153 / 0.0161 | 0.0154 |
+| – | ✓ | 0.0149 / 0.0151 / 0.0162 | 0.0154 |
+| ✓ | ✓ | 0.0138 / 0.0140 / 0.0156 | 0.0145 |
+
+: The trace factorial at flagship capacity, validation relative MSE.
+Source: `output/drivaer_trace_factorial` run logs summarised in the
+notebook. {#tbl-drivaerml-trace-factorial}
+
+**The trace formulation is worth 3.8x at flagship capacity** (1.95x in
+relative L2), up from 2.03x at the small reference configuration: its
+effect grows with capacity, the mirror image of the kernel dictionary
+below, whose effect shrinks to noise at the same configuration. Effect
+sizes belong to an operating point, and the only valid attribution
+measures each mechanism at the configuration actually used. The two
+sub-mechanisms are near-perfect substitutes: either alone recovers about
+96% of the log-gap and they finish within 0.1% of each other; enabling
+both adds a final 6%. The reading consistent with the data is that the
+essential content is boundary self-identification, delivered by either
+channel; the factorial establishes the marginal value of a trace channel
+under this protocol, not that one semantic mechanism is the carrier.
+The default keeps both, and the exact correction is the principled
+zero-parameter choice for any variant.
+
+### The exact singular dictionary contributes 0–8% {#sec-drivaerml-factorial}
+
+The factorial that varies only the kernel member dictionary at the
+flagship configuration (same protocol, 3 seeds per arm) answers whether
+the exact boundary-integral structure carries the DrivAerML result.
+
+| member dictionary | finals (3 seeds) | mean |
+|---|---|---|
+| 2 exact + 8 learned (flagship) | 0.0138 / 0.0140 / 0.0156 | 0.0145 |
+| 2 exact only (0 member parameters) | 0.0144 / 0.0138 / 0.0156 | 0.0146 |
+| 8 learned only, no exact | 0.0153 / 0.0151 / 0.0167 | 0.0157 |
+
+: The kernel-dictionary factorial at flagship capacity, validation
+relative MSE. Source: `output/drivaer_kernel_factorial` run logs
+summarised in the notebook. {#tbl-drivaerml-kernel-factorial}
+
+Removing every exact member costs 8% (1.084x) with overlapping seed
+bands; removing every learned member costs nothing (0.0146 against
+0.0145). The in-distribution result is carried by the trace formulation,
+typed attention and capacity, and the accurate description of the
+industrial model is boundary-integral-*inspired*. Exact-kernel causation
+holds where the exact kernels are the right ones (@sec-linear-suites).
+What remains is precise and is the dictionary's real advantage:
+**parameter efficiency**. Two closed-form, zero-parameter members beat
+eight learned ones on every paired seed by about 7%, and match the full
+dictionary. The same holds off-distribution: on the within-family
+held-out splits below, the exact-only and learned-only checkpoints
+degrade by indistinguishable ratios (1.11–1.13x against 1.11–1.14x on
+wall shear), so the exact dictionary is an accuracy offset, not a
+robustness slope. At the 11.4M rung, removing the learned members costs
+about 9% (0.00635 against 0.00583) at one seed against a known 12% rung
+spread, so the default keeps them.
+
+```{python}
+#| label: fig-mt1-attribution
+#| fig-cap: >
+#|   Mechanism attribution on DrivAerML, every factor measured at the same
+#|   flagship configuration by a 3-seed factorial that toggles one
+#|   mechanism at a time; the axis is the factor gained in validation
+#|   relative MSE (relative L2 factors are the square roots). The trace
+#|   formulation dominates, capacity (0.6M to 9.6M nominal parameters) is
+#|   second, and the exact singular dictionary contributes 1.08x. Hollow
+#|   markers show the same two mechanisms measured at the small reference
+#|   configuration: the trace effect grows with capacity (2.03x to 3.8x)
+#|   while the dictionary effect compresses to noise. How to read it: the
+#|   bars are in-distribution accuracy factors only; none of them is a
+#|   generalization result. Values from @tbl-drivaerml-trace-factorial,
+#|   @tbl-drivaerml-kernel-factorial and @tbl-drivaerml-ladder.
+#| code-fold: true
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+PURPLE, RED, GREY = "#7b4fb3", "#e34948", "#52514e"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+no_trace, flagship = 0.0551, 0.0145
+learned_only = 0.0157
+small_plain, small_trace = 0.1019, 0.0503
+small_members = 0.0999
+frontier_lo, frontier_hi = 0.0140, 0.005828
+
+mechanisms = [
+    ("trace formulation\n(jump correction + own-cell readouts)", no_trace / flagship, small_plain / small_trace),
+    ("capacity\n(0.6M → 9.6M nominal parameters)", frontier_lo / frontier_hi, None),
+    ("exact singular dictionary\n(2 exact members vs none)", learned_only / flagship, small_plain / small_members),
+]
+
+fig, ax = plt.subplots(figsize=(7.0, 3.1))
+for i, (label, factor, small) in enumerate(mechanisms):
+    y = len(mechanisms) - 1 - i
+    ax.plot([1.0, factor], [y, y], color=PURPLE, lw=7, solid_capstyle="butt", alpha=0.85, zorder=2)
+    ax.plot(factor, y, "o", ms=10, color=PURPLE, mec="white", mew=1.2, zorder=4)
+    ax.annotate(f"{factor:.2f}×", (factor, y), textcoords="offset points", xytext=(12, -3),
+                fontsize=9.5, color=INK2, fontweight="bold")
+    if small is not None:
+        ax.plot(small, y, "o", ms=9, mfc="none", mec=PURPLE, mew=1.8, zorder=5)
+        ax.annotate(f"{small:.2f}× at the small reference configuration", (small, y),
+                    textcoords="offset points", xytext=(0 if small > 1.3 else -6, 11), fontsize=7.5,
+                    color=MUTED, ha="center" if small > 1.3 else "left")
+ax.axvline(1.0, color=INK, lw=1.0)
+ax.text(1.02, 2.42, "no effect", fontsize=7.5, color=INK)
+ax.set_xscale("log")
+ax.set_xlim(0.93, 5.4)
+ax.set_xticks([1, 1.5, 2, 3, 4, 5], ["1×", "1.5×", "2×", "3×", "4×", "5×"])
+ax.minorticks_off()
+ax.set_ylim(-0.6, 2.75)
+ax.set_yticks(range(len(mechanisms)), [m[0] for m in reversed(mechanisms)], fontsize=8.5)
+ax.set_xlabel("factor gained in validation relative MSE [–, log scale]")
+ax.grid(axis="x", color=GRID, lw=0.8); ax.grid(axis="y", visible=False)
+ax.set_axisbelow(True)
+ax.spines["left"].set_visible(False)
+ax.tick_params(axis="y", length=0)
+fig.tight_layout()
+plt.show()
+```
+
+### Generalization within the vehicle family {#sec-drivaerml-within-family}
+
+Within the DrivAer family MT1 degrades by 2–3% in pressure and 7–11% in
+wall shear on held-out shape-parameter extremes, and on wall shear its
+degradation ratio is consistently smaller than GeoTransolver's at five
+seeds per side; GeoTransolver's absolute wall-shear error is nonetheless
+2.5–2.7x lower, and five paired same-sign differences cannot support a
+two-sided decision at the 5% level.
+
+The out-of-distribution protocol is defined in the dataset's own
+generative coordinates: the upstream design of experiments varies 16
+shape parameters, and 483 of the 484 cars carry their values. Two
+held-out sets are used. The **ride-height double-extreme** takes the
+top and bottom deciles of ride height (98 cars): a single-factor
+extrapolation in both directions on ground-effect physics. The
+**wake-topology corner** takes the joint top decile of backlight angle
+and rear-end tapering (49 cars): the two-factor extreme that flips the
+rear-wake topology, with a median margin along the score direction of
+about 37 training-set spacings. Each model is retrained on the remaining
+cars (385 and 434 respectively) with validation carved from the same
+distribution, then evaluated on the full held-out set; the degradation
+ratio is the held-out error divided by the same run's own
+in-distribution error, so the smaller training set cancels.
+
+Errors are evaluation-harness relative L2. Pressure is scalar; wall
+shear is scored as a vector, the relative L2 of the joint components,
+which exposes direction error that a magnitude-only score hides. For
+both architectures the direction error is about 3x the magnitude error
+(MT1 0.72 against 0.21 in-distribution; GeoTransolver 0.28 against
+0.09).
+
+| model (5 seeds each) | ride height: pressure | ride height: wall shear | wake corner: pressure | wake corner: wall shear |
+|---|---|---|---|---|
+| MT1 flagship | 1.019–1.044 | 1.072–1.113 | 1.03 | 0.97–0.98 |
+| GeoTransolver | 1.043–1.069 | 1.126–1.136 | 1.03–1.05 | 0.99 |
+
+: Degradation ratios (held-out error over the same run's in-distribution
+error, relative L2) on the two within-family held-out sets, ranges over
+five seeds per architecture; both models retrained on the exclusion
+splits under the same harness and protocol. Source: `output/drivaer_ood`
+evaluations summarised in the notebook. {#tbl-drivaerml-within-family}
+
+Three facts follow. First, both models generalize well inside the
+family: pressure degrades 2–7% and wall shear at most 14%, on real
+aerodynamic regime shifts (wake topology, ground effect) that are
+nonetheless parameter-space extrapolation within one vehicle family, not
+new topologies; the wake corner does not stress wall-shear direction at
+all. Second, on ride-height wall shear the five-seed ranges are disjoint
+(MT1 at most 1.113, GeoTransolver at least 1.126) and GeoTransolver's
+mean excess degradation is 1.4x MT1's (0.131 against 0.092); the
+ordering is consistent, but with five same-sign paired differences the
+minimum two-sided exact sign-test p is 0.0625, so the paired sample is
+too small for a 5% decision. On pressure the ranges touch (1.044 against
+1.043) and the means order the same way (1.031 against 1.056) without
+seed separation. Third, the differential is in ratios only: in absolute
+terms GeoTransolver's in-distribution errors are 0.061 (pressure) and
+0.280 (wall shear) against the flagship's 0.167–0.180 and 0.705–0.737, a
+2.5–2.7x advantage that persists on every held-out set. A zero-shot
+version of the test, on the 10 and 4 held-out cars the standard training
+split does not already contain, shows the two architectures degrading
+alike (vector wall shear 1.12–1.13x and 1.12–1.16x).
+
+### Cross-family transfer: every checkpoint diverges {#sec-drivaerml-crossfamily}
+
+Evaluated zero-shot on SHIFT-SUV, a different vehicle family, through
+the identical frozen inference pipeline on a 20-case pilot, every MT1
+checkpoint leaves the physical range while GeoTransolver stays
+structured. The prediction under test was that a model built from
+boundary-integral structure transfers at least as well as a
+coordinate-based one; it is refuted at every capacity and seed tested.
+
+```{python}
+#| label: fig-mt1-crossfamily
+#| fig-cap: >
+#|   Left: zero-shot SHIFT-SUV pressure relative L2 (20 cases) for the
+#|   GeoTransolver anchor (red) and four exact-kernel MeshTransformer
+#|   checkpoints (purple): three flagship seeds and the 11.4M rung, all
+#|   trained on DrivAerML with the dataset's fixed reference length of 8.0.
+#|   The shaded band is the models' own-family in-distribution error, where
+#|   a transferring model would land; the dashed line is relative L2 = 1,
+#|   the mean-predictor level. Right: the same flagship seed evaluated
+#|   with only the declared reference length changed (8, 16, 48). The
+#|   divergence magnitude falls monotonically but never reaches
+#|   GeoTransolver's 0.677, and this scan looked at the held-out pilot
+#|   cases, so it can only describe the failure, not score a repair;
+#|   @sec-drivaerml-transferv2 shows that retraining under a per-sample
+#|   intrinsic gauge leaves every checkpoint diverging. How to read it:
+#|   a log axis over 17 orders of magnitude; the bars are not comparable
+#|   as accuracies, only as finite-or-not and physical-or-not. Data:
+#|   results/crossfamily_transfer_2026-07-22.json.
+#| code-fold: true
+import json
+from pathlib import Path
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import numpy as np
+PURPLE, RED, GREY = "#7b4fb3", "#e34948", "#52514e"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+archive = json.load(open(Path("..") / "results" / "crossfamily_transfer_2026-07-22.json"))
+v1 = archive["v1_zero_shot"]["rows"]
+dose = archive["gauge_dose_response"]
+
+fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(7.8, 3.9), gridspec_kw={"width_ratios": [1.25, 1.0]})
+BOTTOM = 1e-2
+labels = ["GeoTransolver", "MT1\nseed 42", "MT1\nseed 43", "MT1\nseed 44", "MT1\n11.4M rung"]
+keys = ["geotransolver_anchor", "mt_flagship_seed42", "mt_flagship_seed43", "mt_flagship_seed44", "mt_x2L8"]
+values = [v1[k]["shift_pressure_l2"] for k in keys]
+colors = [RED] + [PURPLE] * 4
+id_lo = min(v1[k]["own_family_id_pressure_l2"] for k in keys)
+id_hi = max(v1[k]["own_family_id_pressure_l2"] for k in keys)
+ax_l.axhspan(id_lo, id_hi, color=GREY, alpha=0.18, lw=0, zorder=0)
+top = 1e17
+for i, (value, color) in enumerate(zip(values, colors)):
+    if value is None:  # non-finite output: unplottable on a log axis
+        ax_l.annotate("", xy=(i, top), xytext=(i, 3e14), arrowprops=dict(arrowstyle="-|>", color=color, lw=2.2))
+        ax_l.text(i, top * 2.2, "NaN", ha="center", fontsize=9, color=color, fontweight="bold")
+    else:
+        ax_l.plot([i, i], [BOTTOM, value], color=color, lw=13, solid_capstyle="butt", alpha=0.9, zorder=2)
+        if value < 1:
+            text = f"{value:.3f}"
+        else:
+            exponent = int(np.floor(np.log10(value)))
+            text = f"{value / 10**exponent:.0f}$\\times$10$^{{{exponent}}}$"
+        ax_l.text(i, value * 3.0, text, ha="center", fontsize=8.5, color=color, fontweight="bold")
+ax_l.axhline(1.0, color=INK, lw=1.1, ls="--", zorder=3)
+ax_l.text(4.0, 2.4, "mean-predictor level", fontsize=7.5, color=INK, ha="center")
+ax_l.text(4.0, 0.026, "own-family\nin-distribution error", fontsize=7.5, color=INK2, ha="center", va="center")
+ax_l.set_yscale("log"); ax_l.set_ylim(BOTTOM, 3e19); ax_l.set_xlim(-0.55, 4.55)
+ax_l.set_xticks(range(5), labels, fontsize=8.5)
+ax_l.set_ylabel("zero-shot SHIFT-SUV pressure rel. $L^2$ [–, log]")
+ax_l.set_title("fixed reference length 8.0", fontsize=9.5, pad=9)
+
+gauges = [p["reference_length"] for p in dose["points"]]
+errors = [p["shift_pressure_l2"] for p in dose["points"]]
+ax_r.plot(gauges, errors, "-", lw=2.0, color=PURPLE, zorder=3)
+ax_r.plot(gauges, errors, "o", ms=9, color=PURPLE, mec="white", mew=1.2, zorder=4)
+for gauge, error in zip(gauges, errors):
+    if error > 100:
+        exponent = int(np.floor(np.log10(error)))
+        text, xy, ha = f"{error / 10**exponent:.1f}$\\times$10$^{{{exponent}}}$", (14, -3), "left"
+    else:
+        text, xy, ha = f"{error:.3g}", (0, 12), "center"
+    ax_r.annotate(text, (gauge, error), textcoords="offset points", xytext=xy, ha=ha,
+                  fontsize=8.5, color=PURPLE, fontweight="bold")
+ax_r.axhline(dose["geotransolver_reference"], color=RED, lw=1.5, ls="--", zorder=2)
+ax_r.text(6.4, dose["geotransolver_reference"] * 0.33, "GeoTransolver 0.677", fontsize=8, color=RED,
+          ha="left", va="center", fontweight="bold")
+ax_r.set_yscale("log"); ax_r.set_xscale("log")
+ax_r.set_xticks(gauges, [str(int(g)) for g in gauges])
+ax_r.set_xlim(6, 78); ax_r.set_ylim(8e-2, 3e17)
+ax_r.set_xlabel("declared reference length [m, log scale]")
+ax_r.set_title("one flagship checkpoint, reference length varied", fontsize=9.5, pad=9)
+for ax in (ax_l, ax_r):
+    ax.grid(axis="y", color=GRID, lw=0.8); ax.grid(axis="x", visible=False); ax.set_axisbelow(True)
+fig.tight_layout()
+plt.show()
+```
+
+GeoTransolver's pressure error rises from 0.061 in-family to 0.677 on
+SHIFT-SUV, an 11x degradation to roughly mean-predictor level, but the
+output stays finite and structured. The three MT1 flagship seeds reach
+8 × 10⁴, 4 × 10¹³ and 1.3 × 10¹⁵ and the 11.4M rung returns NaN, from
+checkpoints whose own-family errors (0.107–0.180) confirm they are
+healthy. Reference-length equality and sign conventions were verified
+across the two datasets, so this is not a pipeline artifact. The texture
+of the failure, spanning ten orders of magnitude across seeds, is an
+internal magnitude blow-up rather than a wrong-answer regime.
+
+#### The gauge changes the magnitude, not the outcome {#sec-drivaerml-transferv2}
+
+The one number in the industrial pipeline that is neither learned nor
+derived is the declared reference length, fixed at 8.0 for every
+DrivAerML case. On one checkpoint, raising it to 16 and 48 brings the
+SHIFT-SUV error to 5.12 and 1.71 (@fig-mt1-crossfamily, right), which
+identifies the gauge as a factor in the magnitude. It is not the cause.
+Six checkpoints retrained under the architecture's intrinsic gauge (a
+per-sample reference length proportional to the measure-weighted RMS
+boundary radius, calibrated once on the training split so that
+DrivAerML's mean gauge stays at 8.0; @sec-intrinsic-gauge) were
+evaluated zero-shot on the same pilot:
+
+| checkpoint | SHIFT-SUV pressure relative L2 |
+|---|---|
+| GeoTransolver anchor | 0.677 |
+| intrinsic-gauge MT1, seeds 42 / 43 / 45 / 46 | 5.97 × 10³ / 2.12 × 10¹⁰ / 1.90 × 10¹³ / 1.24 × 10⁷ |
+| intrinsic-gauge MT1, seed 44 (in-family error 2.3x the others) | 18.2 |
+| intrinsic-gauge MT1, seed 44 at half the learning rate | 2.33 × 10³ |
+
+: Zero-shot SHIFT-SUV transfer of intrinsic-gauge retrains. The pilot
+cases also served as the development set for the reference-length scan
+above, so these are observations on a reused development set, not a
+sealed confirmation; the orders of magnitude involved make that
+distinction immaterial to the conclusion. Source: `output/drivaer_transfer_v2`
+summarised in the notebook. {#tbl-drivaerml-transferv2}
+
+Every retrained checkpoint is finite (the fixed-gauge rung was not) and
+every one is three to thirteen orders of magnitude past the
+mean-predictor level. Two further observations belong here. The
+intrinsic gauge introduces a seed-dependent training instability the
+fixed gauge does not have (seed 44 converges to 0.0354 against
+0.0139–0.0145 for its siblings, where the fixed-gauge seeds are
+0.0138–0.0156). And the worst in-family seed is the best transferrer by
+two orders of magnitude, while its lower-learning-rate variant, which
+trains closer to the healthy band, transfers worse: at six checkpoints
+spanning thirteen orders this is an observation, not a claim, but it
+means in-family fit and cross-family robustness may be in tension for
+this architecture. Matching the source-measure magnitude between the
+families does not recover transfer either (@sec-notebook).
+
+Three independent probes, sampling density (next section), measure
+magnitude and geometry family, support one description: **the trained
+model is a regressor fitted to a narrow operating point, and the
+exact-kernel structure does not protect it outside that point.** That is
+consistent with the dictionary factorial: structure that is not essential
+in-distribution should not be expected to carry generalization.
+
+### The model is a coverage-specific regressor {#sec-drivaerml-coverage}
+
+One unchanged flagship checkpoint, evaluated on its in-distribution
+reference split with nothing varied but the number of surface cells
+sampled per case, has a sharp error minimum at the resolution it was
+trained at and degrades in both directions, catastrophically above it.
+
+```{python}
+#| label: fig-mt1-coverage
+#| fig-cap: >
+#|   In-distribution pressure relative L2 of one unchanged flagship
+#|   checkpoint as a function of the number of surface cells sampled per
+#|   case (sources and trace queries change together). The minimum sits
+#|   at the training resolution of 10,000 cells (dashed); doubling the
+#|   cells costs 2.5x and quadrupling them destroys the output (24,811).
+#|   How to read it: this is a property of the trained weights of this
+#|   checkpoint under this sampler, not a statement about the operator at
+#|   random initialisation, whose output varies about 9% under the same
+#|   kind of resampling; it also does not separate the source-count and
+#|   query-count effects, which move together here. Values from the
+#|   resolution sweep summarised in the notebook (no separate results/
+#|   artifact).
+#| code-fold: true
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+PURPLE, RED, GREY = "#7b4fb3", "#e34948", "#52514e"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+res = [2500, 5000, 10000, 20000, 40000]
+err = [0.8966, 0.7998, 0.167163, 0.4106, 24810.9]
+fig, ax = plt.subplots(figsize=(6.8, 4.0))
+ax.axvline(10000, color=INK, lw=1.0, ls="--", zorder=1)
+ax.text(10500, 3e3, "trained at 10,000 cells", fontsize=8.5, color=INK)
+ax.plot(res, err, "o-", ms=9, lw=2.2, color=PURPLE, mec="white", mew=1.2, zorder=4)
+for r, e in zip(res, err):
+    txt = f"{e:,.0f}" if e > 100 else f"{e:.3f}"
+    off, ha = ((-10, -4), "right") if r == 10000 else ((14, -4), "left") if r == 20000 else ((0, 13), "center")
+    ax.annotate(txt, (r, e), textcoords="offset points", xytext=off, ha=ha, fontsize=8.5,
+                color=PURPLE, fontweight="bold")
+ax.set_xscale("log"); ax.set_yscale("log")
+ax.set_xlim(1800, 62000); ax.set_ylim(0.08, 2e5)
+ax.set_xticks(res, [f"{r//1000}k" for r in res])
+ax.minorticks_off()
+ax.set_xlabel("surface cells sampled per case [count, log scale]")
+ax.set_ylabel("in-distribution pressure relative $L^2$ [–, log scale]")
+ax.grid(True, color=GRID, lw=0.8); ax.set_axisbelow(True)
+fig.tight_layout()
+plt.show()
+```
+
+At 2,500 and 5,000 cells the error is 0.897 and 0.800 (5.4x and 4.8x the
+trained value of 0.167); at 20,000 it is 0.411 (2.5x); at 40,000 it is
+24,811. An operator that approximated a boundary integral would improve
+monotonically with more sources. The pathology lives in the learned
+weights rather than in the architecture's quadrature: at random
+initialisation the operator's output varies by about 9% under
+subsampling to 1.6% coverage and converges, while the trained model is
+148,000x wrong at four times its training resolution. Rescaling the
+measure back to its training value at the changed resolution does not
+rescue it, and changing the gauge alone at fixed resolution costs 8x.
+
+Every DrivAerML accuracy in this chapter is therefore a measurement at
+one sampling density, internally comparable because every arm shares the
+protocol, and not evidence about the model at any other density;
+full-resolution inference (17.7 million query cells) fails for the same
+reason, one step further along this curve.
+
+### Decode cost: the checkpointed decode and the step repricing {#sec-scale-ckpt}
+
+The kernel decoder evaluates every source-query pair, so its activation
+memory scales with the product of boundary cells and queries; this, not
+parameter count, is what makes MT1 an order of magnitude more expensive
+than GeoTransolver to train at 10,000 cells. Checkpointing the decode in
+query chunks removes the query factor from peak memory at the cost of
+recomputation. The paired measurement below (one 82k-parameter
+configuration, fp32, one forward-and-backward step on a 198 GB GB200,
+identical per-point samples) shows what the exchange buys.
+
+```{python}
+#| output: asis
+#| code-fold: true
+import json
+from pathlib import Path
+from IPython.display import Markdown, display
+
+d = json.load(open(Path("..") / "results" / "scale_checkpoint_paired_2026-07-05.json"))
+def rows(arm):
+    out = {}
+    for g in d[arm]["cost"]["grid"]:
+        key = (g["n_boundary_cells"], g["n_query"])
+        if g["status"] != "ok":
+            out[key] = ("OOM", "OOM")
+        else:
+            out[key] = (f'{g["train_peak_bytes"] / 2**30:.1f}', f'{g["forward_backward_ms"]["median_ms"] / 1000:.2f}')
+    return out
+dense, ckpt = rows("dense"), rows("checkpointed")
+lines = ["| boundary cells | queries | dense: peak GB | dense: step s | checkpointed: peak GB | checkpointed: step s |",
+         "|---:|---:|---:|---:|---:|---:|"]
+for key in sorted(dense):
+    lines.append(f"| {key[0]:,} | {key[1]:,} | {dense[key][0]} | {dense[key][1]} | {ckpt[key][0]} | {ckpt[key][1]} |")
+caption = (": Peak training memory [GB] and forward-plus-backward step time [s] for the dense and "
+           "query-chunk-checkpointed decode on the same configuration, by boundary cells and queries. "
+           "\"OOM\" is an out-of-memory failure on a 198 GB device. Step times predate the decode "
+           "reimplementation described below, which makes each of them 7-14x smaller; the memory "
+           "figures are unaffected by it. Data: results/scale_checkpoint_paired_2026-07-05.json. "
+           "{#tbl-mt1-scale-ckpt}")
+display(Markdown("\n".join(lines) + "\n\n" + caption))
+```
+
+Checkpointed, peak memory is set by the boundary count alone (4.3–8.0 GB
+across a hundredfold change in queries at 5,120 cells) and the dense
+decode's three out-of-memory corners all fit; the price is about 1.9x
+step time at small sizes. Where the whole batched decode fits, the
+checkpointing is unnecessary and costs about 10x wall-clock on 278 GB
+devices; a same-seed control shows it is accuracy-neutral (×2-width rung,
+seed 42: 0.0093 chunked against 0.00896 unchunked, inside the rung's
+12% seed spread), so unchunked is the default wherever it fits.
+
+The step time itself is repriced by a reimplementation of the decode
+path: the closed-form kernels' einsum, which lowered to a 4.2 × 10⁷-batch
+matrix multiply (a 102k-launch dispatch storm), becomes a
+multiply-and-sum, and the learned members move from a sequential bitwise
+loop to GEMMs with a measured tolerance (2.8–3.6 × 10⁻⁷ relative at fp32;
+the closed forms stay bitwise). The two-member configuration's step
+speeds up 7.2x (8.34 s to 1.16 s on a 20,480-cell trace) and the
+eight-member configuration's 14.2x (43.8 s to 3.10 s). The 12.8-hour
+and 14-hour training times above predate the change and are upper bounds
+on the current cost by roughly an order of magnitude; the memory figures
+are unchanged.
+
+## What these results mean for the architecture choice {#sec-industrial-mt1-implications}
+
+The industrial results place the exact-kernel line precisely. Its
+accuracy gains on DrivAerML come from a boundary self-identification
+channel and from capacity, both of which any architecture can have, and
+not from the exact singular kernels; on separated three-dimensional
+aerodynamics the potential-flow prior those kernels encode is not a
+usable prior at all (the potential-flow oracle scores a relative L2 of
+4.8 against 0.77 for predicting each case's mean; @sec-interior), and
+on the boundary-to-interior task the kernel decoder finishes 8x behind
+GeoTransolver. Within the training family it generalizes as well as
+GeoTransolver in pressure and somewhat better in wall-shear ratio, at
+2.5–2.7x the absolute error. Outside the training family it does not
+generalize at all, and neither its exact structure nor its gauge
+changes that; transfer across vehicle families is, for every
+architecture tested in this book, a property of the diversity of the
+training data rather than of the architecture (@sec-data-efficiency).
+
+What the line keeps is what the controlled suites showed: parameter
+efficiency (two zero-parameter exact members do the work of eight
+learned ones, and the 0.8M-parameter flagship sits within 2.4x in
+relative L2 of a 9M-parameter GeoTransolver), exact contracts
+(similarity equivariance with the intrinsic gauge, declared linearity,
+parity typing; @sec-mt1, @sec-kernel-decoder), and exact-label linear
+problems, where the same decoder generalizes across boundary-condition
+frequency content that soft-slice architectures cannot
+(@sec-linear-suites). It pays with training memory and wall-clock an
+order of magnitude above GeoTransolver's at matched sampling, and with
+accuracy specific to one sampling density. The successor architecture,
+MeshTransformer2 (@sec-mt2), keeps the contracts and the boundary-trace
+lesson, replaces the kernel decoder with soft-slice routing, and is
+compared with GeoTransolver at matched resources in @sec-full-data and
+@sec-data-efficiency.

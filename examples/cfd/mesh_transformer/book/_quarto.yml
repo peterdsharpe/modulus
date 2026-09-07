@@ -3,29 +3,32 @@ project:
   output-dir: _book
 
 book:
-  title: "Learning Boundary-to-Interior Operators on Meshes"
-  subtitle: "A falsification-driven research program on PDE surrogates"
-  date: "2026-08-19"
+  title: "Learning Boundary-to-Field Operators on Meshes"
+  subtitle: "MeshTransformer2 and the exact-kernel MeshTransformer, measured against GeoTransolver"
   chapters:
     - index.qmd
-    - 01-pde-theory.qmd
-    - 02-architecture.qmd
-    - 03-mesh-attention.qmd
-    - 04-learned-bie.qmd
-    - 05-parametric.qmd
-    - 06-benchmarks.qmd
-    - 07-laplace2d.qmd
-    - 08-screened.qmd
-    - 09-laplace3d.qmd
-    - 10-liouville.qmd
-    - 11-potential-flow.qmd
-    - 12-euler-bernoulli.qmd
-    - 13-euler-rotational.qmd
-    - 14-navier-stokes.qmd
-    - 15-airfrans.qmd
-    - 16-drivaerml.qmd
-    - 17-program-review.qmd
-    - 17-future.qmd
+    - part: "The problem and the architectures"
+      chapters:
+        - 01-problem.qmd
+        - 02-meshtransformer2.qmd
+        - 03-exact-kernel-meshtransformer.qmd
+        - 04-baselines-and-fair-comparison.qmd
+    - part: "Evidence on production aerodynamics"
+      chapters:
+        - 05-data-efficiency.qmd
+        - 06-accuracy-and-robustness.qmd
+        - 07-regime-extrapolation.qmd
+        - 08-boundary-to-interior.qmd
+    - part: "What exact operator structure buys"
+      chapters:
+        - 09-linear-suites.qmd
+        - 10-nonlinear-suites.qmd
+        - 11-industrial-exact-kernel.qmd
+    - part: "Limits and status"
+      chapters:
+        - 12-limits-and-directions.qmd
+        - 13-program-status.qmd
+  appendices:
     - 18-notebook.qmd
 
 execute:
@@ -37,9 +40,10 @@ format:
   html:
     theme: cosmo
     toc: true
-    toc-depth: 4
+    toc-depth: 3
     number-sections: true
     fig-align: center
     html-math-method: mathjax
+    code-fold: true
     mermaid:
       theme: neutral

@@ -1,0 +1,666 @@
+# The problem, the data, and how we measure {#sec-problem}
+
+Every result in this book is a measurement of one mapping — from a
+discretized boundary and a few global conditions to the steady fields that
+boundary induces — on datasets whose labels are exact or certified, under
+one frozen training recipe, with error definitions stated once, here. A
+reader who knows PDEs and transformers but has never seen this program
+should be able to read any later table after this chapter and nothing
+else.
+
+## The boundary-to-field problem {#sec-pde-theory}
+
+**The object to learn is a solution operator, not a time stepper.** The
+input is a closed boundary surface (in 2D, a closed curve) given as a mesh
+of cells, each carrying its position, its outward unit normal and its
+measure (area in 3D, length in 2D), together with the global conditions the
+problem needs: a unit freestream direction $\hat d$, and dimensionless
+scalars such as a Reynolds number or a screening constant. The output is
+the steady field this data induces — pressure and wall shear on the
+boundary itself, and pressure, velocity or other fields at arbitrary
+interior points. The interior query points carry no data; they are bare
+coordinates at which the field is requested. There is no volume mesh, no
+initial state, and nothing to advance in time.
+
+```{python}
+#| label: fig-problem-schematic
+#| fig-cap: >
+#|   The mapping this book studies, drawn on the simplest member of the
+#|   problem class (ideal flow around a lifting Joukowski airfoil, exact
+#|   closed form). Left, the input: boundary cells with outward normals
+#|   (gray) and measures, plus one global condition, the unit freestream
+#|   direction. Right, the output: the surface pressure coefficient along
+#|   the boundary and the interior pressure field at bare query points
+#|   (black dots). How to read this: the figure shows what enters and
+#|   what is scored; it does not show any model's prediction, and the
+#|   industrial datasets are three-dimensional, turbulent and separated,
+#|   where no closed form exists.
+#| code-fold: true
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.collections import LineCollection
+
+BLUE, RED, GREY, PURPLE = "#2a78d6", "#e34948", "#52514e", "#7b4fb3"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+DIVERGING = LinearSegmentedColormap.from_list("book_div", [BLUE, "#f0efec", RED])
+
+# Joukowski airfoil: circle of radius a about c through zeta = 1, mapped by
+# z = zeta + 1/zeta.  The Kutta condition fixes the circulation.
+c = complex(-0.08, 0.08)
+a = abs(1.0 - c)
+alpha = np.deg2rad(6.0)
+beta = -np.angle(1.0 - c)
+Gamma = 4 * np.pi * a * np.sin(alpha + beta)
+
+def velocity(zeta):
+    dW = (np.exp(-1j * alpha) - a**2 * np.exp(1j * alpha) / (zeta - c) ** 2
+          + 1j * Gamma / (2 * np.pi * (zeta - c)))
+    return np.conj(dW / (1 - 1 / zeta**2))       # u + i v in the z-plane
+
+# Boundary, re-sampled to equal arclength so cells have comparable measure.
+tf = np.linspace(0, 2 * np.pi, 4001)
+zf = c + a * np.exp(1j * tf); zf = zf + 1 / zf
+s = np.concatenate([[0], np.cumsum(np.abs(np.diff(zf)))])
+s_cells = np.linspace(0, s[-1], 61)
+xb = np.interp(s_cells, s, zf.real); yb = np.interp(s_cells, s, zf.imag)
+xy = np.stack([xb, yb], axis=1)
+# Surface values at cell midpoints, via the circle-plane angle of each
+# midpoint (just outside the circle to avoid the trailing-edge singularity).
+t_mid = np.interp((s_cells[:-1] + s_cells[1:]) / 2, s, tf)
+cp_s = 1 - np.abs(velocity(c + a * 1.002 * np.exp(1j * t_mid))) ** 2
+mid = (xy[:-1] + xy[1:]) / 2
+tang = xy[1:] - xy[:-1]
+nrm = np.stack([tang[:, 1], -tang[:, 0]], axis=1)
+nrm /= np.linalg.norm(nrm, axis=1, keepdims=True)
+nrm *= np.sign(np.sum((mid - xy.mean(axis=0)) * nrm, axis=1))[:, None]
+
+# Interior field on a polar grid in the circle plane, mapped forward.
+r = np.linspace(1.0 + 1e-3, 4.0, 90)
+th = np.linspace(0, 2 * np.pi, 241)
+R, T = np.meshgrid(r, th)
+zeta_g = c + a * R * np.exp(1j * T)
+z_g = zeta_g + 1 / zeta_g
+cp_g = 1 - np.abs(velocity(zeta_g)) ** 2
+
+fig, (axl, axr) = plt.subplots(1, 2, figsize=(9.4, 3.8))
+for ax in (axl, axr):
+    ax.set_aspect("equal"); ax.set_xlim(-2.6, 2.6); ax.set_ylim(-1.6, 1.8)
+    ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+
+axl.plot(xy[:, 0], xy[:, 1], color=INK, lw=1.8)
+sel = slice(0, None, 3)
+axl.quiver(mid[sel, 0], mid[sel, 1], nrm[sel, 0], nrm[sel, 1], color=MUTED,
+           scale=9, width=0.004, headwidth=4)
+axl.plot(mid[sel, 0], mid[sel, 1], "o", ms=3, color=INK)
+axl.annotate("", xy=(-1.9 + 0.9 * np.cos(alpha), 1.3 + 0.9 * np.sin(alpha)),
+             xytext=(-1.9, 1.3), arrowprops=dict(arrowstyle="-|>", color=INK, lw=1.8))
+axl.text(-1.9, 1.5, r"global condition: unit direction $\hat d$", color=INK2, fontsize=9)
+axl.text(0.5, -0.08, "boundary cells: position $x_j$, normal $n_j$, measure $w_j$",
+         color=INK2, fontsize=8.5, ha="center", transform=axl.transAxes)
+axl.set_title("input", color=INK, fontsize=11, loc="left")
+
+lim = 1.6
+norm = Normalize(-lim, 1.0)
+axr.pcolormesh(z_g.real, z_g.imag, np.clip(cp_g, -lim, 1.0), cmap=DIVERGING,
+               norm=norm, shading="gouraud", alpha=0.85, rasterized=True)
+segs = np.stack([xy[:-1], xy[1:]], axis=1)
+axr.add_collection(LineCollection(segs, colors=DIVERGING(norm(np.clip(cp_s, -lim, 1))),
+                                  linewidths=4.5, capstyle="round", zorder=4))
+rng = np.random.default_rng(3)
+rq = 1.0 + 1.6 * rng.random(70) ** 0.8
+tq = 2 * np.pi * rng.random(70)
+zq = c + a * rq * np.exp(1j * tq); zq = zq + 1 / zq
+axr.plot(zq.real, zq.imag, ".", color=INK, ms=4, zorder=5)
+axr.text(0.5, -0.08, "surface field on the boundary;\ninterior field at bare query points",
+         color=INK2, fontsize=8.5, ha="center", va="top", transform=axr.transAxes)
+axr.set_title("output", color=INK, fontsize=11, loc="left")
+sm = plt.cm.ScalarMappable(cmap=DIVERGING, norm=norm)
+cb = fig.colorbar(sm, ax=axr, fraction=0.035, pad=0.02)
+cb.set_label("pressure coefficient $C_p$ [–]", fontsize=9)
+cb.ax.tick_params(labelsize=8)
+fig.text(0.49, 0.52, r"$\longmapsto$", fontsize=22, ha="center", va="center", color=INK)
+fig.tight_layout(w_pad=3.0)
+plt.show()
+```
+
+### Why steady, boundary-driven PDEs
+
+The admitted problem class is steady, well-posed in Hadamard's sense,
+homogeneous — no interior source terms — and governed by the same equations
+everywhere in the domain. For such problems the boundary data and the
+global conditions determine the whole field, so a surrogate that consumes
+only the boundary throws nothing away: the boundary *is* the problem. The
+industrial targets are steady RANS and Euler flows around vehicles and
+wings. Their governing equations are not given to the model, and for RANS
+they are not even perfectly knowable, since the turbulence closure is an
+empirical fit. The synthetic suites below pose the simplest members of the
+same class — Laplace, screened Laplace, ideal flow — because there the
+equations *are* known and the labels exact, which makes every structural
+claim about an architecture falsifiable.
+
+Classical potential theory says what a correct boundary-to-field map must
+look like. For a harmonic field $u$ in a domain $\Omega$ with boundary
+$\Gamma$, Green's third identity represents the interior value as a
+boundary integral,
+
+$$
+u(x)=\int_{\Gamma}\Bigl[G(x,y)\,\partial_{n_y}u(y)-u(y)\,\partial_{n_y}G(x,y)\Bigr]\,dS_y ,
+$$ {#eq-green}
+
+where $G$ is the free-space fundamental solution, $n_y$ the outward normal
+at the boundary point $y$ and $dS_y$ the boundary measure. Three
+consequences shape every architecture in this book. First, the density of
+this representation depends on the whole domain, not on $x-y$ and $n_y$
+alone: every boundary patch influences every interior point, with no
+cutoff radius that survives a change of geometry, so the correct inductive
+bias is all-to-all coupling. Second, both terms are integrals *against
+boundary measure*: a discrete surrogate must weight each cell by its area
+so that splitting one cell into two halves leaves the operator unchanged,
+which is why every dataset hands the model cell areas alongside positions
+and normals. Third, because the equations are homogeneous and identical
+everywhere, the propagation law is equivariant under translations,
+rotations, reflections and positive scalings: it can depend on the
+geometry only through the joint invariants of $\{x-y,\ n_y,\ \hat d\}$ —
+magnitudes and pairwise angles — never on absolute position or
+orientation. Dimensionless scalars may modulate everything freely, because
+a scalar breaks no symmetry. Which architectures enforce these properties
+by construction and which learn them from data is the subject of
+@sec-mt2, @sec-mt1 and @sec-baselines; none of the three requires knowing
+the PDE.
+
+### Parametric and boundary-condition-driven families {#sec-parametric}
+
+Many of the datasets are not a single PDE but a family indexed by a
+dimensionless global scalar: the screening constant $\tilde\kappa=\kappa L$
+of $\Delta u-\kappa^2u=0$, the vorticity coupling $\tilde c$ of steady
+rotational Euler flow, the Reynolds number of a cavity or an airfoil.
+Physical parameters enter only in nondimensional form, scaled by the case's
+reference length $L$, so learned weights never see units. The boundary data
+is likewise a variable: in the Dirichlet suites the trace $g$ is the drive
+and the operator maps $g\mapsto u$ linearly at fixed geometry; in the flow
+suites the drive is the freestream (with circulation or Reynolds number),
+the velocity is linear in it and the pressure exactly quadratic. Whether an
+architecture declares such structure or learns it is a design choice whose
+price is measured in @sec-linear-suites and @sec-nonlinear-suites; the
+datasets are built so that each axis of variation — geometry, boundary
+data, parameter, resolution — can be held out separately.
+
+### What generalization means here
+
+A learned operator is useful only if it behaves like an operator away from
+its training distribution, and "away" has several independent directions.
+Four are measured on the industrial datasets:
+
+- **Data efficiency**: accuracy versus the number of training cases, on a
+  fixed validation set, from a few dozen cases upward
+  (@sec-data-efficiency). This is the book's primary axis.
+- **Regime extrapolation**: training on one flow regime (low angle of
+  attack, attached flow) and testing on another (high angle, post-stall),
+  on a sealed test set evaluated once (@sec-regime-extrapolation).
+- **Unseen geometry**: validation geometries that never appear in training
+  at any condition, as opposed to geometries seen at other conditions.
+- **Cross-family transfer**: zero-shot evaluation on a vehicle family
+  different from the training family (@sec-industrial-mt1).
+
+On the synthetic suites three further axes are held out one at a time:
+boundary-data frequency content (drive modes never seen in training), PDE
+parameter (constants outside the training band), and boundary resolution
+(the same continuous cases discretized with 32 to 256 panels). The rule
+throughout is one question per split: geometry-OOD and frequency-OOD are
+never combined into one score.
+
+## Datasets {#sec-datasets}
+
+Two kinds of data appear: synthetic suites with exact or certified labels,
+built so that a wrong structural claim fails unambiguously, and three
+external CFD datasets that pose the actual engineering problem. Every
+dataset supplies the same input schema — boundary cells with positions,
+outward normals and measures, plus global conditions — so one model
+implementation runs on all of them.
+
+### The exact-label synthetic suites {#sec-benchmarks}
+
+**2D Laplace on conformal domains.** Domains are images of the unit disk
+under a polynomial conformal map $F_a(z)=z+\sum_{m\in S}a_m z^m$ with the
+injectivity certificate $\kappa=\sum_m m|a_m|<1$, so every sampled geometry
+is provably nondegenerate and the certificate is itself the deformation
+axis. For any holomorphic polynomial $H$, $u=\operatorname{Re}H$ is exactly
+harmonic on the physical domain: targets carry zero discretization error
+and the boundary data is the exact trace. Training uses shape modes
+$\{2,3\}$ with $\kappa\in[0.05,0.35]$; held-out splits use modes $\{4,5\}$,
+$\kappa\in[0.45,0.65]$, and zero-mean drive modes $\{5,\dots,8\}$ against
+training modes $\{1,\dots,4\}$. Cases may undergo a random similarity
+(rotation, reflection, translation, scale in $[0.2,5]$); Neumann and mixed
+variants are posed only where well-posed.
+
+**Screened Laplace.** Disks of random radius and center carry Dirichlet
+data for $\Delta u-\kappa^2u=0$ with exact modified-Bessel-series solutions
+and the dimensionless screening $\tilde\kappa=\kappa R$ as a global scalar.
+Training samples $\tilde\kappa\in[0.5,2]$; held-out splits push to $[3,5]$,
+where the field collapses into a boundary rim, and $[0.05,0.3]$, the
+harmonic limit. This is the smallest parametric family: the operator
+itself varies from case to case.
+
+**3D Laplace.** Closed triangulated surfaces — spheres, star-deformed
+spheres and two-surface shells — carry Dirichlet data. Labels are exact on
+any geometry because the solutions are superpositions of point charges
+placed outside the domain (and inside the cavity for shells), whose
+Dirichlet, Neumann and Robin data are all analytic. The shell tier changes
+topology.
+
+**Liouville.** The conformal-star domains carry Dirichlet data for
+$\Delta u+2e^{u}=0$, whose exact solutions are the spherical-metric
+potentials $u=\log\!\big(4|f'|^2/(1+|f|^2)^2\big)$ for holomorphic $f$: exact
+labels without linearity. The homogeneous problem ($g\equiv0$) has the
+nonzero solution $u(0)=\log4$, so any model that maps zero data to zero
+output scores relative error exactly 1 on it.
+
+**Potential flow.** Smooth exterior bodies (conformal images of the unit
+circle) sit in a uniform stream with prescribed circulation $\Gamma$. The
+model receives the body boundary, the freestream direction as a global
+vector and $\Gamma$ as a global scalar; targets are the exact disturbance
+streamfunction (a pseudoscalar, odd under reflection) or velocity. The
+drive is a vector, the domain unbounded, the physics handed.
+
+**Euler–Bernoulli.** The same exterior flows with two coupled targets at
+shared queries: the velocity $u=U_\infty+u_d$, linear in the drive, and the
+Bernoulli pressure $p^\*=\tfrac12(|U_\infty|^2-|u|^2)$, exactly quadratic in
+it.
+
+**Rotational Euler.** Disks carry boundary data for steady Euler flow with
+the linear vorticity law $\Delta\psi=-\tilde c^{2}\psi$, velocity
+$\nabla^\perp\psi$ and pressure from momentum balance. The coupling $\tilde c$ has a hard ceiling at the first
+Dirichlet eigenvalue $j_{0,1}\approx2.405$, where the interior stops being
+determined by the boundary. Training uses $\tilde c\in[0.5,1.8]$; held-out
+splits use $(1.9,2.2]$ and the near-eigenvalue band $[2.25,2.38]$, where
+unit boundary data is amplified 150–6,000 times.
+
+**Navier–Stokes star cavity.** Star-shaped cavities hold viscous fluid
+driven by a tangential wall-velocity band at Reynolds numbers from 10 to
+300. Labels come from a Taylor–Hood P2–P1 finite-element solver, and every
+case carries its own certification — Newton residual, momentum balance,
+divergence, and on a subset a finer-mesh re-solve bounding the label noise
+(velocity $\lesssim10^{-4}$, pressure $\lesssim10^{-3}$). It is the only
+synthetic suite with approximate labels, and no claim is made below its
+stated floor.
+
+On every synthetic suite training cases are generated online (fresh random
+geometry and drive per step), so there is no finite training set to
+memorize, and evaluation uses frozen banks every model sees identically.
+The model receives only physical data — boundary cells, declared boundary
+fields, query coordinates, the reference length; generator coefficients
+and mode indices never enter the input.
+
+### AirFRANS
+
+AirFRANS is 1,000 cases of steady incompressible RANS over NACA airfoils
+(OpenFOAM, eddy-viscosity closure), spanning chord Reynolds numbers of 2–6
+million and angles of attack from $-5^\circ$ to $+15^\circ$, with velocity,
+pressure and turbulent viscosity at roughly 180,000 volume points per case.
+Its boundary-value problem is fully recoverable from explicit freestream
+and no-slip conditions. The official tasks
+are a scarce split (200 train / 200 test), a full split (800 / 200), and
+Reynolds and angle-of-attack extrapolation tasks. Being two-dimensional
+and classically solvable in milliseconds, it is a well-labelled benchmark
+rather than a use case; its results (@sec-industrial-mt1) concern the
+exact-kernel MeshTransformer only.
+
+### DrivAerML {#sec-transolver-dataset}
+
+DrivAerML is 484 parametrically morphed DrivAer notchback vehicle variants
+with time-averaged fields from scale-resolving CFD: surface pressure and
+wall shear on vehicle surfaces of roughly 8.8 million points, plus volume
+fields, all time averages of a turbulent flow. Every comparison in this book
+feeds the models the vehicle surface only — the information diet of every
+published baseline on the dataset. The recipe's split uses 435 cars for
+training and 48 for validation and samples 10,000 surface points per case
+per step. The surface task predicts pressure and wall shear at those points
+(@sec-full-data); the interior task predicts pressure, velocity and
+turbulent viscosity at 10,000 interior query points from the surface alone
+(@sec-interior). The freestream direction is the same for every car: the
+geometry varies, the drive does not.
+
+### HiLiftAeroML
+
+HiLiftAeroML is 1,800 cases: 180 high-lift wing geometries — flap and slat
+settings sampled by Latin hypercube — each simulated at 10 angles of attack
+from $4^\circ$ to $22^\circ$. Each case supplies surface pressure, velocity
+and wall shear on the wing, together with the freestream direction, which
+now varies from case to case. Because the design is a full grid, every
+geometry appears at every angle, and the dataset supports splits along
+three independent directions: how many cases, which angles, and which
+geometries, and the cases span attached flow through stall. This is the
+dataset on which the book's primary result is measured
+(@sec-data-efficiency).
+
+### Splits {#sec-splits}
+
+**HiLiftAeroML.** The dataset ships curated manifests, used unchanged. The
+*data-efficiency* family is nested: `super_scarce` (35 training cases)
+$\subset$ `scarce` (210) $\subset$ `medium` (510) $\subset$ `full`
+(1,260), all scored on one shared 180-case validation set, with a sealed
+360-case test set that no data-efficiency experiment touches. Because the
+rungs are subsets of the same 1,260 training cases, a validation geometry
+may appear in training at other angles; these rungs measure sample
+complexity, not unseen geometry. Two *regime-extrapolation* splits hold out
+flow physics: `aoa` trains on 788 cases at angles of attack $\le12^\circ$,
+validates on 112 in-regime cases and tests on 900 cases at $\ge14^\circ$;
+`stall` trains on 942 pre-stall cases, validates on 135 and tests on 723
+post-stall cases, stall onset being determined per geometry from the lift
+curve ($dC_L/d\alpha\le0$). The *geometry* family holds out 18 validation
+and 36 test geometries at all ten angles, with training sets of 1,260, 210
+and 40 cases. Three `single_aoa` splits fix the angle at $4^\circ$,
+$12^\circ$ or $22^\circ$, train on 126 geometries at that angle and
+validate on 18 others; they remove the direction dependence entirely and
+so control for whether an advantage comes from representing the freestream
+direction.
+
+```{python}
+#| label: fig-hilift-splits
+#| fig-cap: >
+#|   The HiLiftAeroML data-efficiency family, to scale. One bar is the
+#|   1,800-case grid; the nested training rungs (35, 210, 510, 1,260
+#|   cases) are subsets of one another, all scored on the same 180
+#|   validation cases, and the 360-case test set is sealed. How to read
+#|   this: widths are case counts; the bar does not show which angles or
+#|   geometries fall in each rung, and the regime and geometry families
+#|   are separate manifests not drawn here.
+#| code-fold: true
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": False,
+                     "axes.spines.top": False, "axes.spines.right": False,
+                     "axes.spines.left": False, "legend.frameon": False})
+
+fig, ax = plt.subplots(figsize=(9.0, 1.9))
+shades = ["#1f5aa3", "#2a78d6", "#7aaee8", "#c9ddf5"]
+for n, col in zip([1260, 510, 210, 35], shades):
+    ax.barh(0, n, left=0, height=0.6, color=col, edgecolor="white", lw=0.8)
+ax.barh(0, 180, left=1260, height=0.6, color="#d9d7cf", edgecolor="white", lw=0.8)
+ax.barh(0, 360, left=1440, height=0.6, color="#f0efec", edgecolor=BASELINE, lw=0.8,
+        hatch="///")
+for x, label in [(35 / 2, "35"), (35 + 175 / 2, "210"), (210 + 300 / 2, "510"),
+                 (510 + 750 / 2, "1,260 training cases (nested rungs)")]:
+    ax.text(x, 0, label, ha="center", va="center", fontsize=9,
+            color="white" if x > 200 else INK)
+ax.text(1260 + 90, 0, "val\n180", ha="center", va="center", fontsize=9, color=INK)
+ax.text(1440 + 180, 0, "sealed test 360", ha="center", va="center", fontsize=9, color=INK)
+ax.set_xlim(0, 1800); ax.set_ylim(-0.6, 0.6)
+ax.set_yticks([])
+ax.set_xticks([0, 35, 210, 510, 1260, 1440, 1800])
+ax.set_xticklabels(["0", "35", "210", "510", "1,260", "1,440", "1,800"], fontsize=8.5)
+ax.set_xlabel("cases [count]")
+fig.tight_layout()
+plt.show()
+```
+
+**DrivAerML.** One split: 435 training cars, 48 validation cars, fixed
+across every experiment. Sampling-density and pose probes evaluate the same
+48 cars with transformed inputs (@sec-full-data).
+
+**AirFRANS.** The official scarce (200 / 200) and full (800 / 200) tasks,
+with validation carved from training cases only under a fixed seed, and
+the official Reynolds and angle-of-attack extrapolation tasks.
+
+**Synthetic suites.** Evaluation banks are frozen before any model sees
+them and shared by every arm. Each held-out axis — unseen shape modes,
+stronger deformation, unseen drive modes, parameter above or below the
+training band, boundary resolution from 32 to 256 panels, paired similarity
+transforms — is its own split.
+
+## How we measure {#sec-part-eval}
+
+Every number in this book is one of a small set of quantities defined
+here: a relative field error, a force-coefficient error, a paired per-case
+statistic, a seed-disagreement statistic, an operator-fidelity residual, or
+an exact contract test. Unless a table says otherwise, a ratio is the named
+baseline's error divided by MeshTransformer2's error on the same cases, so
+a ratio above one favours MeshTransformer2.
+
+### Field error, forces and paired statistics {#sec-metrics}
+
+**Relative L2 error.** For one case with sampled points $j=1,\dots,N$,
+prediction $\hat f_j$, label $f_j$ and cell measures $w_j$ normalized to
+sum to one, the recipe computes
+
+$$
+\varepsilon=\frac{\sqrt{\sum_j w_j\,\lVert\hat f_j-f_j\rVert^2}}
+{\sqrt{\sum_j w_j\,\lVert f_j\rVert^2}},
+$$ {#eq-rel-l2}
+
+where $\lVert\cdot\rVert$ is the vector norm for vector fields (velocity,
+wall shear) and the absolute value for scalars. The fields enter as the
+training pipeline presents them — each field shifted and scaled by dataset
+statistics — so the denominator is the norm of the standardized label, not
+of the raw pressure. The reported error is the arithmetic mean of
+$\varepsilon$ over the validation cases; where an artifact uses the
+geometric mean, the table says so. Absolute values are therefore
+comparable only within one dataset and one pipeline; the quantity that
+carries across normalizations is the *ratio* between two models scored on
+the same cases. In the gauge-pressure normalization of
+@fig-metric-calibration, predicting the freestream pressure everywhere
+scores exactly 1.00 by construction, the dataset-mean constant 0.94, and
+each case's own mean pressure 0.93; a model has learned something about a
+case only when it beats those.
+
+```{python}
+#| label: fig-metric-calibration
+#| fig-cap: >
+#|   What a relative L2 error means, calibrated on HiLiftAeroML. Pressure
+#|   relative L2 on the 180 shared validation cases, gauge pressure
+#|   p − p_inf, geometric mean over cases, for three parameter-free
+#|   reference predictors (gray) and the three architectures trained on
+#|   35 cases (seed 42). How to read this: the gray bars are the scale of
+#|   the metric — 1.00 is "predict the freestream pressure everywhere"
+#|   and 0.93 is the best any constant per case can do; the coloured bars
+#|   are the same quantity for trained models. It does not show the
+#|   recipe-normalized values used in every later table (where MT2 reads
+#|   0.138 at this rung); only ratios between bars transfer. Data:
+#|   results/hilift_reference_predictors_35_2026-09-06.json.
+#| code-fold: true
+import json
+from pathlib import Path
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+BLUE, RED, GREY = "#2a78d6", "#e34948", "#52514e"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+ref = json.load(open(Path("..") / "results" / "hilift_reference_predictors_35_2026-09-06.json"))
+s = ref["summary"]
+rows = [
+    ("constant: freestream pressure", s["const_p_inf_rel_l2_gmean"], "#c3c2b7"),
+    ("constant: dataset mean", s["const_dataset_mean_rel_l2_gmean"], "#c3c2b7"),
+    ("constant: each case's own mean", s["const_case_mean_rel_l2_gmean"], "#c3c2b7"),
+    ("Transolver, 35 cases", s["model_rel_l2_gmean"]["transolver"], GREY),
+    ("GeoTransolver, 35 cases", s["model_rel_l2_gmean"]["gt"], RED),
+    ("MeshTransformer2, 35 cases", s["model_rel_l2_gmean"]["mt2"], BLUE),
+]
+fig, ax = plt.subplots(figsize=(7.6, 3.3))
+y = range(len(rows))
+ax.barh(list(y), [r[1] for r in rows], color=[r[2] for r in rows], height=0.62)
+for i, (label, v, _) in enumerate(rows):
+    ax.text(v + 0.012, i, f"{v:.2f}", va="center", fontsize=9, color=INK2)
+ax.set_yticks(list(y), [r[0] for r in rows], fontsize=9)
+ax.invert_yaxis()
+ax.set_xlim(0, 1.12)
+ax.set_xlabel("pressure error, relative L2 on gauge pressure [–]\n(geometric mean over 180 cases)")
+ax.grid(axis="y", visible=False)
+fig.tight_layout()
+plt.show()
+```
+
+**Force coefficients.** The recipe's inference integrates predicted
+pressure and wall shear over the surface into drag and lift coefficients
+$C_D$ and $C_L$ per case (reference area one). The reported error is the
+mean absolute error of the coefficient over the validation cases divided
+by the mean magnitude of the true coefficient, averaged over seeds — the
+number an aerodynamicist would quote, and one that exposes bias a field
+error can hide.
+
+**Paired per-case statistics.** Because every architecture is scored on
+the same validation cases, each case yields a paired comparison. Pairing
+seed with seed (seed 42 of one model against seed 42 of the other, likewise
+43) gives 360 pairs on the 180-case HiLiftAeroML validation set. Two
+statistics are reported: the fraction of pairs on which one model has the
+lower error, with the exact two-sided binomial sign test on that count, and
+the median and 10th–90th percentile of the per-case error ratio.
+
+**Seed disagreement as an uncertainty signal.** With two independently
+seeded models of one architecture, the per-case disagreement between them
+(relative L2 of one seed's prediction against the other's) is the cheapest
+uncertainty estimate available; its Spearman rank correlation with the
+per-case error against the truth measures whether the model knows where it
+is wrong.
+
+**Regime-extrapolation ratio.** On the sealed `aoa` and `stall` splits the
+readout unit is $d=\varepsilon_{\text{test}}/\varepsilon_{\text{val}}$,
+the out-of-regime error divided by the same model's in-regime validation
+error, always reported beside the absolute test error, since a smaller $d$
+can also come from a higher in-regime floor (@sec-regime-extrapolation).
+
+### Operator fidelity as a first-class column {#sec-fidelity-columns}
+
+On the synthetic suites supervised accuracy is checked against the
+governing operator directly. Every problem driver's report carries a
+`fidelity` block computed in float64 on two cases and 32 query points per
+evaluation split: the strong-form PDE residual of the predicted field (for
+Laplace, $\lVert L^2\Delta u_\theta\rVert/\lVert u_\theta\rVert$ by
+autograd), the boundary-trace error, and — where the PDE licenses one — a
+maximum-principle violation, using on the conformal bank a certified check
+whose trace grid is enlarged by the analytic derivative bound so sampling
+cannot manufacture a pass. The tables of @sec-linear-suites carry the PDE
+residual beside the relative L2 error because the two disagree in
+instructive ways: a model can have the best supervised error of its cohort
+and the worst residual, meaning it interpolates values without
+representing the operator.
+
+### Contracts are exact tests, not metrics
+
+Structural properties an architecture claims are asserted to roundoff, in
+float64, as unit tests — never averaged into a score. A property either
+holds to roundoff or is not claimed. The contracts tested in this book:
+
+- **rotation and translation covariance**: a rigidly moved input produces
+  the rigidly moved output (scalars unchanged, vectors rotated);
+- **similarity covariance**: the same under positive rescaling, which
+  requires the reference length to transform with the geometry — for
+  MeshTransformer2 this holds only with its similarity gauge on
+  (@sec-mt2) and is not claimed for the default constant gauge;
+- **query independence**: the prediction at a point does not depend on
+  which other points are in the query batch (chunking may only reorder
+  floating-point sums). The exact-kernel MeshTransformer holds this always;
+  MeshTransformer2 holds it for interior queries, which are always decoded
+  passively, and for surface queries only in its optional
+  query-independent configuration — the reference configuration behind
+  every surface result in this book reads its heads from the interacting
+  encoder tokens, so a surface prediction depends weakly on the other
+  sampled points (@sec-mt2);
+- **superposition and zero drive**: for architectures declaring a linear
+  field mode, two-drive linearity to $\sim10^{-7}$ and exactly zero output
+  at zero boundary data;
+- **quadrature consistency**: splitting a cell into measure-conserving
+  duplicates leaves the operator unchanged;
+- **interior-data hygiene**: attaching arbitrary data to the interior
+  points changes no output.
+
+The exact-kernel MeshTransformer's paired-similarity tests run at
+$128\,\epsilon_{\mathrm{fp32}}$ and measure $10^{-7}$–$2\times10^{-6}$;
+MeshTransformer2's contract suite runs in float64 (33 tests). A property that is *not* enforced by construction — GeoTransolver's pose
+behaviour, for instance — is measured as an accuracy degradation under
+transformed inputs and reported as a number (@sec-full-data), never as a
+pass.
+
+### The four properties a PDE solver must have {#sec-four-properties}
+
+Four properties are commonly required of any discretization of a
+boundary-driven PDE: **spatial equivariance**, **discretization
+invariance**, **units invariance**, and **global interaction**. Each has a
+measurement here, and the measurements differ in kind.
+
+*Spatial equivariance* is either a contract (MeshTransformer2 and the
+exact-kernel MeshTransformer, tested in float64) or an accuracy under
+transformed inputs (GeoTransolver and Transolver, which consume raw
+coordinates). Both are reported; neither is assumed.
+
+*Global interaction* holds by construction in every architecture compared
+here: all use global attention or slice routing over the whole boundary,
+with no neighbourhoods or cutoffs.
+
+*Discretization invariance* means two different things, tested separately.
+Under **refinement** — more, smaller cells tiling the same surface — an
+operator built on exact panel quadrature converges: on an icosphere the
+exact double-layer kernel's error against its converged limit falls
+$2.51\%\to0.59\%\to0.12\%$ as each subdivision quadruples the cell count,
+second order in the cell size; the synthetic suites test this as the
+32-to-256-panel split. Under **subsampling** — the industrial regime, where
+10,000 points are drawn from a surface of millions of cells — coverage is
+incomplete by design, and the question is robustness to *where* the samples
+fall. That is measured on DrivAerML by evaluating a trained model on a
+sampling whose density is biased ten to one across the surface, reported
+as the biased-sampling error divided by the uniform-sampling error
+(@sec-full-data).
+
+*Units invariance* has two halves. For **lengths**, every model
+nondimensionalizes coordinates by a reference length $L$ and is exactly
+scale-covariant when $L$ transforms with the geometry — the intrinsic gauge
+of the exact-kernel MeshTransformer, or MeshTransformer2 with its
+similarity gauge on. For the **measure**, cell areas enter as quadrature
+weights; whether a trained model exploits correct weights under non-uniform
+sampling is not a contract but the density-robustness measurement above.
+Nothing in this book asserts a units property that was not tested in one
+of these two forms.
+
+## Protocol {#sec-protocol}
+
+**One frozen recipe.** Every cross-architecture comparison on the CFD
+datasets uses the same training recipe: 10,000 sampled surface points per
+case per step, 500 epochs, bfloat16 arithmetic, no data augmentation, and
+one learning rate per architecture — $10^{-3}$ for MeshTransformer2 and
+GeoTransolver, $3\times10^{-3}$ for Transolver where stated — chosen for
+each by validation on the full split before any smaller-split experiment
+ran, and never retuned per rung, so a difference between rungs of a ladder
+is a difference in data and nothing else. Every configuration runs at two or more seeds (42 and 43
+unless stated), with the seed range reported next to the mean.
+
+**Shared validation, sealed test.** All architectures at all rungs of a
+ladder are scored on the same validation cases, which is what makes the
+paired statistics meaningful. A sealed test split is evaluated exactly
+once, with the checkpoint and inference configuration declared in writing
+beforehand, and is never used for model selection; checkpoints are selected
+on validation error only.
+
+**Preregistration.** Each experiment is written down before it runs with a
+prediction and a falsifier in its readout units — a relative L2 band, a
+ratio threshold, a degradation factor — so the verdict is a comparison
+against a number fixed in advance. When a result favours one architecture,
+the strongest controls for the other (a higher learning rate, doubled
+epochs, a same-family architecture without the geometry encoder) are run
+under the same recipe before the result is stated. The dated record
+of every preregistration and readout, including the failed ones, is the
+lab notebook (@sec-notebook).
+
+**Resource matching.** A cross-architecture comparison states the parameter
+count, the tokens per case and the peak training memory of both sides in
+the same sentence. At 10,000 tokens per case MeshTransformer2 has 8.9
+million parameters and trains in 3.6 GB of peak memory; GeoTransolver has
+9.0 million and trains in 4.6 GB; tokens per case and epochs are identical.
+Every figure and table caption ends with the artifact in `results/` from which it is computed,
+and every figure is drawn from that artifact at render time.

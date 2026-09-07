@@ -1,0 +1,316 @@
+# Regime extrapolation: angle of attack and stall {#sec-regime-extrapolation}
+
+**Trained on one flow regime, neither MeshTransformer2 nor GeoTransolver
+predicts the other.** Crossing from low to high angle of attack, or from
+attached to separated flow, multiplies surface-pressure error by roughly
+ten for both architectures, to a level worse than MT2 reaches from only 35
+training cases inside the regime. The data-efficiency advantage of
+@sec-data-efficiency does not carry across a regime boundary, and no
+architectural choice tested here substitutes for training data that covers
+the regime. This chapter defines the two extrapolation splits, states the
+one-shot sealed-test protocol, presents the result and its three readings,
+and states the one mechanism question that remains open.
+
+## Two splits, one sealed evaluation
+
+The question is whether a surrogate trained on attached-flow cases can
+predict the pressure field of the same wing family once the flow separates.
+HiLiftAeroML (@sec-problem, @sec-splits) makes this measurable because its
+1,800 cases are 180 high-lift wing geometries each simulated at ten angles
+of attack from 4° to 22°, and the dataset ships two curated partitions along
+that axis.
+
+The **aoa split** partitions by angle of attack. Its training set is 788
+cases at angles of attack of 12° or less, its validation set is 112 further
+cases from the same low-angle population, and its sealed test set is all 900
+cases at 14° or more. The **stall split** partitions by flow state rather
+than by angle: 942 training cases and 135 validation cases labelled
+pre-stall by the dataset, and a sealed test set of 723 post-stall cases.
+The two splits ask related but distinct questions. The aoa split moves the
+inflow angle past the training range; the stall split holds the boundary at
+the physical transition, so a post-stall case at a modest angle on a
+stall-prone geometry lands in the test set while a higher-angle attached
+case on a benign geometry stays in training.
+
+In each split the validation set is *in-regime*: it is drawn from the
+training population, so the validation error measures how well the model
+has learned the regime it was shown, and the test error measures how far it
+carries beyond it. The ratio of the two isolates the extrapolation cost
+from the in-regime fit.
+
+Training follows the frozen protocol of @sec-protocol for both
+architectures: 10,000 sampled surface points per case, 500 epochs, bf16, no
+augmentation, learning rate 1e-3 for both MT2 and GeoTransolver (each one's
+best on the full split, chosen by validation before these lanes ran), seeds
+42 and 43. MT2 runs in its default configuration (constant reference length,
+similarity gauge off) at 8.6M parameters and 3.6 GB peak training memory;
+GeoTransolver at 9.0M parameters and 4.6 GB, both at 10,000 tokens per case
+(@sec-mt2, @sec-baselines). The comparison is resource-matched on tokens
+and epochs, and MT2 uses less memory, so no result below depends on MT2
+having more of anything.
+
+The sealed test was run under a protocol declared before any test case was
+read: the eight trained checkpoints (two splits × two architectures × two
+seeds) were each evaluated exactly once on their own split's test list,
+taken verbatim from the dataset manifest, with the frozen inference
+configuration (10,000 sampled points, the validation-identical sampling
+seed). No reruns, no configuration changes after the numbers were seen, and
+no data-efficiency lane touched the test lists
+(@sec-nb-hl-ladder-ood-indist for the declaration, @sec-nb-hl-sealed-test
+for the readout). Every prediction was finite.
+
+## The result: an order of magnitude on both axes {#sec-review-regime-extrapolation}
+
+The quantity throughout is the relative L2 error of surface pressure,
+‖p̂ − p‖/‖p‖ over the 10,000 sampled points of a case, arithmetic mean over
+the cases of a split. The degradation ratio is
+
+$$
+d = \frac{\text{sealed-test pressure rel-L2 (other regime)}}
+         {\text{validation pressure rel-L2 (training regime)}},
+$$
+
+computed per seed and reported as the seed mean, so d = 10 means the model
+is ten times less accurate on the other side of the boundary than on held-out
+cases from its own side.
+
+| split | architecture | validation (in-regime) | sealed test (OOD) | d = test / val |
+|---|---|---|---|---|
+| aoa | GeoTransolver | 0.0301 | 0.315 | 10.5 |
+| aoa | MeshTransformer2 | 0.0207 | 0.244 | 11.8 |
+| stall | GeoTransolver | 0.0296 | 0.276 | 9.3 |
+| stall | MeshTransformer2 | 0.0207 | 0.260 | 12.5 |
+
+: Regime extrapolation on HiLiftAeroML: seed-mean pressure rel-L2 on the
+in-regime validation set and on the sealed test set of the other regime,
+and their ratio d. Two seeds per cell; the per-seed values are the
+individual lines of @fig-hilift-ood. Validation from
+`results/hilift_ladder_reduction_2026-09-03.json`; test and d from
+`results/hilift_sealed_test_2026-09-04.json`. {#tbl-hilift-ood}
+
+```{python}
+#| label: fig-hilift-ood
+#| fig-cap: >
+#|   Regime extrapolation on HiLiftAeroML under the one-shot sealed test.
+#|   Left: the aoa split (788 training cases at 12° or less; 112 in-regime
+#|   validation cases; 900 sealed test cases at 14° or more). Right: the
+#|   stall split (942 pre-stall training cases; 135 in-regime validation
+#|   cases; 723 sealed post-stall test cases). Each line is one seed, joining
+#|   its in-regime validation pressure error to its sealed-test pressure
+#|   error; filled markers are seed 42, open markers seed 43; red circles are
+#|   GeoTransolver, blue squares MeshTransformer2. Each end is annotated with
+#|   the seed-mean error and each line pair with the seed-mean d = test / val.
+#|   The two categories sit at exactly two x positions with no horizontal
+#|   offset, so nothing horizontal encodes a value. What it does not show:
+#|   per-case pairing or statistics (each point is a split mean over two
+#|   seeds); anything about data efficiency (@fig-hilift-data-efficiency);
+#|   velocity or wall-shear error. Protocol: 10,000 sampled surface points
+#|   per case, 500 epochs, bf16, no augmentation, learning rate 1e-3 for both
+#|   architectures, MT2 in its default constant-gauge configuration. Data:
+#|   results/hilift_ladder_reduction_2026-09-03.json (validation) and
+#|   results/hilift_sealed_test_2026-09-04.json (test, d).
+#| code-fold: true
+import json, statistics
+from pathlib import Path
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+# book palette (mirrors figures.py without importing it: that module
+# switches matplotlib to Agg, which suppresses inline output here)
+BLUE, RED = "#2a78d6", "#e34948"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+
+lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
+sealed = json.load(open(Path("..") / "results" / "hilift_sealed_test_2026-09-04.json"))
+runs = sealed["runs"]
+style = {"gt": (RED, "GeoTransolver", "o"), "mt2": (BLUE, "MeshTransformer2", "s")}
+seeds = (42, 43)
+# In-regime validation sizes come from the dataset's curated split manifests
+# (112 low-angle cases for aoa, 135 pre-stall cases for stall); the sealed
+# test sizes are read from the artifact.
+n_val = {"aoa": 112, "stall": 135}
+panels = [("aoa", "Angle-of-attack extrapolation\n(train at 12° or less, test at 14° or more)"),
+          ("stall", "Stall extrapolation\n(train pre-stall, test post-stall)")]
+X_VAL, X_TEST = 0.0, 1.0  # the only two x positions used; no per-series offsets
+
+fig, axs = plt.subplots(1, 2, figsize=(9.0, 4.9), sharey=True)
+for ax, (axis, title) in zip(axs, panels):
+    n_test = {runs[f"lad_hl_{a}_{axis}_seed{s}"]["n_test"] for a in style for s in seeds}
+    assert len(n_test) == 1
+    n_test = n_test.pop()
+    for arch, (c, name, mk) in style.items():
+        vals, tests, ds = [], [], []
+        for s in seeds:
+            key = f"lad_hl_{arch}_{axis}_seed{s}"
+            v, t, d = lad[key]["pressure_l2"], runs[key]["pressure_l2"], runs[key]["d_axis"]
+            assert abs(v - runs[key]["val_pressure_l2"]) < 1e-6  # the sealed-test file carries the same val number
+            vals.append(v); tests.append(t); ds.append(d)
+            face = c if s == 42 else "white"  # filled = seed 42, open = seed 43
+            ax.plot([X_VAL, X_TEST], [v, t], color=c, lw=1.5, alpha=0.9, zorder=3)
+            ax.plot([X_VAL, X_TEST], [v, t], ls="none", marker=mk, ms=7, mfc=face, mec=c, mew=1.6, zorder=4)
+        vmean, tmean, dmean = (statistics.mean(x) for x in (vals, tests, ds))
+        # Direct labels: seed-mean validation error left of the validation end,
+        # seed-mean test error and d right of the test end. GeoTransolver sits
+        # above MT2 at both ends, so its labels go above and MT2's below.
+        up = arch == "gt"
+        ax.text(X_VAL - 0.06, vmean, f"{vmean:.3f}", color=c, fontsize=8.8, ha="right",
+                va="bottom" if up else "top")
+        ax.text(X_TEST + 0.10, tmean * (1.30 if up else 0.78),
+                f"{name}\n{tmean:.3f} on test,  d = {dmean:.1f}", color=c, fontsize=9.0,
+                fontweight="bold", ha="left", va="center", linespacing=1.3)
+    ax.set_yscale("log")
+    ax.set_xticks([X_VAL, X_TEST])
+    ax.set_xticklabels([f"in-regime validation\n({n_val[axis]} cases)", f"sealed OOD test\n({n_test} cases)"])
+    ax.set_xlim(-0.55, 2.35)
+    ax.set_title(title, color=INK, loc="left", fontsize=10.5, pad=8)
+    ax.grid(True, which="major", axis="y", color=GRID); ax.grid(False, which="minor"); ax.grid(False, axis="x")
+axs[0].set_yticks([0.02, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5])
+axs[0].set_yticklabels(["0.02", "0.03", "0.05", "0.10", "0.20", "0.30", "0.50"])
+axs[0].set_ylim(0.015, 0.6)
+axs[0].set_ylabel("Surface pressure error, rel-L2 [–]  (log)", color=INK2)
+fig.suptitle("Regime extrapolation on HiLiftAeroML: one-shot sealed test, one line per seed",
+             x=0.02, ha="left", color=INK, fontsize=11)
+fig.text(0.02, 0.02,
+         "Filled markers: seed 42. Open markers: seed 43. Left end of each line: pressure error on held-out cases from the\n"
+         "training regime. Right end: error on the sealed test split of the other regime, evaluated exactly once.\n"
+         "d = test / validation, seed mean. Both categories sit at exactly two x positions; nothing horizontal encodes a value.",
+         fontsize=7.6, color=MUTED, va="bottom", linespacing=1.35)
+fig.subplots_adjust(left=0.09, right=0.99, bottom=0.27, top=0.80, wspace=0.08)
+plt.show()
+```
+
+::: {.callout-note title="How to read this figure"}
+It says: *from either side of a regime boundary, both architectures lose
+about a factor of ten.* The lower blue endpoints show that MT2 is still the
+more accurate model on the far side of the boundary; the shallower red
+slope shows that GeoTransolver loses a smaller multiple of a worse starting
+point. It does not show data efficiency, per-case statistics, or any field
+other than pressure, and it is a two-seed, one-shot measurement.
+:::
+
+Three readings follow, in order of importance.
+
+**Neither architecture generalizes across a flow-regime boundary.** Both
+lose a factor of about ten, from 0.021–0.030 in regime to 0.24–0.33 on the
+sealed test. Those test errors are worse than MT2 reaches from 35 in-regime
+training cases on the shared validation set of the data-efficiency ladder
+(0.138; @sec-data-efficiency). A model that has seen 788 or 942 cases of
+the wrong regime is therefore less useful than one that has seen 35 cases
+spanning both regimes. Coverage of the regime, not architecture, governs this
+axis. The other fields degrade in the same way: sealed-test velocity
+rel-L2 is 0.19–0.26 and wall-shear rel-L2 0.32–0.39 for every lane, against
+0.04–0.06 and 0.07–0.10 in regime.
+
+**MT2 keeps the lower absolute error on both axes.** Its seed-mean
+sealed-test pressure error is 0.244 against GeoTransolver's 0.315 on the
+aoa split and 0.260 against 0.276 on the stall split. Its in-regime
+advantage shrinks from a ratio of 0.69–0.70 on the validation sets (which
+sits between the 210-case and 1,260-case rungs of the data-efficiency
+ladder, as expected for training sets of 788–942 cases) to 0.77 and 0.94
+on the test sets, but it does not invert.
+
+**GeoTransolver has the smaller degradation ratio, and it has it because
+its in-regime floor is higher.** Its d is 10.5 and 9.3 against MT2's 11.8
+and 12.5. The two architectures converge to similar sealed-test error
+(within 1.3x on aoa, 1.06x on stall) from different starting points (0.030
+against 0.021), and a ratio criterion rewards the worse starting point: a
+model that fits its own regime less well has less to lose. The ratio is
+still informative, because the two architectures' d values are separated by
+more than their seed spread on the stall split (the ratio d_GT / d_MT2 is
+0.74 with disjoint seed intervals, against 0.89 on aoa), so GeoTransolver
+does retain some relative-transfer behaviour that
+MT2 lacks. Whether that behaviour has a mechanism worth having is the
+question of the next section. In absolute terms, the number that governs
+deployment, MT2 is ahead.
+
+The readings carry their own limits. The measurement is two seeds and one
+evaluation per lane, with no per-case pairing. The two-seed intervals are
+disjoint in every cell of the table, but two seeds cannot bound the spread,
+so the ten-fold degradation and the 1.3x aoa gap are robust while the 1.06x
+stall gap between architectures should be read as suggestive. Both splits
+are drawn from one high-lift wing family; the conclusion is about crossing
+a regime boundary within that family, not about cross-family transfer,
+which is treated in @sec-industrial-mt1.
+
+## Is the smaller ratio carried by raw coordinates? {#sec-ood-mechanism}
+
+The one mechanism question the result leaves open is whether
+GeoTransolver's smaller degradation ratio comes from its inputs.
+GeoTransolver consumes raw centered coordinates and normals per point;
+MT2 consumes only SE(3)-invariant seeds relative to a gauge (@sec-mt2).
+The hypothesis is that pointwise raw-coordinate features let a model
+carry a learned map from position on the wing to pressure across the
+boundary, at the cost of the in-regime accuracy that invariant seeds buy.
+A controlled test adds the raw coordinates to MT2 rather than removing
+them from GeoTransolver, because a single added channel changes one thing.
+
+The **raw-coordinate discriminator** is MT2 with a side channel that
+appends the gauge-normalized raw coordinates and normal components to its
+seed invariants, deliberately breaking rotation equivariance (verified by
+a contract test that asserts equivariance is broken), trained on the stall
+split at two seeds under the otherwise frozen protocol, with one permitted
+sealed-test evaluation of the two new checkpoints only. The stall split is
+the test bed because it is the axis on which the two architectures' ratios
+are separated above seed spread. The readouts are the in-regime validation
+pressure error, the sealed-test pressure error, and d.
+
+The bars were declared in readout units before the lanes existed. If raw
+features carry the transfer, the variant's d moves at least halfway from
+MT2's 12.5 toward GeoTransolver's 9.3, that is **d ≤ 11.0, and** its
+sealed-test pressure error falls below 0.245. If **d ≥ 12.0 or** the
+sealed-test error is 0.255 or more, the carrier is elsewhere and the next
+test is a GeoTransolver ablation that removes its raw coordinates. Between
+those bands the result is inconclusive. Because the trigger for this test
+was a ratio driven by GeoTransolver's higher denominator, the absolute
+sealed-test error is weighted at least as heavily as d in the reading.
+
+This test is running; no number is reported here. Its outcome bears on
+mechanism, not on the practical conclusion above: a variant that meets the
+"yes" bar would still sit at a sealed-test error near 0.24, ten times its
+in-regime error.
+
+## Relation to the exact-kernel result on boundary-condition content
+
+Extrapolation across the *content* of the boundary data is possible when
+the model carries the governing operator exactly, and this chapter shows
+where that stops. On the two-dimensional Laplace, screened and mixed
+boundary-condition suites with exact labels (@sec-linear-suites), the
+exact-kernel MeshTransformer's decoder evaluates the PDE's Green's
+function, so it reaches a relative L2 error of 0.070 on a held-out band of
+boundary-condition spatial frequencies where the soft-slice and
+moment-decoder arms score about 1.0, the error of predicting zero. An exact
+operator carries the spectral response for free; learned routing must have
+seen each mode. Separated three-dimensional flow offers no such operator:
+the potential-flow prior fails on separated aerodynamics (@sec-limits), so
+neither architecture tested here has an exact operator to carry, and both
+pay the extrapolation cost above, equivariant or not. Regime extrapolation
+is a coverage problem where the operator is unknown, and a structure
+problem only where it is known.
+
+## What this means in practice
+
+**A regime boundary must be covered by training data; the surrogate's
+in-regime accuracy does not predict its accuracy on the other side.** Two
+consequences follow for anyone deploying either architecture on high-lift
+aerodynamics.
+
+First, training-set design matters more than architecture on this axis. A
+few dozen post-stall cases are worth more than hundreds of additional
+attached-flow cases if post-stall predictions are needed: the 35-case
+in-regime error (0.138) is lower than the 788-case out-of-regime error
+(0.244). The data-efficiency result of @sec-data-efficiency says how few
+in-regime cases MT2 needs; this chapter says that none of them can be
+replaced by cases from the wrong regime.
+
+Second, a validation set drawn from the training regime overstates the
+model's range by an order of magnitude. Any reported accuracy for these
+surrogates should state the angle-of-attack and flow-state coverage of the
+training data alongside the error, and deployment should include an
+out-of-regime check on a small sealed set, evaluated once, as done here.
+Within that coverage MT2 is the more accurate model and, at 3.6 GB against
+4.6 GB, the cheaper one to train; outside it, neither is usable, and the
+choice between them is not the decision that matters.

@@ -1,0 +1,417 @@
+# Data efficiency on HiLiftAeroML {#sec-data-efficiency}
+
+Trained on 35 high-lift wing cases, MeshTransformer2 (MT2) predicts surface
+pressure 2.9x more accurately than GeoTransolver and than plain Transolver;
+at 210 cases the advantage is 2.5x over GeoTransolver and 1.3x over
+Transolver; at 1,260 cases the three architectures are at parity. This
+chapter states exactly what was measured, shows that the result holds case
+by case and under every steel-man control constructed for the baselines,
+translates it into force-coefficient accuracy, and reports what the
+program has learned about *what* carries it — which is less than one would
+like. The chapter's limits are stated in @sec-de-limits and collected with
+the rest of the book's in @sec-limits.
+
+## What was measured {#sec-de-setup}
+
+HiLiftAeroML (@sec-datasets) holds 1,800 cases: 180 high-lift wing
+geometries, each simulated at ten angles of attack from 4° to 22°. Its
+curated data-efficiency splits are nested — 35 training cases inside 210
+inside 510 inside 1,260 — and all four share one 180-case validation set
+and one sealed 360-case test set (@sec-splits). The training subsets are
+random draws from the 1,260-case pool, so the 35-case split contains 3–7
+cases at each angle except 18°, of which it has none, and 33 distinct
+geometries.
+
+The quantity reported is the relative L2 error of surface pressure on the
+validation cases (@sec-metrics): for one case, the norm of the error over
+its 10,000 sampled surface points divided by the norm of the true field on
+the same points, then the arithmetic mean over the 180 cases. Every
+architecture is trained under the same frozen protocol (@sec-protocol):
+10,000 sampled surface points per case, 500 epochs, bfloat16, no
+augmentation, two seeds, and the learning rate each architecture prefers
+on the full split (1e-3 for MT2 and GeoTransolver; Transolver, which had
+no prior tuning on this dataset, was run at 1e-3 and 3e-3 and is reported
+at the better of the two per rung, 3e-3). Resources are matched: 8.9M
+parameters for MT2 against 9.0M for GeoTransolver and 6.0M for Transolver;
+the same tokens per case; and peak training memory of 3.6 GB for MT2
+against 4.6 GB for GeoTransolver at this token count
+(@sec-resource-matching). The test split was never read.
+
+## The result {#sec-de-result}
+
+```{python}
+#| label: fig-hilift-data-efficiency
+#| fig-cap: >
+#|   Surface-pressure relative L2 error on the shared 180-case validation set
+#|   versus number of training cases, for GeoTransolver (red circles),
+#|   MeshTransformer2 (blue squares) and plain Transolver without a geometry
+#|   encoder (grey triangles, dashed; at its better learning rate, 3e-3).
+#|   Lines join seed means, shaded bands span the two seeds, small dots are
+#|   the individual seeds. The annotated factors are each baseline's error
+#|   divided by MT2's at the same rung. Protocol: 10,000 sampled surface
+#|   points per case, 500 epochs, bfloat16, no augmentation, learning rate
+#|   1e-3 for GeoTransolver and MT2, two seeds; MT2 in its constant-gauge
+#|   configuration. The figure does not show scaling beyond 1,260 cases and
+#|   does not include the third seed (reported in the text). Data:
+#|   results/hilift_ladder_reduction_2026-09-03.json,
+#|   results/t1_transolver_control_reduction_2026-09-05.json.
+#| code-fold: true
+import json, statistics
+from pathlib import Path
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+BLUE, RED, GREY = "#2a78d6", "#e34948", "#52514e"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
+t1 = json.load(open(Path("..") / "results" / "t1_transolver_control_reduction_2026-09-05.json"))
+rungs = [(35, "lad_hl_{a}_super_scarce_seed{s}"), (210, "lad_hl_{a}_scarce_seed{s}"), (1260, "{a}_hl_lr1_seed{s}")]
+data = {}
+for arch in ("gt", "mt2"):
+    xs, means, lo, hi, pts = [], [], [], [], []
+    for n, pat in rungs:
+        v = [lad[pat.format(a=arch, s=s)]["pressure_l2"] for s in (42, 43) if pat.format(a=arch, s=s) in lad]
+        xs.append(n); means.append(statistics.mean(v)); lo.append(min(v)); hi.append(max(v)); pts.append(v)
+    data[arch] = (xs, means, lo, hi, pts)
+xs, means, lo, hi, pts = [], [], [], [], []
+for n, pat in [(35, "t1_hl_transolver_super_scarce_{lr}_seed{s}"), (210, "t1_hl_transolver_scarce_{lr}_seed{s}")]:
+    best = None
+    for lr in ("lr1e3", "lr3e3"):
+        v = [t1[pat.format(lr=lr, s=s)]["pressure_l2"] for s in (42, 43) if pat.format(lr=lr, s=s) in t1]
+        if len(v) == 2 and (best is None or statistics.mean(v) < statistics.mean(best)):
+            best = v
+    xs.append(n); means.append(statistics.mean(best)); lo.append(min(best)); hi.append(max(best)); pts.append(best)
+data["t"] = (xs, means, lo, hi, pts)
+fig, ax = plt.subplots(figsize=(7.2, 5.0))
+style = {"gt": (RED, "o", "-", 2.2), "t": (GREY, "^", "--", 1.6), "mt2": (BLUE, "s", "-", 2.2)}
+for arch in ("gt", "t", "mt2"):
+    xs, means, lo, hi, pts = data[arch]; c, mk, ls, lw = style[arch]
+    ax.fill_between(xs, lo, hi, color=c, alpha=0.18, lw=0)
+    ax.plot(xs, means, color=c, lw=lw, ls=ls, marker=mk, ms=7, zorder=3)
+    for x, v in zip(xs, pts):
+        ax.scatter([x] * len(v), v, color=c, s=14, alpha=0.9, zorder=4)
+ax.annotate("GeoTransolver", (35, data["gt"][1][0]), xytext=(14, 2), textcoords="offset points", color=RED, fontweight="bold", va="center",
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+ax.annotate("MeshTransformer2", (210, data["mt2"][1][1]), xytext=(14, -14), textcoords="offset points", color=BLUE, fontweight="bold", va="center",
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+xm, ym = (35 * 210) ** 0.5, (data["t"][1][0] * data["t"][1][1]) ** 0.5
+ax.annotate("Transolver", (xm, ym), xytext=(8, -12), textcoords="offset points", color=GREY, fontsize=9.5, va="top",
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+for i, n in enumerate((35, 210)):
+    r_gt = data["gt"][1][i] / data["mt2"][1][i]; r_t = data["t"][1][i] / data["mt2"][1][i]
+    ymid = (data["gt"][1][i] * data["mt2"][1][i]) ** 0.5
+    ax.annotate("", (n, data["mt2"][1][i]), (n, data["gt"][1][i]), arrowprops=dict(arrowstyle="<->", color=INK2, lw=0.9, shrinkA=4, shrinkB=4))
+    ax.text(n * 1.08, ymid, f"GeoTransolver {r_gt:.1f}x MT2\nTransolver {r_t:.1f}x MT2", color=INK2, fontsize=9, va="center", linespacing=1.3,
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+r_full = data["gt"][1][2] / data["mt2"][1][2]
+ax.annotate(f"{r_full:.2f}x (parity)", (1260, (data["gt"][1][2] * data["mt2"][1][2]) ** 0.5), xytext=(14, 30), textcoords="offset points", color=INK2, fontsize=9, va="bottom")
+ax.set_xscale("log"); ax.set_yscale("log")
+ax.set_xticks([35, 210, 1260]); ax.set_xticklabels(["35", "210", "1,260"])
+ax.set_yticks([0.04, 0.06, 0.1, 0.2, 0.4]); ax.set_yticklabels(["0.04", "0.06", "0.10", "0.20", "0.40"])
+ax.set_xlim(22, 3200)
+ax.set_xlabel("Training cases [count]", color=INK2)
+ax.set_ylabel("Surface pressure error\nrel-L2 [–]", color=INK2, rotation=0, ha="right", va="center", labelpad=28)
+ax.set_title("Data efficiency on HiLiftAeroML (shared 180-case validation set)", color=INK, loc="left", fontsize=11, pad=10)
+ax.grid(True, which="major", color=GRID); ax.grid(False, which="minor")
+fig.tight_layout()
+plt.show()
+```
+
+```{python}
+#| label: tbl-hilift-ladder
+#| output: asis
+#| code-fold: true
+import json, statistics
+from pathlib import Path
+lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
+t1 = json.load(open(Path("..") / "results" / "t1_transolver_control_reduction_2026-09-05.json"))
+inv = json.load(open(Path("..") / "results" / "inv_transplant_2026-09-07.json"))
+def pair(d, pat):
+    v = [d[pat.format(s=s)]["pressure_l2"] for s in (42, 43) if pat.format(s=s) in d]
+    return v
+rows = []
+for n, gpat, mpat, tpat in [(35, "lad_hl_gt_super_scarce_seed{s}", "lad_hl_mt2_super_scarce_seed{s}", "t1_hl_transolver_super_scarce_lr3e3_seed{s}"),
+                            (210, "lad_hl_gt_scarce_seed{s}", "lad_hl_mt2_scarce_seed{s}", "t1_hl_transolver_scarce_lr3e3_seed{s}"),
+                            (1260, "gt_hl_lr1_seed{s}", "mt2_hl_lr1_seed{s}", None)]:
+    g, m = pair(lad, gpat), pair(lad, mpat)
+    t = pair(t1, tpat) if tpat else []
+    gm, mm = statistics.mean(g), statistics.mean(m)
+    tcell = f"{statistics.mean(t):.3f} ({min(t):.3f}–{max(t):.3f})" if t else "—"
+    tr = f"{statistics.mean(t)/mm:.1f}" if t else "—"
+    rows.append(f"| {n:,} | {gm:.3f} ({min(g):.3f}–{max(g):.3f}) | {tcell} | **{mm:.3f}** ({min(m):.3f}–{max(m):.3f}) | {gm/mm:.2f} | {tr} |")
+print("| training cases | GeoTransolver | Transolver (lr 3e-3) | MeshTransformer2 | GT / MT2 | T / MT2 |")
+print("|---|---|---|---|---|---|")
+print("\n".join(rows))
+print()
+print(": Surface-pressure relative L2 error on the shared 180-case validation set: seed mean (seed range) for each architecture at each rung, and the ratio of each baseline's mean to MT2's. Ratios above 1 mean MT2 is more accurate. Same protocol and sources as @fig-hilift-data-efficiency. {#tbl-hilift-ladder}")
+```
+
+Two features of the numbers matter before any interpretation. The seed
+spreads are an order of magnitude smaller than the gaps at 35 and 210
+cases (0.006 against 0.25 at 35 cases), and the gap closes monotonically
+with data: 2.9x, then 2.5x, then parity. MT2 trained on 210 cases (0.064)
+is already more accurate than GeoTransolver trained on 1,260 would have
+been on DrivAerML (0.053–0.063, @sec-full-data), and GeoTransolver needs
+the full 1,260 cases to reach the accuracy MT2 reaches with 210.
+
+The same-family control sharpens the statement rather than weakening it.
+Plain Transolver — GeoTransolver's attention family without the geometry
+encoder — collapses exactly like GeoTransolver at 35 cases (0.40, 2.9x MT2)
+but recovers faster, reaching 0.086 at 210 cases, where it is 1.8x more
+accurate than GeoTransolver itself. So at 210 cases most of the 2.5x gap
+to GeoTransolver is GeoTransolver's geometry encoder falling behind its own
+backbone, and MT2's advantage over the *best* Transolver-family baseline is
+1.3x. At 35 cases the two baselines are indistinguishable and the 2.9x
+holds against both.
+
+## It holds case by case {#sec-de-paired}
+
+The 180 validation cases are shared, so each can be scored as a paired
+comparison (seed 42 with 42, seed 43 with 43: 360 pairs per rung). The
+table below reports the fraction of pairs on which MT2 has the lower error,
+an exact two-sided sign test, and the distribution of the per-case error
+ratio.
+
+```{python}
+#| label: tbl-hilift-paired
+#| output: asis
+#| code-fold: true
+import json
+from pathlib import Path
+ps = json.load(open(Path("..") / "results" / "hilift_paired_stats_2026-09-06.json"))
+names = {"gt": "GeoTransolver", "transolver": "Transolver (lr 3e-3)"}
+print("| training cases | baseline | pairs MT2 wins | sign-test p | median ratio (baseline / MT2) | 10th–90th percentile |")
+print("|---|---|---|---|---|---|")
+for n in ("35", "210", "1260"):
+    for b in ("gt", "transolver"):
+        k = f"mt2_vs_{b}"
+        if k not in ps[n]:
+            continue
+        r = ps[n][k]
+        print(f"| {int(n):,} | {names[b]} | **{r['mt2_wins']} / {r['n_pairs']}** | {r['sign_test_p']:.0e} | {r['median_ratio_base_over_mt2']:.2f} | {r['q10_ratio']:.2f}–{r['q90_ratio']:.2f} |")
+print()
+print(": Paired per-case comparison on the shared validation set. A pair is one validation case scored by MT2 and by the baseline at the same seed; 'wins' counts pairs where MT2's pressure error is lower. The sign test is exact and two-sided against a 50% null. Ratios above 1 favour MT2. Data: results/hilift_paired_stats_2026-09-06.json. {#tbl-hilift-paired}")
+```
+
+At 35 cases there is no validation case, on either seed, where either
+baseline beats MT2, and the worst tenth of cases still favour MT2 by 1.8x.
+At 210 cases the same holds against GeoTransolver on 98% of pairs; against
+Transolver MT2 wins 92% with a median 1.5x. At 1,260 cases, where the seed
+means are at parity, MT2 is nominally better on 72% of cases with a median
+ratio of 1.06 — a small per-case edge the mean comparison hides, and one
+that the paired view is the right instrument to see.
+
+A third seed confirms the picture at 35 cases: MT2 0.138, GeoTransolver
+0.359, Transolver 0.409, each inside its two-seed spread, for three-seed
+means of 0.138, 0.381 and 0.404 (`results/inv_transplant_2026-09-07.json`).
+
+## Where the advantage lives {#sec-de-strata}
+
+Two hypotheses about a small-data advantage make different predictions
+about where on the validation set it appears. If it came from memorizing
+geometries, it should collapse on validation geometries that the 35
+training cases never contain; if it came from interpolating angle of
+attack, it should collapse at the one angle (18°) the training set lacks.
+The table stratifies the 35-case results by both.
+
+```{python}
+#| label: tbl-hilift-strata
+#| output: asis
+#| code-fold: true
+import json
+from pathlib import Path
+st = json.load(open(Path("..") / "results" / "hilift_stratified_35_2026-09-06.json"))
+print("| angle of attack [deg] | training cases at this angle | validation cases | MT2 | GeoTransolver | Transolver | GT / MT2 |")
+print("|---|---|---|---|---|---|---|")
+for aoa in sorted(st["by_aoa"], key=int):
+    r = st["by_aoa"][aoa]
+    bold = "**" if r["n_train"] == 0 else ""
+    print(f"| {bold}{aoa}{bold} | {r['n_train']} | {r['n_val']} | {r['mt2']:.3f} | {r['gt']:.3f} | {r['transolver']:.3f} | {r['gt']/r['mt2']:.1f} |")
+print()
+print(": The 35-case models stratified by angle of attack: geometric-mean pressure rel-L2 over the validation cases at each angle (both seeds). The 18° row (bold) is an angle absent from the 35 training cases. Data: results/hilift_stratified_35_2026-09-06.json. {#tbl-hilift-strata}")
+print()
+print("| validation geometry seen in training at another angle | validation cases | MT2 | GeoTransolver | Transolver | GT / MT2 |")
+print("|---|---|---|---|---|---|")
+for k, lab in (("True", "yes"), ("False", "**no**")):
+    r = st["by_geometry_seen"][k]
+    print(f"| {lab} | {r['n_val']} | {r['mt2']:.3f} | {r['gt']:.3f} | {r['transolver']:.3f} | {r['gt']/r['mt2']:.1f} |")
+print()
+print(": The same models stratified by whether the validation geometry appears among the 33 geometries of the 35-case training set. Data: results/hilift_stratified_35_2026-09-06.json. {#tbl-hilift-strata-geo}")
+```
+
+Neither collapse happens. On the 146 never-seen geometries MT2 is 3.0x
+ahead; seeing a geometry at another angle helps MT2 by 15% and
+GeoTransolver not at all. At 18°, MT2 interpolates smoothly between its
+16° and 20° errors (0.135 → 0.167 → 0.186) and stays 2.5x ahead. The
+advantage is uniform — 2.2x to 4.3x at every angle — and largest in
+attached flow (4°–12°), where MT2's error is 0.09–0.10 against 0.33–0.39
+for the baselines.
+
+The strata also show *what kind* of model each is at 35 cases. The
+baselines' error is nearly flat — 0.33 to 0.47 at every angle, identical on
+seen and unseen geometries — while MT2's tracks the physics, doubling from
+attached flow to post-stall. Against reference predictors on the same
+cases (a constant freestream pressure everywhere scores 1.00 on the
+gauge-pressure scale, the dataset mean 0.94, each case's own mean 0.93),
+GeoTransolver scores 0.63 and Transolver 0.68 while MT2 scores 0.25; the
+median per-case correlation between predicted and true pressure is 0.76
+and 0.69 for the baselines against 0.97 for MT2
+(`results/hilift_reference_predictors_35_2026-09-06.json`). At 35 cases the
+baselines have learned the coarse, case-independent pressure pattern and
+about half of the case-to-case variation; MT2 has learned most of it.
+
+## In engineering terms: lift and drag {#sec-de-forces}
+
+Integrating the predicted pressure and wall shear over each wing gives
+its lift and drag coefficients. The table reports the mean absolute error
+of each coefficient over the 180 validation cases, relative to the mean
+magnitude of the true coefficient (the recipe integrates with a unit
+reference area, so only relative errors are meaningful).
+
+```{python}
+#| label: tbl-hilift-forces
+#| output: asis
+#| code-fold: true
+import json
+from pathlib import Path
+ps = json.load(open(Path("..") / "results" / "hilift_paired_stats_2026-09-06.json"))
+names = {"mt2": "MeshTransformer2", "gt": "GeoTransolver", "transolver": "Transolver (lr 3e-3)"}
+print("| training cases | architecture | drag coefficient error | lift coefficient error |")
+print("|---|---|---|---|")
+for n in ("35", "210", "1260"):
+    for a in ("mt2", "gt", "transolver"):
+        f = ps[n]["forces"].get(a)
+        if not f:
+            continue
+        b = "**" if a == "mt2" and n == "35" else ""
+        print(f"| {int(n):,} | {names[a]} | {b}{100*f['CD']['rel_mae']:.1f}%{b} | {b}{100*f['CL']['rel_mae']:.1f}%{b} |")
+print()
+print(": Force-coefficient error: mean absolute error of the integrated drag (CD) and lift (CL) coefficients over the 180 validation cases, as a percentage of the mean magnitude of the true coefficient, averaged over seeds. Data: results/hilift_paired_stats_2026-09-06.json. {#tbl-hilift-forces}")
+```
+
+From 35 CFD runs, MT2 predicts the lift and drag of unseen high-lift
+configurations to about 3%, where GeoTransolver reaches 11–17% and
+Transolver 8–12%. At 210 runs all three are within 1.5–3%, and at 1,260
+the two-seed means are indistinguishable. The 3% figure is the practical
+content of this chapter: a few-dozen-run design-of-experiments budget
+yields a force surrogate of usable accuracy.
+
+## Steel-man controls {#sec-de-controls}
+
+A small-data advantage can be a protocol artefact: the fixed 500-epoch
+budget gives a 35-case model only 4,500 optimizer steps, and the learning
+rate was chosen on the full split. Four GeoTransolver controls test both
+explanations, with the preregistered falsifier that any control within
+1.2x of MT2 at 35 cases voids the result.
+
+| GeoTransolver control | 35 cases | 210 cases | reference (ladder) | 1.2x-MT2 bar |
+|---|---|---|---|---|
+| learning rate 3e-3, 500 epochs | 0.392 / 0.480 | 0.220 / 0.290 | 0.392 / 0.159 | 0.166 / 0.077 |
+| learning rate 1e-3, 1,000 epochs | 0.373 / 0.429 | 0.152 / 0.128 | 0.392 / 0.159 | 0.166 / 0.077 |
+
+: GeoTransolver steel-man controls (two seeds each). A higher learning rate hurts at both rungs; doubling the epochs helps only at 210 cases (1.13x) and leaves GeoTransolver 2.2x behind MT2 there. No control approaches the falsifier. Data: results/t1_transolver_control_reduction_2026-09-05.json. {#tbl-hilift-controls}
+
+Two further controls are already in the tables above: the same-family
+baseline (Transolver at its better learning rate) and the third seed. A
+learning-rate explanation is also implausible on independent grounds:
+GeoTransolver's sensitivity to learning rate is itself one of the measured
+differences between the architectures (@sec-robustness-lr).
+
+## A free uncertainty signal {#sec-de-uq}
+
+Because two seeds exist for every model, the disagreement between them is
+a per-case uncertainty estimate at no extra cost. Its rank correlation
+with the per-case error tells whether a model knows where it is wrong.
+
+| training cases | MT2 | GeoTransolver | Transolver |
+|---|---|---|---|
+| 35 | **+0.67** | −0.20 | −0.47 |
+| 210 | +0.64 | +0.65 | +0.60 |
+| 1,260 | +0.15 | +0.19 | — |
+
+: Spearman rank correlation, over the 180 validation cases, between the two seeds' disagreement (norm of the difference of their pressure predictions) and the two-seed ensemble's error. Data: results/hilift_ensemble_uq_{35,210,1260}_2026-09-06.json. {#tbl-hilift-uq}
+
+At 35 cases MT2's seed disagreement ranks its errors (0.67), so a two-seed
+MT2 ships with a usable per-case confidence flag; the baselines'
+disagreement is anticorrelated with their error, so an ensemble spread
+would mislead. At 210 cases all three architectures have the property,
+which identifies it as a "the model has learned the task" property that
+MT2 reaches at 35 cases and the baselines at 210. At 1,260 cases it
+collapses for both architectures — the remaining error is not
+seed-dependent model variance — which is part of the evidence, taken up in
+@sec-shared-floor, that both architectures approach a common floor at this
+token count. Two-seed ensembles gain only 1–5% at any rung. Only the
+ranking is tested here, not calibration.
+
+## What carries it {#sec-mechanism}
+
+MT2 differs from the Transolver family in several ways at once: exact
+rotation and translation equivariance, an invariant seed parameterization,
+measure-weighted routing, equivariant slice anchors with relational
+invariants, and an optional similarity gauge. Removing one at a time at
+35 cases (reference MT2 error 0.138) gives:
+
+| single-factor change to MT2 at 35 cases | error (seed 42 / 43) | vs reference |
+|---|---|---|
+| add raw coordinates as inputs (breaks exact equivariance) | 0.143 / 0.143 | 1.04x |
+| replace the invariant seeds by the raw vectors [r, n, d] | 0.138 / 0.137 | 0.99x |
+| similarity gauge on | 0.151 / 0.147 | 1.08x |
+| measure weights off | 0.121 / 0.123 | **0.88x** |
+| relational routing off in the encoder | 0.158 / 0.163 | 1.16x |
+
+: Single-factor ablations of MeshTransformer2 at 35 training cases, two seeds, frozen protocol, shared validation set. Every variant retains an invariant path somewhere (the relational invariants in the encoder, or in the decoder read blocks), so these results speak to exactness and to individual ingredients, not to the presence of invariant information. Data: results/a35_v0_reduction_2026-09-05.json. {#tbl-hilift-ablations}
+
+No single ingredient carries the advantage: nothing moves the error by
+more than 16%, against a 190% gap to the baselines. Exactness of the
+equivariance is not load-bearing (adding raw coordinates costs 4%); the
+invariant seed set is not (raw vectors cost nothing); the gauge is neutral
+to slightly harmful at this rung; and measure weights, which buy
+sampling-density robustness (@sec-robustness-density), *cost* 12% at 35
+cases, where uniform sampling makes area weights a source of gradient
+variance rather than information. Relational routing is worth 16%.
+
+The complementary test from the baseline side — giving GeoTransolver and
+Transolver MT2's three drive-relative invariants (local incidence n·d,
+radial cosine, radius) as per-cell input features — buys Transolver 1.35x
+(0.40 → 0.30) and GeoTransolver nothing (0.39 → 0.39)
+(`results/inv_transplant_2026-09-07.json`). So the availability of
+invariant information is not the carrier either. What the program can say
+is that the advantage is a property of MT2's soft-slice design as a whole
+— equivariant anchors, relational routing and readback, measure-weighted
+aggregation, invariant seeds, and the training dynamics they induce
+together — and that no single transplantable ingredient has been isolated.
+The running tests that could still locate it are the single-angle split
+and the unseen-geometry ladder (@sec-limits).
+
+## Limits of the claim {#sec-de-limits}
+
+**It is a data-efficiency claim, not a scaling law.** The measured
+log-log slopes of error against training cases are 0.50 then 0.74 for
+GeoTransolver and 0.43 then 0.25 for MT2 over the 35→210 and 210→1,260
+segments: GeoTransolver's curve steepens where MT2's flattens, and a naive
+power-law extrapolation would put GeoTransolver ahead by about 5,000 cases.
+The book makes no claim beyond 1,260 cases. Three pieces of evidence
+suggest the flattening is a shared floor of the protocol rather than a
+property of MT2 — 70% of the residual at full data is shared between the
+two architectures on identical points, the seed-disagreement correlation
+collapses for both at 1,260 cases, and accuracy still rises with tokens
+per case — but that reading is a hypothesis under test (both architectures
+at 1,260 cases with 20,000 tokens), not a result (@sec-shared-floor).
+
+**It is one dataset family.** On DrivAerML, whose freestream is fixed,
+the same protocol gave parity between MT2 and GeoTransolver at 14 training
+cases. The contrast with HiLiftAeroML, where the angle of attack varies, is
+real and unexplained: the obvious hypothesis (that MT2 wins by representing
+the freestream-direction dependence exactly) predicts that giving the
+baselines those features would close the gap, and it does not.
+
+**It is in-distribution.** The validation cases are random draws from the
+same 180-geometry, ten-angle design as the training cases. What happens
+across a regime boundary is the subject of @sec-regime-extrapolation, and
+the answer there is that no architecture generalizes.
+
+**The mechanism is not identified**, as the previous section states.
