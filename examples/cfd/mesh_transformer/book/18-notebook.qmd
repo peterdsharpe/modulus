@@ -7082,3 +7082,12 @@ case-independent (coefficient of variation 0.15 at 35 cases against ISLA's
 0.44, @sec-nb-hilift-percase), rising only with angle of attack, which is
 what a model that has learned the mean pattern and the angle dependence but
 little of the geometry dependence looks like.
+
+**Same signature at a fixed angle.** On the single-angle split (126
+geometries at 12°, 18 held-out geometries) GeoTransolver's per-geometry
+error is flat, 0.139–0.209 around a mean of 0.179 (coefficient of variation
+0.12), while ISLA's spans 0.026–0.051 (0.18); on the matched mixed-angle
+control the coefficients are 0.19 against 0.57
+(results/hilift_single_angle_error_spread_2026-09-07.json). With the angle
+fixed, GeoTransolver has almost nothing left that varies by case: at 126
+cases it is geometry-blind to within seed noise.

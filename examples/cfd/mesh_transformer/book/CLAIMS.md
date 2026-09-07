@@ -174,6 +174,19 @@ Artifacts: `results/hilift_ladder_reduction_2026-09-03.json`,
   0.203–0.211 vs 0.0577 in-family pressure on DrivAerML; the anchor-
   conditioned variant with a fixed interacting core 0.209/0.221 vs
   0.0697/0.0671 at matched memory (6.35 vs 6.56 GB).
+- **Per-case structure (2026-09-07 artifacts):** HiLift per-case error rank
+  correlation ISLA vs GeoTransolver 0.57 (35), 0.64 (210), 0.94 (1,260)
+  against seed self-consistency 0.87–0.97; DrivAerML 0.86–0.89 (= self).
+  READ AS: GeoTransolver's small-data error is nearly case-independent (CV
+  0.15 at 35, 0.19 at 210; 0.12 across geometries at a fixed angle) while
+  ISLA's varies 3–4x more and tracks the physics; NOT "GeoTransolver fails on
+  cases of its own". GeoTransolver gains nothing from having trained on a
+  geometry at other angles (0.390 vs 0.392 at 35; 0.158 vs 0.159 at 210);
+  ISLA gains 15% at 35. Artifacts: results/hilift_percase_correlation_2026-09-07.json,
+  results/drivaer_percase_correlation_2026-09-07.json,
+  results/hilift_error_drivers_2026-09-07.json,
+  results/hilift_seen_vs_unseen_geometry_2026-09-07.json,
+  results/hilift_single_angle_error_spread_2026-09-07.json.
 - Memory/compute: ISLA 1.5 GB and 330 ms/step (recipe default, activation
   recompute; 3.5 GB and 285 ms storing activations) vs GeoTransolver 4.6 GB at
   10,000 tokens (ISLA measured on RTX 4090 fwd+bwd bf16; the GeoTransolver
