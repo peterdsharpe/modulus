@@ -5580,3 +5580,169 @@ function is unchanged to roundoff, checkpoints are interchangeable.
 **What this does not say.** It says nothing about accuracy — the A35b
 readout of the *no-relational-geometry* variant (which removes the
 features, not just their cost) is a separate question, read out below.
+
+## 2026-09-06 — A35b verdict: raw seeds cost nothing (0.99x), no relational routing costs 1.16x; no single MT2 contract carries the 35-case advantage, and the A35 "equivariance is not the carrier" reading is weakened {#sec-nb-a35b-verdict}
+
+**Setting.** MeshTransformer2 (MT2) is 2.9x more accurate than both
+GeoTransolver and plain Transolver at 35 HiLift training cases
+(@sec-nb-hl-ladder-dataeff, @sec-nb-t1-35-verdict). A35
+(@sec-nb-a35-verdict) removed one ingredient at a time and found that
+adding raw coordinates (breaking the SE(3) contract) costs 4%, turning
+measure weights off *helps* 12%, and the similarity gauge costs 8%. A35b
+tested the two remaining single-factor candidates: the invariant seed
+set (replaced by the raw vectors [r, n, d], `seed_mode=raw`) and the
+anchor-relational routing (`use_relational_geo=false`, Transolver-style
+feature-only slicing in the encoder).
+
+**Result** (35 cases, lr 1e-3, 500 epochs, shared 180-case val,
+pressure rel-L2; reference MT2 ladder 0.135 / 0.141, mean 0.138):
+
+| ablation | s42 / s43 | vs reference |
+|---|---|---|
+| invariant seeds → raw [r, n, d] | 0.1377 / 0.1366 | **0.99x** |
+| relational routing off (encoder) | 0.1579 / 0.1629 | **1.16x** |
+
+**Preregistered reading.** A carrier was defined as ≥ 1.5x (≥ 0.21);
+"distributed" as neither ≥ 1.3x; the whole-line falsifier as both within
+1.15x. Raw seeds are exactly neutral; relational routing sits at 1.16x —
+a real but small contribution, one hundredth over the falsifier line
+and far below the carrier bar. **Verdict: distributed.** Across five
+single-factor ablations no ingredient moves the 35-case error by more
+than 16%, in either direction, while the gap to the Transolver family is
+190%.
+
+**A correction to the A35 reading.** A35 concluded that "exact
+equivariance is NOT what buys the data-efficiency" because adding raw
+coordinates cost only 4%. That is too strong. Every MT2 variant tested,
+including the raw-coordinate and raw-seed ones, *retains an invariant
+path*: the relational invariants (distance, log-distance and six
+direction cosines to each slice anchor) are still present in every
+encoder layer of the raw-seed variant, and in every decoder read block
+of the no-relational-geometry variant (the ablation flag reaches only
+the encoder). What A35/A35b establish is that the *exactness* of the
+contract is not load-bearing and that no *one* route to invariant
+information is; they do not establish that invariant information is
+dispensable, because no variant was ever without it. The baselines, by
+contrast, receive only raw centered coordinates, normals and the
+freestream vector, and must learn every drive-relative quantity — most
+importantly the local incidence n·d — from data. That asymmetry is the
+one candidate that every ablation so far has left untouched, and it is
+the subject of the transplant test preregistered next
+(@sec-nb-inv-prereg).
+
+**Retrodiction it must satisfy.** On DrivAerML the freestream is fixed
+along +x for every case, so n·d = n_x and r̂·d ∝ x are *already* raw
+inputs; the hypothesis therefore predicts no small-data advantage there
+— which is what the G1 ladder found (parity at n = 14,
+@sec-nb-g1g2-verdict). On HiLift the angle of attack spans 4–22°, so
+the incidence is a genuinely new, case-dependent quantity, and the
+advantage appears. The hypothesis also predicts that the advantage
+*shrinks* with data as the baselines learn the coupling, which is the
+observed 2.9x → 1.4–2.5x → 1.0x ladder.
+
+## 2026-09-06 — Branch V falsified: latent volume tokens are 3.7x behind GeoTransolver and 1.43x *worse* than the plain interior decode; the interior gap is not closed by off-surface tokens along anchor normals {#sec-nb-lvt-verdict}
+
+**Setting.** On the boundary→interior task (DrivAerML volume fields
+from the surface alone), GeoTransolver's queries-as-interacting-tokens
+lead MT2's passive equivariant decode by 2.57x on interior pressure
+(@sec-nb-v0-verdict), with MT2's deficit growing with distance from the
+wall (@sec-nb-v0-sdf-band). Branch V (`results/mt3_preregistration_skeleton_2026-09-03.md`,
+addendum) proposed equivariant latent volume tokens (LVT): 769 tokens
+placed off each slice anchor along its mean normal at 0.5, 1 and 2 RMS
+radii, plus the centroid, joining the encoder as interacting tokens so
+that interior queries could read off-surface context while remaining
+exactly query-independent. Preregistered: LVT/GT ≤ 1.5 confirms;
+≥ 2.0 falsifies.
+
+**Result** (500 epochs, 2 seeds, 48 val cases, interior rel-L2):
+
+| arm | pressure | velocity | nut | pressure vs GT |
+|---|---|---|---|---|
+| GeoTransolver-volume | 0.0620 | 0.1334 | 0.0939 | 1.00 |
+| MT2-interior (SDF normal) | 0.1596 | 0.3075 | 0.3719 | 2.57x |
+| **MT2-interior + LVT** | **0.2283** | 0.3709 | 0.5811 | **3.68x** |
+
+**The falsifier fires (3.68 ≥ 2.0), and the arm is worse than its own
+base by 1.43x** on pressure, 1.21x on velocity and 1.56x on nut, on both
+seeds (0.2326 / 0.2239 vs 0.1662 / 0.1529). The pilot's 1.26x deficit at
+50 epochs did not close with training; it widened.
+
+**What it does and does not establish.** The preregistered
+interpretation of the falsifier was "interaction at the query itself is
+required". The result is consistent with that, but it does not prove
+it, because the LVT tokens did not merely fail to help — they hurt,
+which points at the construction rather than the hypothesis: 769
+near-body tokens with near-identical invariant seeds entered the
+measure-weighted slice routing that the boundary tokens rely on, and
+the anchor-normal offsets (0.5–2 RMS radii) do not reach the region
+where the deficit is largest (the mid and far bands). The clean
+statement is: **off-surface latent tokens placed along anchor normals,
+as interacting tokens in MT2's routing, degrade the interior decode.**
+Branch V as built is closed. Two designs remain unmeasured and are
+recorded, not launched: (i) a *wake-aligned* probe set (tokens along the
+freestream direction downstream of the body, where the volumetric
+structure of an external flow actually lives), and (ii) the
+canonical-probe-set hybrid named in the preregistration, in which a
+fixed request-independent probe lattice interacts GeoTransolver-style
+and queries decode from it. Neither launches before the small-data
+carrier question (@sec-nb-inv-prereg) is settled, because that result
+decides which architecture the interior work should build on.
+
+**Standing of the interior task.** GeoTransolver 0.062, MT2-interior
+0.160, kernel decoder 0.496 (closed). The honest product statement is
+unchanged: GeoTransolver for interior accuracy; MT2 for exact contracts
+and query independence at a 2.6x interior-accuracy price.
+
+## 2026-09-06 — INV transplant preregistered: give GeoTransolver and Transolver MT2's three drive-relative invariants as inputs at 35 cases; if they recover, the small-data carrier is a portable feature, not an architecture {#sec-nb-inv-prereg}
+
+**Question.** Five single-factor ablations of MeshTransformer2 (A35,
+A35b) have failed to name what carries its 2.9x accuracy advantage over
+both Transolver-family baselines at 35 HiLift training cases. The one
+asymmetry no ablation touched is that every MT2 variant *has* the
+drive-relative invariants — the local incidence n·d, the radial
+direction cosine r̂·d and the radius |r|/L, in MT2's seed set and in
+its relational features — while the baselines receive raw centered
+coordinates, normals and the freestream vector and must learn those
+bilinear couplings from data. On HiLift the angle of attack varies
+4–22°, so the incidence is the leading-order physics; on DrivAerML the
+freestream is fixed and the same quantities are already raw inputs,
+which retrodicts the absent small-data advantage there.
+
+**Arm INV (launched now; 4 lanes, `highlift/hl_inv_aga.sbatch`).** A
+job-local datapipe transform `ComputeDriveInvariants` writes a per-cell
+feature `drive_inv = [n·d, r̂·d, |r|/8]` (r relative to the mesh
+centroid, L = 8 exactly as in MT2's constant gauge) after `CenterMesh`
+and `ComputeSurfaceNormals`; the `super_scarce` dataset variant
+`highlift_surface_super_scarce_inv.yaml` adds it, and the model
+configs `transolver_surface_inv.yaml` (embedding 6 → 9 dims) and
+`geotransolver_surface_inv.yaml` (functional_dim 6 → 9) append it to
+the per-cell inputs. Everything else is the frozen ladder protocol:
+35 cases, 500 epochs, 10k points, bf16, no augmentation, 2 seeds; each
+baseline at its own better learning rate at this rung (Transolver
+3e-3, GeoTransolver 1e-3); scored on the shared 180-case val set.
+The runs are `inv_hl_{transolver,geotransolver}_super_scarce_*`.
+
+**Predictions in readout units** (reference: MT2 0.138; Transolver
+0.40; GeoTransolver 0.39; the log-midpoint between 0.40 and 0.138 is
+0.235):
+
+- *Carrier identified* if both baselines land ≤ 0.235 (at least halfway
+  to MT2 in log-error) — and *fully identified* if ≤ 0.16 (within 1.15x
+  of MT2), in which case the honest hero statement becomes "explicit
+  drive-relative invariant inputs buy ~2.9x data efficiency on
+  parametric-freestream problems; MT2 has them built in".
+- *Falsifier:* both baselines ≥ 0.30 (less than 20% of the log-gap
+  closed) → the invariant inputs are not the carrier and the advantage
+  lies in MT2's routing/decoder structure as a whole (the A35b
+  "distributed" verdict stands as the final word on the surface task).
+- Mixed (one recovers, one does not) is read per architecture and
+  reported as such; between 0.235 and 0.30 is "partial" and not a
+  carrier claim.
+
+**Why this matters either way.** If the features carry it, the result
+is portable to every point-cloud surrogate and *explains* three
+observations at once (HiLift gap, DrivAerML null, gap closing with
+data). If they do not, the program has excluded inputs, exactness,
+seeds, weights, gauge and encoder routing, and the remaining structure
+(passive relational decoder + slice MLP) becomes the object of the next
+discriminator. The sealed test split is not touched.
