@@ -6320,3 +6320,43 @@ too. A GeoTransolver test error ≤ 0.7 × ISLA's would invert the reading
 (GeoTransolver extrapolates geometry better) and is recorded as such.
 Absolute test errors are reported alongside d because the ratio rewards a
 higher in-regime floor (@sec-nb-hl-sealed-test).
+
+## 2026-09-07 — Preregistered: query tokens — ISLA with interior queries as interacting tokens (GeoTransolver's interior mechanism on ISLA's equivariant routing) {#sec-nb-qt-prereg}
+
+**Why.** On the boundary→interior task GeoTransolver leads ISLA's passive
+decode 2.6x (@sec-nb-v0-verdict), and the one mechanism named for it is
+token-level interaction at the query. Latent volume tokens placed along
+anchor normals did not supply it (@sec-nb-lvt-verdict). The direct test is
+to give ISLA the same mechanism: let the interior query points join the
+encoder as interacting tokens, each carrying ISLA's five invariant seeds
+{|q|, log|q|, q̂·d, q̂·n̂, n̂·d} with the SDF-gradient normal as n̂, a learned
+measure weight and a learned token-type offset, and read the heads from the
+query tokens. This keeps exact SE(3) covariance (all seeds are invariants,
+the vector head is in the equivariant basis) and gives up exact query
+independence — the same trade GeoTransolver makes, at the same 20,000-token
+cost. Implemented as `query_tokens=True` in `ISLA` (commit 9d8fcfccd; 35
+contract tests pass, including covariance and a documented
+query-set-dependence check). Local cost at 10,000 + 10,000 tokens: 6.56 GiB
+peak, 671 ms per step (RTX 4090, bf16), 8.87M parameters.
+
+**Arm (`v0/v0_qt_aga.sbatch`, code snapshot `$T/code_isla`).** Frozen V0
+protocol (DrivAerML volume, 435/48 cars, 10k surface + 10k interior points,
+lr 1e-3, 500 epochs, similarity gauge on, SDF normals). Pilot gate first:
+seeds 42 and 43 at 50 epochs (`v0p_isla_qt_sdf_seed*`), promoted to 500
+epochs (`v0_isla_qt_sdf_seed*`) only if the pilot passes.
+
+**Predictions in readout units** (interior pressure rel-L2, 48 val cars;
+references: GeoTransolver-volume 0.062 full / 0.093 pilot; ISLA passive
+SDF-normal decode 0.160 full / 0.269 pilot).
+- *Pilot gate:* both seeds ≤ 0.20 at 50 epochs (clearly ahead of the passive
+  pilot's 0.269, i.e. interaction is doing something); *gate fails* at
+  ≥ 0.25 (the latent-token failure repeats: tokens dilute the routing).
+- *Full-run prediction:* ISLA-QT/GT ≤ 1.3 on interior pressure (the gap
+  closes to within the seed-and-protocol band), with velocity and ν_t
+  ratios ≤ 1.5. *Falsifier:* ratio ≥ 2.0 → interaction at the query is not
+  what ISLA's interior decode lacks; GeoTransolver's interior edge lies
+  elsewhere (its coordinate-based token features, its slice count per
+  token, or capacity), and the next discriminator is a GeoTransolver
+  ablation rather than another ISLA variant.
+- The surface task is untouched by this arm (interior queries are not
+  present there); the interacting-query mode is an *interior* option.
