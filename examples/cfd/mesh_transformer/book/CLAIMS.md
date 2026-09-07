@@ -349,7 +349,11 @@ stops". Present-tense, no chronology. Key current statements:
 - **Transolver on the controlled suites:** any "27x-larger Transolver"
   comparison states the training budget (3,000 updates) and that Transolver
   is still improving at 30,000 updates (0.119), so the matched-budget gap
-  (7.7–20x) is an upper bound on the converged gap.
+  is an upper bound on the converged gap. In readout units at 3,000 updates
+  on 2D Laplace: 16x against native-capacity Transolver (0.608 vs 0.0375),
+  21x against matched-capacity Transolver (0.769 vs 0.0375); 7–9x in the
+  fixed-dataset regime (0.126–0.136 vs 0.016–0.017); 34–78x on the
+  screened and 3D suites.
 - **Datasets to define in chapter 1:** SHIFT-SUV (a second vehicle dataset
   whose two rear-end families, estate and fastback, are the zero-shot
   transfer targets: DrivAerML-only models → estate; DrivAerML+estate models

@@ -1165,7 +1165,11 @@ polynomial order present: the Stokes component is drive-linear and each
 convection correction raises the degree. The linear mode's wall is
 therefore a function of Reynolds number rather than an all-or-nothing
 barrier, and the declared-degree mode is an approximation hypothesis.
-Five arms train on the 840-case split for 15 epochs at 3 seeds: MT1 in
+Five arms train on the 840-case split for 15 epochs at 3 seeds, and each
+arm restores its best-validation checkpoint before the test-split
+evaluation (the one suite in this book where checkpoint selection uses
+validation error; the industrial recipe evaluates final-epoch checkpoints,
+@sec-protocol): MT1 in
 linear mode, nonlinear mode with parity channels, declared degree 2 with
 parity channels, the boundary-mean predictor, and Transolver
 (@sec-transolver) at matched parameter count (103,375 against
@@ -1336,7 +1340,7 @@ for ax, field in zip(axes, ("velocity", "pressure")):
     ax.set_title(f"{field} gap to the nonlinear reference", fontsize=9)
     ax.grid(which="both", axis="x")
 axes[0].set_ylabel("arm $-$ nonlinear reference, relative $L^2$ [-]")
-axes[0].text(0.75, -0.163, "near-Stokes\n(drive-linear)", fontsize=7.5, color=INK2, ha="center", va="bottom")
+axes[0].text(0.6, -0.163, "near-Stokes\n(drive-linear)", fontsize=7.5, color=INK2, ha="left", va="bottom")
 axes[0].text(90.0, -0.163, "convection-dominated", fontsize=7.5, color=INK2, ha="center", va="bottom")
 axes[0].annotate("catalog seam", (seam, 0.34), xytext=(3, 0), textcoords="offset points",
                  fontsize=7, color=INK2, rotation=90, va="bottom")
@@ -1489,9 +1493,9 @@ for (label, *_), center, med in zip(bands, centers, median):
 ax.annotate("unseen-Re slice\n(open squares)", (centers[0], unseen[0]), textcoords="offset points",
             xytext=(-6, 26), ha="center", fontsize=8, color=INK2,
             arrowprops=dict(arrowstyle="-", color=INK2, lw=0.7))
-ax.annotate("in-band evaluation: 3-seed median and range", (centers[0], median[0] - lo_err[0]),
-            textcoords="offset points", xytext=(62, -22), ha="center", fontsize=8, color=PURPLE,
-            arrowprops=dict(arrowstyle="-", color=PURPLE, lw=0.7))
+ax.annotate("in-band evaluation:\n3-seed median and range", (centers[0], median[0] - lo_err[0]),
+            xytext=(1.05, 0.204), textcoords="data", ha="left", va="bottom", fontsize=8,
+            color=PURPLE, arrowprops=dict(arrowstyle="-", color=PURPLE, lw=0.7, shrinkB=2))
 ax.set_ylim(0.20, 0.45)
 ax.set_ylabel("combined relative $L^2$ [-]")
 ax_floor.plot(centers, floor_vals, "-o", color=MUTED, lw=1.5, ms=5, zorder=3)

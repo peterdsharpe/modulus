@@ -60,7 +60,7 @@ flowchart TB
     K0["K0: potential-flow oracle gate<br/>DONE - GATE FAILED (rel-L2 4.8 vs 0.77);<br/>K1 / K2 STOPPED"]:::done
     P1C["P1' / P1'': GT canonicalization control<br/>DONE - canonically trained GT exactly<br/>pose-invariant at 1.01x; 1.6x headline retired"]:::done
     S1["S1: similarity gauge (weighted centroid<br/>+ RMS radius)<br/>DONE - free in-family; P3 13-14.5x -> 1.20x;<br/>zero-shot unchanged; gauge ADOPTED"]:::done
-    HLGEN["HLGEN: HiLift generalization ladder<br/>DONE - MT2 2.9x / 2.5x more accurate at<br/>35 / 210 cases, parity at 1,260; both arms<br/>degrade ~10x across a regime boundary"]:::done
+    HLGEN["HLGEN: HiLift generalization ladder<br/>DONE - MT2 2.8x / 2.5x more accurate at<br/>35 / 210 cases, parity at 1,260; both arms<br/>degrade ~10x across a regime boundary"]:::done
     CTRL["CTRL: GeoTransolver small-n steel-man<br/>controls (lr 3e-3; 1,000 epochs; 35 and 210)<br/>DONE - 4 of 4 landed, none near the<br/>falsifier (best 0.373 vs bar 0.166 at 35;<br/>0.128 vs 0.077 at 210)"]:::done
     T1["T1: plain Transolver same-family control<br/>(35 and 210 cases)<br/>DONE - 2.9x behind MT2 at 35 (in GT's band);<br/>1.3x at 210, where it beats GT 1.8x"]:::done
     A35["A35: MT2 single-factor ablations at 35<br/>DONE - raw coords 1.04x: equivariance is NOT<br/>the carrier; measure weights off 0.88x"]:::done
@@ -139,7 +139,7 @@ did not move, so absolute size is ruled out as the G2 carrier
 (@sec-nb-s1-verdict). What remains as the candidate explanation of the
 G2 transfer gap is GeoTransolver's **pointwise raw coordinate features**
 and its **non-equivariant global encoder**. The HiLift generalization
-ladder (HLGEN) has now read out on both halves: MT2 is 2.9x and 2.5x more
+ladder (HLGEN) has now read out on both halves: MT2 is 2.8x and 2.5x more
 accurate than GeoTransolver at 35 and 210 training cases
 (@sec-nb-hl-ladder-dataeff), and on the sealed regime-extrapolation test
 both architectures degrade about 10x, MT2 with the lower absolute error

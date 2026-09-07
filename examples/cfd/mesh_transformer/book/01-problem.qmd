@@ -692,10 +692,13 @@ mean.
 
 **Shared validation, sealed test.** All architectures at all rungs of a
 ladder are scored on the same validation cases, which is what makes the
-paired statistics meaningful. The checkpoint evaluated is always the
+paired statistics meaningful. On the industrial datasets the checkpoint evaluated is always the
 final-epoch checkpoint: no checkpoint is selected on validation error, and
 the validation set's only role in model selection was the per-architecture
-learning-rate choice on the full split described above. The HiLiftAeroML
+learning-rate choice on the full split described above. (The controlled
+Navier–Stokes suite is the one exception in this book: its arms restore the
+best-validation checkpoint before the test evaluation, as stated in
+@sec-ns-cavity.) The HiLiftAeroML
 accuracy figures in this book are therefore validation-set figures with no
 checkpoint selection behind them. A sealed test split is evaluated exactly
 once, with the checkpoint and inference configuration declared in writing
