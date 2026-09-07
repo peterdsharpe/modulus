@@ -615,3 +615,42 @@ def test_legacy_name_is_an_alias():
     from physicsnemo.experimental.nn.mt2 import MeshTransformer2 as legacy_path
 
     assert legacy_top is ISLA and legacy_path is ISLA
+
+
+def test_query_tokens_contracts():
+    """Query-token mode (interior queries as interacting tokens): exactly
+    rotation/translation-covariant, finite, live (differs from the passive
+    interior decode), and -- by design -- NOT query-set independent."""
+    torch.manual_seed(0)
+    n, nq = 400, 150
+    pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n, dtype=torch.float64) + 0.5
+    qpts = torch.randn(1, nq, 3, dtype=torch.float64) * 4.0
+    qnrm = torch.nn.functional.normalize(torch.randn(1, nq, 3, dtype=torch.float64), dim=-1)
+    m = ISLA(hidden=64, n_layers=2, n_slices=16, query_tokens=True, similarity_gauge=True,
+             out_scalars=1, out_vectors=1).double().eval()
+    q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
+    if torch.det(q) < 0:
+        q[:, 0] = -q[:, 0]
+    shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
+    with torch.no_grad():
+        base = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+        rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w, query_points=qpts @ q.T + shift, query_normals=qnrm @ q.T)
+        sub = m(pts, nrm, drv, w, query_points=qpts[:, :50], query_normals=qnrm[:, :50])
+    assert base.shape == (1, nq, 4) and torch.isfinite(base).all()
+    p0, v0 = _split(base)
+    p1, v1 = _split(rot)
+    assert torch.allclose(p1, p0, atol=1e-10)
+    assert torch.allclose(v1, v0 @ q.T, atol=1e-10)
+    # interacting mode: predictions at shared queries depend on the query set
+    assert not torch.allclose(sub, base[:, :50], atol=1e-6)
+    # every parameter receives a gradient (DDP safety)
+    m.train()
+    out = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+    out.square().mean().backward()
+    missing = [k for k, p in m.named_parameters() if p.grad is None]
+    assert not missing, missing
+    with pytest.raises(ValueError):
+        ISLA(hidden=32, n_layers=1, n_slices=8, query_tokens=True, query_independent=True)

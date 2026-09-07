@@ -260,6 +260,7 @@ class ISLA(Module):
         n_anchors: int = 0,
         n_decoder_layers: int = 4,
         local_readout_rho: float = 0.02,
+        query_tokens: bool = False,
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -394,6 +395,22 @@ class ISLA(Module):
             self.lvt_embed = nn.Sequential(
                 nn.Linear(7, hidden), nn.GELU(), nn.Linear(hidden, hidden)
             )
+        ### QUERY TOKENS (boundary->interior exploration, 2026-09-07): interior
+        ### query points join the encoder as INTERACTING tokens, carrying the
+        ### same five {q, n_q, d} invariant seeds as the surface tokens (the
+        ### query normal must be supplied, e.g. the SDF gradient), a learned
+        ### measure weight and a learned token-type offset. This is
+        ### GeoTransolver's interior mechanism (queries as tokens) on ISLA's
+        ### equivariant routing: exactly SE(3)-covariant, NOT query-independent.
+        ### Outputs are returned for the query tokens only.
+        self.query_tokens = bool(query_tokens)
+        if self.query_tokens:
+            if query_independent:
+                raise ValueError("query_tokens is an interacting mode; set query_independent=False")
+            if use_local_features or raw_coord_channel or self.n_boundary_scalars or scale_conditioning or seed_mode != "invariant":
+                raise ValueError("query_tokens supports the plain invariant seed set only")
+            self.qt_logw = nn.Parameter(torch.zeros(1))
+            self.qt_type = nn.Parameter(torch.zeros(hidden))
         if odd_head:
             self.N_ODD = 7
             self.odd_assign = nn.Linear(hidden, n_slices)
@@ -612,11 +629,46 @@ class ISLA(Module):
             log_w = torch.cat([log_w, self.lvt_logw.to(log_w.dtype).expand(b, K, 1)], dim=1)
             n = n + K
 
+        n_surface = n
+        qt_active = self.query_tokens and query_points is not None
+        if qt_active:
+            ### Interior queries as interacting tokens (see __init__).
+            if query_normals is None:
+                raise ValueError("query_tokens needs query_normals (e.g. the SDF gradient at each query)")
+            q_pts = query_points
+            bq, nq, _ = q_pts.shape
+            q_r = (q_pts - center) / gauge
+            q_mag = q_r.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+            q_rhat = q_r / q_mag
+            q_nhat = query_normals / query_normals.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+            q_d = (drive / drive_mag)[:, None, :].expand(bq, nq, 3)
+            q_inv = torch.cat(
+                [
+                    q_mag,
+                    torch.log(q_mag),
+                    (q_rhat * q_d).sum(-1, keepdim=True),
+                    (q_rhat * q_nhat).sum(-1, keepdim=True),
+                    (q_nhat * q_d).sum(-1, keepdim=True),
+                ],
+                dim=-1,
+            )
+            h_q = self.embed(q_inv) + self.qt_type.to(h.dtype)
+            h = torch.cat([h, h_q], dim=1)
+            r = torch.cat([r, q_r], dim=1)
+            n_hat = torch.cat([n_hat, q_nhat], dim=1)
+            d_hat = torch.cat([d_hat, q_d], dim=1)
+            log_w = torch.cat([log_w, self.qt_logw.to(log_w.dtype).expand(b, nq, 1)], dim=1)
+            n = n + nq
+
         if not (self.query_independent and 0 < self.n_anchors < n):
             for block in self.blocks:
                 h = block(h, log_w, r, n_hat, d_hat, self.eps)
 
-        if self.query_independent:
+        if qt_active:
+            ### Heads read the query tokens only (surface tokens were context).
+            h_out = h[:, n_surface:]
+            r_hat, n_hat, d_hat, b, n = q_rhat, q_nhat, q_d, bq, nq
+        elif self.query_independent:
             if 0 < self.n_anchors < n:
                 ### v5a4: the interacting core is a random anchor subset in
                 ### training (deterministic prefix at eval), so predictions at
