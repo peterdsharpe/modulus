@@ -6545,3 +6545,121 @@ the arithmetic is identical and the in-flight lanes keep the code snapshot
 they started with. The book's memory statements were updated to the recipe
 default (1.5 GB, 330 ms) with the stored-activation alternative named in the
 four cost sections; CLAIMS.md carries the rule.
+
+## 2026-09-07 — Preregistered: where on a DrivAerML car does GeoTransolver's edge over ISLA live? Station and orientation attribution of the full-data gap {#sec-nb-drivaer-station-prereg}
+
+**Setting.** The program's central anomaly: on HiLiftAeroML ISLA's advantage
+over GeoTransolver is geometry generalization (5.0x at a fixed angle on 18
+never-seen multi-element wings, @sec-nb-w2d-single-angle), yet on DrivAerML,
+where the freestream is fixed and geometry is the only thing that varies,
+GeoTransolver is 1.2–1.3x more accurate from 27 cases up and 8.5% more
+accurate at full data (435 cases). Both results are geometry generalization;
+they point in opposite directions. The curvature analysis on HiLift
+(@sec-nb-curvature-strat) showed GeoTransolver's failure there is case-level,
+uniform over the surface. The complementary question is where ISLA's
+shortfall on cars lives.
+
+**Hypotheses.** *H-wake:* a car's rear surfaces (the base, the rear window,
+the underbody diffuser) carry pressures set by the separated wake, a global
+flow feature; ISLA's point-to-anchor invariants are local-to-regional, and
+GeoTransolver's geometry encoder plus coordinate inputs supply global
+context that ISLA lacks. Prediction: ISLA's per-point RMS pressure error
+divided by GeoTransolver's is larger on the rear third of the car (by
+streamwise station) and on rearward-facing surfaces than on the front third
+and forward-facing surfaces. *H-uniform:* the gap is case-level, like
+GeoTransolver's on HiLift, with the same ratio in every bin, which would
+say the difference is in how each model fits the case as a whole (capacity
+or optimisation), not in a missing physical mechanism.
+
+**Instrument.** For the full-data DrivAerML checkpoints behind the book's
+accuracy chapter (the seed pairs whose per-point predictions are on disk:
+GeoTransolver `gt_fixed_seed45`/`seed46` against ISLA `mt2_v3c_seed45`/`seed46`,
+same protocol, same 10,000 sampled validation points per case), the script
+`error_by_station.py` bins each case's points into streamwise terciles and
+into three orientation classes by the x-component of the unit normal, and
+reports the median over cases of the RMS ratio ISLA/GeoTransolver per bin
+and each model's share of its own squared error per bin.
+
+**Bars, in readout units.** H-wake is supported if the median ISLA/GT ratio
+on the rear third exceeds that on the front third by a factor ≥ 1.3, or the
+rearward-facing ratio exceeds the forward-facing ratio by ≥ 1.3. H-uniform
+is supported (H-wake falsified) if both factors are ≤ 1.1. Between is
+inconclusive and would call for a second seed pair. Whatever the outcome, the
+whole-surface median ratio is expected near 1.09 (the reported 8.5%
+shortfall), which is the consistency check on the instrument.
+
+**Why it matters.** If H-wake holds, the extension is concrete: a global
+context channel (a few learned global tokens or a wake-direction seed) is
+the missing ingredient for bluff-body flows, and the query-token machinery
+(@sec-nb-qt-prereg) already provides interacting tokens to carry it. If
+H-uniform holds, the DrivAerML gap is not about a missing mechanism and the
+right lever is capacity or training, which the learning-rate sweep already
+explored.
+
+## 2026-09-07 — Verdict: the DrivAerML gap is spatially uniform — rear-to-front factor 1.10 and 1.03 against a 1.1 falsification bar; the wake-context hypothesis is falsified {#sec-nb-drivaer-station-verdict}
+
+**Setting.** The preregistration (@sec-nb-drivaer-station-prereg) asked
+where on a DrivAerML car ISLA's 1.2x shortfall against GeoTransolver lives:
+concentrated on wake-dominated rear surfaces (H-wake, a missing global-context
+channel) or uniform over the surface (H-uniform, a case-level fit
+difference). The instrument bins each validation case's 10,000 sampled
+surface points into streamwise thirds and takes, per bin, the ratio of ISLA's
+RMS pressure error to GeoTransolver's on the same points, then the median
+over cases.
+
+**An instrument error, caught by the consistency check.** The first run used
+prediction directories under `smoke/`, which turned out to be the zero-shot
+SHIFT-SUV evaluations (99 cases, per-case relative L2 near 1.0: the failure
+regime), not DrivAerML. The whole-surface ratios came out 1.20 and 1.72
+against the ledger's 1.19 and 1.26 for the same seeds; the mismatch on the
+second pair exposed the wrong directory. The in-family evaluations are under
+`sweep/<run>/res10000/` (dataset `drivaer_ml_surface`, validation split, 48
+cases). On those, the whole-surface ratios are 1.17 (seed pair 45) and 1.24
+(seed pair 46), against the ledger's 1.19 and 1.26 from the mean relative L2
+— consistent, and the two SHIFT-SUV outputs were renamed
+`shiftsuv_zeroshot_station_seed4{5,6}.json` so they cannot be mistaken
+again. GeoTransolver's seeds 42–44 have no per-point predictions on disk at
+10,000 tokens, so the comparison uses the two seed pairs that do (45, 46),
+each ISLA seed against the GeoTransolver seed of the same number.
+
+**What we saw** (results/drivaer_station_attribution_2026-09-07.json; medians
+over 48 cases of the per-case RMS ratio ISLA/GeoTransolver, above 1 favours
+GeoTransolver):
+
+| seed pair | whole surface | front third | middle third | rear third | rear ÷ front |
+|---|---|---|---|---|---|
+| 45 | 1.17 | 1.16 | 1.10 | 1.27 | 1.10 |
+| 46 | 1.24 | 1.28 | 1.12 | 1.32 | 1.03 |
+
+Each model's own error distribution is the same shape: about 56–59% of the
+squared pressure error on the front third (stagnation region, A-pillars,
+mirrors, wheel arches), 19–25% on the middle and 19–22% on the rear, for both
+architectures.
+
+**Verdict.** Both rear-to-front factors are at or under the preregistered
+falsification bar of 1.1, so **H-wake is falsified and H-uniform is
+supported**: ISLA is a little less accurate than GeoTransolver everywhere on
+the car, most on the front and rear thirds and least on the middle, and no
+region carries the gap. The result mirrors the HiLift curvature analysis
+(@sec-nb-curvature-strat), where GeoTransolver's much larger failure on
+unseen high-lift geometries was likewise uniform over the surface. On both
+datasets the between-architecture difference is case-level, not a spatially
+localized deficit.
+
+**Why it matters.** A wake-context extension to ISLA (global tokens carrying
+separated-flow information) would be aimed at a deficit the data do not
+show; that direction is closed as a response to the DrivAerML gap. The
+remaining candidate explanations are capacity or fit at the operating point
+(hidden 192 against GeoTransolver's 256 at matched parameters; the
+learning-rate decade is already swept), and the smooth single-body morph
+being a regime where ISLA's per-slice invariants add little over raw
+coordinates. The productive experiment is not spatial: it is the
+unseen-geometry ladder and the 510-case rung on HiLift now training, which
+test whether ISLA's geometry advantage is specific to multi-element
+configurations.
+
+**Not measured.** Orientation bins (forward-facing, side, rearward-facing by
+the normal's streamwise component) were planned but the evaluation files
+store normals under a boundary path the script did not resolve; the station
+bins alone decide the preregistered bars, so the orientation view was not
+pursued.

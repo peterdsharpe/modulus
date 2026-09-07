@@ -237,6 +237,23 @@ ladder, the GeoTransolver learning-rate steel-man at the single angle, and
 whether Transolver's partial gain persists at 210 cases are not yet
 measured (@sec-program-status).
 
+The DrivAerML shortfall, in turn, is not located anywhere on the car. The
+natural hypothesis is that ISLA lacks the global context a bluff body's
+wake demands: the rear surfaces' pressures are set by separated flow, so
+ISLA's error should concentrate there relative to GeoTransolver's. Binning
+each validation case's 10,000 points into streamwise thirds and taking the
+per-bin RMS pressure-error ratio ISLA/GeoTransolver (medians over the 48
+cases, two seed pairs), the rear third reads 1.27 and 1.32 against the
+front third's 1.16 and 1.28; the rear-to-front factor is 1.10 and 1.03,
+at or under the preregistered falsification bar of 1.1
+(results/drivaer_station_attribution_2026-09-07.json; @sec-nb-drivaer-station-verdict).
+Both models put about 56–59% of their squared error on the front third and
+about 20% on the rear; ISLA is uniformly a little worse everywhere, and
+least worse on the middle third (1.10, 1.12). Like GeoTransolver's failure on
+high-lift geometries (@sec-mechanism), the gap is case-level, which points to
+capacity or fit rather than a missing physical channel: a wake-context
+extension would be aimed at a deficit the data do not show.
+
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 
 **Neither architecture generalizes across a flow-regime boundary, and ISLA's
