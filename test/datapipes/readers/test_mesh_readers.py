@@ -600,3 +600,36 @@ class TestCellSubsampleMeasureWeights:
             assert out.data_ptr() != t.data_ptr()
         assert rm._gather_rows(t[:, 0], idx).shape == (5,)
         assert rm._gather_rows(t, idx[:0]).shape == (0, 3)
+
+    def test_gather_rows_positional_read_matches_memmap(self, tmp_path, monkeypatch):
+        ### File-backed leaves take the page-wise positional-read path when
+        ### the rows span more than the range-read cap. Rows that straddle a
+        ### 4 KiB page boundary (float32 x3 = 12 B rows: row 341 covers bytes
+        ### 4092-4104), single-page rows, runs of consecutive pages, the last
+        ### row of the file, 1-D leaves and int64 cells must all equal t[idx].
+        import physicsnemo.datapipes.readers.mesh as rm
+
+        n = 20000
+        full = Mesh(
+            points=torch.randn(n, 3),
+            cells=torch.randint(0, n, (4000, 3)),
+            point_data={"f": torch.arange(n, dtype=torch.float64)},
+        )
+        full.save(tmp_path / "big.pmsh")
+        mesh = Mesh.load(tmp_path / "big.pmsh")
+        assert getattr(mesh.points, "filename", None) is not None
+        monkeypatch.setattr(rm, "_RANGE_READ_MAX_BYTES", 0)
+        idx = torch.unique(torch.cat([
+            torch.tensor([0, 1, 2, 341, 342, 682, 683, 1000, 1001, 1002, 1003, n - 1]),
+            torch.randint(0, n, (500,)),
+        ]))
+        for t in (mesh.points, mesh.point_data["f"]):
+            out = rm._gather_rows(t, idx)
+            assert torch.equal(out, torch.as_tensor(t)[idx]), t.shape
+            assert out.dtype == t.dtype and out.shape == (len(idx), *t.shape[1:])
+        cidx = torch.unique(torch.randint(0, 4000, (300,)))
+        assert torch.equal(rm._gather_rows(mesh.cells, cidx), torch.as_tensor(mesh.cells)[cidx])
+        ### Single-threaded run path too (one run when all rows share pages).
+        monkeypatch.setattr(rm, "_PREAD_THREADS", 1)
+        small = torch.tensor([5, 6, 7])
+        assert torch.equal(rm._gather_rows(mesh.points, small), torch.as_tensor(mesh.points)[small])

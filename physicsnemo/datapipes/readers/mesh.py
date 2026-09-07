@@ -145,17 +145,26 @@ def _subsample_mesh_cells(
 
 
 _RANGE_READ_MAX_BYTES = 256 * 2**20
+_PREAD_PAGE = 4096
+_PREAD_THREADS = 16
 
 
 def _gather_rows(t: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
-    """``t[idx]`` for sorted ``idx``, reading one contiguous row range when
-    the span is small enough.
+    """``t[idx]`` for sorted ``idx``, choosing the I/O pattern by how the rows
+    are laid out.
 
-    A fancy-index gather on a memmap-backed tensor faults one page per row
-    (random I/O); a slice ``t[lo:hi]`` is a single sequential read. When the
-    referenced rows span at most ``_RANGE_READ_MAX_BYTES`` the range is read
-    once and indexed in memory; otherwise the plain gather is used. Both return
-    a fresh tensor identical to ``t[idx]``.
+    * Rows spanning at most ``_RANGE_READ_MAX_BYTES``: one sequential slice
+      ``t[lo:hi]`` then an in-memory index.
+    * Otherwise, for a file-backed leaf (tensordict ``MemoryMappedTensor``):
+      explicit page-sized positional reads of exactly the pages that hold the
+      rows (:func:`_pread_rows`). A fancy-index gather on the memmap instead
+      faults one page per row and, on a network file system, each fault
+      drags in its read-ahead window: measured on a HiLiftAeroML surface
+      (142M vertices, 28k rows wanted) the memmap gather moved 1.08 GB from
+      storage in 31 s where page reads moved 0.29 GB in 5 s, byte-identical.
+    * Anything else: the plain gather.
+
+    All branches return a fresh tensor equal to ``t[idx]``.
     """
     if idx.numel() == 0 or t.ndim == 0:
         return t[idx]
@@ -164,7 +173,70 @@ def _gather_rows(t: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
     row_bytes = t.element_size() * (t[0].numel() if t.ndim > 1 else 1)
     if (hi - lo) * row_bytes <= _RANGE_READ_MAX_BYTES:
         return t[lo:hi][idx - lo]
+    filename = getattr(t, "filename", None)
+    if (
+        filename is not None
+        and t.device.type == "cpu"
+        and t.is_contiguous()
+        and t.storage_offset() == 0
+        and t.dtype != torch.bfloat16  # no numpy view for bf16
+    ):
+        return _pread_rows(str(filename), t, idx, row_bytes)
     return t[idx]
+
+
+def _pread_rows(
+    filename: str, t: torch.Tensor, idx: torch.Tensor, row_bytes: int
+) -> torch.Tensor:
+    """Read rows ``idx`` (sorted) of the contiguous file-backed tensor ``t``
+    with positional reads of whole 4 KiB pages, each page read once, runs of
+    consecutive pages read in one call, reads issued from a small thread
+    pool (``os.preadv`` releases the GIL). Returns a fresh tensor equal to
+    ``t[idx]``."""
+    import os
+    from concurrent.futures import ThreadPoolExecutor
+
+    import numpy as np
+
+    page = _PREAD_PAGE
+    offsets = idx.cpu().numpy().astype(np.int64) * row_bytes
+    first = offsets // page
+    last = (offsets + row_bytes - 1) // page
+    pages = np.unique(np.concatenate([first, last]))
+    # Runs of consecutive pages -> one preadv per run.
+    breaks = np.nonzero(pages[1:] != pages[:-1] + 1)[0] + 1
+    starts = np.concatenate([[0], breaks])
+    ends = np.concatenate([breaks, [len(pages)]])
+    buf = bytearray(len(pages) * page)
+    view = memoryview(buf)
+    fd = os.open(filename, os.O_RDONLY)
+    try:
+
+        def read_run(se):
+            s, e = se
+            n = e - s
+            # Reads at the file tail may return fewer bytes; the unread slack
+            # is never addressed because no row lies beyond the file.
+            os.preadv(fd, [view[s * page : (s + n) * page]], int(pages[s]) * page)
+
+        runs = list(zip(starts.tolist(), ends.tolist()))
+        if len(runs) > 1:
+            with ThreadPoolExecutor(max_workers=min(_PREAD_THREADS, len(runs))) as ex:
+                list(ex.map(read_run, runs))
+        else:
+            read_run(runs[0])
+    finally:
+        os.close(fd)
+    # Assemble: each row's bytes start at slot(first_page)*page + in-page
+    # offset; a row that straddles a page boundary continues in the next
+    # slot, which holds the next page because both pages are in `pages`.
+    slots = np.searchsorted(pages, first)
+    row_start = slots * page + (offsets - first * page)
+    take = row_start[:, None] + np.arange(row_bytes)[None, :]
+    raw = np.frombuffer(buf, dtype=np.uint8)[take]
+    np_dtype = torch.empty(0, dtype=t.dtype).numpy().dtype
+    out = raw.view(np_dtype).reshape(len(idx), *t.shape[1:])
+    return torch.from_numpy(np.ascontiguousarray(out))
 
 
 def _indices_to_runs(indices: torch.Tensor) -> list[tuple[int, int]]:
