@@ -609,6 +609,35 @@ def test_geo_pool_then_project_is_exact():
         assert torch.allclose(old, new, atol=1e-12, rtol=0.0)
 
 
+@pytest.mark.parametrize("extra", [{}, {"query_independent": True, "interior_queries": True}])
+def test_geo_checkpoint_is_exact(extra):
+    """Recomputing the per-slice invariants in backward (geo_checkpoint=True)
+    changes what autograd stores, not what it computes: identical forward
+    output and gradients (to roundoff) against the stored-activation path,
+    for the encoder blocks and the passive decoder blocks."""
+    torch.manual_seed(0)
+    kw = dict(out_scalars=1, out_vectors=1, hidden=32, n_layers=2, n_slices=8, **extra)
+    ref = ISLA(**kw).double()
+    ckp = ISLA(geo_checkpoint=True, **kw).double()
+    ckp.load_state_dict(ref.state_dict())
+    pts = torch.randn(1, 40, 3, dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, 40, 3, dtype=torch.float64), dim=-1)
+    drive = torch.tensor([[1.0, 0.2, 0.0]], dtype=torch.float64)
+    w = torch.rand(1, 40, dtype=torch.float64) + 0.5
+    fk = {}
+    if extra:
+        fk = dict(query_points=torch.randn(1, 17, 3, dtype=torch.float64), query_normals=torch.nn.functional.normalize(torch.randn(1, 17, 3, dtype=torch.float64), dim=-1))
+    outs = []
+    for m in (ref, ckp):
+        out = m(pts, nrm, drive, measure_weights=w, **fk)
+        out.square().sum().backward()
+        outs.append(out)
+    assert torch.equal(outs[0], outs[1])
+    for (n, p), (_, q) in zip(ref.named_parameters(), ckp.named_parameters()):
+        assert p.grad is not None and q.grad is not None, n
+        assert torch.allclose(p.grad, q.grad, atol=1e-11, rtol=1e-9), n
+
+
 def test_legacy_name_is_an_alias():
     """The previous name and import path keep working (cluster configs, checkpoints)."""
     from physicsnemo.experimental.nn import MeshTransformer2 as legacy_top

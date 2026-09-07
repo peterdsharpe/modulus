@@ -6445,3 +6445,103 @@ GeoTransolver-volume sits on the same task.
 architecture: ISLA's equivariant routing for the surface and, with query
 tokens, for the volume, at GeoTransolver's interior accuracy and ISLA's
 small-data accuracy — which is the flagship the program set out to find.
+
+## 2026-09-07 — Where ISLA's training memory goes: 76% is per-slice geometry; rebuilding it in backward is exact and cuts peak memory 2.3x for a 1.16x step {#sec-nb-geo-recompute}
+
+**Setting.** ISLA (Invariant Slice Attention) routes every surface point to 256
+learned slices through a softmax whose logits include a bias computed from eight
+point-to-anchor invariants (distance, log-distance, three direction cosines
+of the unit relative vector, the point-normal/anchor-normal cosine, the anchor
+radius and the anchor direction cosine). Each of the 12 layers therefore builds
+tensors of shape points × slices × {3, 1, 8}. An earlier exact rewrite
+(@sec-nb-geo-pool-memory) pooled the invariants over slices before the
+affine projection, which set the reference figure the book carried since:
+3.6 GB peak at 10,000 tokens on an RTX 4090 in bf16, against GeoTransolver's
+4.6 GB. Every training lane in flight today (W2, W2-F, deflection, query
+tokens) runs the stored-activation code.
+
+**Question.** With all cluster arms training and nothing to read out for
+hours, the derivation-mode question was: what does autograd actually keep for
+ISLA's backward pass, and is any of it a cheap function of small inputs that
+could be rebuilt instead of stored? The idealized picture says the
+(points × slices × hidden/2) tensor is gone and what is left should be modest;
+the code says otherwise, because `rel`, `rel_hat`, `dist` and `geo` are all
+inputs to differentiable ops that save them.
+
+**Instrument.** A local bench (`isla_mem_attrib.py`) builds the recipe surface
+model (hidden 192, 12 layers, 256 slices, 8,866,484 parameters), runs one
+forward+backward at batch 1 and 10,000 random tokens under bf16 autocast, and
+tallies every tensor autograd packs for backward by (shape, dtype) through
+`torch.autograd.graph.saved_tensors_hooks`, counting each storage once.
+
+**What we saw.** Stored activations total 3.15 GiB; peak step memory 3.29 GiB
+(= 3.53 GB, the book's 3.6 GB on the same instrument). By shape:
+
+| stored tensor | shape | dtype | total over 12 layers |
+|---|---|---|---|
+| relative position and its unit vector | (1, 10000, 256, 3) | fp32 | 0.70 GiB |
+| invariants, cast for the routing Linear | (2560000, 8) | bf16 | 0.47 GiB |
+| invariants, cast again for the pooling einsum | (10000, 256, 8) | bf16 | 0.47 GiB |
+| routing softmax over points | (1, 10000, 256) | fp32 | 0.35 GiB |
+| distance (and its clamp) | (1, 10000, 256, 1) | fp32 | 0.23 GiB |
+| slice-mix softmaxes | (1, 10000, 256) ×3 | bf16 | 0.18 GiB |
+| token path (hidden states, MLP, LayerNorm inputs) | (10000, 192/480/768) | mixed | 0.75 GiB |
+
+**Per-slice geometry is 2.4 GiB of 3.15 GiB (76%).** All of it is an
+elementwise function of five small tensors: point positions, normals and
+drive direction (points × 3) and the per-layer anchor positions and normals
+(slices × 3).
+
+**Change.** A `geo_checkpoint` option (new keyword on the model and both
+block types; recipe config `isla_surface.yaml` sets it on) wraps one
+recompute region per layer, `_geo_region`, which builds the invariants,
+applies the routing Linear, forms the slice mix from the pre-bias logits plus
+that bias, and pools the invariants by the mix. It returns three small tensors
+(bias and mix, points × slices; pooled invariants, points × 8); the
+(points × slices × 3) and (points × slices × 8) tensors never leave the
+region and are rebuilt in backward via `torch.utils.checkpoint`
+(non-reentrant). A first version with two regions per layer (bias, then
+pooling) rebuilt the invariants twice in backward and cost 1.67x step time;
+fusing to one region is the version kept. The same region serves the
+stored-activation path, so the two paths run identical arithmetic.
+
+**Verification.** `test_geo_checkpoint_is_exact` (fp64, encoder and passive
+decoder configurations): forward outputs `torch.equal`; every parameter
+gradient within 1e-11 absolute. On the GPU under bf16 autocast, the
+interleaved A/B bench (`isla_ab_time.py`, same weights and inputs, alternating
+steps so drift from a co-tenant process cancels) reports forward bitwise
+equal and maximum relative gradient difference 0.0. The A35b ablation path
+without relational geometry (`use_relational_geo=False`) initially failed
+(the region referenced a Linear that is not built in that mode); fixed and
+covered by the existing ablation test. Suite: 37 tests pass.
+
+**Result** (results/isla_memory_recompute_2026-09-07.json):
+
+| tokens | peak, stored | peak, recompute | memory ratio | step time ratio (median) |
+|---|---|---|---|---|
+| 10,000 | 3.23 GiB | 1.42 GiB | 2.27x | 1.16 |
+| 20,000 | 6.34 GiB | 2.78 GiB | 2.28x | 1.16 |
+
+The stored-path peak itself fell from 3.29 to 3.23 GiB because the region
+computes the slice mix once where the old code computed it twice. Absolute
+step times on this shared GPU: 286 ms stored, 330 ms recompute at 10,000
+tokens (the book's 283 ms was measured on a quiet machine; the ratio is the
+robust statistic). In the book's units: **1.5 GB at 330 ms with the recipe
+default, or 3.5 GB at 285 ms storing activations, against GeoTransolver's
+4.6 GB.**
+
+**Why it matters.** ISLA now trains in a third of GeoTransolver's memory at
+the matched operating point, or equivalently fits 2.3x the tokens per case
+(or 2.3x the batch) on the same card at the same peak. That bears directly on
+the 20,000-token floor test (W2 lanes 14–17): if more tokens per case help at
+35 cases, ISLA can afford them where GeoTransolver cannot. The remaining
+footprint is the token path plus the routing softmaxes, both of which the
+backward pass genuinely needs; further reduction would have to come from
+fewer slices or a lower-precision routing softmax, which are accuracy
+questions, not identities.
+
+**Not changed.** No cluster lane, checkpoint or accuracy number is affected:
+the arithmetic is identical and the in-flight lanes keep the code snapshot
+they started with. The book's memory statements were updated to the recipe
+default (1.5 GB, 330 ms) with the stored-activation alternative named in the
+four cost sections; CLAIMS.md carries the rule.

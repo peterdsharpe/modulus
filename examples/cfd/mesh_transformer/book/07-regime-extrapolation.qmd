@@ -46,7 +46,7 @@ best on the full split, chosen by validation before these runs), seeds 42
 and 43. ISLA runs in its default configuration (constant reference length,
 similarity gauge off) at 8.9M parameters and GeoTransolver at 9.0M, both at
 10,000 tokens per case (@sec-mt2, @sec-baselines); peak training memory at
-this token count is 3.6 GB for ISLA against 4.6 GB for GeoTransolver. The
+this token count is 1.5 GB for ISLA against 4.6 GB for GeoTransolver. The
 comparison is matched on parameters, tokens and epochs.
 
 The sealed test was run under a protocol declared before any test case was
@@ -369,6 +369,6 @@ model's range by an order of magnitude. Any reported accuracy for these
 surrogates should state the angle-of-attack and flow-state coverage of the
 training data alongside the error, and deployment should include an
 out-of-regime check on a small sealed set, evaluated once, as done here.
-Within that coverage ISLA is the more accurate model (at 3.6 GB peak
+Within that coverage ISLA is the more accurate model (at 1.5 GB peak
 training memory against GeoTransolver's 4.6 GB); outside it, neither is
 usable, and the choice between them is not the decision that matters.

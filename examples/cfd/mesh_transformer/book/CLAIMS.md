@@ -37,9 +37,11 @@ on the full split), 3e-3 for Transolver where stated.
   the reference (interacting) configuration. Heads: scalars and vectors
   (vectors in an equivariant basis). Parameters 8.9M (8,866,484 at hidden
   192, 12 layers, 256 slices; 11.0M with query_independent). Peak training memory
-  **3.6 GB** at 10,000 tokens (the relational pooling is computed as
-  pool-then-project, an exact identity; forward+backward 283 ms/step on an
-  RTX 4090 in bf16). Contracts verified by fp64 tests: exact rotation and
+  **1.5 GB** at 10,000 tokens with the recipe's activation recompute
+  (`geo_checkpoint: true`: the per-slice invariants are rebuilt in backward;
+  forward and gradients bitwise identical), forward+backward 330 ms/step on an
+  RTX 4090 in bf16; storing the invariants instead is 3.5 GB at 285 ms/step.
+  Ratios: 2.3x less memory for 1.16x step time (results/isla_memory_recompute_2026-09-07.json). Contracts verified by fp64 tests: exact rotation and
   translation covariance; query-set independence (in the query_independent
   configuration); geometric-scale equivariance when the similarity gauge is
   on. Source
@@ -68,7 +70,7 @@ on the full split), 3e-3 for Transolver where stated.
   validation before any ladder ran, two or more seeds, shared validation
   cases, paired per-case statistics where reported, sealed test splits
   evaluated once. Parameters: ISLA 8.9M vs GeoTransolver 9.0M. Memory: ISLA
-  3.6 GB < GeoTransolver 4.6 GB at 10k tokens;
+  1.5 GB < GeoTransolver 4.6 GB at 10k tokens;
   the trained ISLA checkpoints were produced by a less memory-efficient but
   function-identical implementation (fp64 max difference 4e-15), so no
   result depended on the extra memory.
@@ -172,9 +174,10 @@ Artifacts: `results/hilift_ladder_reduction_2026-09-03.json`,
   0.203–0.211 vs 0.0577 in-family pressure on DrivAerML; the anchor-
   conditioned variant with a fixed interacting core 0.209/0.221 vs
   0.0697/0.0671 at matched memory (6.35 vs 6.56 GB).
-- Memory/compute: ISLA 3.6 GB and 283 ms/step vs GeoTransolver 4.6 GB at
-  10,000 tokens (ISLA memory measured on RTX 4090 fwd+bwd bf16; the
-  GeoTransolver figure is from the training run on the same protocol).
+- Memory/compute: ISLA 1.5 GB and 330 ms/step (recipe default, activation
+  recompute; 3.5 GB and 285 ms storing activations) vs GeoTransolver 4.6 GB at
+  10,000 tokens (ISLA measured on RTX 4090 fwd+bwd bf16; the GeoTransolver
+  figure is from the training run on the same protocol).
 
 ## Regime extrapolation (chapter 7)
 
@@ -264,9 +267,11 @@ stops". Present-tense, no chronology. Key current statements:
   the factor is **2.8x** (0.392/0.138 = 2.84; three-seed 2.76) — write 2.8x,
   not 2.9x.
 - **Memory — state the current model, not its history:** ISLA's peak training
-  memory at 10,000 tokens is **3.6 GB** (forward+backward, bf16, RTX 4090),
-  against GeoTransolver's 4.6 GB; step time 283 ms. That is the only memory
-  figure the chapters state. The fact that the reported checkpoints were
+  memory at 10,000 tokens is **1.5 GB** (forward+backward, bf16, RTX 4090,
+  recipe default with activation recompute), against GeoTransolver's 4.6 GB;
+  step time 330 ms. The stored-activation alternative (3.5 GB, 285 ms) is
+  named only where cost is the topic (architecture cost section, resource
+  matching, accuracy-chapter cost section, limits). Passing mentions state 1.5 GB only. The fact that the reported checkpoints were
   produced by a less memory-efficient implementation of the same function
   (fp64 max difference 4e-15) appears ONCE, as one sentence in the
   resource-matching section of the baselines chapter ("the checkpoints in

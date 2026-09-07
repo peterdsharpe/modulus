@@ -48,10 +48,58 @@ Contracts, all by construction rather than per-layer enforcement:
 import torch
 import torch.nn as nn
 from jaxtyping import Float
+from torch.utils.checkpoint import checkpoint
 
 from physicsnemo.core.meta import ModelMetaData
 from physicsnemo.core.module import Module
 from physicsnemo.nn.functional.equivariant_ops import spherical_basis
+
+
+def _relational_invariants(
+    r: Float[torch.Tensor, "batch tokens 3"],
+    n_hat: Float[torch.Tensor, "batch tokens 3"],
+    d_hat: Float[torch.Tensor, "batch tokens 3"],
+    z_pos: Float[torch.Tensor, "batch slices 3"],
+    m_s: Float[torch.Tensor, "batch slices 3"],
+    eps: float,
+) -> Float[torch.Tensor, "batch tokens slices 8"]:
+    """The eight point-anchor invariants (v3b set): distance and its log, the
+    unit relative vector dotted with the drive, the point normal and the anchor
+    normal, the point normal dotted with the anchor normal, the anchor radius
+    and the anchor direction dotted with the drive. Shared by the encoder slice
+    blocks and the passive decoder blocks."""
+    rel = r[:, :, None, :] - z_pos[:, None, :, :]  # (B, N, S, 3)
+    dist = rel.norm(dim=-1, keepdim=True).clamp_min(eps)
+    rel_hat = rel / dist
+    z_mag = z_pos.norm(dim=-1, keepdim=True).clamp_min(eps)
+    z_hat = z_pos / z_mag
+    n_exp = n_hat[:, :, None, :]
+    d_exp = d_hat[:, :, None, :]
+    return torch.cat(
+        [
+            dist,
+            torch.log(dist),
+            (rel_hat * d_exp).sum(-1, keepdim=True),
+            (rel_hat * n_exp).sum(-1, keepdim=True),
+            (rel_hat * m_s[:, None, :, :]).sum(-1, keepdim=True),
+            (n_exp * m_s[:, None, :, :]).sum(-1, keepdim=True),
+            z_mag[:, None, :, :].expand(rel.shape[0], rel.shape[1], -1, 1),
+            (z_hat[:, None, :, :] * d_exp).sum(-1, keepdim=True),
+        ],
+        dim=-1,
+    )
+
+
+def _geo_region(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: float):
+    """One recompute region per layer: the per-slice routing bias from the
+    invariants and the invariants pooled over slices by the resulting
+    point->slice mix. Returns (bias (B,N,S), mix (B,N,S), pooled (B,N,8)); the
+    (B,N,S,8) invariants and their (B,N,S,3) intermediates never leave the
+    region, so under checkpointing they are rebuilt in backward, not stored."""
+    geo = _relational_invariants(r, n_hat, d_hat, z_pos, m_s, eps)
+    bias = lin(geo).squeeze(-1)
+    mix = torch.softmax(logits_pre + bias, dim=-1)  # normalized over slices
+    return bias, mix, torch.einsum("bns,bnsg->bng", mix, geo)
 
 
 class _SliceBlock(nn.Module):
@@ -60,9 +108,16 @@ class _SliceBlock(nn.Module):
     N_GEO = 8  # v3b: dist, log dist, rel dots (d, n, m_s), n.m_s, |z_s|, zhat_s.d
 
     def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
-                 use_relational_geo: bool = True) -> None:
+                 use_relational_geo: bool = True, geo_checkpoint: bool = False) -> None:
         super().__init__()
         self.use_relational_geo = use_relational_geo
+        ### Activation recompute (2026-09-07 memory attribution): the per-slice
+        ### geometry tensors -- rel (B,N,S,3), rel_hat, dist and two bf16 copies
+        ### of the (B,N,S,8) invariants -- are 76% of ISLA's saved activations
+        ### at 10k tokens. With geo_checkpoint the invariants are rebuilt from
+        ### (r, n_hat, d_hat, z_pos, m_s) inside backward instead of stored;
+        ### the forward is bitwise unchanged (same ops, same order).
+        self.geo_checkpoint = bool(geo_checkpoint)
         self.norm_assign = nn.LayerNorm(hidden)
         self.assign = nn.Linear(hidden, n_slices)
         ### Relational geometry (v2): per-slice equivariant anchors and
@@ -106,42 +161,29 @@ class _SliceBlock(nn.Module):
         z_pos = torch.einsum("bns,bnc->bsc", a, r)  # (B, S, 3)
         m_s = torch.einsum("bns,bnc->bsc", a, n_hat)
         m_s = m_s / m_s.norm(dim=-1, keepdim=True).clamp_min(eps)
-        z_mag = z_pos.norm(dim=-1, keepdim=True).clamp_min(eps)
-        z_hat = z_pos / z_mag
-        rel = r[:, :, None, :] - z_pos[:, None, :, :]  # (B, N, S, 3)
-        dist = rel.norm(dim=-1, keepdim=True).clamp_min(eps)
-        rel_hat = rel / dist
-        n_exp = n_hat[:, :, None, :]
-        geo = torch.cat(
-            [
-                dist,
-                torch.log(dist),
-                (rel_hat * d_hat[:, :, None, :]).sum(-1, keepdim=True),
-                (rel_hat * n_exp).sum(-1, keepdim=True),
-                (rel_hat * m_s[:, None, :, :]).sum(-1, keepdim=True),
-                (n_exp * m_s[:, None, :, :]).sum(-1, keepdim=True),
-                z_mag[:, None, :, :].expand(rel.shape[0], rel.shape[1], -1, 1),
-                (z_hat[:, None, :, :] * d_hat[:, :, None, :]).sum(-1, keepdim=True),
-            ],
-            dim=-1,
-        )  # (B, N, S, 8) invariants
         ### Geometry refines the routing and the readback. A35b ablation:
         ### use_relational_geo=False removes the anchor-relational invariants
         ### from routing and readback (Transolver-style feature-only slicing).
-        if self.use_relational_geo:
-            logits = logits + self.geo_logit(geo).squeeze(-1)
-        a = torch.softmax(logits + log_w, dim=1)
-        z = torch.einsum("bns,bnh->bsh", a, h)  # slice states
-        z = z + self.slice_mlp(z)
-        point_mix = torch.softmax(logits, dim=-1)  # normalized over slices
-        back = torch.einsum("bns,bsh->bnh", point_mix, z)
         if self.use_relational_geo:
             ### Pool the 8 invariants over slices FIRST, then project: exactly
             ### equal to projecting then pooling (the projection is affine and
             ### point_mix sums to one over slices), but the saved activation is
             ### (B, N, 8) instead of (B, N, S, hidden/2) -- ~0.5 GB per layer at
             ### 10k tokens, 256 slices, hidden 192 (A35b memory derivation).
-            geo_pool = self.geo_feat(torch.einsum("bns,bnsg->bng", point_mix, geo))
+            geo_args = (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps)
+            if self.geo_checkpoint:
+                bias, point_mix, pooled = checkpoint(_geo_region, *geo_args, use_reentrant=False)
+            else:
+                bias, point_mix, pooled = _geo_region(*geo_args)
+            logits = logits + bias
+        else:
+            point_mix = torch.softmax(logits, dim=-1)  # normalized over slices
+        a = torch.softmax(logits + log_w, dim=1)
+        z = torch.einsum("bns,bnh->bsh", a, h)  # slice states
+        z = z + self.slice_mlp(z)
+        back = torch.einsum("bns,bsh->bnh", point_mix, z)
+        if self.use_relational_geo:
+            geo_pool = self.geo_feat(pooled)
         else:
             geo_pool = h.new_zeros(h.shape[0], h.shape[1], self.geo_width)
         h = h + self.broadcast(torch.cat([h, back, geo_pool], dim=-1))
@@ -158,8 +200,10 @@ class _ReadBlock(nn.Module):
     N_GEO = 8  # v5a2: the full v3b relational-feature set (thin decoder
     # pipes collapse training -- measured twice now, v3a and v5a-v1)
 
-    def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4) -> None:
+    def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
+                 geo_checkpoint: bool = False) -> None:
         super().__init__()
+        self.geo_checkpoint = bool(geo_checkpoint)
         self.norm = nn.LayerNorm(hidden)
         self.assign = nn.Linear(hidden, n_slices)
         self.geo_logit = nn.Linear(self.N_GEO, 1)
@@ -175,29 +219,14 @@ class _ReadBlock(nn.Module):
 
     def forward(self, q_h, q_r, q_n, q_d, z_states, z_pos, m_s, eps,
                 src_r=None, src_h=None, src_w=None, local_rho=None):
-        rel = q_r[:, :, None, :] - z_pos[:, None, :, :]
-        dist = rel.norm(dim=-1, keepdim=True).clamp_min(eps)
-        rel_hat = rel / dist
-        z_mag = z_pos.norm(dim=-1, keepdim=True).clamp_min(eps)
-        z_hat = z_pos / z_mag
-        n_exp = q_n[:, :, None, :]
-        geo = torch.cat(
-            [
-                dist,
-                torch.log(dist),
-                (rel_hat * q_d[:, :, None, :]).sum(-1, keepdim=True),
-                (rel_hat * n_exp).sum(-1, keepdim=True),
-                (rel_hat * m_s[:, None, :, :]).sum(-1, keepdim=True),
-                (n_exp * m_s[:, None, :, :]).sum(-1, keepdim=True),
-                z_mag[:, None, :, :].expand(rel.shape[0], rel.shape[1], -1, 1),
-                (z_hat[:, None, :, :] * q_d[:, :, None, :]).sum(-1, keepdim=True),
-            ],
-            dim=-1,
-        )
-        logits = self.assign(self.norm(q_h)) + self.geo_logit(geo).squeeze(-1)
-        mix = torch.softmax(logits, dim=-1)
+        logits_pre = self.assign(self.norm(q_h))
+        geo_args = (self.geo_logit, logits_pre, q_r, q_n, q_d, z_pos, m_s, eps)
+        if self.geo_checkpoint:
+            _, mix, pooled = checkpoint(_geo_region, *geo_args, use_reentrant=False)
+        else:
+            _, mix, pooled = _geo_region(*geo_args)
         back = torch.einsum("bqs,bsh->bqh", mix, z_states)
-        geo_pool = self.geo_feat(torch.einsum("bqs,bqsg->bqg", mix, geo))  # pool-then-project (exact)
+        geo_pool = self.geo_feat(pooled)  # pool-then-project (exact)
         q_h = q_h + self.broadcast(torch.cat([q_h, back, geo_pool], dim=-1))
         if src_h is not None:
             ### v5a3: local token readout -- the per-point detail 256 slice
@@ -261,6 +290,7 @@ class ISLA(Module):
         n_decoder_layers: int = 4,
         local_readout_rho: float = 0.02,
         query_tokens: bool = False,
+        geo_checkpoint: bool = False,
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -320,7 +350,8 @@ class ISLA(Module):
             nn.Linear(n_seed, hidden), nn.GELU(), nn.Linear(hidden, hidden)
         )
         self.blocks = nn.ModuleList(
-            _SliceBlock(hidden, n_slices, mlp_ratio, use_relational_geo=use_relational_geo)
+            _SliceBlock(hidden, n_slices, mlp_ratio, use_relational_geo=use_relational_geo,
+                        geo_checkpoint=geo_checkpoint)
             for _ in range(n_layers)
         )
         ### v5a EXPERIMENT (flag-gated, default off): encode/decode split.
@@ -333,7 +364,8 @@ class ISLA(Module):
                 nn.LayerNorm(hidden), nn.Linear(hidden, n_slices)
             )
             self.read_blocks = nn.ModuleList(
-                _ReadBlock(hidden, n_slices, mlp_ratio) for _ in range(n_decoder_layers)
+                _ReadBlock(hidden, n_slices, mlp_ratio, geo_checkpoint=geo_checkpoint)
+                for _ in range(n_decoder_layers)
             )
         self.norm_out = nn.LayerNorm(hidden)
         ### Vector head: coefficients over {d, n, rhat} plus the

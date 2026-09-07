@@ -7,7 +7,7 @@ case and epochs, each architecture at its own best learning rate, two or
 more seeds, shared validation cases, and sealed test splits opened once. The
 baselines are strong, not straw: GeoTransolver has at least as many
 parameters as ISLA (9.0M against 8.9M) and receives raw coordinates that ISLA
-never sees. ISLA's peak training memory at 10,000 tokens is 3.6 GB, against
+never sees. ISLA's peak training memory at 10,000 tokens is 1.5 GB, against
 GeoTransolver's 4.6 GB.
 Two questions are settled here so that the results chapters need not carry
 them: ISLA's exact equivariance is *not* an accuracy advantage over a
@@ -55,7 +55,7 @@ and equivariant anchors only (@sec-mt2): 12 layers, hidden 192, 256 slices,
 |---|---|---|--:|--:|--:|--:|--:|
 | GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream velocity vector | 12 | 256 | 256 | 9.0M | 4.6 GB |
 | Transolver | centered coordinates, unit normal | freestream velocity vector, broadcast per point | 8 | 256 | 256 | 6.0M | not measured |
-| ISLA | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 3.6 GB |
+| ISLA | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 1.5 GB |
 
 : The three architectures compared on the aerodynamic datasets. *Per-point
 inputs*: channels attached to each of the 10,000 sampled surface points per
@@ -126,11 +126,13 @@ a thin noise estimate (@sec-limits).
 ## Resource matching {#sec-resource-matching}
 
 **At the recipe operating point ISLA matches GeoTransolver on parameters and
-tokens per case; peak training memory is 3.6 GB against 4.6 GB.** Parameters
+tokens per case; peak training memory is 1.5 GB against 4.6 GB.** Parameters
 8.9M against 9.0M; tokens per case 10,000 each; peak training memory at
-10,000 tokens 3.6 GB against 4.6 GB; ISLA runs at 283 ms per
-forward-plus-backward step on an RTX 4090 in bfloat16. ISLA's memory figure
-is set by the order of two operations in its relational read-back, derived
+10,000 tokens 1.5 GB against 4.6 GB; ISLA runs at 330 ms per
+forward-plus-backward step on an RTX 4090 in bfloat16 (3.5 GB and 285 ms
+if the per-slice invariants are stored rather than recomputed in backward;
+the two paths are bitwise identical in output and gradients). ISLA's memory
+figure is set by which per-slice tensors autograd keeps, derived and measured
 in @sec-mt2-cost. The checkpoints reported in this book were trained by an
 implementation of the same function that used more memory (the two agree to
 4e-15 in fp64), so memory was not a controlled variable in any comparison

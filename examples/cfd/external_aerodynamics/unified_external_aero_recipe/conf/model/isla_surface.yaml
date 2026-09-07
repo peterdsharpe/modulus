@@ -43,3 +43,8 @@ model:
   # Constant scale gauge, identical to the MeshTransformer flagship's
   # (see drivaer_ml_surface.yaml for the calibration rationale).
   reference_length: 8.0
+  # Rebuild the per-slice geometric invariants inside backward instead of
+  # storing them: forward and gradients bitwise identical, peak training
+  # memory 2.3x lower (1.5 GB vs 3.5 GB at 10k tokens, RTX 4090 bf16) for a
+  # 1.16x step time. Set false to trade memory for speed.
+  geo_checkpoint: true

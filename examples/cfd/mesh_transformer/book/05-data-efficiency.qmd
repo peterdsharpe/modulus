@@ -41,7 +41,7 @@ run is evaluated; no checkpoint is selected on validation error, and the
 validation set was otherwise used only for the learning-rate choice on the
 full split. Resources are matched in parameters (8.9M for ISLA against 9.0M
 for GeoTransolver and 6.0M for Transolver) and tokens per case; peak
-training memory at this token count is 3.6 GB for ISLA against 4.6 GB for
+training memory at this token count is 1.5 GB for ISLA against 4.6 GB for
 GeoTransolver (@sec-resource-matching). The test split was never read;
 every number in this chapter is a validation-set number.
 

@@ -38,7 +38,7 @@ the most sampling-density-robust model measured (1.20x under a 10:1 density
 bias against GeoTransolver's 3.6x), though that configuration is not the one
 behind the accuracy numbers and the constant-gauge configuration degrades
 13–14.5x; it is exactly rotation- and translation-covariant by construction;
-and its peak training memory at 10,000 tokens is 3.6 GB, against
+and its peak training memory at 10,000 tokens is 1.5 GB, against
 GeoTransolver's 4.6 GB.
 Where GeoTransolver leads is the interior: predicting volume fields from the surface
 alone, its token-level interaction at the query is worth 2.6x over ISLA's

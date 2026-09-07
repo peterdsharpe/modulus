@@ -592,7 +592,7 @@ lab notebook (@sec-notebook).
 count, the tokens per case and the peak training memory of both sides in
 the same sentence. At 10,000 tokens per case ISLA has 8.9
 million parameters and GeoTransolver 9.0 million; tokens per case and
-epochs are identical. Peak training memory at 10,000 tokens is 3.6 GB for
+epochs are identical. Peak training memory at 10,000 tokens is 1.5 GB for
 ISLA and 4.6 GB for GeoTransolver (@sec-resource-matching).
 Every figure and table caption ends with the artifact in `results/` from
 which it is computed, and every figure is drawn from that artifact at

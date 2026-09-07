@@ -16,7 +16,7 @@ and exact query independence, the property that would make ISLA a true
 evaluate-anywhere surrogate, is an optional configuration that costs
 3.0--3.7x in accuracy; the reference configuration behind every result
 in this book does not have it. Peak training memory at 10,000 tokens is
-3.6 GB for ISLA against 4.6 GB for GeoTransolver.
+1.5 GB for ISLA against 4.6 GB for GeoTransolver.
 
 This chapter is the full-data counterpart of the data-efficiency result
 in @sec-data-efficiency, where the two architectures separate by 2.5--2.8x
@@ -82,7 +82,7 @@ tokens per case and epochs, each architecture at its own best learning
 rate, shared validation cases, and a matched parameter count (ISLA 8.9M
 against GeoTransolver 9.0M). Memory is not matched, and the mismatch is
 in GeoTransolver's favour: ISLA's peak training memory at 10,000 tokens
-is 3.6 GB against GeoTransolver's 4.6 GB (@sec-cost). The comparison is
+is 1.5 GB against GeoTransolver's 4.6 GB (@sec-cost). The comparison is
 also narrow: two seeds, one validation split per dataset, and no
 test-split evaluation of the full-split models (the sealed test splits
 are spent on regime extrapolation, @sec-regime-extrapolation).
@@ -359,10 +359,12 @@ prices the same trade at 2.6x from the other direction (@sec-interior).
 
 ## Cost {#sec-cost}
 
-**At 10,000 tokens per case ISLA's peak training memory is 3.6 GB against
+**At 10,000 tokens per case ISLA's peak training memory is 1.5 GB against
 GeoTransolver's 4.6 GB, and ISLA's forward plus backward step takes
-283 ms.** The ISLA figures are measured under bf16 autocast on an RTX 4090
-with hidden width 192, 12 layers, 256 slices and batch 1; the
+330 ms.** The ISLA figures are measured under bf16 autocast on an RTX 4090
+with hidden width 192, 12 layers, 256 slices and batch 1, with the recipe's
+recompute of the per-slice invariants in backward (storing them instead:
+3.5 GB, 285 ms; identical function, @sec-mt2-cost); the
 GeoTransolver figure is the peak of its training run on the same
 protocol, which includes optimizer state (under 0.2 GB for a 9M-parameter
 model). ISLA is the smaller of the two in memory because its relational
@@ -447,7 +449,7 @@ mt2m_zs = mean([mega[f"mt2_multi_seed{s}"]["fastback"]["mean"] for s in (42, 43,
 gtm_in = mean([mega[f"gt_multi_seed{s}"]["in10k"]["mean"] for s in (42, 43, 44)])
 gtm_zs = mean([mega[f"gt_multi_seed{s}"]["fastback"]["mean"] for s in (42, 43, 44)])
 
-GT_MEM, MT2_MEM = "4.6 GB", "3.6 GB"
+GT_MEM, MT2_MEM = "4.6 GB", "1.5 GB"
 rows = [
     ("GeoTransolver (9.0M), native frame", 1.0, gt_zs, f"{gt_dens:.1f}x",
      f"{min(gt_pose):.0f}--{max(gt_pose):.0f}x", GT_MEM),

@@ -7,7 +7,7 @@ freestream direction, and vector outputs are assembled at the very end
 from an equivariant basis. The result is a surrogate whose rotation and
 translation covariance is exact to floating-point roundoff rather than
 learned, whose parameter count matches GeoTransolver's (8.9M vs 9.0M)
-and whose peak training memory at 10,000 tokens is 3.6 GB (GeoTransolver
+and whose peak training memory at 10,000 tokens is 1.5 GB (GeoTransolver
 4.6 GB), and whose accuracy advantage
 on small training sets (@sec-data-efficiency) comes from the combination
 of its parts rather than from any one of them (@sec-mechanism). This chapter
@@ -378,15 +378,37 @@ What is not a contract:
 
 **At the recipe dimensions (hidden 192, 12 layers, 256 slices) ISLA has
 8.9M parameters, against GeoTransolver's 9.0M, and its peak training
-memory at 10,000 tokens per case is 3.6 GB, against GeoTransolver's
-4.6 GB.** That figure, and the 283 ms per training step, are for one
+memory at 10,000 tokens per case is 1.5 GB, against GeoTransolver's
+4.6 GB.** That figure, and the 330 ms per training step, are for one
 forward and backward pass in bf16 autocast on an RTX 4090 at batch
-size 1. GeoTransolver's 4.6 GB is the
+size 1 with the recipe's activation recompute on (below); storing the
+per-slice invariants instead costs 3.5 GB at 285 ms per step. GeoTransolver's 4.6 GB is the
 peak recorded during a training run on the same protocol, so it includes
 optimizer state; for a 9M-parameter model that is under 0.2 GB. The
 passive decoder adds four read blocks (2.1M parameters, 11.0M total) and
 is not part of the configuration behind the results chapters' accuracy
 numbers.
+
+Where the memory goes, measured. Hooking every tensor autograd stores for
+the backward pass and grouping by shape, at 10,000 tokens the stored
+activations total 3.15 GiB, of which 76% is per-slice geometry: the
+(points × slices × 3) relative-position vectors and their unit versions
+(0.70 GiB), two bf16 copies of the (points × slices × 8) invariants
+(0.94 GiB), and the (points × slices) distances and routing softmaxes
+(0.76 GiB). The token path (hidden states, MLP activations) is the
+remaining 0.75 GiB. Every geometric tensor is a cheap elementwise function of
+five small inputs: the point positions, normals and drive direction
+(points × 3 each) and the anchor positions and normals (slices × 3). The
+recipe therefore rebuilds them inside the backward pass instead of storing
+them (`geo_checkpoint`, one recompute region per layer covering the
+routing bias and the pooled invariants). The forward output and every
+gradient are bitwise identical to the stored-activation path under bf16
+autocast; peak step memory falls from 3.23 to 1.42 GiB at 10,000 tokens
+and from 6.34 to 2.78 GiB at 20,000, for a 1.16x step time
+(results/isla_memory_recompute_2026-09-07.json; @sec-nb-geo-recompute).
+What remains is the token path (0.75 GiB) and the (points × slices) routing
+softmaxes themselves (0.5 GiB), which are the one per-slice quantity the
+backward pass genuinely needs.
 
 Where the memory goes, and why the ordering of two operations decides
 it. Each slice layer holds the pairwise invariants $g_{is}$, a tensor of

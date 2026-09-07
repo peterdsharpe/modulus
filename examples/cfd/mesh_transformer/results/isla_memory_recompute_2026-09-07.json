@@ -1,0 +1,73 @@
+{
+ "note": "ISLA recipe surface config; interleaved A/B, same weights and inputs; stored = default (activations kept), recompute = geo_checkpoint=True; peak = torch.cuda.max_memory_allocated over one forward+backward step minus resident params/optimizer state; local RTX 4090 shared with another process during timing, so ratios are the reliable timing statistic",
+ "runs": {
+  "10000": {
+   "n_tokens": 10000,
+   "batch": 1,
+   "precision": "bf16 autocast, fp32 geometry",
+   "device": "NVIDIA GeForce RTX 4090 Laptop GPU",
+   "config": {
+    "out_scalars": 1,
+    "out_vectors": 1,
+    "hidden": 192,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0
+   },
+   "forward_bitwise_equal": true,
+   "max_relative_grad_diff": 0.0,
+   "peak_step_memory_gib": {
+    "stored": 3.233875274658203,
+    "recompute": 1.416487693786621
+   },
+   "step_ms": {
+    "base": {
+     "min": 281.46002092398703,
+     "median": 284.1838875319809,
+     "n": 24
+    },
+    "ckpt": {
+     "min": 325.2352549461648,
+     "median": 328.73111800290644,
+     "n": 24
+    },
+    "recompute_over_stored_median": 1.1567549478536583
+   }
+  },
+  "20000": {
+   "n_tokens": 20000,
+   "batch": 1,
+   "precision": "bf16 autocast, fp32 geometry",
+   "device": "NVIDIA GeForce RTX 4090 Laptop GPU",
+   "config": {
+    "out_scalars": 1,
+    "out_vectors": 1,
+    "hidden": 192,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0
+   },
+   "forward_bitwise_equal": true,
+   "max_relative_grad_diff": 0.0,
+   "peak_step_memory_gib": {
+    "stored": 6.3429341316223145,
+    "recompute": 2.779580593109131
+   },
+   "step_ms": {
+    "base": {
+     "min": 653.8878800347447,
+     "median": 658.9498739922419,
+     "n": 10
+    },
+    "ckpt": {
+     "min": 760.4342189151794,
+     "median": 763.3950400049798,
+     "n": 10
+    },
+    "recompute_over_stored_median": 1.158502444776198
+   }
+  }
+ }
+}
