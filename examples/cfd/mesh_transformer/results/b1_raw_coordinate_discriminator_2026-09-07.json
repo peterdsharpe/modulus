@@ -7,12 +7,12 @@
    "tau_wall_l2": 0.07016
   },
   "stall_test": {
-   "n": 226,
-   "pressure_l2": 0.26856,
-   "velocity_l2": 0.19893,
-   "tau_wall_l2": 0.32642
+   "n": 723,
+   "pressure_l2": 0.26182,
+   "velocity_l2": 0.19087,
+   "tau_wall_l2": 0.32654
   },
-  "d_axis": 13.05
+  "d_axis": 12.72
  },
  "b1_hl_mt2_stall_rawcoord_seed43": {
   "val": {
@@ -22,11 +22,12 @@
    "tau_wall_l2": 0.06954
   },
   "stall_test": {
-   "n": 229,
-   "pressure_l2": 0.27494,
-   "velocity_l2": 0.19464,
-   "tau_wall_l2": 0.32635
+   "n": 723,
+   "pressure_l2": 0.26701,
+   "velocity_l2": 0.18665,
+   "tau_wall_l2": 0.32548
   },
-  "d_axis": 13.65
- }
+  "d_axis": 13.26
+ },
+ "config_note": "MT2 with similarity_gauge=true plus raw_coord_channel=true (two differences from the constant-gauge ladder reference); stall split; one sealed-test evaluation per seed on the full 723-case list"
 }

@@ -243,9 +243,9 @@ which is treated in @sec-industrial-mt1.
 ## The smaller ratio is not carried by raw coordinates {#sec-ood-mechanism}
 
 **Giving MT2 a raw-coordinate input channel does not give it
-GeoTransolver's smaller degradation ratio; the variant's d is 13.1 and 13.7
+GeoTransolver's smaller degradation ratio; the variant's d is 12.7 and 13.3
 against MT2's 12.5 and GeoTransolver's 9.3, and its sealed-test error is
-slightly worse.** GeoTransolver's smaller ratio is therefore the arithmetic
+unchanged (0.264 against 0.260).** GeoTransolver's smaller ratio is therefore the arithmetic
 of a higher in-regime floor, not a transfer mechanism that its inputs carry.
 
 The hypothesis under test was that GeoTransolver's inputs explain its
@@ -321,13 +321,13 @@ caption = (": Raw-coordinate variant of MT2 on the stall split against the refer
 display(Markdown("\n".join(lines) + "\n\n" + caption))
 ```
 
-Both falsifier conditions fire on both seeds: d is 13.1 and 13.7 (≥ 12.0)
-and the sealed-test pressure error is 0.269 and 0.275 (≥ 0.255). The
+Both falsifier conditions fire on both seeds: d is 12.7 and 13.3 (≥ 12.0)
+and the sealed-test pressure error is 0.262 and 0.267 (≥ 0.255). The
 channel leaves in-regime accuracy where the reference MT2 has it
-(0.0206/0.0201 against 0.0204/0.0210) and moves the sealed-test error
-slightly in the wrong direction (0.272 seed mean against 0.260), so the
-larger d is the arithmetic of a marginally worse numerator over an
-unchanged denominator. Raw-coordinate inputs do not buy MT2 any of
+(0.0206/0.0201 against 0.0204/0.0210) and leaves the sealed-test error
+where it was (0.264 seed mean against 0.260), so the slightly larger d is
+the arithmetic of a marginally lower denominator, not of any change in
+out-of-regime accuracy. Raw-coordinate inputs do not buy MT2 any of
 GeoTransolver's ratio. Whether the similarity gauge, on in this variant and
 off in the reference, contributes to the small test-error shift is not
 separated by this design; the in-regime figures say it did not move the

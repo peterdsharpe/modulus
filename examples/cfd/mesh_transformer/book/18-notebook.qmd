@@ -6141,7 +6141,7 @@ two-seed spread ×1.5 (prediction held; falsifier of a 15% move in any
 rung mean not approached: three-seed means 0.138 / 0.381 / 0.404, i.e.
 GT/MT2 2.76x, T/MT2 2.93x). The 210-case third seeds are still training.
 
-## 2026-09-07 — B1 verdict: a raw-coordinate channel does not give MT2 GeoTransolver's smaller stall-extrapolation ratio (d = 13.1 / 13.7 vs GeoTransolver's 9.3); the falsifier fires {#sec-nb-b1-verdict}
+## 2026-09-07 — B1 verdict: a raw-coordinate channel does not give MT2 GeoTransolver's smaller stall-extrapolation ratio (d = 12.7 / 13.3 vs GeoTransolver's 9.3); the falsifier fires {#sec-nb-b1-verdict}
 
 **Setting.** On the sealed stall test (@sec-nb-hl-sealed-test)
 GeoTransolver's degradation ratio d = test/val was 9.3 against MT2's
@@ -6158,15 +6158,21 @@ pressure rel-L2):
 
 | MT2 + raw coordinates, stall split | in-regime val (135) | sealed test (723) | d |
 |---|---|---|---|
-| seed 42 | 0.0206 | 0.269 | **13.1** |
-| seed 43 | 0.0201 | 0.275 | **13.7** |
+| seed 42 | 0.0206 | 0.262 | **12.7** |
+| seed 43 | 0.0201 | 0.267 | **13.3** |
 | MT2 reference (ladder) | 0.0204 / 0.0210 | 0.261 / 0.259 | 12.5 |
 | GeoTransolver (ladder) | 0.0289 / 0.0304 | 0.274 / 0.277 | 9.3 |
 
 **Both falsifier conditions fire** (d ≥ 12.0; OOD pressure ≥ 0.255). The
-raw-coordinate channel leaves in-regime accuracy unchanged and makes the
-sealed-test error slightly *worse* (0.272 vs 0.260), so the ratio edge
-is not a property of raw-coordinate inputs. What remains is the reading
+raw-coordinate channel leaves in-regime accuracy unchanged and leaves the
+sealed-test error where it was (0.264 vs 0.260), so the ratio edge is not
+a property of raw-coordinate inputs. Two disclosures: the arm was run
+with the similarity gauge on as well as the raw channel (two differences
+from the constant-gauge reference; the in-regime numbers show the gauge
+did not move the floor), and an earlier reduction of this entry, taken
+while the 723-case evaluation was still in progress (226/229 cases),
+read 0.269/0.275 and d 13.1/13.7 — the numbers above are the complete
+evaluation. What remains is the reading
 the sealed-test entry already favoured: GeoTransolver's smaller ratio is
 arithmetic of a higher in-regime floor, not better transfer, and both
 architectures land at the same absolute OOD error (0.26–0.28). No

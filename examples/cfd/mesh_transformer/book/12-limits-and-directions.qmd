@@ -249,9 +249,9 @@ invariants, which breaks the SE(3) contract, trained on the stall split with
 two seeds and evaluated once on the sealed post-stall test. The
 preregistered bands were: raw coordinates carry the ratio if d is 11.0 or
 below with out-of-regime pressure below 0.245; they do not if d is 12.0 or
-above or pressure is 0.255 or above. Measured: d = 13.1/13.7, against 12.5
+above or pressure is 0.255 or above. Measured: d = 12.7/13.3, against 12.5
 for MT2 as trained and 9.3 for GeoTransolver, with sealed-test pressure
-0.269/0.275. The falsifier fires: raw-coordinate inputs do not give MT2
+0.262/0.267. The falsifier fires: raw-coordinate inputs do not give MT2
 GeoTransolver's smaller ratio, and no mechanism for it has been isolated.
 The discriminator the preregistration names next, GeoTransolver with its raw
 coordinates removed, is not yet measured (@sec-program-status).

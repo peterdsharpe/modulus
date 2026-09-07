@@ -199,7 +199,7 @@ Artifacts `results/hilift_sealed_test_2026-09-04.json`.
   stall split, 2 seeds, one sealed-test evaluation per seed on the full
   723-case list: in-regime val 0.0206/0.0201; sealed test and d in
   `results/b1_raw_coordinate_discriminator_2026-09-07.json` (final values;
-  d ≈ 13 on both seeds).
+  d = 12.7/13.3; sealed test 0.262/0.267 vs the reference 0.261/0.259).
   Preregistered bars: raw coordinates carry the ratio if d ≤ 11.0 and OOD
   pressure < 0.245; they do not if d ≥ 12.0 or ≥ 0.255. Verdict: they do
   not; GeoTransolver's smaller ratio is not explained by its raw-coordinate

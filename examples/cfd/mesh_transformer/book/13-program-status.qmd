@@ -70,7 +70,7 @@ flowchart TB
     V0["V0: boundary-to-interior (DrivAerML volume)<br/>DONE - GT 0.062; MT2-interior 2.6-3.1x worse;<br/>kernel MT1 8x worse, CLOSED on far band"]:::done
     LVT["LVT: equivariant latent volume tokens<br/>(Branch V)<br/>STOPPED - FALSIFIED: 3.68x GT and 1.43x<br/>worse than the plain interior decode"]:::retracted
     STEST["STEST: sealed OOD test (aoa, stall)<br/>DONE - both ~10x worse OOD; MT2 lower<br/>absolute error; GeoTransolver smaller ratio d;<br/>Branch B triggered on stall (0.74)"]:::done
-    B1["B1: raw-coordinate discriminator<br/>(MT2 + gauge + raw_coord_channel, stall split)<br/>DONE - FALSIFIED: d 13.1/13.7 vs GT 9.3;<br/>raw coordinates do not carry the ratio"]:::done
+    B1["B1: raw-coordinate discriminator<br/>(MT2 + gauge + raw_coord_channel, stall split)<br/>DONE - FALSIFIED: d 12.7/13.3 vs GT 9.3;<br/>raw coordinates do not carry the ratio"]:::done
     MT3["MT3: MT3 preregistration<br/>PLANNED - gated on B1 + INV + W2"]:::planned
     G5["G5: single-factor generalization on the<br/>cfd-datagen corpus (pose/scale/Re/mesh twins,<br/>held-out banks and BC profiles)<br/>PLANNED - gated on corpus launch"]:::planned
 
