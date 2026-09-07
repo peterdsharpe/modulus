@@ -286,11 +286,14 @@ coordinates removed, is not yet measured (@sec-program-status).
 
 ### Interior accuracy trails GeoTransolver by 2.6x {#sec-limits-interior}
 
-**On the boundary → interior task, GeoTransolver's queries-as-interacting-
-tokens lead ISLA's passive equivariant decode by 2.6x on interior pressure,
-and the deficit grows with distance from the wall** (@sec-interior). The
-setting is DrivAerML volume fields predicted from 10,000 surface tokens at
-10,000 interior query points; ISLA's deficit is 2.5x near the wall and
+**On the boundary → interior task, GeoTransolver's volume configuration
+leads ISLA's passive equivariant decode by 2.6x on interior pressure, and
+the deficit grows with distance from the wall** (@sec-interior). The
+setting is DrivAerML volume fields at 10,000 interior query points; ISLA
+predicts them from 10,000 surface tokens, GeoTransolver from the interior
+points themselves as interacting tokens carrying the signed distance to
+the wall, at 27.6M parameters against ISLA's 9.9M, so the ratio prices
+ISLA's contracts rather than one mechanism. ISLA's deficit is 2.5x near the wall and
 3.3–5.4x in the far bands, the signature of missing volumetric context.
 Interior queries are always decoded passively; the one attempt to supply
 volumetric context while keeping that passive decode, equivariant latent

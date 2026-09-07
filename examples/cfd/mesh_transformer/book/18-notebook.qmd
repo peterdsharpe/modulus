@@ -6850,3 +6850,53 @@ frozen protocol, so each is a decision for the program owner, not for this
 session; until one is taken, HiLift lanes run at 2–3x their compute-bound
 pace on the 210-case rung and 5–6x on the 510-case rung, and the cadence
 of the remaining wave-2 arms is set accordingly.
+
+## 2026-09-07 — Ledger correction: GeoTransolver's volume configuration has 27.6M parameters, takes the signed distance as input and never sees the surface sample; the interior comparison is neither resource- nor input-matched {#sec-nb-interior-resources-correction}
+
+**What was wrong.** The interior chapter, the index and the claims ledger
+described the GeoTransolver arm of the boundary→interior comparison as the
+9.0M-parameter surface model with the interior points added as tokens
+alongside the surface tokens, interacting over 20,000 tokens, and gave the
+ISLA passive-decode arm 11.0M parameters and the arms' memory only as a
+4–9 GB range. The 2.6x ratio was attributed to "token-level interaction at
+the query".
+
+**What the artifacts say.** Reading each lane's training log and the
+recipe configuration on the cluster while collecting per-arm memory for the
+resources paragraph (results/v0_interior_resources_2026-09-07.json):
+
+| arm | parameters | peak memory per GPU | inputs |
+|---|---|---|---|
+| GeoTransolver-volume (`geotransolver_volume.yaml`) | 27,574,449 | 8.8 GB | interior points only, each with coordinates, signed distance to the full-resolution surface and its gradient; U_inf globally; geometry encoder on the interior cloud; `include_local_features: true` with radii 0.01–5.0 (six ball queries) |
+| ISLA passive decode (`mt2_volume.yaml`) | 9,942,855 | 4.9 GB | 10,000 surface cell centroids, normals, areas; freestream direction; query positions; SDF-gradient normal at the query in the SDF arm |
+| ISLA + latent volume tokens | 10,030,856 | 5.8 GB | as above plus 769 latent tokens |
+| exact-kernel MeshTransformer (`mesh_transformer_volume.yaml`) | 761,749 | 4.0 GB | boundary sample + drive |
+| ISLA query tokens (training) | 8,866,870 | 6.0 GB | as the passive arm, queries as interacting tokens |
+
+The GeoTransolver volume configuration does not consume the boundary
+surface at all; its knowledge of the geometry comes from the signed
+distance field, a function of the full-resolution surface evaluated at every
+query point, and from local features among the interior points. Its 27.6M
+parameters are the surface backbone plus the six-radius local-feature
+encoder that the surface configuration switches off. Per-step times at
+10,000 + 10,000 points are 0.04–0.05 s for every arm except the query-token
+ISLA (0.28 s), whose per-slice geometry now spans 20,000 tokens.
+
+**What changes.** The interior chapter's task, resources, architecture and
+results sections, its standing statement, the index paragraph, the limits
+section and the claims ledger now state the three simultaneous differences
+between the arms (interaction among query tokens; the signed-distance
+input; 2.8x parameters with local features) and no longer attribute the
+2.6x to interaction alone. The query-token arm is the matched-mechanism
+test of the first difference; its pilot (0.103/0.108 against 0.269 passive
+at 50 epochs) already says interaction carries most of the gap at that
+point, and its 500-epoch readout lands today. Nothing numerical in the
+results table changes; the parameter and memory columns are now per arm
+and correct. The exact-kernel arm's parameter count, previously "not
+recorded", is 0.76M.
+
+**Why it was missed.** The 9.0M figure was carried over from the surface
+comparison, where it is correct; the volume configuration lives in a
+separate file with a different local-feature setting, and no earlier
+pass read the volume lanes' start-up banner. The rule now in CLAIMS.md is
+that resource figures on any task are read from that task's lane logs.

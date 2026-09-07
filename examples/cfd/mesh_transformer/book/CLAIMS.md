@@ -218,13 +218,18 @@ surface alone; 435/48 cars; 10k surface tokens, 10k interior query points;
 
 | arm | interior pressure rel-L2 | vs GT |
 |---|---|---|
-| GeoTransolver-volume (queries as interacting tokens) | 0.062 | 1.0 |
-| ISLA passive interior decode, SDF-gradient as query normal | 0.160 | 2.6 |
+| GeoTransolver-volume (interior points as interacting tokens; inputs: coordinates, SDF, SDF gradient, U_inf; no surface tokens; 27.6M params, 8.8 GB) | 0.062 | 1.0 |
+| ISLA passive interior decode from 10,000 surface tokens, SDF-gradient as query normal (9.9M params, 4.9 GB) | 0.160 | 2.6 |
 | ISLA passive interior decode, soft-assigned proxy normal | 0.193 | 3.1 |
 | ISLA + 769 equivariant latent volume tokens | 0.228 | 3.7 |
 | exact-kernel MT1 (double-layer decoder) | 0.496 | 8.0 |
 
-- Token-level interaction at the query is worth 2.6x on the interior; ISLA's
+- GeoTransolver-volume is 2.6x more accurate than ISLA's passive decode on
+  interior pressure. Do NOT write "token-level interaction is worth 2.6x":
+  the two arms differ in three ways at once (query interaction; the SDF
+  value as input; 2.8x parameters with six-radius local features). The
+  query-token ISLA arm isolates interaction (pilot: 0.103/0.108 vs passive
+  0.269 at 50 epochs; 500-epoch readout pending, #sec-nb-qt-pilot). ISLA's
   deficit grows with distance from the wall (2.5x near → 3.3–5.4x far),
   i.e. missing volumetric context. Off-surface latent tokens along anchor
   normals make it worse (1.43x). The exact double-layer kernel is not a
@@ -354,11 +359,15 @@ stops". Present-tense, no chronology. Key current statements:
   the dataset's per-case L_ref (5 m on DrivAerML); ISLA's constant gauge
   8.0 is in those nondimensional units (40 m physical on DrivAerML). The
   interior chapter's distance bands are in metres, converted with L_ref.
-- **Resources on the interior task:** state per arm: GeoTransolver-volume
-  9.0M parameters; ISLA passive-decode configuration 11.0M; exact-kernel
-  MeshTransformer parameter count not recorded; all arms 4–9 GB peak at
-  10,000 surface + 10,000 interior points (state which where known, else
-  say "not resource-matched").
+- **Resources on the interior task** (results/v0_interior_resources_2026-09-07.json,
+  from each lane's train.log): GeoTransolver-volume 27.6M parameters, 8.8 GB
+  peak, 10,000 interior tokens only (surface not consumed; inputs coords +
+  SDF + SDF gradient + U_inf; include_local_features with six radii); ISLA
+  passive decode 9.9M, 4.9 GB; ISLA + latent volume tokens 10.0M, 5.8 GB;
+  exact-kernel MeshTransformer 0.76M, 4.0 GB; ISLA query tokens 8.9M, 6.0 GB.
+  The earlier "GeoTransolver-volume 9.0M / ISLA 11.0M / 4–9 GB range" was
+  wrong (9.0M is the surface configuration) and must not reappear. Write
+  "not resource-matched and not input-matched".
 - **Status language:** polished chapters say "not yet measured" with a
   pointer to @sec-program-status; never "running", "in progress", "lanes".
 - **Transolver on the controlled suites:** any "27x-larger Transolver"

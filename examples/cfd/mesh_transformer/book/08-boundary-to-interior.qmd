@@ -22,7 +22,12 @@ A surrogate that returns only wall pressure answers one engineering
 question (forces); one that returns the volume flow answers the rest
 (wake structure, cooling-flow paths, where separation begins). The task
 here is the second, in its strictest form: predict the fields inside the
-fluid domain from the vehicle surface alone.
+fluid domain from the vehicle surface alone. ISLA is held to that form.
+GeoTransolver's volume configuration is not: it never sees the surface
+sample, and takes instead, at every interior point, the signed distance to
+the full-resolution vehicle surface and its gradient (the *Resources*
+paragraph below), which is the surface information in a different, denser
+form.
 
 **Data.** DrivAerML (@sec-datasets), the 435-car training split and the
 48-car validation split used for every DrivAerML comparison in this book.
@@ -59,19 +64,33 @@ denominator can be tiny far from the body (@sec-interior-distance).
 **Protocol.** 500 epochs, learning rate 1e-3 for every arm (no per-arm
 tuning on this task), bf16, no augmentation, two seeds (42 and 43).
 
-**Resources.** The arms are not resource-matched. Parameter counts:
-GeoTransolver-volume 9.0M (@sec-baselines); ISLA 11.0M in the
-passive-decode configuration this task requires (8.9M in the surface
-configuration, @sec-mt2), and the latent-volume-token arm adds a
-latent-token assignment layer, an embedding and one measure weight on
-top of that, whose count was not recorded; the exact-kernel
-MeshTransformer's parameter count on this task was not recorded. Peak
-training memory was recorded only as a range across the arms, 4–9 GB at
-roughly 0.35 s per step, not per arm, so no row of @tbl-interior can be
-attributed a memory figure. GeoTransolver processes the 10,000 interior points as additional
-tokens, so it interacts over 20,000 tokens per case where ISLA interacts
-over 10,000; that difference is the design choice under test, not a
-confound to remove.
+**Resources and inputs.** The arms are not resource-matched, and they do
+not see the same inputs; both facts are read from each lane's training
+log and configuration
+(results/v0_interior_resources_2026-09-07.json). GeoTransolver's volume
+configuration has **27.6M parameters** and peaks at **8.8 GB** per GPU: it is
+the surface configuration's 12-layer, 256-wide backbone (@sec-baselines)
+plus local ball-query features at six radii from 0.01 to 5.0
+nondimensional units, which the surface configuration does not use. Its
+tokens are the **10,000 interior points only**; the boundary surface sample
+is not consumed. Each interior token carries its coordinates, the signed
+distance to the full-resolution vehicle surface and that distance's
+gradient (the unit normal of the nearest wall), and the freestream
+velocity enters globally; the geometry encoder runs on the interior point
+cloud. ISLA in its passive-decode configuration has **9.9M parameters**
+(8.9M in the surface configuration, @sec-mt2, plus four read blocks) and
+peaks at **4.9 GB**; it consumes the 10,000 surface tokens with normals
+and areas, the freestream direction, and at each interior query its
+position and, in the SDF-gradient arm, the same wall normal GeoTransolver
+receives, but not the distance itself. The latent-volume-token arm has
+10.0M parameters at 5.8 GB; the exact-kernel MeshTransformer 0.76M at
+4.0 GB. Per-step times at this size are 0.04–0.05 s for every arm except
+the query-token variant of @sec-interior-open (0.28 s). Three
+differences therefore separate GeoTransolver from ISLA's passive decode
+on this task: interaction among the query tokens, the signed-distance
+input, and 2.8x the parameters with local features. The chapter's
+headline ratio bounds the price of ISLA's contracts as ISLA is built; the
+query-token arm isolates the first difference.
 
 ### Query independence as a first-class property {#sec-interior-query-independence}
 
@@ -90,11 +109,14 @@ on the other points requested with it.
 
 ### How each architecture treats an interior point
 
-*GeoTransolver.* The interior points join the surface points as tokens
-carrying their coordinates, routed to slices and attending through the
-same layers, so an interior token gathers information from the surface
-and from other interior tokens before it is decoded. Nothing about the
-architecture changes between the surface task and this one.
+*GeoTransolver.* The interior points are the tokens. Each carries its
+coordinates, the signed distance to the wall and the wall normal at the
+nearest surface point; the tokens are routed to slices and attend through
+the same layers as in the surface task, so an interior token gathers
+context from the other interior tokens before it is decoded, and its
+knowledge of the geometry comes from the signed-distance inputs and from
+ball-query features over neighbouring interior points at six radii, not
+from surface tokens, which this configuration does not receive.
 
 *ISLA.* The passive decoder builds every query-side invariant from the
 query position q, the freestream direction d, and a unit normal n̂ at
@@ -147,29 +169,31 @@ rest of this chapter calls it the exact-kernel decoder.
 
 ## Results {#sec-interior-results}
 
-**Token-level interaction at the query is worth 2.6x on interior
-pressure, and no passive construction tried closes it.** @tbl-interior
-gives the arithmetic-mean relative L2 over the 48 validation cars for
-each arm, both seeds, and the ratio to GeoTransolver; @fig-interior-arms
-draws the pressure column.
+**GeoTransolver's volume configuration is 2.6x more accurate than ISLA's
+passive decode on interior pressure, and no passive construction tried
+closes the gap.** @tbl-interior gives the arithmetic-mean relative L2 over
+the 48 validation cars for each arm, both seeds, and the ratio to
+GeoTransolver; @fig-interior-arms draws the pressure column.
 
-| arm | parameters | pressure (seed 42 / 43) | velocity | ν_t | pressure ratio, arm ÷ GeoTransolver |
-|---|---|---|---|---|---|
-| GeoTransolver, queries as interacting tokens | 9.0M | 0.062 (0.0622 / 0.0618) | 0.133 | 0.094 | 1.0 |
-| ISLA, passive decode, SDF-gradient normal | 11.0M | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
-| ISLA, passive decode, proxy normal | 11.0M | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
-| ISLA + 769 latent volume tokens | 11.0M + latent-token layers (not recorded) | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
-| exact-kernel decoder, double-layer | not recorded | 0.496 (0.499 / 0.492) | 0.549 | 0.727 | 8.0 |
+| arm | parameters | peak memory | pressure (seed 42 / 43) | velocity | ν_t | pressure ratio, arm ÷ GeoTransolver |
+|---|---|---|---|---|---|---|
+| GeoTransolver-volume: interior points as interacting tokens with signed distance and wall normal as inputs; no surface tokens | 27.6M | 8.8 GB | 0.062 (0.0622 / 0.0618) | 0.133 | 0.094 | 1.0 |
+| ISLA, passive decode from 10,000 surface tokens, SDF-gradient normal at the query | 9.9M | 4.9 GB | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
+| ISLA, passive decode, proxy normal | 9.9M | 4.9 GB | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
+| ISLA + 769 latent volume tokens | 10.0M | 5.8 GB | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
+| exact-kernel decoder, double-layer | 0.76M | 4.0 GB | 0.496 (0.499 / 0.492) | 0.549 | 0.727 | 8.0 |
 
 : Interior relative L2 error on the 48 DrivAerML validation cars
 (arithmetic mean over cars, then over two seeds; per-seed pressure in
-parentheses), 10,000 surface tokens and 10,000 interior queries per car,
-500 epochs, learning rate 1e-3. Ratio = arm ÷ GeoTransolver, so a value
-above 1 means less accurate than GeoTransolver; this is the reverse of
-the book's usual baseline ÷ ISLA convention. The arms are not
-resource-matched: parameter counts as listed, and peak training memory
-recorded only as a 4–9 GB range across arms, not per arm. Seed
-spreads are 1–8% of the means, so every ratio is resolved. Sources:
+parentheses), 10,000 interior queries per car (plus 10,000 surface tokens
+for the ISLA and exact-kernel arms), 500 epochs, learning rate 1e-3.
+Ratio = arm ÷ GeoTransolver, so a value above 1 means less accurate than
+GeoTransolver; this is the reverse of the book's usual baseline ÷ ISLA
+convention. The arms are not resource-matched and do not receive the same
+inputs (parameters and peak per-GPU training memory from each lane's log,
+results/v0_interior_resources_2026-09-07.json; inputs in the *Resources
+and inputs* paragraph of @sec-interior-task). Seed spreads are 1–8% of
+the means, so every ratio is resolved. Sources:
 `results/a35_v0_reduction_2026-09-05.json` (first, second, third and
 fifth rows) and `results/v0_lvt_reduction_2026-09-07.json` (the
 latent-volume-token row). {#tbl-interior}
@@ -238,16 +262,24 @@ two ISLA constructions: the SDF-gradient normal beats the proxy normal by
 is better information than a covariant blend of anchor normals. Second,
 the size of what remains: even with the better normal, ISLA is 2.6x
 behind on pressure, 2.3x on velocity and 4.0x on eddy viscosity. The
-dominant term is not the normal; it is that GeoTransolver's interior
-tokens gather context and ISLA's queries can only read what the
-surface-centred slices hold. The exact-kernel decoder at 8.0x is taken up
-in @sec-interior-negatives.
+dominant term is not the normal. The exact-kernel decoder at 8.0x is
+taken up in @sec-interior-negatives.
 
 The comparison is between each architecture's natural interior mode, not
-a matched-mechanism ablation: GeoTransolver was not run with passive
-interior points, nor ISLA with its queries made tokens. The 2.6x bounds
-the price of ISLA's contract as ISLA is built; it does not isolate
-interaction from every other difference between the two models.
+a matched-mechanism ablation, and the two modes differ in three ways at
+once (@sec-interior-task): GeoTransolver's interior tokens interact with
+each other where ISLA's queries only read what the surface-centred slices
+hold; GeoTransolver receives the signed distance to the wall at every
+query where ISLA receives at most the wall normal; and GeoTransolver's
+volume configuration has 2.8x the parameters, with local features ISLA
+lacks. The 2.6x bounds the price of ISLA's contracts as ISLA is built; it
+does not say which difference carries it. The first is now measured
+directly: ISLA with its interior queries admitted as interacting tokens
+(@sec-interior-open) reached 0.103 and 0.108 interior pressure at 50
+epochs against 0.269 for the passive decode at the same point in training
+and 0.093 for GeoTransolver's own 50-epoch pilot, so interaction accounts
+for most of the gap at that point; the 500-epoch comparison is not yet
+measured (@sec-program-status; pilot record @sec-nb-qt-pilot).
 
 ## Where the deficit lives {#sec-interior-distance}
 
@@ -453,10 +485,12 @@ three-dimensional aerodynamics on every readout in this book.
 
 ## Standing and open designs {#sec-interior-open}
 
-**GeoTransolver is the architecture to use for interior accuracy; ISLA is
-the architecture to use when exact SE(3) covariance and interior query
-independence are contractual, at a 2.6x price in interior pressure error
-on DrivAerML.** Neither passive construction of a query normal closes
+**GeoTransolver's volume configuration is the one to use for interior
+accuracy, at 27.6M parameters and 8.8 GB with the signed distance as an
+input; ISLA's passive decode is the one to use when exact SE(3)
+covariance and interior query independence are contractual, at 9.9M
+parameters and 4.9 GB and a 2.6x price in interior pressure error on
+DrivAerML.** Neither passive construction of a query normal closes
 the gap, the SDF gradient is the better of the two by 1.2x, and the
 distance stratification locates the missing quantity as volumetric
 context available to the query. The exact-kernel decoder is not a

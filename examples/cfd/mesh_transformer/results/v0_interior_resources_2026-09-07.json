@@ -1,0 +1,69 @@
+{
+ "note": "Per-arm training resources of the boundary->interior (V0) lanes on DrivAerML, read from each lane's train.log on AGA (2026-09-07): parameter count printed at start-up, maximum of the per-step 'Mem:' figure (peak allocated memory per GPU, 4x GB300, bf16 autocast, batch 1, 10,000 surface tokens + 10,000 interior queries), last logged per-step time (compute+data wait). Configs: recipe/conf/model/{geotransolver_volume,mt2_volume,mesh_transformer_volume}.yaml on the cluster; ISLA arms ran the MeshTransformer2 class name (pre-rename).",
+ "arms": {
+  "gt_vol": {
+   "label": "GeoTransolver-volume",
+   "params": 27574449,
+   "peak_mem_gb": 8.8,
+   "last_step_s": 0.044,
+   "inputs": "interior points, SDF, SDF gradient (functional_dim 7), U_inf; geometry encoder on interior points; include_local_features true, radii [0.01,0.05,0.25,1.0,2.5,5.0]; boundary surface not consumed",
+   "tokens": "10,000 interior points",
+   "seeds": [
+    42,
+    43
+   ]
+  },
+  "mt2_int_sdf": {
+   "label": "ISLA passive decode, SDF-gradient query normal",
+   "params": 9942855,
+   "peak_mem_gb": 4.86,
+   "last_step_s": 0.036,
+   "inputs": "10,000 surface cell centroids/normals/areas, U_inf_dir; query_points = interior points; query_normals = sdf_normals",
+   "seeds": [
+    42,
+    43
+   ]
+  },
+  "mt2_int": {
+   "label": "ISLA passive decode, proxy normal",
+   "params": 9942855,
+   "peak_mem_gb": 4.88,
+   "last_step_s": 0.037,
+   "seeds": [
+    42,
+    43
+   ]
+  },
+  "mt2_lvt_sdf": {
+   "label": "ISLA + 769 latent volume tokens",
+   "params": 10030856,
+   "peak_mem_gb": 5.77,
+   "last_step_s": 0.039,
+   "seeds": [
+    42,
+    43
+   ]
+  },
+  "mt1k_vol": {
+   "label": "exact-kernel MeshTransformer, double-layer decoder",
+   "params": 761749,
+   "peak_mem_gb": 4.04,
+   "last_step_s": 0.051,
+   "seeds": [
+    42,
+    43
+   ]
+  },
+  "isla_qt_sdf": {
+   "label": "ISLA query tokens (interior queries interact), SDF-gradient normal",
+   "params": 8866870,
+   "peak_mem_gb": 6.01,
+   "last_step_s": 0.28,
+   "status": "training (500 epochs, seeds 42/43) as of 2026-09-07",
+   "seeds": [
+    42,
+    43
+   ]
+  }
+ }
+}
