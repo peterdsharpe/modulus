@@ -6032,3 +6032,42 @@ rows, not the absolute values, are the comparable quantities.)
 of the same-size rung) is already met at this rung on the 146-case
 subset; W2-F's own lanes remain the clean test because the `geometry`
 splits hold out *all* angles of the val geometries by construction.
+
+## 2026-09-06 — Free uncertainty signal: at 35 cases, disagreement between two MT2 seeds rank-correlates with the per-case error (Spearman 0.67); the baselines' seed disagreement is anticorrelated with theirs {#sec-nb-uq35}
+
+**Why.** A surrogate trained from a few dozen CFD runs is only useful in
+practice if it can flag the cases it gets wrong. The cheapest
+uncertainty estimate is the disagreement between independently seeded
+models, and the program already has two seeds of every 35-case model
+with stored per-point predictions. Computed on gauge pressure over the
+180 shared validation cases (`highlift/ensemble_uq_35.py` →
+`results/hilift_ensemble_uq_35_2026-09-06.json`).
+
+| architecture (35 cases) | error seed 42 / 43 | two-seed ensemble error | ensemble gain | seed disagreement | Spearman(disagreement, error) |
+|---|---|---|---|---|---|
+| **MT2** | 0.253 / 0.261 | 0.251 | 1.03x | 0.112 | **+0.67** |
+| GeoTransolver | 0.633 / 0.659 | 0.634 | 1.02x | 0.221 | −0.20 |
+| Transolver | 0.678 / 0.671 | 0.671 | 1.01x | 0.124 | −0.47 |
+
+(Same gauge-pressure scale as @sec-nb-strat35's addendum; ratios are
+what transfer to the recipe metric.)
+
+**Three readings.** (i) **MT2 knows when it is wrong:** the cases on
+which its two seeds disagree most are the cases with the largest error
+(rank correlation 0.67, on 180 cases). A two-seed MT2 therefore ships
+with a usable per-case confidence flag at no extra inference cost
+beyond the second model. (ii) **The baselines do not:** their seed
+disagreement is *anti*-correlated with their error, so an ensemble
+spread would mislead a user — the cases they agree on are the ones they
+get most wrong, consistent with two models converging on the same
+coarse, case-independent pattern (@sec-nb-strat35 addendum). (iii)
+**Ensembling buys little for anyone** (1–3%): at 35 cases the errors
+are dominated by a component shared across seeds — bias from too little
+data, not variance — which is also why the data-efficiency result is so
+seed-stable.
+
+**What this does not establish.** Calibration (whether the spread is
+the right *size*) is not tested; only the ranking is. Whether the
+ranking property survives at 210 and 1,260 cases, and on the
+force-coefficient level, is a cheap follow-up on the existing
+evaluations and is queued behind the W2 readouts.
