@@ -47,6 +47,8 @@ from utils import (
     validate_field_coverage,
 )
 
+from physicsnemo.datapipes.keys import as_nested_key
+
 ### Recipe-wide alias for the metric-name enum that the dataset YAMLs use.
 MetricName: TypeAlias = Literal["mae", "l1", "l2"]
 
@@ -288,7 +290,9 @@ class MetricCalculator:
         out: dict[str, torch.Tensor] = {}
         with torch.no_grad():
             for name, field_type in self.target_config.items():
-                p, t = pred[name], target[name]
+                ### Nested lookup; metric keys keep the config spelling.
+                key = as_nested_key(name)
+                p, t = pred[key], target[key]
                 if field_type == "scalar":
                     p, t = align_scalar_shapes(p, t)
                     measure = align_target_measure(target_measure, p, field_type)

@@ -56,6 +56,7 @@ from tensordict import TensorDict
 from utils import FieldType
 
 from physicsnemo.datapipes.transforms.mesh import TARGET_QUADRATURE_MEASURE_KEY
+from physicsnemo.datapipes.keys import as_nested_key, format_leaf_keys
 from physicsnemo.mesh import DomainMesh, Mesh
 
 ### ---------------------------------------------------------------------------
@@ -316,7 +317,8 @@ def extract_targets(
 
     Targets always live at ``interior.point_data.<name>`` by the recipe's
     DomainMesh contract -- this convention is what lets the dataset YAMLs
-    stay model-agnostic.
+    stay model-agnostic. A ``"."`` in a name addresses a nested leaf
+    (``"solution.pressure"``); the returned TensorDict keeps that nesting.
 
     Args:
         domain: The dataset's output. Usually a `DomainMesh`; for backward
@@ -337,11 +339,11 @@ def extract_targets(
     """
     source_td, location = _target_point_data(domain)
 
-    available = set(source_td.keys())
-    missing = [name for name in target_config if name not in available]
+    keys = [as_nested_key(name) for name in target_config]
+    missing = [name for name, key in zip(target_config, keys) if key not in source_td]
     if missing:
         raise KeyError(
             f"Target fields {missing!r} not found in {location} "
-            f"(available: {sorted(available)!r})."
+            f"(available: {format_leaf_keys(source_td)!r})."
         )
-    return source_td.select(*target_config)
+    return source_td.select(*keys)
