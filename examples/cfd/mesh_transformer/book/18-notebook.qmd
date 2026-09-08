@@ -7678,3 +7678,24 @@ cars. *Supported* if ν_t QT-SDF-LF / GT ≤ 1.10 (from 1.29) with pressure and
 velocity within 5% of the QT-SDF values; *falsified* if ν_t ratio ≥ 1.25;
 between, inconclusive. A pressure or velocity regression of more than 5%
 is reported as a cost regardless of the ν_t outcome. Two nodes.
+
+## 2026-09-08 — Ops: the chain guard fingerprinted the cumulative log, so two NCCL aborts on lane 12 were blamed on yesterday's stale checkpoint error and blocked the lane; guard fixed to the current link's segment, HiLift timeout raised to 3600 s {#sec-nb-guard-fix}
+
+Lane 12 (`t1_hl_transolver_medium_lr3e3_seed42`) went BLOCKED again at
+09:57 with yesterday's message about the epoch-171 checkpoint. The
+checkpoint itself was fine: the resumed link had re-reached epoch 171 and
+saved a new, complete file (the truncated one is still in the quarantine
+directory), and the lane was at epoch 284 with valid checkpoints. What had
+happened is that two consecutive links (06:23–07:56 and 07:56–09:57) died
+of NCCL aborts after 1.5–2 hours of training, the same I/O-stall failure
+class as the DrivAerML lanes, and the guard's fingerprint step, which greps
+the *whole* `train.log` for `Error` lines and takes the last match, found
+yesterday's `OSError` line both times (the NCCL messages do not match its
+pattern), judged the two failures identical, and blocked the lane. The
+guard in `hl_wave2_aga.sbatch` now records the log length at link start and
+fingerprints only the lines that link wrote; the HiLift lanes' distributed
+timeout is raised from 600 to 3600 s, as the DrivAerML lanes' was
+yesterday, since their stalls also exceed ten minutes. The marker and
+fingerprint were removed and lane 12 resubmitted; it resumes from epoch
+281. Links already queued carry the old script for one more link; those
+they queue ahead carry the fix. No result is affected.
