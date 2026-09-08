@@ -7269,3 +7269,24 @@ per step it remains roughly five times slower than GeoTransolver-volume at
 this size (0.28 s eager on GB300 against 0.044 s), because its per-slice
 geometry spans all 20,000 tokens. That step-time gap is the honest cost
 side of the "one architecture" statement.
+
+## 2026-09-07 — Ops: all six DrivAerML-volume lanes hung together for ten minutes on a data read; the distributed timeout fired, the hung links were cancelled and the chains resumed from checkpoint {#sec-nb-drivaer-stall}
+
+At 18:36 PDT every lane reading the DrivAerML volume data (the four
+interior data-efficiency lanes and the two signed-distance lanes, on six
+different nodes) stopped logging within the same minute, one mid-epoch and
+one right after a checkpoint save, while every HiLift lane kept stepping.
+Their GPUs read 100% busy: the signature of three ranks spinning in an
+all-reduce (a one-element reduction, sequence 7584) while the fourth sat in
+a file read that did not return. At 18:46–18:48 the ten-minute distributed
+timeout (`PHYSICSNEMO_DIST_TIMEOUT_S=600`) fired on all six, but the jobs did
+not exit, because the rank stuck in I/O could not be torn down. A probe of
+the DrivAerML tree from the login node at 18:52 read 4 MB of an interior
+memmap in under a second, so the stall had cleared; the six jobs were
+cancelled and their chain-ahead links started within 15 s, resuming from
+the last checkpoints (epoch 70 for the GeoTransolver ladder lanes, 40 for
+the ISLA ladder lanes and the signed-distance lanes). Nothing about the
+protocol changes: a resumed link replays the same epochs from the same
+state. The incident is one more instance of the file system, not the
+models, setting the program's cadence (@sec-nb-hilift-io); it cost about
+20 minutes of six nodes and 30–40 epochs of recomputation.
