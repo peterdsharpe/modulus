@@ -4,33 +4,33 @@ This appendix is the one place in the book that is a live status ledger rather t
 
 ## The tech tree {#sec-tech-tree}
 
-The generalization campaign — the program's current phase — is run as an
-explicit tech tree: every experiment is a node with a preregistered
-question, a dependency, an acceptance criterion, and a dated verdict in
-the lab notebook (@sec-notebook). Three architectures recur throughout.
-**ISLA** is the program's product: an SE(3)-equivariant
-slice-routing surrogate — exact under rotations and translations by
-construction, with a measure-weighted similarity gauge (measure-weighted
-centroid and RMS-radius reference length) as the reference configuration
-for new runs since 2026-09-03; the checkpoints most of this book reports
-predate that gauge and saw absolute scale through a constant reference
-length (@sec-mt2-architecture). **GeoTransolver** is the strongest
-external baseline, a soft-slice global-attention architecture with
-pointwise raw-coordinate features and no equivariance contract.
-**MeshTransformer (MT1)** is the original GLOBE-lineage architecture,
-retained where its drive-linearity contract and exact kernel decoder make
-it the exactness reference. The central open question the tree is
-organized around is the **G2 transfer gap**: on the frozen
-DrivAerML→SHIFT-SUV instrument, GeoTransolver's zero-shot error on a
-held-out vehicle family improves with in-family training data (0.784 →
-0.657 across five rungs, two seeds per rung, with per-seed reversals
-inside the spread) while ISLA's stays flat — the one measured axis where
-the baseline generalizes and the structured model does not.
+The program is run as an explicit tech tree: every experiment is a node
+with a preregistered question, a dependency, an acceptance criterion, and a
+dated verdict in the lab notebook (@sec-notebook). Two architectures recur
+throughout. **ISLA** is the program's product: an SE(3)-equivariant
+slice-routing surrogate, exact under rotations and translations by
+construction, with an optional measure-weighted similarity gauge
+(measure-weighted centroid and RMS-radius reference length) that is the
+reference configuration for new runs since 2026-09-03; the checkpoints most
+of this book reports predate that gauge and saw absolute scale through a
+constant reference length (@sec-mt2-architecture). **GeoTransolver** is
+the strongest external baseline, a soft-slice global-attention architecture
+with pointwise raw-coordinate features and no equivariance contract; plain
+**Transolver**, the same attention family without GeoTransolver's geometry
+encoder, is the same-family control. The exact-kernel MeshTransformer, an
+earlier design of this program, appears in the tree's history (nodes G3,
+G3K, K0, V0) and nowhere in the recommendation. The central open question
+the tree is now organized around is the **mechanism of ISLA's small-data
+advantage on HiLiftAeroML**: it is located at the level of the dataset
+(parametric multi-element geometry variation; @sec-mechanism) and neither
+at the level of the surface nor of an architectural ingredient, and the
+book's verdict (@sec-verdict) can move from "a large improvement in one
+regime" to a design principle only when it is.
 
 ```{mermaid}
 %%| fig-cap: >
-%%|   The generalization-campaign tech tree as of 2026-09-07. Green: done,
-%%|   with the verdict in the node. Amber: running. Gray dashed: planned,
+%%|   The program tech tree as of 2026-09-08. Green: done,
+%%|   with the verdict in the node. Amber: running. Blue: ready to start. Gray dashed: planned,
 %%|   gated on an upstream readout. Red: a verdict that was later
 %%|   retracted, voided, or overturned; the node that did so is its
 %%|   downstream neighbour. Every node has a ledger row below with its
@@ -41,6 +41,7 @@ flowchart TB
     classDef planned fill:#f2f1ec,stroke:#898781,color:#1a1a1a,stroke-dasharray:4 3
     classDef retracted fill:#fbeaea,stroke:#a33a3a,color:#1a1a1a
     classDef stopped fill:#ecebe6,stroke:#52514e,color:#1a1a1a
+    classDef ready fill:#e8f0fb,stroke:#2a78d6,color:#1a1a1a
 
     NSTAR["NSTAR: generalization north star<br/>(measure curves, not points)<br/>DONE - framing adopted"]:::done
     G1G2["G1G2: data-scaling + transfer ladder<br/>DONE - GeoTransolver's transfer compounds<br/>with data; ISLA's is flat (2 seeds/rung)"]:::done
@@ -61,7 +62,7 @@ flowchart TB
     K0["K0: potential-flow oracle gate<br/>DONE - GATE FAILED (rel-L2 4.8 vs 0.77);<br/>K1 / K2 STOPPED"]:::done
     P1C["P1' / P1'': GT canonicalization control<br/>DONE - canonically trained GT exactly<br/>pose-invariant at 1.01x; 1.6x headline retired"]:::done
     S1["S1: similarity gauge (weighted centroid<br/>+ RMS radius)<br/>DONE - free in-family; P3 13-14.5x -> 1.20x;<br/>zero-shot unchanged; gauge ADOPTED"]:::done
-    HLGEN["HLGEN: HiLift generalization ladder<br/>DONE - ISLA 2.8x / 2.5x more accurate at<br/>35 / 210 cases, parity at 1,260; both arms<br/>degrade ~10x across a regime boundary"]:::done
+    HLGEN["HLGEN: HiLift generalization ladder<br/>DONE - ISLA 2.8x / 2.2x more accurate at<br/>35 / 210 cases, parity at 1,260; both arms<br/>degrade ~10x across a regime boundary"]:::done
     CTRL["CTRL: GeoTransolver small-n steel-man<br/>controls (lr 3e-3; 1,000 epochs; 35 and 210)<br/>DONE - 4 of 4 landed, none near the<br/>falsifier (best 0.373 vs bar 0.166 at 35;<br/>0.128 vs 0.077 at 210)"]:::done
     T1["T1: plain Transolver same-family control<br/>(35 and 210 cases)<br/>DONE - 2.9x behind ISLA at 35 (in GT's band);<br/>1.3x at 210, where it beats GT 1.8x"]:::done
     A35["A35: ISLA single-factor ablations at 35<br/>DONE - raw coords 1.04x: equivariance is NOT<br/>the carrier; measure weights off 0.88x"]:::done
@@ -83,6 +84,7 @@ flowchart TB
     LVT["LVT: equivariant latent volume tokens<br/>(Branch V)<br/>STOPPED - FALSIFIED: 3.68x GT and 1.43x<br/>worse than the plain interior decode"]:::retracted
     STEST["STEST: sealed OOD test (aoa, stall)<br/>DONE - both ~10x worse OOD; ISLA lower<br/>absolute error; GeoTransolver smaller ratio d;<br/>Branch B triggered on stall (0.74)"]:::done
     B1["B1: raw-coordinate discriminator<br/>(ISLA + gauge + raw_coord_channel, stall split)<br/>DONE - FALSIFIED: d 12.7/13.3 vs GT 9.3;<br/>raw coordinates do not carry the ratio"]:::done
+    HLREG["HLREG: where on the wing does the advantage live?<br/>per-element and gap-distance error ratio at 35 and 210 cases (eval-only)<br/>READY - supported if near-gap ratio >= 1.5x the rest; falsified if uniform within 1.15x"]:::ready
     MT3["MT3: MT3 preregistration<br/>PLANNED - gated on B1 + INV + W2"]:::planned
     G5["G5: single-factor generalization on the<br/>cfd-datagen corpus (pose/scale/Re/mesh twins,<br/>held-out banks and BC profiles)<br/>PLANNED - gated on corpus launch"]:::planned
 
@@ -156,35 +158,44 @@ flowchart TB
     G3K --> G5
     S1 --> G5
     G5 --> MT3
+    W2F --> HLREG
+    DRVSTA --> HLREG
+    HLREG --> MT3
     P1C --> MT3
     S1 --> MT3
     K0 --> MT3
     L1 --> MT3
 ```
 
-This paragraph summarizes the ledger below as of 2026-09-07. Every
-mechanism candidate for ISLA's cross-family transfer gap has been resolved
-against (locality, absolute scale, measure completeness, label noise); the
-similarity gauge fixed the density-robustness failure without moving
-zero-shot transfer. The HiLift generalization ladder read out on both
-halves: ISLA is 2.8x and 2.5x more accurate than GeoTransolver at 35 and 210
-training cases and at parity at 1,260, and on the sealed regime-extrapolation
-test both architectures degrade about 10x, ISLA with the lower absolute error
-and GeoTransolver with the smaller ratio. The data-efficiency result has been
-steel-manned from every side the program could construct: four GeoTransolver
-controls (higher learning rate, doubled epochs, at both small rungs), a
-same-family Transolver baseline (2.9x behind at 35, 1.3x at 210), a third
-seed, and case-level paired statistics (180/180 cases at 35). Its mechanism
-is not identified: five single-factor ablations of ISLA move the error by at
-most 16%, and transplanting ISLA's drive-relative invariants into the
-baselines gives Transolver 1.35x and GeoTransolver nothing. The
-raw-coordinate discriminator on the stall split fell in its falsifier band
-(d 12.7/13.3), so GeoTransolver's smaller extrapolation ratio is not carried
-by its raw inputs. On the boundary→interior task GeoTransolver leads by
-2.6x, latent volume tokens along anchor normals made ISLA worse, and the
-exact-kernel line is closed on separated 3D aerodynamics. Still running: the
-510-case rung, the 20,000-token floor test, the single-angle mechanism split,
-and the 210-case third seed.
+This paragraph summarizes the ledger below as of 2026-09-08. The
+data-efficiency result on HiLiftAeroML is established and bounded: ISLA is
+2.8x more accurate than GeoTransolver and plain Transolver at 35 training
+cases (three seeds), 2.2x more accurate than GeoTransolver and 1.3x than
+Transolver at 210, and at parity at 1,260; it has been steel-manned from
+every side the program could construct (four GeoTransolver controls, the
+same-family baseline, third seeds, 180/180 case-level pairs at 35), holds
+on never-seen geometries (1.8x from four training geometries, 1.4x from 21,
+172/180 cases at both rungs) and is largest at a fixed angle of attack (5.0x
+on 18 never-seen geometries). It does not transfer to DrivAerML, where
+GeoTransolver leads 1.2–1.3x at every training-set size. Its mechanism is
+located at the dataset level and not below: five single-factor ablations of
+ISLA move the error by at most 16%; transplanting ISLA's invariants into the
+baselines gives Transolver 1.35x and GeoTransolver nothing; fixing the angle
+enlarges the gap; ISLA turns training geometries into accuracy and
+GeoTransolver does not. The one hypothesis that would explain both datasets
+(the advantage lives on the small-scale features of multi-element wings) is
+preregistered as an eval-only test and is the ready frontier. On the
+boundary→interior task ISLA with query tokens and the signed distance leads
+GeoTransolver-volume on pressure (0.91x) and velocity (0.64x) at a third of
+the parameters and trails on eddy viscosity (1.29x); surface-patch local
+features did not close that gap and a width control is running. On the
+sealed regime-extrapolation test both architectures degrade about 10x and
+the raw-coordinate discriminator was falsified, so that thread is closed.
+Every mechanism candidate for the earlier cross-family transfer gap was
+resolved against (locality, absolute scale, measure completeness, label
+noise) and the exact-kernel line is closed on separated 3D aerodynamics.
+Still running: the 510-case rung, the 20,000-token floor test, the
+deflection (geometry-extrapolation) split, and the interior width control.
 
 | ID | Status | Question and why it matters | Depends on | Acceptance criterion | Evidence |
 |---|---|--------|---|------|---|
@@ -230,9 +241,10 @@ and the 210-case third seed.
 | STEST | DONE — Branch B triggered on stall | The one-shot sealed test of the OOD lanes: eight checkpoints (aoa and stall × both architectures × seeds 42/43) on their own curated test lists (900 high-AoA, 723 post-stall cases), frozen inference configuration, protocol declared before any test case was read. Readout d_axis = OOD test pressure rel-L2 / in-distribution val pressure rel-L2. | HLGEN | Predictions: d_stall > d_aoa for both (held for ISLA only); d_GT < d_MT2 on at least one axis (held on both). Verdict: both architectures degrade about 10x (GeoTransolver d 10.5 / 9.3, ISLA 11.8 / 12.5 on aoa / stall); ISLA keeps the lower absolute OOD pressure error (0.244 vs 0.315 aoa, 0.260 vs 0.276 stall); GeoTransolver has the smaller ratio because its in-distribution floor is higher (0.030 vs 0.021). Branch B trigger d_GT ≤ 0.8 d_MT2: aoa 0.89 not triggered; stall 0.74 with disjoint seed intervals, triggered. No reruns, no failures. | @sec-nb-hl-ladder-ood-indist; @sec-nb-hl-sealed-test |
 | B1 | DONE — falsifier fired | Branch B mechanism discriminator: is GeoTransolver's residual transfer-ratio edge carried by pointwise raw-coordinate features? ISLA with the similarity gauge plus a `raw_coord_channel` that appends raw gauge-normalized coordinates and normals to the seed invariants, deliberately breaking SE(3) equivariance (24/24 contract tests, one asserting the break); 2 seeds, stall split, lr 1e-3, 500 epochs, otherwise frozen. One additional sealed `stall_test` evaluation, limited to the two B1 checkpoints, declared before the lanes existed. | STEST | Preregistered in readout units: raw features carry transfer if d ≤ 11.0 (at least halfway from ISLA's stall d toward GeoTransolver's 9.3) *and* OOD stall pressure < 0.245; they do not if d ≥ 12.0 or OOD pressure ≥ 0.255, in which case the next discriminator is a GeoTransolver ablation removing its raw coordinates. Stated caveat: the trigger is denominator-driven, so the absolute OOD readout is weighed at least as heavily as the ratio. Verdict: with the similarity gauge on plus the raw-coordinate channel, in-regime val 0.0206/0.0201, sealed stall test ≈0.27, d ≈ 13 on both seeds (vs 12.5 reference, 9.3 GeoTransolver): raw coordinates do not carry GeoTransolver's smaller ratio. | @sec-nb-hl-sealed-test; @sec-nb-b1-verdict |
 | G5 | PLANNED | Single-factor generalization on the forthcoming cfd-datagen 3D RANS corpus: exact-symmetry axes (pose and scale twins) versus coverage axes (Reynolds twins, held-out geometry banks, held-out boundary-condition profiles), with mesh twins defining the per-stratum label floor — the 3D test of what G3 found in 2D. | Corpus launch with twin draws (see dataset feedback); S1 gauge; G3K | Each arm's prediction and falsifier is stated in readout units in the preregistration; between-architecture differences below the A4 floor are reported as not resolvable | @sec-nb-g5-prereg |
+| HLREG | READY | Where on the wing does ISLA's small-data advantage live? Hypothesis (@sec-mechanism): in resolving the small geometric features of multi-element wings (slat and flap gaps, a few dozen sampled points wide) from few samples, which smooth single-body morphs (DrivAerML) do not exercise. Instrument: split each validation surface into connected components (slat, main, flap) and into bands by distance to the nearest other element; per-band GeoTransolver/ISLA RMS pressure-error ratio, median over the 180 validation cases, at 35 and 210 cases, from existing checkpoints (eval-only; re-evaluate with saved per-point predictions if the ladder evals did not keep them). | W2F, DRV-STA | Supported if the near-gap-band ratio is ≥ 1.5x the ratio on the rest of the surface at 35 cases (direction preserved at 210); falsified if uniform within 1.15x across bands, as the DrivAerML gap is across streamwise thirds; inconclusive between. Per-element ratios reported alongside. | @sec-nb-hlreg-prereg |
 | MT3 | PLANNED | The successor design brief, now evidence-constrained: keep exact rotation/translation; adopt the similarity gauge; keep a local channel (cheap in-family offset); carry parity-odd features in the trunk rather than a bolt-on odd head, or drop reflection covariance explicitly; treat Reynolds as explicit conditioning only where data varies it; and address what B1 says about the remaining G2-gap candidate. HLGEN's data-efficiency half is the Branch A condition (met: r(35) = 0.35); its sealed test fired Branch B on stall, which is why B1 runs first. | B1, INV, W2, CTRL, A35B, LVT, HLGEN, STEST, P1C, S1, K0, L1 | Gated on the B1 readout, the CTRL controls (if any control lands within 1.2x of ISLA at 35 cases, the Branch A premise is void), A35b (which ingredient to keep) and LVT (whether the interior task needs interaction at the query); a preregistration with falsifiers, not a build, is the deliverable. | @sec-nb-hl-sealed-test; @sec-nb-parity-thread-closed; @sec-nb-p1pp-verdict; @sec-nb-s1-verdict |
 
-: The tech-tree ledger. Every status is as of 2026-09-07; evidence links go to the dated lab-notebook entry holding the preregistration and verdict. Rows whose verdicts were later voided, retracted, or overturned say so and link both the original and the correcting entry. {#tbl-tech-tree}
+: The tech-tree ledger. Every status is as of 2026-09-08; evidence links go to the dated lab-notebook entry holding the preregistration and verdict. Rows whose verdicts were later voided, retracted, or overturned say so and link both the original and the correcting entry. {#tbl-tech-tree}
 
 
 ## Provenance {#sec-provenance}

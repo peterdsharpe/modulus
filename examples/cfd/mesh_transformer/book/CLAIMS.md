@@ -477,3 +477,53 @@ baselines (GeoTransolver, Transolver) on DrivAerML and HiLiftAeroML, with
 SHIFT-SUV as zero-shot target. Do not write "MT1" in polished chapters;
 say "the exact-kernel MeshTransformer, an earlier design of this program"
 where the interior chapter needs it.
+
+## Program review 2026-09-08: the verdict and how to state it
+
+- **One verdict sentence, stated once in the index (@sec-verdict) and
+  referenced everywhere else:** "ISLA is a large improvement over
+  GeoTransolver in one regime, scarce training data on a family of
+  multi-element wing geometries, and its equal everywhere else; it is not a
+  new capability." Chapters support or bound clauses of it; no chapter
+  offers a competing verdict paragraph.
+- **Calibration words:** "a large improvement" (not "groundbreaking", not
+  "a little better") for the HiLift small-data regime; "parity" at full
+  data on HiLift; "behind" on DrivAerML; "no new capability" because regime
+  extrapolation and cross-family transfer fail for every architecture and
+  the advantage vanishes with data.
+- **Data multiplier (the horizontal reading; state alongside every ratio
+  headline):** GeoTransolver needs about 6x as many training cases as ISLA
+  to reach ISLA's 35-case accuracy (0.141 at 210 vs 0.138 at 35, both
+  measured); plain Transolver about 2x at the 0.09 error level (ISLA's case
+  count interpolated on its own 35→210 power-law segment, slope 0.42:
+  about 106 cases); 1x at 1,260. Table `tbl-data-multiplier` in chapter 5
+  computes these live. Never write the Transolver multiplier as measured.
+- **Both margins, always:** every statement of the small-data advantage
+  names the GeoTransolver margin and the Transolver margin at the same rung
+  (2.8x/2.8x at 35; 2.2x/1.3x at 210). Never headline 2.8x at 210.
+- **Mechanism status wording:** "located at the level of the dataset
+  (parametric multi-element geometry variation), not at the level of the
+  surface or of an architectural ingredient". The small-feature hypothesis
+  (slat and flap gaps) is STATED AND NOT YET MEASURED; preregistered in
+  @sec-nb-hlreg-prereg with bars: supported if near-gap-band GT/ISLA ratio
+  ≥ 1.5x the rest-of-surface ratio at 35 cases; falsified if uniform within
+  1.15x. Never write it as a finding until the verdict entry exists.
+- **Chapter structure:** regime extrapolation is a section of chapter 6
+  (`#sec-regime-extrapolation`, `#sec-ood-mechanism`), not a chapter; the
+  boundary-condition-content paragraph that belonged to the exact-kernel
+  line is gone. The uncertainty-signal section is one paragraph. The
+  query-independence section is one paragraph plus its numbers.
+- **Interior recommendation:** one architecture covers both tasks;
+  GeoTransolver-volume "remains the choice only where eddy viscosity is the
+  target field or the training set is small and pressure is the target".
+  The wake-aligned probe set and the canonical probe lattice are no longer
+  named as roads; the open interior item is the eddy-viscosity gap (width
+  control running; query-to-query local aggregation untested).
+- **Status chapter:** two architectures plus the Transolver control; the
+  exact-kernel MeshTransformer appears only as tree history; the organizing
+  open question is the mechanism of the HiLift advantage, not the
+  cross-family transfer gap.
+- **Do not state:** density robustness in the verdict paragraph (it belongs
+  to the similarity-gauge configuration; one sentence in chapter 6 and the
+  "does not claim" list); SHIFT-SUV in the thesis sentence (it stays defined
+  in chapter 1 and used in the frontier table).

@@ -577,34 +577,14 @@ does not close it: eddy viscosity 0.127 against 0.122 without the channel
 velocity unchanged within 1%
 (results/a35_v0_reduction_2026-09-08b.json). What GeoTransolver aggregates
 locally is the neighbouring interior points, not the surface; that, or its
-parameters, is where the last 1.29x lives. Neither passive construction of a query normal closes
-the gap, the SDF gradient is the better of the two by 1.2x, and the
-distance stratification locates the missing quantity as volumetric
-context available to the query. The exact-kernel decoder is not a
-contender on this task.
-
-Two designs would supply that context without making a prediction depend
-on the batch of queries. Neither has been measured; both are designs,
-not results.
-
-*Wake-aligned probe tokens.* The failed latent tokens sat along anchor
-normals within two anchor radii of the body; the region where ISLA loses
-the most ground is downstream. A probe set built covariantly from the
-surface and the freestream direction d — tokens placed along d behind
-the body, at offsets scaled by the reference length — would put
-interacting off-surface tokens where the volumetric structure of an
-external flow lives, while remaining a function of the surface alone.
-
-*A request-independent canonical probe set.* The alternative is to give
-the decoder interaction with a fixed lattice rather than with the other
-queries: a small query-side self-attention over a canonical set of probe
-points recomputed per request from the surface, never depending on which
-points the request contains. Queries would decode from the probe set
-GeoTransolver-style; predictions at shared points would still agree
-exactly across requests, at the cost of a fixed probe budget per
-inference.
-
-Whether to build either on ISLA or on GeoTransolver depends on what
-carries ISLA's small-data advantage on the surface task (@sec-mechanism),
-the open question that gates this one. @sec-limits collects the interior
-deficit alongside the book's other limits.
+parameters, is where the last 1.29x lives, and a matched-width control
+(the same configuration at hidden width 256) is not yet measured
+(@sec-program-status). For the passive decode, neither construction of a
+query normal closes the gap, the SDF gradient is the better of the two by
+1.2x, and the distance stratification locates the missing quantity as
+volumetric context available to the query; a request-independent probe
+set that would supply that context while keeping the passive decode is a
+design, not a result, and is not pursued while the query-token
+configuration leads on two fields of three. The exact-kernel decoder is
+not a contender on this task. @sec-limits collects the interior limits
+alongside the book's others.

@@ -9,52 +9,79 @@ its boundary. An earlier exact-kernel design of this program is documented in
 the repository's `book/archive/` directory, outside this book.] and measured it
 against the strongest available mainstream baseline, GeoTransolver, under one
 frozen, parameter- and token-matched protocol on two production aerodynamics
-datasets (DrivAerML, HiLiftAeroML), with a third (SHIFT-SUV) as a zero-shot
-transfer target. The
+datasets (DrivAerML, HiLiftAeroML). The
 audience is applied mathematicians and machine-learning researchers; every
 term is defined at first use and every number is computed live from a
 checked-in artifact.
 
-## The result in one paragraph
+## The verdict {#sec-verdict}
 
-**ISLA**, an SE(3)-equivariant soft-slice transformer, is **2.8x more accurate than GeoTransolver and
-than plain Transolver when trained on 35 high-lift wing cases**, 1.3–2.2x more
-accurate at 210 cases depending on the baseline, and at parity at 1,260
-cases. The advantage holds on every one of the 180 shared validation cases at
-35 cases, at every angle of attack including one absent from training, on
-geometries never seen in training, and after every steel-man control we could
-construct for the baselines (higher learning rate, doubled epochs, the same
-attention family without a geometry encoder); a third seed reproduces it. In
-engineering terms, from 35 CFD runs ISLA predicts lift and drag coefficients of
-unseen configurations to about 3%, where the baselines reach 8–17%; at a
-fixed angle of attack, 126 geometries give ISLA lift to 0.6% and a 5.0x
-advantage over GeoTransolver on 18 never-seen geometries. It does
-not transfer to DrivAerML, where the freestream is fixed: there GeoTransolver
-is 1.2–1.3x more accurate than ISLA from 27 training cases up. At full data the
-two architectures are at parity on HiLiftAeroML (GeoTransolver/ISLA = 1.02) and
-ISLA is 8.5% behind on DrivAerML; ISLA trains stably across a learning-rate
-decade where GeoTransolver degrades 4–14x; with its similarity gauge on it is
-the most sampling-density-robust model measured (1.20x under a 10:1 density
-bias against GeoTransolver's 3.6x), though that configuration is not the one
-behind the accuracy numbers and the constant-gauge configuration degrades
-13–14.5x; it is exactly rotation- and translation-covariant by construction;
-and its peak training memory at 10,000 tokens is 1.5 GB, against
-GeoTransolver's 4.6 GB.
-On the interior, one architecture now covers both tasks: ISLA with its
-interior queries admitted as interacting tokens and given the signed
-distance to the wall, the input GeoTransolver's volume configuration
-receives, is more accurate than that configuration on interior pressure
-(0.057 against 0.062) and velocity (0.085 against 0.133) at 8.9M parameters
-against 27.6M, and less accurate on eddy viscosity (0.122 against 0.094);
-below full data (54 and 109 training cars) it leads on velocity, trails
-within 6–11% on pressure and trails 1.3–1.5x on eddy viscosity; without the
-signed distance it matches GeoTransolver on pressure at full data and
-trails it by 1.2x below, as ISLA trails on the DrivAerML surface below full
-data. ISLA's passive,
-query-independent decode from the surface sample alone is 2.6x behind on
-pressure, the price of that contract. Where nothing leads is regime extrapolation: across an
+**ISLA is a large improvement over GeoTransolver in one regime, scarce
+training data on a family of multi-element wing geometries, and its equal
+everywhere else; it is not a new capability.** That sentence is the whole
+book, and every chapter either supports one clause of it or bounds it.
+
+The regime where it wins is practically important. On HiLiftAeroML, with
+35 CFD runs, ISLA's surface-pressure error is 2.8x lower than
+GeoTransolver's and than plain Transolver's. Read horizontally, the same
+curves say GeoTransolver needs about six times as many training cases to
+reach the accuracy ISLA reaches from 35, and plain Transolver about twice as
+many as ISLA at the 0.09 error level (@sec-de-result). In engineering terms, from 35 CFD runs ISLA predicts lift
+and drag coefficients of unseen configurations to about 3%, where the
+baselines reach 8–17%; at a fixed angle of attack, 126 geometries give ISLA
+lift to 0.6% and a 5.0x advantage over GeoTransolver on 18 never-seen
+geometries. The advantage holds on every one of the 180 shared validation
+cases at 35 cases, on geometries never seen in training, and after every
+steel-man control constructed for the baselines (higher learning rate,
+doubled epochs, a third seed, the same attention family without a geometry
+encoder). What ISLA does with few samples is generalize across wing
+geometries; GeoTransolver does not turn additional training geometries into
+accuracy until it has hundreds of them.
+
+Three facts bound it. The multiplier shrinks with data: 2.2x at 210 cases,
+parity at 1,260, and a naive power-law extrapolation of the two curves
+favours GeoTransolver by two at 5,000 cases. It does not transfer to
+DrivAerML, whose geometries are smooth morphs of one car: there GeoTransolver
+is 1.2–1.3x more accurate from 27 training cases up and 8.5% more accurate at
+full data, and the ingredient of ISLA that makes the difference between the
+two datasets has not been isolated. And part of the 2.8x is GeoTransolver's
+weakness rather than ISLA's strength: plain Transolver beats GeoTransolver at
+210 cases, so against the strongest same-family baseline ISLA's margin there
+is 1.3x.
+
+What ISLA adds beyond accuracy is contracts and cost: exact rotation and
+translation covariance by construction, stable training across a decade of
+learning rate where GeoTransolver degrades 4–14x, and 1.5 GB of peak training
+memory at 10,000 tokens against GeoTransolver's 4.6 GB. One architecture
+covers both tasks: with its interior queries admitted as interacting tokens
+and given the signed distance to the wall, ISLA is more accurate than
+GeoTransolver's 27.6M-parameter volume configuration on interior pressure
+(0.057 against 0.062) and velocity (0.085 against 0.133) at 8.9M parameters,
+and less accurate on eddy viscosity (0.122 against 0.094); below full data it
+leads on velocity and trails within 6–11% on pressure. The passive,
+query-independent interior decode is 2.6x behind on pressure, the price of
+that contract. Where nothing leads is regime extrapolation: across an
 angle-of-attack or stall boundary every architecture tested loses about a
 factor of ten, so coverage, not architecture, governs that axis.
+
+| Setting | Standing | Measured |
+|---|---|---|
+| HiLift surface, 35 cases | ISLA far ahead | 2.8x vs both baselines; 180/180 cases; forces 3% vs 8–17% |
+| HiLift surface, 210 cases | ISLA ahead | 2.2x vs GeoTransolver, 1.3x vs Transolver |
+| HiLift, never-seen geometries | ISLA ahead | 1.4–1.8x mixed angle; 5.0x at a fixed angle |
+| HiLift surface, 1,260 cases | Parity | GeoTransolver/ISLA 1.02 |
+| DrivAerML surface, 27–435 cars | ISLA behind | GeoTransolver 1.2–1.3x ahead; 8.5% at full data |
+| DrivAerML interior, 435 cars | ISLA ahead on pressure, velocity; behind on eddy viscosity | 0.91x / 0.64x / 1.29x at a third of the parameters |
+| DrivAerML interior, 54–109 cars | Mixed | pressure 1.06–1.11x behind, velocity ahead, eddy viscosity 1.45x behind |
+| Regime extrapolation | Nobody wins | both lose about 10x |
+| Contracts and cost | ISLA ahead | exact SE(3); 3x less memory; learning-rate robust |
+
+: The standing of ISLA against GeoTransolver in every setting measured, as
+baseline error divided by ISLA error where a ratio is given (above one
+favours ISLA). Each row's protocol, seeds, statistics and artifact are in
+the chapter that owns it: @sec-data-efficiency (HiLift rows), @sec-full-data
+(parity, DrivAerML surface, regime extrapolation, contracts),
+@sec-interior (interior rows). {#tbl-verdict}
 
 ## The result in one picture
 
@@ -146,11 +173,11 @@ Part I defines the problem, the datasets and splits, the metrics and the
 protocol (@sec-problem), then the architecture, ISLA
 (@sec-mt2), and the baselines with the fair-comparison rules
 (@sec-baselines). Part II is the evidence on production aerodynamics: data
-efficiency (@sec-data-efficiency), accuracy at full data and the robustness
-contracts (@sec-full-data), regime extrapolation (@sec-regime-extrapolation),
-and boundary-to-interior prediction (@sec-interior), which also answers why
-the architecture does not evaluate exact boundary-integral kernels
-(@sec-interior-negatives). Part III
+efficiency (@sec-data-efficiency); accuracy at full data, the robustness
+contracts and regime extrapolation (@sec-full-data,
+@sec-regime-extrapolation); and boundary-to-interior prediction
+(@sec-interior), which also answers why the architecture does not evaluate
+exact boundary-integral kernels (@sec-interior-negatives). Part III
 states the limits of every claim and the experiments that would move them
 (@sec-limits) and holds the live status ledger of the program
 (@sec-program-status). The appendix is the dated lab notebook
@@ -171,14 +198,22 @@ cases on HiLiftAeroML; on DrivAerML, at the frozen learning rate, GeoTransolver
 is 1.2–1.3x more accurate from 27 cases up and the two tie at 14. ISLA's curve
 flattens where GeoTransolver's steepens: a naive power-law extrapolation of the
 two curves puts GeoTransolver at 0.015 and ISLA at 0.029 at 5,000 cases, a
-factor of two in GeoTransolver's favour (@sec-limits). The HiLift accuracy
-figures are validation-set figures (final-epoch checkpoints, no checkpoint
-selection; the sealed test was spent on regime extrapolation). The advantage is geometry generalization — at a
-fixed angle of attack on 18 never-seen geometries ISLA is 5.0x more accurate
-than GeoTransolver — but the ingredient that carries it is not identified: no
-single ISLA ingredient accounts for more than 16% of it (@sec-mechanism). ISLA's exact equivariance is a contract, not an
+factor of two in GeoTransolver's favour (@sec-limits). The 2.8x headline is
+against GeoTransolver and plain Transolver at 35 cases; at 210 cases the
+margin over plain Transolver, the stronger baseline there, is 1.3x. The
+HiLift accuracy figures are validation-set figures (final-epoch checkpoints,
+no checkpoint selection; the sealed test was spent on regime extrapolation).
+The advantage is geometry generalization — at a fixed angle of attack on 18
+never-seen geometries ISLA is 5.0x more accurate than GeoTransolver — but the
+ingredient that carries it is not identified: no single ISLA ingredient
+accounts for more than 16% of it, and the one hypothesis that would explain
+both datasets at once (that the advantage lives on the small-scale features
+of multi-element wings, the slat and flap gaps) is stated and not yet
+measured (@sec-mechanism). ISLA's exact equivariance is a contract, not an
 in-distribution accuracy edge on vehicle data: GeoTransolver trained in a
-canonical frame is exactly pose-invariant at 1% cost (@sec-pose). Neither
-architecture generalizes across a flow-regime boundary, and neither
-transfers zero-shot to a different vehicle family
-(@sec-regime-extrapolation, @sec-full-data).
+canonical frame is exactly pose-invariant at 1% cost (@sec-pose). Its
+sampling-density robustness belongs to a configuration (the similarity
+gauge) that produced no accuracy number in this book
+(@sec-robustness-density). Neither architecture generalizes across a
+flow-regime boundary, and neither transfers zero-shot to a different vehicle
+family (@sec-regime-extrapolation, @sec-full-data).

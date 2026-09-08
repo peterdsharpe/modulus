@@ -11,13 +11,17 @@ outcome that settles each, and names what would change the recommendation.
 
 ## What is established {#sec-established}
 
-Seven results are settled to the standard of the fair-comparison protocol
-(@sec-protocol). Each carries its numbers and its own scope statement in its
+Eight results are settled to the standard of the fair-comparison protocol
+(@sec-protocol), and together they support the one-sentence verdict of
+@sec-verdict: a large improvement in one regime, parity elsewhere, no new
+capability. Each carries its numbers and its own scope statement in its
 home section; this chapter adds only the limits.
 
 - Data efficiency on HiLiftAeroML surface pressure, with its learning-rate,
-  training-length, paired per-case, stratified and force-coefficient
-  controls (@sec-data-efficiency).
+  training-length, third-seed, same-family, paired per-case, stratified,
+  unseen-geometry and force-coefficient controls (@sec-data-efficiency).
+- Its non-transfer to DrivAerML, where GeoTransolver is 1.2–1.3x more
+  accurate from 27 cars up (@sec-de-drivaerml).
 - Full-data accuracy on HiLiftAeroML and on DrivAerML (@sec-full-data).
 - The pose contract: exact rotation and translation covariance (@sec-pose).
 - Learning-rate robustness, and the memory and compute comparison
@@ -25,9 +29,10 @@ home section; this chapter adds only the limits.
 - Sampling-density robustness of ISLA with the similarity gauge, and the
   failure of the constant-gauge configuration without it
   (@sec-robustness-density).
-- Interior accuracy: ISLA with query tokens matches GeoTransolver's volume
-  configuration on interior pressure at a third of the parameters; the
-  passive, query-independent decode trails it by 2.6x (@sec-interior).
+- Interior accuracy: ISLA with query tokens and the signed distance leads
+  GeoTransolver's volume configuration on interior pressure and velocity at
+  a third of the parameters and trails on eddy viscosity; the passive,
+  query-independent decode trails it by 2.6x (@sec-interior).
 - Regime extrapolation: nothing tested generalizes across a flow-regime
   boundary (@sec-regime-extrapolation).
 
@@ -280,6 +285,20 @@ for 80% of cars, with GeoTransolver ahead on 47–48 of 48
 (results/drivaer_percase_correlation_2026-09-07.json). The gap is a
 near-constant factor on a shared difficulty ordering.
 
+The same instrument has not been pointed at HiLift, and that is the
+cheapest open test in the program. The hypothesis stated in
+@sec-mechanism, that ISLA's advantage is in resolving the small geometric
+features of multi-element wings (slat and flap gaps) from few samples,
+predicts that the GeoTransolver/ISLA error ratio at 35 cases concentrates
+on the elements and gap zones where the geometry varies and is smaller
+elsewhere; the DrivAerML uniformity is then the absence of such features,
+not a counterexample. The test is eval-only on existing checkpoints and is
+preregistered in @sec-nb-hlreg-prereg with bars in readout units; it is not
+yet measured (@sec-program-status). Until it is, the honest statement is
+that the mechanism is located at the level of the dataset (parametric
+multi-element geometry variation) and not at the level of the surface or
+of the architecture.
+
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 
 **Neither architecture generalizes across a flow-regime boundary, and ISLA's
@@ -303,8 +322,8 @@ above or pressure is 0.255 or above. Measured: d = 12.7/13.3, against 12.5
 for ISLA and 9.3 for GeoTransolver, with sealed-test pressure
 0.262/0.267. The falsifier fires: raw-coordinate inputs do not give ISLA
 GeoTransolver's smaller ratio, and no mechanism for it has been isolated.
-The discriminator the preregistration names next, GeoTransolver with its raw
-coordinates removed, is not yet measured (@sec-program-status).
+Because ISLA has the lower absolute error on both sides of the boundary,
+there is no transfer advantage to explain and the thread is closed.
 
 ### Interior accuracy: ahead on pressure and velocity with query tokens and the signed distance; the passive decode trails by 2.6x {#sec-limits-interior}
 
@@ -339,10 +358,11 @@ tokens placed off each slice anchor along its mean normal, made the interior
 decode worse by 1.43x. An exact boundary-integral prior is not an option
 either: on DrivAerML a potential-flow oracle scores worse than predicting each
 case's mean pressure, because the dominant physics is separation
-(@sec-interior-negatives). Two designs are named and not measured
-(@sec-interior-open): a wake-aligned probe set downstream along the
-freestream direction, and a request-independent canonical probe lattice that
-interacts GeoTransolver-style and from which queries decode passively.
+(@sec-interior-negatives). The open item on the interior is the
+eddy-viscosity gap (1.29x at full data, flat across an eightfold change in
+training data with inputs matched): surface-patch local features on the
+query tokens did not close it, and whether width does is preregistered and
+not yet measured (@sec-program-status).
 
 ### Exact query independence costs 3.0–3.7x and is not in the reference configuration {#sec-limits-query-independence}
 
@@ -378,20 +398,25 @@ vary one at a time (@sec-open-questions).
 ## Open questions, and what would settle each {#sec-open-questions}
 
 Each question has a preregistered prediction in readout units and a
-falsifier,^[Preregistrations: @sec-nb-w2-prereg, @sec-nb-lvt-verdict, @sec-nb-g5-prereg.] and
+falsifier,^[Preregistrations: @sec-nb-w2-prereg, @sec-nb-deflection-prereg,
+@sec-nb-hlreg-prereg, @sec-nb-qt-h256-prereg, @sec-nb-g5-prereg.] and
 none is yet measured (@sec-program-status). Unless stated, the readout is the
 pressure rel-L2 of @sec-limits-data-efficiency. The preregistrations were
 written in ISLA/GT, ISLA's error divided by GeoTransolver's at the same rung,
 so below 1 favours ISLA; this is the inverse of the GeoTransolver/ISLA
 convention used elsewhere in the book, and each threshold below is labelled
-with its direction.
+with its direction. The first question is the one whose answer would most
+change the book: it is the difference between an advantage that is
+described and one that is understood.
 
-- **Is the two-seed result robust at 210 cases?** A third seed at 210 cases
-  for all three architectures; the 35-case third seed is in: ISLA's falls inside its
-  two-seed range, the baselines' just outside theirs in ISLA's favour
-  (@sec-data-efficiency). Settled if every third-seed result lands
-  inside the two-seed spread widened by 1.5x; falsified if the rung mean
-  moves by more than 15%.
+- **Where on the wing does the advantage live?** The per-element and
+  gap-distance stratification of the 35-case and 210-case validation errors
+  described in @sec-mechanism, eval-only on existing checkpoints. Supported
+  if the GeoTransolver/ISLA error ratio in the near-gap band is at least
+  1.5x the ratio on the rest of the surface at 35 cases; falsified if the
+  ratio is uniform across bands within 1.15x, as it is across a DrivAerML
+  car's streamwise thirds. A located mechanism would say which other
+  datasets should show the advantage before they are run.
 - **Is the approach to parity smooth?** The 510-case rung between 210 and
   1,260. Prediction: GeoTransolver 0.075–0.095, ISLA 0.048–0.056, ISLA/GT
   about 0.6 (GeoTransolver 1.7x behind). If ISLA/GT is already 0.9 or above
@@ -410,20 +435,12 @@ with its direction.
   degradation ratio below 4; at or above 0.9x, or both ratios at 8 or more,
   geometry extrapolation behaves like regime extrapolation and coverage
   governs it too.
-- **Is the advantage geometry memorization?** The unseen-geometry splits at
-  210 and 40 cases, whose validation geometries appear at no angle in
-  training. Prediction: ISLA/GT within 0.1 of the same-size rungs (about
-  0.41 at 210; 0.35–0.5 at 40; GeoTransolver 2–3x behind). ISLA/GT of 0.8 or
-  above on either rung (GeoTransolver within 1.25x) re-attributes the
-  advantage to angle interpolation on seen geometries.
-- **Can off-surface context be supplied without giving up the passive
-  interior decode?** Wake-aligned probe tokens, and a request-independent
-  canonical probe set that interacts GeoTransolver-style. The bar the
-  latent-volume-token design failed is interior pressure within 1.5x of
-  GeoTransolver's. The transplant result (@sec-limits-mechanism) shows the small-data
-  advantage is not carried by three per-cell scalars GeoTransolver can be
-  given; which architecture the interior work should build on remains open
-  (@sec-interior-open).
+- **Does width carry the interior eddy-viscosity gap?** The query-token
+  configuration with the signed distance at hidden width 256 (about 15.7M
+  parameters against GeoTransolver-volume's 27.6M), two seeds, full
+  DrivAerML data. Supported if eddy-viscosity error is within 1.10x of
+  GeoTransolver's; falsified at 1.25x or more; pressure and velocity changes
+  above 5% are reported as width effects.
 - **Does boundary self-identification help ISLA?** The largest measured
   industrial gain of the exact-kernel MeshTransformer (@sec-interior) came from a trace
   formulation that let each boundary token identify its own cell in the
@@ -494,12 +511,19 @@ control. It is not yet measured (@sec-program-status).
 
 ## What would change the recommendation {#sec-review-roads}
 
-The current recommendation is GeoTransolver where interior accuracy is the
-target, and ISLA for surface prediction where training data are scarce, an
-exact pose contract is required, or (with the similarity gauge on) sampling
-density at inference is not under the model's control (@sec-interior,
-@sec-data-efficiency, @sec-robustness-density). Three outcomes would change
-it.
+The current recommendation is one architecture for both tasks. ISLA is the
+surface model where training data are scarce, where the geometries vary
+parametrically as a multi-element wing's do, where an exact pose contract is
+required, or (with the similarity gauge on) where sampling density at
+inference is not under the model's control; on the interior, ISLA with query
+tokens and the signed distance leads on pressure and velocity at a third of
+GeoTransolver's parameters and trails on eddy viscosity, so GeoTransolver's
+volume configuration remains the choice only where eddy viscosity is the
+target field or the training set is small and pressure is the target
+(@sec-data-efficiency, @sec-interior, @sec-robustness-density). On smooth
+single-body families such as DrivAerML, GeoTransolver is 1.2–1.3x more
+accurate on the surface at every training-set size, and that is the
+recommendation there. Three outcomes would change it.
 
 **GeoTransolver becomes the surface recommendation at all but the smallest
 training sets** if the 510-case rung and the 20,000-token test show
@@ -512,20 +536,24 @@ stands, and its remaining case at full data is its contracts, of which the
 canonical-frame GeoTransolver already matches pose invariance at 1.01x cost
 (@sec-pose).
 
-**ISLA becomes the surface recommendation across the whole data range** if
-the unseen-geometry ladder holds within 0.1 of the same-size rungs, the
-510-case rung lands near ISLA/GT 0.6 (GeoTransolver 1.7x behind), and the
-token test moves both architectures by a similar factor: with the transplant
-already falsified for GeoTransolver, the advantage is then architectural and
-the flattening is the protocol's floor. The interior stays with
-GeoTransolver unless a probe design closes the gap.
+**ISLA becomes the surface recommendation across the whole data range, and
+the result becomes a design principle rather than a benchmark**, if the
+mechanism is located. The unseen-geometry ladder has already shown that the
+advantage does not need the geometry to have been seen (1.4–1.8x on
+never-seen geometries) and that ISLA turns training geometries into accuracy
+where GeoTransolver does not. If the region stratification of
+@sec-open-questions then finds the advantage concentrated on the
+small-scale features of the wing, the claim becomes predictive: any dataset
+whose geometries vary in features a few dozen sampled points wide should
+show it, and any smooth-morph family should not, which is a statement that
+can be tested on a third dataset before it is trained on. If in addition the
+510-case rung lands near ISLA/GT 0.6 and the token test moves both
+architectures by a similar factor, the flattening is the protocol's floor
+and the advantage is architectural throughout the measured range.
 
-**A hybrid becomes the single production model** if a request-independent
-canonical probe set brings ISLA's interior pressure within 1.5x of
-GeoTransolver's while keeping its surface accuracy and contracts. Such a
-hybrid, ISLA's encoder and surface heads with a GeoTransolver-style
-interacting core on a fixed probe lattice, would be priced against ISLA's
-query-independent configuration, which pays 3.0–3.7x on the surface task
-(3.0–3.3x at matched memory; @sec-query-independence), and against a canonicalized
-GeoTransolver rather than against ISLA alone. If none of these fires, the
-recommendation stands as written, with the bounds of this chapter attached.
+**The interior recommendation becomes unconditional** if the width control
+closes the eddy-viscosity gap (within 1.10x) without moving pressure or
+velocity by more than 5%, or if query-to-query local aggregation, the one
+GeoTransolver-volume ingredient not yet transplanted, does so at the
+reference width. If none of these fires, the recommendation stands as
+written, with the bounds of this chapter attached.

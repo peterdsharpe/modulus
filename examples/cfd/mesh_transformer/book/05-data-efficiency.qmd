@@ -180,7 +180,51 @@ accurate than GeoTransolver itself. So at 210 cases most of the 2.2x gap
 to GeoTransolver is GeoTransolver's geometry encoder falling behind its own
 backbone, and ISLA's advantage over the *best* Transolver-family baseline is
 1.3x. At 35 cases the two baselines are indistinguishable and the 2.8x
-holds against both.
+holds against both. Every statement of the advantage in this book carries
+both margins, because a headline built on the weaker baseline overstates
+the architecture.
+
+**The horizontal reading is the one a practitioner uses.** A ratio at a
+fixed number of cases is the instrument reading; the engineering question
+is how many CFD runs each architecture needs to reach a given error. Reading
+@fig-hilift-data-efficiency horizontally:
+
+```{python}
+#| label: tbl-data-multiplier
+#| output: asis
+#| code-fold: true
+import json, math, statistics
+from pathlib import Path
+lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
+t1 = json.load(open(Path("..") / "results" / "t1_transolver_control_reduction_2026-09-05.json"))
+w2 = json.load(open(Path("..") / "results" / "w2_reduction_2026-09-07b.json"))["runs"]
+lad = {**lad, **{k: v for k, v in w2.items() if k.startswith("lad_hl_")}}
+t1 = {**t1, **{k: v for k, v in w2.items() if k.startswith("t1_hl_transolver")}}
+def mean_of(d, pat):
+    return statistics.mean(d[pat.format(s=s)]["pressure_l2"] for s in (42, 43, 44) if pat.format(s=s) in d)
+isla35, isla210 = mean_of(lad, "lad_hl_mt2_super_scarce_seed{s}"), mean_of(lad, "lad_hl_mt2_scarce_seed{s}")
+gt210 = mean_of(lad, "lad_hl_gt_scarce_seed{s}")
+t210 = mean_of(t1, "t1_hl_transolver_scarce_lr3e3_seed{s}")
+# ISLA's measured 35->210 segment as a power law: cases needed to reach a target error.
+slope = math.log(isla35 / isla210) / math.log(210 / 35)
+def isla_cases_for(err):
+    return 35 * (isla35 / err) ** (1 / slope)
+n_t = isla_cases_for(t210)
+print("| target error (pressure rel-L2) | reached by | at cases | ISLA reaches it at | data multiplier |")
+print("|---|---|---|---|---|")
+print(f"| {gt210:.3f} | GeoTransolver | 210 | 35 (measured: {isla35:.3f}) | **{210/35:.0f}x** |")
+print(f"| {t210:.3f} | Transolver (lr 3e-3) | 210 | about {n_t:.0f} (interpolated on ISLA's 35→210 segment, slope {slope:.2f}) | **{210/n_t:.1f}x** |")
+print(f"| {mean_of(lad, 'gt_hl_lr1_seed{s}'):.3f} | GeoTransolver | 1,260 | 1,260 (measured: {mean_of(lad, 'mt2_hl_lr1_seed{s}'):.3f}) | 1x |")
+print()
+print(": The data multiplier: how many more training cases each baseline needs than ISLA to reach the same surface-pressure error on the shared validation set. The GeoTransolver row is two measured points (GeoTransolver at 210 cases against ISLA at 35); the Transolver row interpolates ISLA's case count on its own measured 35→210 power-law segment, so it is a reading of the curve, not a measured rung; the 1,260-case row is parity. Same protocol and sources as @tbl-hilift-ladder. {#tbl-data-multiplier}")
+```
+
+Stated this way, the advantage is a six-fold saving in CFD runs at the
+0.14 error level against GeoTransolver, about two-fold against plain
+Transolver at the 0.09 level, and nothing at 1,260 cases. The multiplier
+falls as the target error falls, which is the shape of the curves in
+@fig-hilift-data-efficiency and the reason the book calls this a
+data-efficiency result and not a scaling law (@sec-de-limits).
 
 ## It holds case by case {#sec-de-paired}
 
@@ -430,29 +474,15 @@ differences between the architectures (@sec-robustness-lr).
 
 ## A free uncertainty signal {#sec-de-uq}
 
-Because two seeds exist for every model, the disagreement between them is
-a per-case uncertainty estimate at no extra cost. Its rank correlation
-with the per-case error tells whether a model knows where it is wrong.
-
-| training cases | ISLA | GeoTransolver | Transolver |
-|---|---|---|---|
-| 35 | **+0.67** | −0.20 | −0.47 |
-| 210 | +0.64 | +0.65 | +0.60 |
-| 1,260 | +0.15 | +0.19 | — |
-
-: Spearman rank correlation, over the 180 validation cases, between the two seeds' disagreement (norm of the difference of their pressure predictions) and the two-seed ensemble's error. Data: results/hilift_ensemble_uq_{35,210,1260}_2026-09-06.json. {#tbl-hilift-uq}
-
-At 35 cases ISLA's seed disagreement ranks its errors (0.67), so a two-seed
-ISLA ships with a usable per-case confidence flag; the baselines'
-disagreement is anticorrelated with their error, so an ensemble spread
-would mislead. At 210 cases all three architectures have the property,
-which identifies it as a "the model has learned the task" property that
-ISLA reaches at 35 cases and the baselines at 210. At 1,260 cases it
-collapses for both architectures — the remaining error is not
-seed-dependent model variance — which is part of the evidence, taken up in
-@sec-shared-floor, that both architectures approach a common floor at this
-token count. Two-seed ensembles gain only 1–5% at any rung. Only the
-ranking is tested here, not calibration.
+The disagreement between a model's two seeds ranks its per-case error at
+35 cases for ISLA (Spearman +0.67 over the 180 validation cases) and not
+for the baselines (−0.20 and −0.47), at 210 cases for all three (+0.60 to
++0.65), and for none at 1,260 (+0.15 to +0.19); two-seed ensembles gain only
+1–5% at any rung, and only the ranking is tested, not
+calibration.^[`results/hilift_ensemble_uq_{35,210,1260}_2026-09-06.json`.]
+A two-seed ISLA therefore ships with a usable per-case confidence flag from
+35 cases, where the baselines' would mislead; the collapse at 1,260 cases
+is part of the shared-floor evidence of @sec-shared-floor.
 
 ## What carries it {#sec-mechanism}
 
@@ -524,6 +554,32 @@ geometries); a GeoTransolver learning-rate steel-man at the single angle
 made GeoTransolver worse (0.280 at 3e-3 against 0.179 at 1e-3, so the 5.0x
 is stated at its better rate; results/w2_reduction_2026-09-08.json); the
 ladder's 210-case rung gives 1.40x (@sec-de-strata).
+
+**The hypothesis that would explain both datasets at once is stated here
+and not yet measured.** A high-lift wing differs from its neighbours in the
+family in the slat and flap deflections and, through them, in the gaps
+between elements: geometric features a few percent of the chord in size,
+which at 10,000 sampled points per case are covered by a few dozen points
+each, and which set the pressure over the whole element downstream of them.
+A DrivAerML car differs from its neighbours by a smooth morph of one body,
+with no such small features. If ISLA's relational routing resolves small
+geometric features from few samples where GeoTransolver's geometry encoder
+does not, then ISLA's advantage on HiLift should concentrate on the
+elements and gap zones where the geometry actually varies, and be smaller
+away from them; and the DrivAerML non-transfer follows, because there is
+nothing of that kind to resolve. The test is eval-only on existing
+checkpoints: separate each validation surface into its connected
+components (slat, main element, flap) and into bands by distance to the
+nearest other element, and compute the per-band GeoTransolver/ISLA RMS
+pressure-error ratio at 35 and 210 cases. Preregistered bars are in
+@sec-nb-hlreg-prereg: the hypothesis is supported if the ratio in the
+near-gap band exceeds the ratio on the rest of the surface by 1.5x or more
+at 35 cases; it is falsified if the ratio is uniform within 1.15x across
+bands, as the DrivAerML gap is across a car's streamwise thirds
+(@sec-limits-mechanism). Either outcome sharpens the claim: a located
+mechanism says where else to expect the advantage; a uniform ratio says the
+advantage is in the fit of the whole surface and rules out one more
+candidate (@sec-program-status).
 
 ## The same protocol on DrivAerML {#sec-de-drivaerml}
 

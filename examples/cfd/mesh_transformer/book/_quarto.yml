@@ -16,7 +16,6 @@ book:
       chapters:
         - 05-data-efficiency.qmd
         - 06-accuracy-and-robustness.qmd
-        - 07-regime-extrapolation.qmd
         - 08-boundary-to-interior.qmd
     - part: "Limits and status"
       chapters:

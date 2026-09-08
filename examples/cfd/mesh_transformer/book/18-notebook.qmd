@@ -7877,3 +7877,115 @@ error varies with them, only 1.4–1.8x higher than ISLA's. The
 geometry-count reading of @sec-nb-w2f-210-verdict stands; the
 "geometry-blind" phrasing should be read as "does not turn additional
 geometries into accuracy", not as "insensitive to which geometry".
+
+## 2026-09-08 — Program review: the verdict calibrated, five threads retired from the chapters, regime extrapolation folded into chapter 6, and the mechanism question restated {#sec-nb-program-review-2026-09-08}
+
+**Setting.** The book had grown by accretion over a week of verdicts:
+five places offered a summary judgment (the index paragraph, the accuracy
+chapter's verdict, the limits chapter's established list and its
+recommendation section, and the status chapter's opening), two of them
+stale (the limits chapter still recommended GeoTransolver for the interior
+and treated the unseen-geometry ladder as future; the status chapter still
+named the exact-kernel MeshTransformer as a recurring architecture and the
+cross-family transfer gap as the organizing question). The index paragraph
+was a 400-word chain of ratios with no sentence saying how large the author
+thinks the effect is.
+
+**What changed in the chapters.** (1) The index now opens with one verdict
+sentence, "a large improvement in one regime, parity elsewhere, not a new
+capability", the horizontal (data-multiplier) reading of the ladder, the
+three bounding facts (the multiplier shrinks with data; no transfer to
+DrivAerML; part of the 2.8x is GeoTransolver's weakness, since plain
+Transolver beats it at 210 cases), and a standing table
+(`tbl-verdict`). (2) Chapter 5 gains a live data-multiplier table
+(`tbl-data-multiplier`): GeoTransolver needs 6x the cases to reach ISLA's
+35-case accuracy (two measured points); Transolver about 2x at the 0.09
+level (ISLA interpolated at about 106 cases on its own 35→210 segment); the
+uncertainty-signal section is one paragraph; the mechanism section states
+the small-feature hypothesis (below) as not yet measured. (3) Chapter 7
+(regime extrapolation) is folded into chapter 6 as a section with the same
+anchors, compressed to the table, the figure, the three readings, the
+raw-coordinate falsification and two sentences of practice; the
+boundary-condition-content paragraph, a remnant of the exact-kernel line, is
+cut. (4) The query-independence section is one paragraph. (5) Chapter 8's
+"two designs" (wake-aligned probes, canonical probe lattice) are dropped
+as roads, superseded by the query-token configuration. (6) Chapter 12's
+established list, mechanism limit, interior limit, open questions and
+recommendation are rewritten to the current state; the third-seed and
+unseen-geometry questions are removed as settled; the region-stratification
+and width-control questions are added. (7) Chapter 13's opening names two
+architectures and the Transolver control, moves the exact-kernel line to
+tree history, and reorganizes around the mechanism question; node HLREG is
+added as the ready frontier.
+
+**Why the verdict is "large improvement", not "groundbreaking".** The
+program's own evidence caps it: parity at 1,260 cases and a naive
+extrapolation favouring GeoTransolver 2x at 5,000; GeoTransolver 1.2–1.3x
+ahead on DrivAerML at every size; no architecture crosses a regime boundary
+or transfers across families; the carrier not isolated (five ablations
+≤ 16%; transplant falsified for GeoTransolver). Groundbreaking would
+require either a capability no baseline has (none appeared) or a located
+mechanism that predicts where the advantage will and will not appear
+before a dataset is trained on. The second is within reach and is the
+program's ready frontier.
+
+### Preregistered: HLREG, where on the wing does the advantage live? {#sec-nb-hlreg-prereg}
+
+*Hypothesis.* ISLA's advantage on HiLiftAeroML is in resolving the
+small-scale geometric features of multi-element wings, the slat and flap
+deflections and the gaps they open, from few samples. Those features are a
+few percent of the chord in size, covered by a few dozen of the 10,000
+sampled points per case, and set the pressure over the element downstream of
+them. DrivAerML cars differ by smooth morphs of one body with no such
+features, which would explain the non-transfer without a second mechanism.
+The single-angle result (5.0x at a fixed angle, so the freestream direction
+is not the carrier), the geometry-count response (ISLA's error rises 1.6x
+when the training geometries are cut six-fold at fixed case count;
+GeoTransolver's does not move), and the uniformity of the DrivAerML gap
+across streamwise thirds are all consistent with it; none tests it.
+
+*Instrument (eval-only).* For each of the 180 shared validation cases at
+the 35-case and 210-case rungs (ISLA and GeoTransolver, seeds 42/43):
+partition the sampled surface points by (a) connected component of the
+surface mesh (slat, main element, flap; the elements are disjoint bodies,
+so connectivity identifies them without labels) and (b) distance to the
+nearest point of a *different* component, in bands of 0–2%, 2–10% and
+>10% of the reference chord. Readout per band: the ratio of GeoTransolver's
+to ISLA's RMS pressure error over the band's points (two-seed mean
+predictions), reported as the median over cases with its 10–90% range, and
+each band's share of total squared error for each model. The instrument
+needs per-point predictions; if the ladder evaluations did not save them,
+the four 35-case and four 210-case checkpoints are re-evaluated once with
+the frozen inference configuration (minutes each on one GPU).
+
+*Bars, in readout units.* Let R_near be the GeoTransolver/ISLA ratio in
+the 0–2% band and R_rest the ratio over all other points, medians over
+cases at 35 cases. **Supported** if R_near / R_rest ≥ 1.5 (the advantage
+is at least half again as large next to the gaps as elsewhere) and the
+ordering is preserved at 210 cases. **Falsified** if 0.87 ≤ R_near / R_rest
+≤ 1.15, the band within which the DrivAerML streamwise stratification
+called the gap uniform. Between 1.15 and 1.5, inconclusive; a per-element
+concentration (one element's ratio ≥ 1.5x the others') is then reported as
+a secondary finding, not as support. A supported verdict is written as
+"the advantage concentrates on the gap regions", never as "ISLA resolves
+the gaps", until a discriminating ablation (for example, ISLA with the
+gap-region points removed from the sample) has been run.
+
+*What each outcome changes.* Supported: the mechanism is located on the
+surface; the book gains a predictive statement (feature-scale variation
+should show the advantage, smooth morphs should not) testable on a third
+dataset before training; the next node is the sample-removal ablation and
+a per-slice attribution of which routing slices carry the gap regions.
+Falsified: the advantage is in the fit of the whole surface; the
+small-feature hypothesis joins the freestream-direction hypothesis as
+excluded, and the remaining candidates are the routing structure as a
+whole (a slice-count and relational-routing ladder at 35 cases) and the
+loss landscape at small data (a training-dynamics comparison).
+
+**Scheduling decision.** HLREG is READY (depends on W2F and DRV-STA, both
+done). It is eval-only and should run before any further training lane is
+launched on the surface task. The width control (QT-SDF-h256), the 510-case
+rung, the 20,000-token test and the deflection split continue as running.
+Tech-tree changes: node HLREG added with edges W2F → HLREG, DRV-STA → HLREG,
+HLREG → MT3; chapter 7 removed from the render (anchors preserved in
+chapter 6).
