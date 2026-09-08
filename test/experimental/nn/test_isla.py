@@ -683,6 +683,48 @@ def test_query_scalars_contracts():
         ISLA(out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, n_query_scalars=1)
 
 
+def test_query_local_features_contracts():
+    """Local surface-patch features on the query tokens: exact rotation,
+    translation and (with the similarity gauge) scale covariance hold, the
+    channel changes the output and receives gradients, and it requires
+    query_tokens."""
+    torch.manual_seed(0)
+    kw = dict(out_scalars=1, out_vectors=1, hidden=32, n_layers=2, n_slices=8,
+              query_tokens=True, similarity_gauge=True, n_query_scalars=1,
+              query_local_features=True, query_local_radii=(0.1, 0.3))
+    m = ISLA(**kw).double()
+    m0 = ISLA(**{**kw, "query_local_features": False}).double()
+    pts = torch.randn(1, 60, 3, dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, 60, 3, dtype=torch.float64), dim=-1)
+    drive = torch.tensor([[1.0, 0.3, 0.0]], dtype=torch.float64)
+    w = torch.rand(1, 60, dtype=torch.float64) + 0.5
+    q = torch.randn(1, 12, 3, dtype=torch.float64) * 0.5
+    qn = torch.nn.functional.normalize(torch.randn(1, 12, 3, dtype=torch.float64), dim=-1)
+    sdf = torch.randn(1, 12, dtype=torch.float64) * 0.3
+    args = dict(measure_weights=w, query_points=q, query_normals=qn, query_scalars=sdf)
+    out = m(pts, nrm, drive, **args)
+    assert out.shape == (1, 12, 4)
+    R = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))[0]
+    if torch.det(R) < 0:
+        R[:, 0] = -R[:, 0]
+    t = torch.tensor([0.4, -1.1, 2.0], dtype=torch.float64)
+    rot = m(pts @ R.T + t, nrm @ R.T, drive @ R.T, measure_weights=w, query_points=q @ R.T + t,
+            query_normals=qn @ R.T, query_scalars=sdf)
+    assert torch.allclose(rot[..., 0], out[..., 0], atol=1e-10)
+    assert torch.allclose(rot[..., 1:], out[..., 1:] @ R.T, atol=1e-10)
+    s = 2.3
+    sc = m(pts * s, nrm, drive, measure_weights=w * s**2, query_points=q * s, query_normals=qn,
+           query_scalars=sdf * s)
+    assert torch.allclose(sc, out, atol=1e-10)
+    out.square().sum().backward()
+    assert all(p.grad is not None and p.grad.abs().sum() > 0 for p in m.qt_local_embed.parameters())
+    ### channel is live: zeroing its embedding output recovers the no-channel model's function
+    m0.load_state_dict({k: v for k, v in m.state_dict().items() if not k.startswith("qt_local_embed")})
+    assert not torch.allclose(m0(pts, nrm, drive, **args), out)
+    with pytest.raises(ValueError):
+        ISLA(out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, query_local_features=True)
+
+
 def test_legacy_name_is_an_alias():
     """The previous name and import path keep working (cluster configs, checkpoints)."""
     from physicsnemo.experimental.nn import MeshTransformer2 as legacy_top

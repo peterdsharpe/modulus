@@ -293,6 +293,8 @@ class ISLA(Module):
         geo_checkpoint: bool = False,
         n_query_scalars: int = 0,
         query_scalar_scale: str = "length",
+        query_local_features: bool = False,
+        query_local_radii: tuple[float, ...] = (0.05, 0.15, 0.5),
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -463,6 +465,23 @@ class ISLA(Module):
             self.qt_scalar_embed = nn.Sequential(
                 nn.Linear(width, hidden), nn.GELU(), nn.Linear(hidden, hidden)
             )
+        ### Optional local surface-patch features on the query tokens: the
+        ### same measure-weighted Gaussian patch integrals of the SURFACE
+        ### sample around each query that the passive decoder can use
+        ### (_local_invariants_at), at radii in gauge units, entered
+        ### additively through their own embedding. Invariant by
+        ### construction (integrals of equivariant vectors projected on the
+        ### query normal and drive), so every covariance contract holds.
+        ### Target: the eddy-viscosity deficit to GeoTransolver-volume, whose
+        ### six-radius local features are the one input class ISLA lacked.
+        self.query_local_features = bool(query_local_features)
+        self.query_local_radii = tuple(float(x) for x in query_local_radii)
+        if self.query_local_features:
+            if not self.query_tokens:
+                raise ValueError("query_local_features requires query_tokens=True")
+            self.qt_local_embed = nn.Sequential(
+                nn.Linear(7 * len(self.query_local_radii), hidden), nn.GELU(), nn.Linear(hidden, hidden)
+            )
         if odd_head:
             self.N_ODD = 7
             self.odd_assign = nn.Linear(hidden, n_slices)
@@ -476,14 +495,20 @@ class ISLA(Module):
             nn.init.zeros_(self.odd_gate.bias)
 
 
-    def _local_invariants_at(self, q_r, q_n, q_d, src_r, src_n, log_w):
+    def _local_invariants_at(self, q_r, q_n, q_d, src_r, src_n, log_w, radii=None,
+                             normalize_weights=False):
         """Query-passive variant: patch integrals of the SOURCE sample
-        evaluated at arbitrary query positions."""
+        evaluated at arbitrary query positions (radii default to
+        ``self.local_radii``; the query-token channel passes its own and
+        normalizes the measure weights to fractions of the total surface
+        measure, so that log(mass) is invariant to geometric scale)."""
         b, nq, _ = q_r.shape
         w = torch.exp(log_w.squeeze(-1))
+        if normalize_weights:
+            w = w / w.sum(dim=-1, keepdim=True).clamp_min(self.eps)
         feats = []
         chunk = 4096
-        for rho in self.local_radii:
+        for rho in (self.local_radii if radii is None else radii):
             outs = []
             for i0 in range(0, nq, chunk):
                 ri = q_r[:, i0 : i0 + chunk]
@@ -716,6 +741,14 @@ class ISLA(Module):
                 h_q = h_q + self.qt_scalar_embed(qs).to(h_q.dtype)
             elif query_scalars is not None:
                 raise ValueError("query_scalars given but n_query_scalars == 0")
+            if self.query_local_features:
+                ### Patch integrals of the surface sample around each query
+                ### (surface tokens only: the first n_surface entries).
+                q_loc = self._local_invariants_at(
+                    q_r, q_nhat, q_d, r[:, :n_surface], n_hat[:, :n_surface], log_w[:, :n_surface],
+                    radii=self.query_local_radii, normalize_weights=True,
+                )
+                h_q = h_q + self.qt_local_embed(q_loc.to(q_inv.dtype)).to(h_q.dtype)
             h = torch.cat([h, h_q], dim=1)
             r = torch.cat([r, q_r], dim=1)
             n_hat = torch.cat([n_hat, q_nhat], dim=1)
