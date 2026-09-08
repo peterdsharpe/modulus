@@ -7758,3 +7758,31 @@ protocol). *Parameters carry it* if ν_t QT-SDF-h256 / GT ≤ 1.10 (from 1.29);
 reported alongside; a change of more than 5% either way is reported as an
 effect of width in its own right. Two nodes; the wave-2 HiLift lanes are
 unaffected.
+
+## 2026-09-08 — Sync: upstream main and PR #1966 merged; the branch-local reader compaction and the positional-read path are dropped in favour of the upstream Mesh.slice_points fix {#sec-nb-sync-1966}
+
+The reader investigation of 2026-09-07 (@sec-nb-hilift-io,
+@sec-nb-hilift-io-verdict) produced two code changes on this branch: a
+vertex compaction in the reader that avoided `Mesh.slice_points`'s two
+n_points-sized temporaries, and an opt-in page-wise positional-read gather
+that measured 4–5x slower than the memmap path inside the training loop on
+Lustre. The upstreaming session took the first to the repository as PR
+#1966 and, at Peter's direction, moved the fix into `Mesh.slice_points`
+itself (cell remap through the lookup table when the mesh is small,
+binary search over the kept ids otherwise; memmap rows read as one range
+when they span ≤ 256 MiB; bit-identical to the old implementation on every
+index form; on HiLiftAeroML 63 → 2 ms per 10k-cell slice and 3.0 → 0.85 GB
+peak RSS per sample). This session merged `upstream/main` (three
+conflicts, all combinations of this branch's target-quadrature-measure
+bookkeeping with upstream's nested-key handling, resolved by keeping both;
+one upstream test now expects the private measure key) and the #1966
+branch (`origin/pr/mesh-reader-cell-compaction` at 1e605e0ba), then restored
+`physicsnemo/datapipes/readers/mesh.py` and its test to the upstream
+versions, dropping the branch's compaction and the positional-read path.
+The positional-read path was dropped rather than re-hooked because its own
+measurement said so: the byte saving (0.29 vs 1.08 GB per cold sample) did
+not survive contact with Lustre's per-file serialisation of small reads.
+Tests after the sync: 594 (transforms, readers, recipe) and 97 (readers,
+slice_points equivalence, row gather, ISLA) pass. Cluster lanes run from
+frozen code snapshots and are unaffected. Commits 30338f599 (upstream
+merge), dea2adcf1 (#1966 merge), c7134fe5d (reader restored).
