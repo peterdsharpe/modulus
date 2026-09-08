@@ -316,14 +316,15 @@ arm's preregistered pressure bar landed in its inconclusive band (an 11%
 fall against 15% to count as supported), so its pressure gain is reported
 as measured, not as a confirmed hypothesis; its velocity and
 eddy-viscosity gains were anticipated but not given bars. And the
-full-data statement does not extend to small data for the configuration
-measured on the ladder: at 54 and 109 training cars GeoTransolver leads
-the query-token configuration without the signed distance by a constant
-1.2x on interior pressure, the same 1.2x by which it leads ISLA on the
-DrivAerML surface below full data, and the curves cross only above 109
-cars, where GeoTransolver's flattens first (@sec-interior-open); the
-signed-distance configuration's ladder is not yet measured
-(@sec-program-status). For the passive decode, the deficit is 2.5x near the wall and
+full-data statement only partly extends to small data: at 54 and 109
+training cars GeoTransolver leads the query-token configuration without
+the signed distance by a constant 1.2x on interior pressure, the same 1.2x
+by which it leads ISLA on the DrivAerML surface below full data; with the
+signed distance the pressure deficit is 1.11x at 54 cars and 1.06x at 109,
+velocity is an ISLA advantage at every size (0.83x, 0.73x, 0.64x), and
+eddy viscosity stays 1.3–1.5x in GeoTransolver's favour, so below full
+data ISLA leads on one field of three and trails within 11% on pressure
+(@sec-interior-open). For the passive decode, the deficit is 2.5x near the wall and
 3.3–5.4x in the far bands, the signature of missing volumetric context.
 Interior queries are always decoded passively; the one attempt to supply
 volumetric context while keeping that passive decode, equivariant latent

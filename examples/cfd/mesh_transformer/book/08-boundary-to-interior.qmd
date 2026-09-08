@@ -556,18 +556,22 @@ with the two models' inputs matched, keeps exact SE(3) covariance, and
 trails on eddy viscosity (1.29x); ISLA's passive decode is the configuration to use when
 interior query independence is contractual, at 9.9M parameters, 4.9 GB
 and a 2.6x price in interior pressure error on DrivAerML.** The parity is
-a full-data statement: trained on 54 or 109 cars, GeoTransolver-volume
-leads the query-token configuration by a constant 1.2x on interior pressure
-(0.104 against 0.126 at 54 cars, 0.078 against 0.094 at 109; velocity
-1.26–1.27x, eddy viscosity 1.7–1.8x), the same 1.2x by which it leads ISLA
-on the DrivAerML surface at every size below full data
-(@sec-de-drivaerml). The two curves are parallel from 54 to 109 cars
-(log-log slopes 0.41 and 0.42) and converge above 109, where
-GeoTransolver's slope halves (0.17) and ISLA's falls less (0.28), so the
-parity at 435 cars is where the curves cross
-(results/v0l_reduction_2026-09-08.json). The eddy-viscosity gap is 1.7–1.8x
-at all three sizes, unmoved by data, which points at an input rather than
-a capacity difference. Neither passive construction of a query normal closes
+mostly a full-data statement. Without the signed distance, trained on 54 or
+109 cars, GeoTransolver-volume leads the query-token configuration by a
+constant 1.2x on interior pressure (0.104 against 0.126 at 54 cars, 0.078
+against 0.094 at 109; velocity 1.26–1.27x, eddy viscosity 1.7–1.8x), the
+same 1.2x by which it leads ISLA on the DrivAerML surface at every size
+below full data (@sec-de-drivaerml); the two curves are parallel from 54 to
+109 cars and converge above 109, where GeoTransolver's slope halves. With
+the signed distance, the small-data pressure deficit halves (1.11x at 54
+cars, 1.06x at 109), velocity turns into an ISLA advantage at every size
+(0.83x at 54, 0.73x at 109, 0.64x at 435), and eddy viscosity stays
+1.3–1.5x in GeoTransolver's favour throughout; the pressure curves cross
+between 109 and 435 cars (results/v0l_reduction_2026-09-08b.json). The
+eddy-viscosity gap, flat across an eightfold change in data with the inputs
+matched, is what GeoTransolver's local features and 2.8x parameters still
+buy, and the natural target of a local-feature channel on ISLA's query
+tokens. Neither passive construction of a query normal closes
 the gap, the SDF gradient is the better of the two by 1.2x, and the
 distance stratification locates the missing quantity as volumetric
 context available to the query. The exact-kernel decoder is not a

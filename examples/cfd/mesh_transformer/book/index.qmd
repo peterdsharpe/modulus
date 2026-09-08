@@ -46,10 +46,11 @@ distance to the wall, the input GeoTransolver's volume configuration
 receives, is more accurate than that configuration on interior pressure
 (0.057 against 0.062) and velocity (0.085 against 0.133) at 8.9M parameters
 against 27.6M, and less accurate on eddy viscosity (0.122 against 0.094);
-without the signed distance it matches GeoTransolver on pressure and trails
-on the other two fields, and at 54 and 109 training cars GeoTransolver leads
-that configuration by 1.2x, as it leads ISLA on the DrivAerML surface below
-full data. ISLA's passive,
+below full data (54 and 109 training cars) it leads on velocity, trails
+within 6–11% on pressure and trails 1.3–1.5x on eddy viscosity; without the
+signed distance it matches GeoTransolver on pressure at full data and
+trails it by 1.2x below, as ISLA trails on the DrivAerML surface below full
+data. ISLA's passive,
 query-independent decode from the surface sample alone is 2.6x behind on
 pressure, the price of that contract. Where nothing leads is regime extrapolation: across an
 angle-of-attack or stall boundary every architecture tested loses about a

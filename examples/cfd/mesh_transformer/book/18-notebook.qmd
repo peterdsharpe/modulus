@@ -7603,3 +7603,43 @@ at the same size.
 query tokens without the input. Between is inconclusive. Secondary: the
 54→109→435 slopes of this configuration against GeoTransolver's
 (0.41, 0.17) and the plain query tokens' (0.42, 0.28).
+
+## 2026-09-08 — Verdict, signed-distance ladder: at 54 cars pressure 1.11x (inconclusive band), velocity 0.83x (ISLA ahead), ν_t 1.44x; at 109 cars 1.06 / 0.73 / 1.49 — the input removes half the small-data pressure deficit and all of the velocity deficit {#sec-nb-qtsdf-ladder-verdict}
+
+**Readout** (results/v0l_reduction_2026-09-08b.json; interior relative L2,
+mean over 48 cars, two seeds; seeds within 4% on pressure at 54 cars, 1% elsewhere):
+
+| cars | GeoTransolver-volume: p / u / ν_t | ISLA-QT (no SDF value) | ISLA-QT + SDF value | QT+SDF / GT |
+|---|---|---|---|---|
+| 54 | 0.104 / 0.202 / 0.190 | 0.126 / 0.254 / 0.329 | 0.116 / 0.169 / 0.274 | **1.11** / **0.83** / 1.44 |
+| 109 | 0.078 / 0.163 / 0.142 | 0.094 / 0.207 / 0.254 | 0.083 / 0.119 / 0.211 | **1.06** / **0.73** / 1.49 |
+| 435 | 0.062 / 0.133 / 0.094 | 0.064 / 0.155 / 0.160 | 0.057 / 0.085 / 0.122 | 0.91 / 0.64 / 1.29 |
+
+Pressure slopes, −Δlog(error)/Δlog(cars): GeoTransolver 0.41 then 0.17;
+query tokens 0.42 then 0.28; query tokens + SDF 0.48 then 0.27. Velocity
+slopes for the SDF configuration 0.50 then 0.24 against GeoTransolver's
+0.31 then 0.14.
+
+**Verdict against the bars** (@sec-nb-qtsdf-ladder-prereg). "Closes"
+required QT-SDF/GT ≤ 1.05 on pressure at 54 cars and < 1.0 on velocity:
+the velocity clause is met (0.83) and the pressure clause is not (1.11);
+"persists" required ≥ 1.15 on pressure: not met either. **Inconclusive on
+pressure by the preregistered band; closed on velocity.** Read plainly:
+the signed distance takes the small-data pressure deficit from 1.21x to
+1.11x at 54 cars and from 1.20x to 1.06x at 109, and turns a 1.26x velocity
+deficit into a 1.2x advantage at 54 cars and a 1.37x advantage at 109. The
+pressure curves cross between 109 and 435 cars (1.06 → 0.91) because the
+SDF configuration keeps the steeper slope; on eddy viscosity GeoTransolver
+leads by 1.3–1.5x at every size.
+
+**Reading.** With inputs matched, the remaining difference between the two
+volume models is GeoTransolver's 2.8x parameters and six-radius local
+features. Those buy it a 6–11% pressure advantage below 109 cars and a
+1.3–1.5x advantage on eddy viscosity; they buy nothing on velocity at any
+size and nothing on pressure at 435 cars. The "one architecture" statement
+therefore reads, at small data on DrivAerML's interior: ISLA ahead on
+velocity, within 6–11% on pressure, behind on eddy viscosity; at full data
+ahead on two of three fields. The eddy-viscosity gap, flat across an
+eightfold change in data with matched inputs, is now the cleanest target
+for a local-feature channel in ISLA's query tokens, which would be the
+third and last of GeoTransolver-volume's differences to test.

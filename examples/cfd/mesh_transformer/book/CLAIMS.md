@@ -264,6 +264,11 @@ surface alone; 435/48 cars; 10k surface tokens, 10k interior query points;
   flattens first, parity at 435 is where the curves cross. Do NOT write
   "ISLA's interior error falls faster at every size". Artifacts
   results/v0l_reduction_2026-09-07.json (54), results/v0l_reduction_2026-09-08.json (54+109).
+- Signed-distance ladder (54/109 cars): QT+SDF / GT = 1.11 / 0.83 / 1.44 at
+  54 and 1.06 / 0.73 / 1.49 at 109 (pressure / velocity / ν_t); plain QT
+  1.21 / 1.26 / 1.73 and 1.20 / 1.27 / 1.79. Pressure bar inconclusive
+  (band 1.05–1.15), velocity closed. Pressure curves cross between 109 and
+  435 cars. Artifact results/v0l_reduction_2026-09-08b.json.
 - Product statement (2026-09-08): ONE architecture covers surface and
   interior. ISLA with query tokens + SDF value: interior pressure 0.0567
   (0.91x GeoTransolver-volume), velocity 0.0853 (0.64x), ν_t 0.1215 (1.29x),
