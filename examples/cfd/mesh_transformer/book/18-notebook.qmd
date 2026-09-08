@@ -7737,3 +7737,24 @@ matched-parameter control (ISLA at hidden 256); neither is launched here.
 With inputs matched and two of three fields ahead at a third of the
 parameters, the interior statement stands as written after the
 signed-distance arm.
+
+## 2026-09-08 — Preregistered: matched-width control — ISLA query tokens + signed distance at hidden 256 (does the eddy-viscosity gap come from parameters?) {#sec-nb-qt-h256-prereg}
+
+**Setting.** Of GeoTransolver-volume's three differences to ISLA's passive
+decode, interaction and the signed-distance input are measured and the
+surface-patch reading of local features is falsified
+(@sec-nb-qt-lf-verdict). The remaining 1.29x eddy-viscosity deficit has two
+candidate carriers left: GeoTransolver's local aggregation over
+neighbouring interior points, and its 2.8x parameters (hidden width 256
+against ISLA's 192, plus the local-feature encoder). This arm tests the
+second: the QT-SDF configuration with hidden width 256 (every other
+hyperparameter unchanged; about 15.7M parameters, still 0.57x
+GeoTransolver-volume's 27.6M).
+
+**Bars.** Runs `v0_isla_qtsdf_h256_seed{42,43}` (`code_isla3` with
+`query_local_features` off, so the model is the QT-SDF one; 435 cars, V0
+protocol). *Parameters carry it* if ν_t QT-SDF-h256 / GT ≤ 1.10 (from 1.29);
+*falsified* if ≥ 1.25; between, inconclusive. Pressure and velocity are
+reported alongside; a change of more than 5% either way is reported as an
+effect of width in its own right. Two nodes; the wave-2 HiLift lanes are
+unaffected.
