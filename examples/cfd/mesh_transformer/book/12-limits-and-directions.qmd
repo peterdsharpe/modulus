@@ -247,9 +247,12 @@ and the optimisation axis is closed for that result. Plain Transolver at the
 same angle scores 0.091, 1.96x ahead of GeoTransolver and 2.55x behind
 ISLA: about two fifths of GeoTransolver's fixed-angle deficit is its
 geometry-encoder path, the rest is the backbone the two baselines share
-(@sec-de-strata). The 210-case rung of
-the unseen-geometry ladder and whether Transolver's partial gain persists
-at 210 cases are not yet measured (@sec-program-status).
+(@sec-de-strata). The ladder's 210-case rung (21 training geometries) gives
+1.40x on the same never-seen geometries against 2.2x on the random 210-case
+split with about 126 geometries, for the same reason: ISLA's error rises
+1.6x when the geometries are cut six-fold, GeoTransolver's does not move.
+Whether Transolver's partial gain from the invariant inputs persists at
+210 cases is not yet measured (@sec-program-status).
 
 The DrivAerML shortfall, in turn, is not located anywhere on the car. The
 natural hypothesis is that ISLA lacks the global context a bluff body's

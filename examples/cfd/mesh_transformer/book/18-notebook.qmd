@@ -7818,3 +7818,38 @@ answer either; it is 2.5x behind ISLA at the fixed angle with a seed spread
 Transolver backbone and 5x over GeoTransolver when the geometry is the only
 thing that varies. The mechanism ledger now reads: geometry encoder −42%,
 backbone-versus-ISLA the remaining 58%, invariant inputs not the carrier.
+
+## 2026-09-08 — W2-F, second rung (210 cases from 21 geometries): ISLA 0.102 vs GeoTransolver 0.143 on 18 never-seen geometries, 1.40x; falsifier clear, 0.1 band missed for the same reason as at 40 cases {#sec-nb-w2f-210-verdict}
+
+**Readout** (results/w2_reduction_2026-09-08b.json, arm `F_geometry_scarce`;
+`geometry_scarce` = 210 cases from 21 geometries at all ten angles, validated
+on the 180 cases of 18 geometries never seen at any angle; two seeds):
+
+| model | pressure (42 / 43 → mean) | velocity | wall shear | GT / ISLA |
+|---|---|---|---|---|
+| ISLA | 0.1005 / 0.1029 → **0.1017** | 0.118 / 0.121 | 0.187 / 0.193 | |
+| GeoTransolver | 0.1531 / 0.1322 → **0.1427** | 0.171 / 0.156 | 0.268 / 0.241 | **1.40** (velocity 1.37, wall shear 1.34) |
+
+**Verdict.** ISLA/GeoTransolver = 0.71: below the 0.8 falsifier, so the
+advantage again does not depend on having seen the validation geometry;
+0.25 above the random 210-case split's 0.46 (three seeds), so the 0.1 band
+is missed, as at the 40-case rung (@sec-nb-w2f-40-verdict). The reason is
+the same and now measured twice. Going from the random 210-case split
+(about 126 distinct geometries) to 210 cases from 21 geometries, ISLA's
+error rises from 0.065 to 0.102 (1.57x) while GeoTransolver's stays where it
+was (0.141 → 0.143); at the 40-case rung the same move (33 → 4 geometries)
+took ISLA from 0.138 to 0.250 and GeoTransolver from 0.381 to 0.449.
+GeoTransolver's seed spread is 15% here (0.132–0.153) against ISLA's 2%.
+
+**Reading, both rungs together.** ISLA's accuracy on high-lift geometries
+is bought with distinct training geometries, not with cases: at a fixed
+case count, cutting the geometries 6x costs it 1.6x in error; GeoTransolver
+does not respond to geometry count at all, which is the geometry-blindness
+seen in every other instrument today (@sec-nb-seen-unseen,
+@sec-nb-hilift-percase). The unseen-geometry ratio (1.8x at 4 geometries,
+1.4x at 21) is smaller than the random-split ratio (2.8x, 2.2x) only because
+the geometry-poor splits hurt the one model that uses geometries. The
+preregistered prediction (ratio within 0.1 of the random split) assumed
+case count was the controlling variable; it is not, and the ladder says
+which is. Per-case paired statistics on the 180 validation cases are being
+reduced and are appended below when they land.

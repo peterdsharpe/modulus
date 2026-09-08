@@ -174,6 +174,13 @@ Artifacts: `results/hilift_ladder_reduction_2026-09-03.json`,
   0.203–0.211 vs 0.0577 in-family pressure on DrivAerML; the anchor-
   conditioned variant with a fixed interacting core 0.209/0.221 vs
   0.0697/0.0671 at matched memory (6.35 vs 6.56 GB).
+- Unseen-geometry ladder (W2-F, final): 40 cases/4 geometries → ISLA 0.250
+  vs GT 0.449 (1.8x, 172/180 cases); 210 cases/21 geometries → ISLA 0.102 vs
+  GT 0.143 (1.40x; velocity 1.37, wall shear 1.34). Random-split comparisons:
+  ISLA 0.138/0.065, GT 0.381/0.141. READ AS: ISLA's error responds to the
+  number of training geometries, GT's does not. Never write "the advantage
+  shrinks on unseen geometries" without the geometry-count explanation.
+  Artifact results/w2_reduction_2026-09-08b.json.
 - Transolver single angle (2026-09-08): 0.0872/0.0955 → 0.091 on the 18
   held-out geometries; Transolver/ISLA 2.55x, GT/Transolver 1.96x. Bands
   (≤2.0 encoder, ≥3.5 backbone) both missed → write "about two fifths of

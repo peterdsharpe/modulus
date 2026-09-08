@@ -341,10 +341,15 @@ numbers matter beyond the ratio. ISLA's error nearly doubles relative to the
 35-case random split (0.138 → 0.250) when the number of distinct training
 geometries falls from 33 to 4 at a similar case count, so its accuracy is
 paid for in geometries, not cases; GeoTransolver's error barely changes
-(0.39 → 0.45) and its two seeds disagree by 20%. The advantage on never-seen
-geometries is therefore real and case-by-case, and it is smaller than at the
-random split because ISLA, not GeoTransolver, responds to geometry
-diversity.
+(0.39 → 0.45) and its two seeds disagree by 20%. The 210-case rung of the
+same ladder (21 geometries at all ten angles) repeats the pattern: ISLA
+0.100 and 0.103 against GeoTransolver 0.153 and 0.132, a 1.40x advantage on
+pressure (1.37x velocity, 1.34x wall shear), where the random 210-case split
+with about 126 geometries gives 0.065 against 0.141: cutting the training
+geometries six-fold costs ISLA 1.6x and GeoTransolver nothing. The
+advantage on never-seen geometries is therefore real and case-by-case, and
+it is smaller than at the random split only because ISLA, not
+GeoTransolver, responds to geometry diversity.
 
 The strata also show *what kind* of model each is at 35 cases. The
 baselines' error is nearly flat — 0.33 to 0.47 at every angle, identical on
@@ -513,7 +518,7 @@ isolated; the first rung of the unseen-geometry ladder is in
 geometries); a GeoTransolver learning-rate steel-man at the single angle
 made GeoTransolver worse (0.280 at 3e-3 against 0.179 at 1e-3, so the 5.0x
 is stated at its better rate; results/w2_reduction_2026-09-08.json); the
-ladder's 210-case rung is not yet measured (@sec-program-status).
+ladder's 210-case rung gives 1.40x (@sec-de-strata).
 
 ## The same protocol on DrivAerML {#sec-de-drivaerml}
 
