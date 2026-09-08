@@ -7493,3 +7493,29 @@ learning-rate axis is closed as an explanation. Together with the
 1000-epoch control at 35 and 210 cases (@sec-nb-ctrl-complete), every
 optimisation steel-man tried for GeoTransolver on HiLift has now been run;
 none moves its small-data error into ISLA's range.
+
+## 2026-09-08 — Preregistered: Transolver on the single-angle split — is the fixed-angle geometry failure GeoTransolver's geometry encoder or the shared backbone? {#sec-nb-transolver-single-prereg}
+
+**Setting.** At a fixed angle of attack GeoTransolver is 5.0x behind ISLA on
+18 never-seen geometries (@sec-nb-w2d-single-angle), with its error flat
+across geometries (@sec-nb-hilift-percase) and unrescued by learning rate
+(@sec-nb-w2g-verdict). On the mixed-angle 210-case split, plain Transolver
+(the same attention family without GeoTransolver's geometry encoder) is
+1.8x more accurate than GeoTransolver and only 1.3x behind ISLA
+(@sec-de-result). Whether that holds when the angle carries no information
+decides where the fixed-angle failure lives.
+
+**Hypotheses.** *H-encoder:* the failure belongs to GeoTransolver's
+geometry-encoder path; Transolver at the single angle lands within 2.0x of
+ISLA. *H-backbone:* the slice-attention backbone itself does not learn
+geometry from 126 cases; Transolver lands 3.5x or more behind ISLA, like
+GeoTransolver. Between is inconclusive.
+
+**Instrument.** Two lanes appended to the wave-2 table (rows 40–41):
+`transolver_surface` on `highlift_surface_single_aoa_12` at its better
+learning rate 3e-3, seeds 42 and 43, otherwise the frozen protocol; runs
+`mech_hl_transolver_single_aoa_12_lr3e3_seed{42,43}`, evaluated on the 18
+held-out geometries with the wave-2 evaluation launcher. Readout: mean
+pressure relative L2 over the 18 geometries; ratio Transolver/ISLA (ISLA
+0.036). Six nodes were free after the interior ladder and the steel-man
+finished; this uses two.
