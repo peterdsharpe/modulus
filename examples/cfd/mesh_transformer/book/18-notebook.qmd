@@ -7147,3 +7147,56 @@ p = 3 × 10⁻⁴¹), median per-case ratio GeoTransolver/ISLA 2.24, 10th–90th
 percentiles 1.08–3.34 (results/hilift_paired_stats_case_2026-09-07b.json,
 arm `geo40`). The advantage on never-seen geometries is case-by-case, not
 an average over a few outliers.
+
+## 2026-09-07 — Verdict: query tokens close the interior gap — ISLA 0.064 vs GeoTransolver-volume 0.062 on interior pressure (ratio 1.03 against a 1.3 bar) at a third of the parameters and no signed-distance input {#sec-nb-qt-verdict}
+
+**Setting.** The query-token arm (@sec-nb-qt-prereg) admits ISLA's interior
+queries into the encoder as interacting tokens seeded with the five
+invariants of position, SDF-gradient normal and freestream direction, on
+ISLA's SE(3)-equivariant slice routing; it gives up query independence and
+keeps exact covariance. The 50-epoch pilot passed its gate
+(@sec-nb-qt-pilot); the two 500-epoch seeds finished today and were
+evaluated on the 48 DrivAerML validation cars at 10,000 surface tokens plus
+10,000 interior queries, the same protocol as every interior arm.
+
+**Readout** (results/a35_v0_reduction_2026-09-07.json, V0 section;
+relative L2, mean over cars):
+
+| arm | parameters | peak memory | pressure (seed 42 / 43) | velocity (42 / 43) | ν_t (42 / 43) |
+|---|---|---|---|---|---|
+| GeoTransolver-volume (interior points as tokens; coords + SDF + SDF gradient inputs) | 27.6M | 8.8 GB | 0.0622 / 0.0618 → **0.0620** | 0.1335 / 0.1332 → 0.1334 | 0.0934 / 0.0944 → 0.0939 |
+| ISLA, query tokens, SDF-gradient normal | 8.9M | 6.0 GB | 0.0636 / 0.0642 → **0.0639** | 0.1545 / 0.1559 → 0.1552 | 0.1562 / 0.1647 → 0.1604 |
+| ISLA, passive decode, SDF-gradient normal (for reference) | 9.9M | 4.9 GB | 0.1596 | 0.3075 | 0.3719 |
+| ratio ISLA-QT / GeoTransolver | | | **1.03** | 1.16 | 1.71 |
+
+**Verdict.** The preregistered bar was ISLA-QT/GT ≤ 1.3 on interior
+pressure with the falsifier at ≥ 2.0. The ratio is **1.03**: the bar is
+met with room, and the 2.6x interior deficit of the passive decode is
+reduced to 3% on pressure. Seeds agree to 1% for both models. On velocity
+ISLA is 16% behind and on eddy viscosity 71% behind; those two fields were
+not preregistered bars but are reported as the honest remainder.
+
+**Reading.** Of the three simultaneous differences between GeoTransolver's
+volume configuration and ISLA's passive decode
+(@sec-nb-interior-resources-correction), letting the queries interact
+accounts for essentially all of the pressure gap on its own: with
+interaction, ISLA matches GeoTransolver on pressure at 8.9M parameters
+against 27.6M, 6.0 GB against 8.8 GB, without the signed-distance value as
+an input and without local ball-query features. The remaining velocity and
+eddy-viscosity deficits are the natural targets of the second difference,
+the signed-distance input, which the QT-SDF arm now training tests
+(@sec-nb-qt-sdf-prereg): the eddy viscosity in particular is a
+near-wall-distance-dominated quantity, so if any field responds to the SDF
+value it should be that one. The cost side: 0.28 s per step against
+GeoTransolver-volume's 0.044 s at this size, because ISLA's per-slice
+geometry now spans 20,000 tokens; the exact memory rewrite of today
+(@sec-nb-geo-recompute) and the compiled region (@sec-nb-geo-compile)
+apply to it unchanged.
+
+**What changes in the book.** The interior chapter's standing statement
+becomes: one architecture covers the surface and the interior. ISLA with
+query tokens is the interior configuration to use where per-query
+independence is not required; the passive decode remains the configuration
+where it is, at its 2.6x price. The index, the limits chapter and the
+claims ledger are updated in the same pass; the query-token configuration
+is added to the architecture chapter's cost section with its own numbers.

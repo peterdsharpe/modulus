@@ -354,8 +354,10 @@ The consequence is a choice, not a defect: a surrogate in this family
 can have exact evaluate-anywhere semantics at about three times the
 error, or GeoTransolver-class accuracy with a few percent of sensitivity
 to how the boundary was sampled. It cannot at present have both. The
-interior task, where off-surface queries are always decoded passively,
-prices the same trade at 2.6x from the other direction (@sec-interior).
+interior task prices the same trade from the other direction: the passive,
+query-independent decode is 2.6x behind GeoTransolver on interior pressure,
+and admitting the queries as interacting tokens closes that to 1.03x
+(@sec-interior).
 
 ## Cost {#sec-cost}
 
@@ -579,7 +581,7 @@ GeoTransolver reach the same accuracy at 1,260 HiLift cases and differ
 by 8.5% at 435 DrivAerML cars under a fixed protocol. It does not say
 that the two architectures are equivalent, which the 2.5--2.8x gap at
 35--210 cases (@sec-data-efficiency), the robustness columns of
-@tbl-frontier, and the 2.6x interior gap in GeoTransolver's favour
+@tbl-frontier, and the 2.6x interior gap of ISLA's passive decode
 (@sec-interior) each contradict in a different direction. The
 architectures agree at full data because full data lets a flexible model
 learn what a structured one was built to know, and because both then

@@ -232,6 +232,7 @@ surface alone; 435/48 cars; 10k surface tokens, 10k interior query points;
 | arm | interior pressure rel-L2 | vs GT |
 |---|---|---|
 | GeoTransolver-volume (interior points as interacting tokens; inputs: coordinates, SDF, SDF gradient, U_inf; no surface tokens; 27.6M params, 8.8 GB) | 0.062 | 1.0 |
+| ISLA query tokens (interior queries as interacting tokens; SDF-gradient normal; no SDF value; 8.9M params, 6.0 GB) | 0.064 (0.0636/0.0642) | **1.03** (velocity 1.16, ν_t 1.71) |
 | ISLA passive interior decode from 10,000 surface tokens, SDF-gradient as query normal (9.9M params, 4.9 GB) | 0.160 | 2.6 |
 | ISLA passive interior decode, soft-assigned proxy normal | 0.193 | 3.1 |
 | ISLA + 769 equivariant latent volume tokens | 0.228 | 3.7 |
@@ -241,18 +242,22 @@ surface alone; 435/48 cars; 10k surface tokens, 10k interior query points;
   interior pressure. Do NOT write "token-level interaction is worth 2.6x":
   the two arms differ in three ways at once (query interaction; the SDF
   value as input; 2.8x parameters with six-radius local features). The
-  query-token ISLA arm isolates interaction (pilot: 0.103/0.108 vs passive
-  0.269 at 50 epochs; 500-epoch readout pending, #sec-nb-qt-pilot). ISLA's
+  query-token ISLA arm isolates interaction: at 500 epochs 0.064 vs GT 0.062
+  (1.03x), so interaction alone accounts for essentially the whole pressure
+  gap (#sec-nb-qt-verdict). ISLA's
   deficit grows with distance from the wall (2.5x near → 3.3–5.4x far),
   i.e. missing volumetric context. Off-surface latent tokens along anchor
   normals make it worse (1.43x). The exact double-layer kernel is not a
   usable prior for separated flow (potential-flow oracle rel-L2 4.8 vs 0.77
   for predicting the case mean), and its "good" far-field pressure is a
   zero-output artefact (far-field velocity 16.7x GT).
-- Product statement: GeoTransolver for interior accuracy; ISLA for exact
-  contracts and query independence at a 2.6x interior price. Open designs
-  (not measured): wake-aligned probe tokens; a request-independent canonical
-  probe set that interacts GeoTransolver-style.
+- Product statement (2026-09-07): ONE architecture covers surface and
+  interior. ISLA with query tokens matches GeoTransolver-volume on interior
+  pressure (1.03x) at 8.9M vs 27.6M params, exact SE(3) covariance, no SDF
+  input; trails on velocity 1.16x and ν_t 1.71x (QT-SDF arm running). ISLA
+  passive decode = the configuration when query independence is contractual,
+  at 2.6x on pressure. Never write "GeoTransolver for the interior" as the
+  standing recommendation any more. Artifact results/a35_v0_reduction_2026-09-07.json.
 
 ## Controlled suites — the exact-kernel line (ARCHIVED: chapters 03/09/10/11 live unrendered in book/archive/; the reader-facing book mentions the exact-kernel design only in the interior chapter's "Why not an exact boundary-integral prior?" section and one footnote in the index)
 
