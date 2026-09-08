@@ -7643,3 +7643,38 @@ ahead on two of three fields. The eddy-viscosity gap, flat across an
 eightfold change in data with matched inputs, is now the cleanest target
 for a local-feature channel in ISLA's query tokens, which would be the
 third and last of GeoTransolver-volume's differences to test.
+
+## 2026-09-08 — Preregistered: local surface-patch features on the query tokens (QT-SDF-LF) — the third of GeoTransolver-volume's three differences, aimed at the eddy-viscosity gap {#sec-nb-qt-lf-prereg}
+
+**Setting.** With query interaction and the signed-distance input, ISLA is
+ahead of GeoTransolver-volume on interior pressure and velocity and behind
+by 1.29x on eddy viscosity at full data, 1.3–1.5x at 54 and 109 cars, a
+gap flat in data (@sec-nb-qt-sdf-verdict, @sec-nb-qtsdf-ladder-verdict).
+The one input class GeoTransolver still has and ISLA lacks is local
+features: ball-query aggregates at six radii over neighbouring interior
+points. Eddy viscosity is a near-wall, boundary-layer quantity, the field
+most plausibly served by multi-scale local geometry.
+
+**Change to the model** (commit e937591ed). `query_local_features=True`
+adds to each query token the measure-weighted Gaussian patch integrals of
+the *surface* sample around the query at radii (0.05, 0.15, 0.5) gauge
+units, the same seven invariants per radius the passive decoder's local
+channel uses (mean surface normal projected on the query normal and drive
+and its norm; offset to the patch centroid projected and normed; log of
+the patch measure), with the measure normalized to a fraction of the total
+surface so that the channel is exactly scale-covariant under the
+similarity gauge (the raw-area version was not; the contracts test caught
+it). It enters additively through its own embedding, like the
+signed-distance channel; every covariance contract is tested to 1e-10.
+Unlike GeoTransolver's local features, it aggregates the surface, not the
+interior neighbours: it is the ISLA-native reading of "local geometry at
+the query".
+
+**Hypothesis and bars.** *H-local:* multi-scale surface geometry at the
+query is what the eddy-viscosity field needs beyond the wall distance.
+Runs `v0_isla_qtsdflf_seed{42,43}` (`code_isla3`, the QT-SDF configuration
+plus the channel), 435 cars, V0 protocol; readout on the 48 validation
+cars. *Supported* if ν_t QT-SDF-LF / GT ≤ 1.10 (from 1.29) with pressure and
+velocity within 5% of the QT-SDF values; *falsified* if ν_t ratio ≥ 1.25;
+between, inconclusive. A pressure or velocity regression of more than 5%
+is reported as a cost regardless of the ν_t outcome. Two nodes.
