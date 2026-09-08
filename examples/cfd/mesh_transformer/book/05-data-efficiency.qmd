@@ -259,9 +259,12 @@ coefficient of variation of GeoTransolver's per-case error is 0.15 against
 ISLA's 0.44, and at 210 cases 0.19 against 0.64; both models' errors rise
 with angle of attack (rank correlation 0.56 and 0.61 at 35 cases), and
 neither tracks how far a case's field is from uniform
-(results/hilift_error_drivers_2026-09-07.json). GeoTransolver at small data
-is a nearly case-independent predictor, which is what @sec-de-strata reads
-from the reference predictors; ISLA's error varies three to four times
+(results/hilift_error_drivers_2026-09-07.json). On these random splits
+GeoTransolver at small data is a nearly case-independent predictor, which is
+what @sec-de-strata reads from the reference predictors (on the
+geometry-poor ladder splits of @sec-de-strata its error does vary by case,
+with coefficient of variation 0.27–0.41, and correlates with ISLA's at 0.77;
+results/hilift_geo_percase_correlation_2026-09-08.json); ISLA's error varies three to four times
 more across cases because it has learned the case-to-case physics, and a
 model that has cannot be rank-correlated with one that has not.
 

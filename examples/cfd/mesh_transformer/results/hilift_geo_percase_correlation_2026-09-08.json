@@ -1,0 +1,18 @@
+{
+ "geo40": {
+  "n": 180,
+  "rho_isla_vs_gt": 0.775,
+  "rho_gt_self": 0.953,
+  "rho_isla_self": 0.962,
+  "isla_cv": 0.66,
+  "gt_cv": 0.406
+ },
+ "geo210": {
+  "n": 180,
+  "rho_isla_vs_gt": 0.769,
+  "rho_gt_self": 0.909,
+  "rho_isla_self": 0.951,
+  "isla_cv": 0.457,
+  "gt_cv": 0.269
+ }
+}

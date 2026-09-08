@@ -7861,3 +7861,19 @@ per-case ratio 1.48, 10th–90th percentiles 1.07–2.02
 (results/hilift_paired_stats_case_2026-09-08.json, arm `geo210`). The same
 172-of-180 count as the 40-case rung with a smaller median (1.48 against
 2.24): the advantage on never-seen geometries is case-by-case at both rungs.
+
+**Qualification from the unseen-geometry rungs.** On the two geometry-poor
+splits GeoTransolver's per-case error is *not* flat: coefficient of
+variation 0.41 at 4 training geometries and 0.27 at 21, against 0.15 on the
+random 35-case split (ISLA 0.66 and 0.46 there), and its per-case ordering
+correlates with ISLA's at 0.77 at both rungs (seed self-consistency
+0.91–0.96), against 0.57–0.64 on the random splits
+(results/hilift_geo_percase_correlation_2026-09-08.json). So the flat,
+case-independent GeoTransolver error of @sec-nb-hilift-percase is a property
+of the random splits, where 33–126 geometries each appear at few angles;
+when the training set holds a handful of geometries at every angle, both
+architectures find the same validation geometries hard and GeoTransolver's
+error varies with them, only 1.4–1.8x higher than ISLA's. The
+geometry-count reading of @sec-nb-w2f-210-verdict stands; the
+"geometry-blind" phrasing should be read as "does not turn additional
+geometries into accuracy", not as "insensitive to which geometry".
