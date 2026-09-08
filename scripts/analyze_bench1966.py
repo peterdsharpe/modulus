@@ -44,17 +44,7 @@ md = []
 GREY = "#898781"
 
 
-def load_with_searchonly(main_file, searchonly_file, keys):
-    """Group the hybrid sweep and, if present, the rejected search-only sweep
-    (its "after" records are relabelled "search_only")."""
-    recs = json.load(open(main_file))
-    so = D / searchonly_file
-    if so.exists():
-        recs += [dict(r, impl="search_only") for r in json.load(open(so)) if r["impl"] == "after"]
-    return group(recs, keys)
-
-
-def synth_table(g, key_labels, impls=("before", "after", "search_only")):
+def synth_table(g, key_labels, impls=("before", "after")):
     rows = []
     for key, byimpl in sorted(g.items()):
         t = {i: med([r["seconds"] for r in byimpl[i]]) for i in impls if byimpl[i]}
@@ -67,7 +57,6 @@ def synth_table(g, key_labels, impls=("before", "after", "search_only")):
 IMPLS = (  # (record label, legend label, colour)
     ("before", "main: full-mesh lookup table", RED),
     ("after", "this PR: lookup table or binary search, chosen by mesh shape", BLUE),
-    ("search_only", "rejected first version: binary search always", GREY),
 )
 BACKINGS = (("memory", "mesh in memory", "-"), ("memmap", "mesh memory-mapped from disk", "--"))
 
@@ -105,10 +94,10 @@ def synth_figure(g, path, suptitle, xlabel, panel_key, panel_title):
 
 p = D / "bench_slice_points_local.json"
 if p.exists():
-    g = load_with_searchonly(p, "bench1966_synth_full_searchonly.json", ("n_points", "k", "backing"))
+    g = group(json.load(open(p)), ("n_points", "k", "backing"))
     md += ["### Synthetic, `slice_points` on the full mesh", "",
-           "Keep k random vertices of an N-vertex triangle mesh (2N random cells, one scalar and one vector point field), on one AGA node. Median of 3 runs. The third column is the first version of this PR (binary search always), kept to show why the algorithm is chosen by shape.", "",
-           "| N vertices | k kept | backing | main: lookup table | this PR: table or search, by shape | rejected: search always | speed-up, this PR vs main |", "|---|---|---|---|---|---|---|"]
+           "Keep k random vertices of an N-vertex triangle mesh (2N random cells, one scalar and one vector point field), on one AGA node. Median of 3 runs.", "",
+           "| N vertices | k kept | backing | main: lookup table | this PR: table or search, by shape | speed-up |", "|---|---|---|---|---|---|"]
     md += synth_table(g, lambda key: (f"{key[0]:,}", f"{key[1]:,}", key[2]))
     md.append("")
     synth_figure(g, "synthetic_full_mesh.png",
@@ -118,10 +107,10 @@ if p.exists():
 # ---------- synthetic, reader path ----------
 p = D / "bench_slice_points_block_local.json"
 if p.exists():
-    g = load_with_searchonly(p, "bench1966_synth_block_searchonly.json", ("n_points", "k_cells", "backing"))
+    g = group(json.load(open(p)), ("n_points", "k_cells", "backing"))
     md += ["### Synthetic, the reader's path (cell block, then vertex compaction)", "",
            "`slice_cells(block)` then `slice_points(unique(cells))`: the mesh reader's per-sample operation, on one AGA node. The block is already small; the cost that matters is how compaction scales with the size of the mesh it came from. Median of 3 runs.", "",
-           "| N vertices | block cells | kept vertices | backing | main: lookup table | this PR: table or search, by shape | rejected: search always | speed-up, this PR vs main |", "|---|---|---|---|---|---|---|---|"]
+           "| N vertices | block cells | kept vertices | backing | main: lookup table | this PR: table or search, by shape | speed-up |", "|---|---|---|---|---|---|---|"]
     def _labels(key):
         n, kc, b = key
         kp = next(r["k_points"] for i in ("after", "before") for r in g[key][i])
