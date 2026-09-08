@@ -1,0 +1,15 @@
+{
+  "purpose": "Reproduction of the independent audit's counterexample (audit.md item 3) to the earlier completeness audit (results/m3_invariant_completeness_audit_2026-08-20.md), which argued that ISLA's anchor-collapse blind spot requires a rotational symmetry of geometry and drive. Two arrangements that are NOT congruent, have NO symmetry preserving geometry and drive, yet give identical ISLA outputs on their common component.",
+  "construction": "Five equal, disjoint spherical component samples (8 points each on a cube-vertex pattern of radius 0.15 around (2,0,0), unit outward normals, equal weights 4*pi*0.15^2/8) placed at azimuths about the z axis. Family A: {0, 120, 240, 27, 207} degrees; family B: {0, 120, 240, 43, 223} degrees. Drive d = (0,0,1) (axial). Each family has zero transverse first moment (an equilateral triple plus an antipodal pair), so every slice's mean-position and mean-normal anchors stay axial and the relational invariants of corresponding points coincide; the argument repeats through the layers.",
+  "instrument": "ISLA(hidden=64, n_layers=4, n_slices=32) in float64, eval mode, two seeds, three configurations; readout = max |output_A - output_B| over the 8 points of the common (0 degree) component; second-moment contraction r^T C r with C = mean over points of p p^T and r the unit vector to the first point. Script: probes/moments.py.",
+  "results": {
+    "default": {"seed0_common_component_max_abs_diff": 2.1e-15, "seed1": 2.7e-15},
+    "similarity_gauge": {"seed0": 3.8e-15, "seed1": 4.7e-15},
+    "use_local_features_radii_0.2_0.4": {"seed0": 0.0633, "seed1": 0.0389},
+    "second_moment_contraction_family_A": 2.4124,
+    "second_moment_contraction_family_B": 1.9869
+  },
+  "reading": "The default and similarity-gauge configurations cannot distinguish the two arrangements (roundoff); the local-distance channel does (0.04-0.06); a second-moment tensor contracted at the query does (2.41 vs 1.99). So conditional first moments can lose the relative arrangement of components even without a global rotational symmetry. This is a documented representation limitation of ISLA. It is NOT shown to cause any DrivAerML or HiLiftAeroML deficit; the completeness audit's 'refuted on cars' becomes 'not established as the cause on cars'. Next step preregistered as MOM2 (notebook #sec-nb-mom2-prereg): a small expressivity benchmark comparing a second-moment channel with the existing local-distance channel on this family before any larger architectural change.",
+  "verified_by": "coordinator, 2026-09-08, torch CPU float64; matches audit.md",
+  "related": ["results/m3_invariant_completeness_audit_2026-08-20.md", "audit.md item 3"]
+}

@@ -1,0 +1,309 @@
+{
+ "gpu": "NVIDIA GB300",
+ "torch": "2.12.0+cu130",
+ "cuda": "13.0",
+ "n_tokens": 10000,
+ "batch": 1,
+ "n_warmup": 3,
+ "n_measured": 5,
+ "precision": "bf16 autocast, fp32 params, AdamW(lr=1e-3), MSE on random 9-channel target",
+ "inputs": "positions ~ N(0,1) * (3,2,1); unit normals; measure weights U(0.5,1.5); drive (1,0,0); GeoTransolver: geometry=pos, local_embedding=cat(pos,normals), local_positions=pos, global_embedding=drive[:,None,:]",
+ "instruments": {
+  "incremental_peak_allocated": "reset_peak_memory_stats(); b=memory_allocated(); step; max_memory_allocated()-b (book's ISLA instrument)",
+  "total_peak_allocated": "max_memory_allocated() after step (params+grads+AdamW state+activations)",
+  "reserved_after_step": "torch.cuda.memory_reserved() after step (trainer's instrument); empty_cache() between configurations",
+  "step_ms": "cuda-synchronized wall time per step, median of measured steps"
+ },
+ "code_paths": {
+  "snapshot": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/code",
+  "isla_current": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/audit_mem/isla_current"
+ },
+ "aggregation": "summary_* report the max over the 5 measured steps; per-step lists retained",
+ "configs": [
+  {
+   "name": "gt",
+   "description": "GeoTransolver (recipe geotransolver_surface.yaml, out_dim=9)",
+   "code_path": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/code/physicsnemo/models/geotransolver/__init__.py",
+   "config": {
+    "out_dim": 9,
+    "functional_dim": 6,
+    "geometry_dim": 3,
+    "global_dim": 3,
+    "n_layers": 12,
+    "n_hidden": 256,
+    "dropout": 0.0,
+    "n_head": 8,
+    "act": "gelu",
+    "mlp_ratio": 4,
+    "slice_num": 256,
+    "use_te": false,
+    "plus": false,
+    "include_local_features": false,
+    "radii": [
+     0.1,
+     0.5,
+     2.0
+    ],
+    "neighbors_in_radius": [
+     16,
+     32,
+     64
+    ],
+    "n_hidden_local": 32,
+    "state_mixing_mode": "weighted"
+   },
+   "baseline_allocated_before_model_bytes": 642048,
+   "baseline_reserved_before_model_bytes": 2097152,
+   "n_params": 9047301,
+   "param_bytes_fp32": 36189204,
+   "resident_allocated_after_warmup_bytes": 176399872,
+   "incremental_peak_allocated_bytes": [
+    4196688384,
+    4196688384,
+    4196688384,
+    4196688384,
+    4196688384
+   ],
+   "total_peak_allocated_bytes": [
+    4373088256,
+    4373448704,
+    4373448704,
+    4373448704,
+    4373448704
+   ],
+   "reserved_after_step_bytes": [
+    4915724288,
+    4915724288,
+    4915724288,
+    4915724288,
+    4915724288
+   ],
+   "step_ms": [
+    63.54129803366959,
+    64.95083693880588,
+    64.42040402907878,
+    64.93288604542613,
+    65.08069403935224
+   ],
+   "losses": [
+    1.1490012407302856,
+    1.154446005821228,
+    1.0937966108322144,
+    1.043455958366394,
+    1.0214288234710693
+   ],
+   "step_ms_median": 64.93288604542613,
+   "summary_gib": {
+    "incremental_peak_allocated": 3.908470630645752,
+    "total_peak_allocated": 4.073091506958008,
+    "reserved_after_step": 4.578125
+   },
+   "summary_gb": {
+    "incremental_peak_allocated": 4.196688384,
+    "total_peak_allocated": 4.373448704,
+    "reserved_after_step": 4.915724288
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_old",
+   "description": "ISLA old snapshot as trained (MeshTransformer2, no recompute)",
+   "code_path": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/code/physicsnemo/experimental/nn/mt2/__init__.py",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "hidden": 192,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0
+   },
+   "baseline_allocated_before_model_bytes": 67750912,
+   "baseline_reserved_before_model_bytes": 195035136,
+   "n_params": 8868221,
+   "param_bytes_fp32": 35472884,
+   "resident_allocated_after_warmup_bytes": 174298624,
+   "incremental_peak_allocated_bytes": [
+    9771899904,
+    9771899904,
+    9771899904,
+    9771899904,
+    9771899904
+   ],
+   "total_peak_allocated_bytes": [
+    9946198528,
+    9946558976,
+    9946558976,
+    9946558976,
+    9946558976
+   ],
+   "reserved_after_step_bytes": [
+    10234101760,
+    10234101760,
+    10234101760,
+    10234101760,
+    10234101760
+   ],
+   "step_ms": [
+    246.02475098799914,
+    245.99620699882507,
+    245.55803008843213,
+    245.98139198496938,
+    245.9781599463895
+   ],
+   "losses": [
+    1.0701160430908203,
+    1.0456516742706299,
+    1.0543887615203857,
+    1.0549732446670532,
+    1.0396064519882202
+   ],
+   "step_ms_median": 245.98139198496938,
+   "summary_gib": {
+    "incremental_peak_allocated": 9.100790977478027,
+    "total_peak_allocated": 9.263454914093018,
+    "reserved_after_step": 9.53125
+   },
+   "summary_gb": {
+    "incremental_peak_allocated": 9.771899904,
+    "total_peak_allocated": 9.946558976,
+    "reserved_after_step": 10.23410176
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_cur",
+   "description": "ISLA current code, geo_checkpoint=False",
+   "code_path": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/audit_mem/isla_current/physicsnemo/experimental/nn/isla/__init__.py",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "hidden": 192,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "geo_checkpoint": false
+   },
+   "baseline_allocated_before_model_bytes": 67750912,
+   "baseline_reserved_before_model_bytes": 195035136,
+   "n_params": 8868221,
+   "param_bytes_fp32": 35472884,
+   "resident_allocated_after_warmup_bytes": 174298624,
+   "incremental_peak_allocated_bytes": [
+    3474148352,
+    3474148352,
+    3474148352,
+    3474148352,
+    3474148352
+   ],
+   "total_peak_allocated_bytes": [
+    3648446976,
+    3648807424,
+    3648807424,
+    3648807424,
+    3648807424
+   ],
+   "reserved_after_step_bytes": [
+    3896508416,
+    3896508416,
+    3896508416,
+    3896508416,
+    3896508416
+   ],
+   "step_ms": [
+    238.7263310374692,
+    238.46981907263398,
+    239.1342360060662,
+    238.37698600254953,
+    238.59845905099064
+   ],
+   "losses": [
+    1.0701382160186768,
+    1.0452784299850464,
+    1.0541921854019165,
+    1.0550628900527954,
+    1.039469599723816
+   ],
+   "step_ms_median": 238.59845905099064,
+   "summary_gib": {
+    "incremental_peak_allocated": 3.2355527877807617,
+    "total_peak_allocated": 3.398216724395752,
+    "reserved_after_step": 3.62890625
+   },
+   "summary_gb": {
+    "incremental_peak_allocated": 3.474148352,
+    "total_peak_allocated": 3.648807424,
+    "reserved_after_step": 3.896508416
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_cur_ckpt",
+   "description": "ISLA current code, geo_checkpoint=True (activation recompute)",
+   "code_path": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/audit_mem/isla_current/physicsnemo/experimental/nn/isla/__init__.py",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "hidden": 192,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "geo_checkpoint": true
+   },
+   "baseline_allocated_before_model_bytes": 67750912,
+   "baseline_reserved_before_model_bytes": 195035136,
+   "n_params": 8868221,
+   "param_bytes_fp32": 35472884,
+   "resident_allocated_after_warmup_bytes": 174298624,
+   "incremental_peak_allocated_bytes": [
+    1507634176,
+    1507634176,
+    1507634176,
+    1507634176,
+    1507634176
+   ],
+   "total_peak_allocated_bytes": [
+    1681932800,
+    1682293248,
+    1682293248,
+    1682293248,
+    1682293248
+   ],
+   "reserved_after_step_bytes": [
+    1902116864,
+    1902116864,
+    1902116864,
+    1904214016,
+    1904214016
+   ],
+   "step_ms": [
+    245.67175807897002,
+    245.6688469974324,
+    245.54164602886885,
+    245.55713403970003,
+    245.71118201129138
+   ],
+   "losses": [
+    1.0701382160186768,
+    1.0452784299850464,
+    1.0541921854019165,
+    1.0550628900527954,
+    1.039469599723816
+   ],
+   "step_ms_median": 245.6688469974324,
+   "summary_gib": {
+    "incremental_peak_allocated": 1.4040937423706055,
+    "total_peak_allocated": 1.5667576789855957,
+    "reserved_after_step": 1.7734375
+   },
+   "summary_gb": {
+    "incremental_peak_allocated": 1.507634176,
+    "total_peak_allocated": 1.682293248,
+    "reserved_after_step": 1.904214016
+   },
+   "status": "ok"
+  }
+ ]
+}

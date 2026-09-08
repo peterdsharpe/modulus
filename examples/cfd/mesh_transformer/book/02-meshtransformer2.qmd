@@ -5,10 +5,13 @@ sees a coordinate. Every learned operation acts on rotation- and
 translation-invariant scalars built from the surface geometry and the
 freestream direction, and vector outputs are assembled at the very end
 from an equivariant basis. The result is a surrogate whose rotation and
-translation covariance is exact to floating-point roundoff rather than
-learned, whose parameter count matches GeoTransolver's (8.9M vs 9.0M)
-and whose peak training memory at 10,000 tokens is 1.5 GB (GeoTransolver
-4.6 GB), and whose accuracy advantage
+translation covariance is exact by algebraic construction rather than
+learned (verified to roundoff in float64; the residual of the bf16 training
+path is a measured quantity, @sec-mt2-contracts), whose parameter count
+matches GeoTransolver's (8.9M vs 9.0M) and whose current code peaks at
+1.6 GiB of training memory at 10,000 tokens against GeoTransolver's 4.1 GiB
+on the same instrument, though the trained checkpoints used an earlier
+version that peaked at 9.3 GiB (@sec-mt2-cost), and whose accuracy advantage
 on small training sets (@sec-data-efficiency) comes from the combination
 of its parts rather than from any one of them (@sec-mechanism). This chapter
 describes what ISLA computes, states its contracts as the tests that
@@ -373,24 +376,91 @@ What is not a contract:
   change of the prediction at a shared 5,000-cell prefix when the
   companion points change (GeoTransolver 2%). The exact contract is
   bought by the passive decoder at the price stated in @sec-mt2-design.
+- **Refinement of the source measure, in the query-token configuration.**
+  In the interior configuration whose queries interact as tokens
+  (@sec-interior), each query's routing weight is a learned factor times
+  the *geometric mean* of the source weights. Splitting every source cell
+  into two halves of half the area leaves every integral against the
+  discrete source measure unchanged but halves every query weight, so the
+  balance between surface and queries shifts: in a float64 probe on small
+  random models the outputs move by 3.7% (query tokens) and 9.1% (query
+  tokens with the signed distance) where the plain surface model moves by
+  8e-16. The same convention makes the query count, the query distribution
+  and chunking part of the effective measure. The `test_measure_weight_scale_invariance` contract (a uniform
+  rescaling of all weights) does not detect this. The trained query-token
+  checkpoints carry this convention; how much their predictions depend on
+  the number of companion queries is not yet measured (@sec-program-status).
+  A convention in which the total query mass is a learned fraction of the
+  total source measure, divided by the query count, removes the dependence
+  on refinement and count by construction.
+- **Composition of optional channels.** Each optional channel preserves the
+  rotation and translation contracts on its own (table above), but not
+  every pair composes: the similarity gauge together with the surface
+  local-feature channel is not scale-equivariant (the patch log-mass is not
+  normalized by the gauge, so a 2.7x rescale moves the output by up to
+  0.79 in the probe where the gauge alone is at roundoff); the passive
+  decoder together with boundary scalars, scale conditioning or raw seed
+  features fails with a shape error when the source and query counts
+  differ; and the passive decoder with the parity-odd vector head collides
+  on the normals when they differ. None of these combinations is behind
+  any number in this book, and the plain reference surface configuration
+  is unaffected.
+- **Completeness of the invariant representation.** The slice anchors are
+  first moments (measure-weighted mean position and mean normal) of the
+  points routed to a slice, and the seeds and relational invariants are
+  built from them. Two arrangements whose transverse first moments about
+  the drive vanish can therefore be indistinguishable to every layer even
+  when they are not congruent: five equal spherical components at azimuths
+  {0, 120, 240, 27, 207}° and {0, 120, 240, 43, 223}° about an axial drive
+  have different pairwise-distance profiles and no rotation carrying one to
+  the other, and ISLA's outputs on the common component agree to 4e-15
+  (default and similarity-gauge configurations, two seeds); the optional
+  local-distance channel separates them (0.039–0.063), as does a
+  second-moment contraction at the query (2.41 against 1.99)
+  (`results/isla_first_moment_collision_2026-09-08.json`). Rotational
+  symmetry about the drive is thus sufficient but not necessary for the
+  collision. This is a documented representation limitation; it is not
+  established as the cause of any measured deficit on cars or wings, and a
+  benchmark that would say whether a second-moment channel is worth adding
+  is preregistered (@sec-nb-mom2-prereg).
+- **Finite-precision residual on the deployed path.** The contract tests
+  run in float64; the recipe trains and evaluates under bf16 autocast. A
+  CPU autocast probe of the scalar rotation residual gives 1.2–1.3% in
+  bf16 against 6e-7 in float32 and 1e-15 in float64, so "exact" describes
+  the algebraic construction; the residual on the GPU trained path is a
+  quantity to be measured rather than asserted, and it is not yet measured
+  (@sec-program-status).
 
 ## Cost {#sec-mt2-cost}
 
 **At the recipe dimensions (hidden 192, 12 layers, 256 slices) ISLA has
-8.9M parameters, against GeoTransolver's 9.0M, and its peak training
-memory at 10,000 tokens per case is 1.5 GB, against GeoTransolver's
-4.6 GB.** That figure, and the 330 ms per training step, are for one
-forward and backward pass in bf16 autocast on an RTX 4090 at batch
-size 1 with the recipe's activation recompute on (below); storing the
-per-slice invariants instead costs 3.5 GB at 285 ms per step. GeoTransolver's 4.6 GB is the
-peak recorded during a training run on the same protocol, so it includes
-optimizer state; for a 9M-parameter model that is under 0.2 GB. The
+8.9M parameters, against GeoTransolver's 9.0M. Measured on one GB300 with
+one instrument (bf16 autocast, batch 1, 10,000 tokens, AdamW step included),
+ISLA's current code peaks at 1.6 GiB of allocated memory against
+GeoTransolver's 4.1 GiB, 2.6x less; the ISLA code that trained every
+checkpoint in this book peaked at 9.3 GiB, 2.3x more than GeoTransolver;
+and ISLA's training step takes 246 ms against GeoTransolver's 65 ms, 3.7x
+slower (results/matched_memory_isla_gt_2026-09-08.json).** Two exact rewrites separate the
+two ISLA figures: pooling the slice mixture before the affine projection
+(9.3 → 3.4 GiB) and recomputing the per-slice invariants inside the
+backward pass instead of storing them (3.4 → 1.6 GiB at 3% more step time);
+both compute the same function (fp64 maximum difference 4e-15, and the
+losses of the three ISLA variants agree step for step within 1e-3). The
+same instrument reproduces the training logger's reserved-memory figures
+(4.6 GiB for GeoTransolver, 9.5 against 9.8 GiB logged for ISLA as trained)
+and the earlier RTX 4090 figure for the current code (1.4 GiB incremental
+over the resident parameters; results/isla_memory_recompute_2026-09-07.json),
+so the numbers quoted elsewhere in the program were real but came from
+different code and different instruments. Memory was not a controlled
+variable in any accuracy comparison: the checkpoints were trained by the
+9.3 GiB implementation. The
 passive decoder adds four read blocks (1.1M parameters, 9.9M total; 4.9 GB
-at 10,000 surface tokens plus 10,000 interior queries) and the query-token
-interior configuration adds only a type embedding and a routing weight
-(8.9M total; 6.0 GB and 0.28 s per step at the same 20,000 tokens, because
-the per-slice geometry spans every token); neither is part of the
-configuration behind the surface accuracy numbers
+reserved at 10,000 surface tokens plus 10,000 interior queries) and the
+query-token interior configuration adds only a type embedding and a routing
+weight (8.9M total; 6.0 GB reserved and 0.28 s per step at the same 20,000
+tokens, because the per-slice geometry spans every token); neither is part
+of the configuration behind the surface accuracy numbers, and both memory
+figures are the training logger's reserved memory
 (results/v0_interior_resources_2026-09-07.json).
 
 Where the memory goes, measured. Hooking every tensor autograd stores for

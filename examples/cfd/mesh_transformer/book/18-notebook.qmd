@@ -7989,3 +7989,577 @@ rung, the 20,000-token test and the deflection split continue as running.
 Tech-tree changes: node HLREG added with edges W2F → HLREG, DRV-STA → HLREG,
 HLREG → MT3; chapter 7 removed from the render (anchors preserved in
 chapter 6).
+
+## 2026-09-08 — Independent audit: verified findings, corrections applied, and reopened questions {#sec-nb-audit-2026-09-08}
+
+**Setting.** An independent reviewer with fresh context read the book at
+commit 3b73817b together with the result reductions, the ISLA
+implementation, the aerodynamic recipe and the successor preregistrations,
+without launching any training. The review reproduced the headline means
+from the saved reductions (35 cases: ISLA 0.138, GeoTransolver 0.381,
+Transolver 0.404; 210 cases: 0.065 / 0.141 / 0.087; 1,260: 0.041 / 0.042;
+fixed angle: 0.036 / 0.179 / 0.091; interior with signed distance: pressure
+0.057 vs 0.062, velocity 0.085 vs 0.133, viscosity 0.122 vs 0.094), called
+the controls real strengths, and then argued that the mechanism and the
+deployment value are less settled than the verdict said. Its finding list
+was twelve items. Each was checked in this session before anything in the
+book changed; the checks, the numbers and the resulting edits are below,
+in the audit's order. Facts marked *verified* were reproduced here with
+the probe named; nothing below is taken from the audit on its word.
+
+**1. The baselines do not receive the drive at the same numerical scale
+(verified).** ISLA's recipe consumes the unit freestream direction
+(`conf/model/isla_surface.yaml`, line 32); GeoTransolver's
+(`geotransolver_surface.yaml`, line 41) and Transolver's
+(`transolver_surface.yaml`, line 34) consume the physical freestream
+velocity, which the dataset pipelines pass through unnormalized: 2,679.5
+in/s on HiLiftAeroML (inches and seconds) and 38.9 m/s on DrivAerML.
+Probe: GeoTransolver's global-context projector at production dimensions
+(hidden 256, 8 heads, 256 slices), untrained, fed a drive of magnitude 1,
+38.9 and 2,679.5. The entropy-equivalent number of occupied slices per head
+falls from 191–232 to 1.0–3.8 to 1.00–1.02, and the maximum context
+magnitude rises 0.66 → 22.7 → 1,530
+(results/geotransolver_drive_conditioning_2026-09-08.json). This is a
+conditioning difference at initialization. It is *not* evidence that it
+explains the trained gap: training can rescale the projection, and the
+transplant test (INV) kept the raw velocity and so does not answer it.
+Node UDRV, the training control (GeoTransolver and Transolver with the unit
+direction at 35 cases and on the fixed-angle split, same cases, seeds,
+budget and rate search), is preregistered at @sec-nb-udrv-prereg and READY.
+Book: chapter 4 gains a paragraph on the input scale
+(`sec-part-baseline`); chapters 5 and 12 name it as the one untested
+alternative to every mechanism reading; the index's does-not-claim list
+carries it.
+
+**2. The query-token configuration is not invariant to an equivalent
+representation of its source measure (verified).** In `model.py` around
+line 756 the routing weight of an interacting query is exp(qt_logw) times
+the geometric mean of the source weights. Probe, float64, ISLA(hidden 32,
+2 layers, 8 slices) with fixed queries: replacing every source token by two
+copies at half weight, which leaves every integral against the discrete
+source measure unchanged, moves the output by 3.7% (query tokens) and 9.1%
+(query tokens with the signed-distance scalar), against 8e-16 for the plain
+surface model. Consequence: source refinement, the number of queries, their
+distribution and chunking can all change the predicted field, and the
+existing contract test (uniform rescaling of all weights) cannot see it. A
+repaired convention, `query_mass="source_total"` (query mass = a learned
+fraction of the total source measure, divided by the query count), is being
+added with tests; trained checkpoints keep the old convention, and their
+dependence on companion-query count (fixed sentinel queries with 1k / 10k /
+40k companions, plane and near-wall sets, chunk layouts) is not yet measured.
+Node QMASS, RUNNING. Book: chapter 2's "what is not a contract" list gains
+the refinement bullet; chapter 8's query-token description states the
+dependence; chapter 12 adds the open question with the 0.005 absolute
+pressure margin as the bar it must not consume.
+
+**3. Composition failures (verified).** Similarity gauge + surface
+local-feature channel: a 2.7x rescale of geometry (areas ×2.7²) changes
+the output by up to 0.79 in the probe, the gauge alone at roundoff; the
+patch log-mass is not normalized by the gauge. Passive queries + boundary
+scalars, scale conditioning or raw seed features: shape errors whenever
+source and query counts differ. Passive queries + the parity-odd vector
+head: source and query normals collide when counts differ. None is behind a
+reported number and the plain reference surface configuration is
+unaffected; the fixes ride with QMASS. Book: chapter 2 lists them.
+
+**4. The first-moment blind spot is broader than M3 said (verified).** M3
+(@sec-nb-m3-verdict) found that geometries with a discrete rotational
+symmetry about the drive collapse every slice anchor onto the axis and
+argued the mechanism therefore needs such a symmetry, which no car has.
+Counterexample: five equal, disjoint spherical component samples around an
+axial drive at azimuths {0, 120, 240, 27, 207}° and {0, 120, 240, 43,
+223}°, a triangle plus an antipodal pair each. Both have zero transverse
+first moment, so within every slice the component contributions cancel and
+the mean-position and mean-normal anchors stay axial, and the relational
+invariants cannot recover the angular arrangement at any layer. The two are
+not congruent (pairwise-distance profiles differ by 0.56) and no rotation
+preserves both geometry and drive. ISLA's outputs on the common component
+agree to 4e-15 (default and similarity-gauge configurations, two seeds); the
+optional local-distance channel separates them by 0.039–0.063; a
+second-moment contraction at the query, r̂ᵀ C r̂ with C the points' second
+moment, reads 2.41 against 1.99
+(results/isla_first_moment_collision_2026-09-08.json). So M3's necessity
+claim is false, and "refuted as a DrivAerML-scale limitation" becomes "not
+established as the cause on cars": a documented representation limitation,
+not a demonstrated cause of any benchmark deficit, and not a completeness
+proof either way. Node MOM2 (READY) is the cheap expressivity benchmark
+below. Book: chapter 2 gains a completeness bullet; the M3 node and row
+are qualified.
+
+**5. "Sealed" was a per-checkpoint property, not a program-level one
+(verified from the pinned manifest).** Intersections of case IDs in the
+HiLiftAeroML manifest at revision bbec30bcfc6103309c1375c5228b3ad0a586bfaf:
+full_test (360 cases) shares 179 with aoa_test ∪ stall_test, which were
+evaluated on 2026-09-04 (results/hilift_sealed_test_2026-09-04.json);
+geometry_test shares 182 and deflection_test 182; geometry_test and
+deflection_test also share 37 and 40 cases with full_val. aoa_test (900
+cases) and stall_test (723) between them contain all 180 geometries, so no
+HiLift geometry is unexposed at the level of the program. full_val's 180
+cases span 118 geometries; geometry_val's 180 span 18 geometries at ten
+angles. No checkpoint trained on a case it was scored on; the finding is
+about what an evaluation can confirm, not about leakage. Removing the 179
+already-read cases would define a new selected population and is not a
+replacement confirmatory test. Node EXPO, DONE
+(results/hilift_exposure_ledger_2026-09-08.json). Book: chapter 1's splits
+and protocol paragraphs, chapter 4's protocol item 7, chapter 5's limits
+and chapter 12's validation limit now distinguish "held out per
+checkpoint" from "program-level confirmation"; the deflection question
+carries the same note.
+
+**6. The statistical unit on the unseen-geometry rungs is the geometry
+(verified by inspection of the split).** The W2-F and single-angle
+validation sets are 18 geometries × 10 angles; the saved paired statistics
+treat 172 of 180 case wins as independent trials (p ≈ 3e-41). The test that
+matches the design has n = 18 and a smallest attainable two-sided p of
+7.6e-6, and 172 case signs do not determine how many geometry means
+improve. On the random split the 180 cases stand for 118 geometries; the
+180-of-180 ordering at 35 cases survives any grouping. Two further points
+of the same kind: all seeds at a rung share one training subset, so seed
+spread measures initialization and data order, not which 35 cases a
+practitioner would have; and the data-multiplier reading (GeoTransolver at
+210 ≈ ISLA at 35) is a comparison of two measured points, not a minimum
+CFD-run count under optimized sampling. Node GEOSTAT, RUNNING (geometry-level
+statistics: @sec-nb-audit-geometry-stats). Book: chapters 5 and 12 state the
+unit and demote case counts to descriptive; chapter 5 adds the
+training-draw caveat under its limits.
+
+**7. Four mechanism readings compared more than the named intervention
+(verified against the manifests and the code).** (a) The random-split and
+geometry-ladder validation sets share only 20 of 180 cases, so 0.138 vs
+0.250 and 0.065 vs 0.102 change both the training composition and the
+evaluation population; they support a geometry-generalization advantage,
+not "only geometry count". (b) Plain Transolver differs from GeoTransolver
+in depth (8 vs 12 layers), parameters (6.0M vs 9.0M), drive injection and
+learning rate, so the ~2/5 encoder / ~3/5 backbone split of the fixed-angle
+log-gap is a numerical decomposition, not a causal contribution of the
+geometry encoder. (c) Passive ISLA decodes through a separate four-block
+read decoder (`model.py` around line 366) while query-token ISLA sends its
+queries through the twelve encoder blocks with token-type and weight
+parameters, and the signed-distance scalar is unavailable in passive mode;
+0.160 vs 0.064 is therefore the cost of the complete passive configuration,
+not a fundamental 2.6x price of query independence. The passive question is
+reopened as a narrower node, PASSIVE2 (PLANNED, after QMASS): hold query
+depth, readout and inputs fixed and disable only the writes from queries
+into the shared state. (d) HLREG locates output error, not input
+information: a slat-gap change moves the pressure over the whole element,
+so a uniform ratio would not falsify a gap-information mechanism; the
+node's bars stand and its verdict is graded as localization. Book: chapters
+5, 8, 12 and the W2 and W2F ledger rows carry each qualification.
+
+**8. Interior interpretation (verified by reducing the band artifact).**
+From the per-band squared-error numerators in
+results/v0_sdf_band_2026-09-05.json, 94.6% of the passive SDF-normal arm's
+excess pressure squared error over GeoTransolver-volume and 93.7% of its
+excess velocity squared error lie in the first band (below 0.01
+nondimensional, about 5 cm), and over 99% within 2 m
+(results/v0_interior_excess_sse_2026-09-08.json). These are fractions of the
+error on the near-wall-biased sample, not volume integrals; the far-field
+ratio growth is real and does not identify a missing mechanism. The
+eddy-viscosity relative L2 is computed on the standardized target
+(ν_t − 4.8e-4)/9.4e-4 before inverse normalization (`infer.py` line 590;
+`drivaer_ml_volume.yaml` line 62), so 0.122 is not a 12.2% physical error;
+orderings under the frozen metric stand, ratios of means need not survive
+another centering. DrivAerML's closure is hybrid RANS/LES whose modeled
+viscosity depends on a grid or filter length, so query-neighbour features
+could recover discretization information rather than a wall feature: a
+hypothesis to discriminate. Book: chapter 8's distance section is
+rewritten around both readings; its metric paragraph states the viscosity
+normalization; the "missing volumetric context" finding is withdrawn from
+chapters 8 and 12 in favour of the measured statement.
+
+**9. Forces (verified in the recipe).** `forces.py` line 296 integrates
+predictions and labels on the same 10,000 sampled cells, so the 3% (35
+cases) and 0.6% (fixed-angle lift) errors are against the sampled-cell
+label integral, not the full-surface force, and shared quadrature cancels
+sampling error common to both. A 10k / 20k / 40k / full-surface reference
+ladder is node FORCE-REF (READY). The dataset revision used is
+bbec30bcfc6103309c1375c5228b3ad0a586bfaf, in which six force-monitor means
+were replaced by surface-field integrations; the book never used the
+dataset's coefficients as reference, so no reported number changes. Book:
+chapter 1's metric definition, chapter 5's force section and the index
+carry the qualifier.
+
+**10. Memory instruments (verified in the artifacts and the logger).**
+ISLA's 1.5 GB subtracts resident parameter and optimizer memory from
+`max_memory_allocated` (results/isla_memory_recompute_2026-09-07.json);
+GeoTransolver's 4.6 GB and every "peak allocated" value in
+results/v0_interior_resources_2026-09-07.json come from the training logger,
+which records `torch.cuda.memory_reserved()` (`train.py` line 612), a
+different and never-smaller quantity. The within-ISLA 2.28x recompute
+reduction is one instrument and stands. Read on the same instrument, the
+comparison reverses: every ISLA HiLift lane behind the book's accuracy
+numbers (full data, 210 cases, fixed angle; trained before the activation
+recompute existed) logged 9.83 GiB reserved against GeoTransolver's 4.62 GiB,
+2.1x more (results/memory_instrument_audit_2026-09-08.json). Node MEM-INST then
+measured both models in one harness on one GB300 (bf16 autocast, batch 1,
+10,000 tokens, AdamW step included; results/matched_memory_isla_gt_2026-09-08.json):
+total peak allocated memory is 4.07 GiB for GeoTransolver, 9.26 GiB for the
+ISLA code that trained every checkpoint (no rewrite, no recompute), 3.40 GiB
+for the current ISLA code without recompute and 1.57 GiB with it; reserved
+memory 4.58 / 9.53 / 3.63 / 1.77 GiB; step time 65 / 246 / 239 / 246 ms.
+The harness reproduces both trainer-log reserved figures (4.62 and 9.83 GiB)
+and the RTX 4090 incremental figure (1.40 GiB), so every number in the
+program was real and the disagreement was code version plus instrument. The
+reading for the book: ISLA's current code is 2.6x smaller than
+GeoTransolver and the trained checkpoints were 2.3x larger; the losses of
+the three ISLA variants agree step for step within 1e-3, so no accuracy
+number depends on the footprint, and none was produced at the small one; and
+ISLA's step is 3.7x slower at this size. The "3x less memory" headline is
+replaced everywhere by that sentence and the verdict table's cost row reads
+"Mixed". An unplanned finding: the pool-then-project rewrite alone accounts
+for 9.3 → 3.4 GiB (2.7x), more than the 2.3x that the recompute adds; the
+earlier notebook entries attributed the two savings correctly but had not
+measured them against GeoTransolver. Also verified: GeoTransolver-volume's blocks run at
+an effective width of 448 (256 plus six 32-channel local features,
+`geotransolver.py` line 542), so the h256 ISLA control (about 15.7M
+parameters) is a width increase, still narrower and smaller than the 27.6M
+comparator: a success shows one width increase helps, a null cannot refute
+capacity. Book: every "1.5 GB against 4.6 GB" names both instruments
+(index, chapters 1, 2, 4, 5, 6, 12); chapter 8's table and resources
+paragraph say which instrument they use; the width control is renamed and
+qualified in chapters 8, 12 and 13.
+
+**11. Reader-facing corrections applied.** "146 never-seen geometries" →
+146 cases on 96 geometries (results/hilift_seen_vs_unseen_geometry_2026-09-07.json,
+key `35.unseen_geometry`). "126 never-seen geometries" (chapter 12) → 126
+training geometries and 18 validation geometries. "The validation set was
+otherwise used only for the learning-rate choice on the full split" →
+Transolver's rate was chosen per small-data rung on it, and the adaptive
+ablations and the selection of what to present reused it (chapters 1, 5,
+12; CLAIMS). GeoTransolver's slopes 0.50 and 0.74 are labelled as two-seed
+fits; the three-seed headline means give 0.553 and 0.675
+(results/hilift_slopes_threeseed_2026-09-08.json). The verdict sentence
+now reads "…a large improvement in one regime, scarce training data on a
+family of multi-element wing geometries; elsewhere it ranges from parity to
+1.3x behind, and it is not a new capability", since the other settings
+include measured losses (DrivAerML surface 1.2–1.3x behind; eddy viscosity
+1.29x behind) and mixed outcomes. "Interior queries are always decoded
+passively" was false for the promoted query-token configuration and is
+corrected (chapters 1, 12; CLAIMS). Exact-equivariance statements now read
+"exact by algebraic construction; the finite-precision residual on the
+deployed bf16 path is a measured quantity": a CPU autocast probe gives a
+scalar rotation residual of 1.2–1.3% in bf16 against 6e-7 in float32 and
+1e-15 in float64, and the GPU trained-path residual is not yet measured.
+Chapter 1's symmetry argument no longer derives isotropy and scale
+invariance from homogeneity (anisotropic diffusion and screened Laplace are
+counterexamples) and instead states the symmetry of the actual equations,
+boundary data, coefficients and nondimensional parameters. "Strongest
+available mainstream baseline" → "strongest baseline tested under this
+protocol".
+
+**12. Baselines and the G5 preregistration.** The August literature review
+(results/lit_review_sota_scaling_2026-08-20.md) recommended AB-UPT as a
+baseline and none was run; node ABUPT (PLANNED, after UDRV) queues AB-UPT
+(anchored neural-field decoder; TMLR, arXiv 2502.09692), AB-GATr (arXiv
+2605.18816), regularized family adaptation (arXiv 2605.27968) and
+Transolver++ via the template's `plus` flag (a control, not a reproduction).
+The G5 draft (results/g5_cfd_datagen_generalization_preregistration_2026-09-03.md)
+gains an "Amendments 2026-09-08" section: the nondimensionalizer gives every
+model identical coordinates under x → ax, L_ref → aL_ref, so the scale-twin
+prediction applies only to a deliberate reference-length convention change;
+the surface recipes ingest no Reynolds number, so the Reynolds arm needs a
+specified conditioning channel per model and separates in-range shift from
+extrapolation; multiple boundary conditions need an input-sufficiency test;
+medium-vs-fine disagreement is a discretization diagnostic, not a continuum
+error bound; and the draft's scheduling of the retired exact-kernel
+candidate and its statement that ISLA had not run on the volume task are
+marked superseded.
+
+**What did not change.** The measured numbers: every ratio, mean and
+paired count in the book is as the reductions give it. The controls (higher
+learning rate, longer training, third seeds, plain Transolver, the
+geometry-disjoint splits) stand, as does the 180-of-180 ordering at 35
+cases. The within-model memory saving stands. The verdict's first clause
+stands; its second clause is now calibrated to the measured losses.
+
+**Reopened.** Whether any of the 2.8x / 5.0x is conditioning rather than
+architecture (UDRV); whether the query-token interior advantage survives its
+own dependence on the query cloud (QMASS); what query independence itself
+costs (PASSIVE2); whether the first-moment limitation is cheap to remove
+(MOM2); whether the force and memory headline numbers survive a proper
+reference (FORCE-REF, MEM-INST); and whether a baseline outside the
+Transolver family changes the standing table (ABUPT). Closed for good: the
+idea that any current HiLiftAeroML manifest can serve as an untouched
+confirmation set (EXPO).
+
+**CLAIMS.md** gains an "Audit response 2026-09-08" section with the
+wording rules for each of the above. **Tech tree:** nodes UDRV (READY),
+QMASS (RUNNING), EXPO (DONE), GEOSTAT (RUNNING), FORCE-REF (READY),
+MEM-INST (READY), PASSIVE2 (PLANNED), MOM2 (READY), ABUPT (PLANNED), with
+edges W2 → UDRV, W2F → UDRV, INV → UDRV, QT-SDF → QMASS, HLGEN → EXPO,
+STEST → EXPO, W2 → GEOSTAT, W2F → GEOSTAT, W2 → FORCE-REF, MEM2 → MEM-INST,
+QMASS → PASSIVE2, QT-SDF → PASSIVE2, V0 → PASSIVE2, M3 → MOM2, UDRV → ABUPT,
+QT-SDF → ABUPT, and each new node into MT3 where it constrains the design
+brief.
+
+### Geometry-level paired statistics {#sec-nb-audit-geometry-stats}
+
+The audit's point was that a HiLiftAeroML validation set is not 180
+independent draws: the random-split validation set holds 180 cases on 118
+geometries (69 geometries at one angle, 40 at two, 9 at three to five), and
+the unseen-geometry and fixed-angle sets hold 18 geometries (ten angles each,
+or one). The per-case rows behind every paired statistic, with geometry and
+angle identifiers and per-seed errors, are now published in
+results/hilift_paired_stats_geometry_2026-09-08.json (reducer alongside), and
+the statistics are recomputed with the geometry as the unit: case errors
+averaged within geometry, a two-sided sign test over geometries, the median
+and 10–90% range of the geometry-level baseline÷ISLA ratio, and a two-stage
+bootstrap (geometries, then angles within geometry; 10,000 resamples) of the
+ratio of means, next to the case-level bootstrap.
+
+| Comparison | Case wins | Geometry wins (p) | Geometry-level ratio, median [10–90%] | Ratio of means, 95% (geometry bootstrap) | Same, case bootstrap |
+|---|---|---|---|---|---|
+| 35 cases, GeoTransolver ÷ ISLA (three seeds) | 180/180 | 118/118 (6×10⁻³⁶) | 2.92 [1.87, 4.33] | [2.59, 2.95] | [2.61, 2.92] |
+| 35 cases, Transolver ÷ ISLA | 180/180 | 118/118 (6×10⁻³⁶) | 3.16 [1.96, 4.54] | [2.74, 3.13] | [2.76, 3.11] |
+| 210 cases, GeoTransolver ÷ ISLA | 176/180 | 116/118 (4×10⁻³²) | 2.51 [1.45, 3.20] | [2.01, 2.36] | [2.04, 2.33] |
+| 210 cases, Transolver ÷ ISLA | 164/180 | 109/118 (6×10⁻²³) | 1.48 [1.06, 1.85] | [1.27, 1.41] | [1.28, 1.40] |
+| 1,260 cases, GeoTransolver ÷ ISLA | 130/180 | 86/118 (7×10⁻⁷) | 1.06 [0.93, 1.17] | [0.97, 1.06] | [0.98, 1.06] |
+| 4 training geometries (40 cases), GeoTransolver ÷ ISLA | 172/180 | 18/18 (7.6×10⁻⁶) | 2.16 [1.36, 3.12] | [1.56, 2.16] | [1.70, 1.92] |
+| 21 training geometries (210 cases), GeoTransolver ÷ ISLA | 172/180 | 18/18 (7.6×10⁻⁶) | 1.41 [1.15, 1.93] | [1.28, 1.54] | [1.35, 1.46] |
+| Fixed angle, 126 geometries, GeoTransolver ÷ ISLA | 18/18 | 18/18 (7.6×10⁻⁶) | 4.90 [4.32, 5.93] | [4.70, 5.31] | [4.70, 5.33] |
+| Fixed angle, Transolver ÷ ISLA | 18/18 | 18/18 (7.6×10⁻⁶) | 2.57 [2.13, 3.12] | [2.37, 2.76] | [2.38, 2.77] |
+
+: Paired statistics with the geometry as the independent unit. Case wins are
+by seed-mean error; the 35- and 210-case rows use three seeds (the two-seed
+rows reproduce the earlier case-level artifact exactly). Data:
+results/hilift_paired_stats_geometry_2026-09-08.json. {#tbl-nb-geostat}
+
+**Every small-data advantage survives the change of unit.** ISLA is more
+accurate on all 118 validation geometries at 35 cases and on all 18 at both
+unseen-geometry rungs and at the fixed angle; the smallest two-sided p at
+n = 18 is 7.6 × 10⁻⁶, which is the honest significance for those rungs (the
+case-level 3 × 10⁻⁴¹ over-counted). Clustering by geometry widens the
+intervals where it should: at 4 training geometries the ratio-of-means
+interval grows from [1.70, 1.92] to [1.56, 2.16], and at 21 from [1.35, 1.46]
+to [1.28, 1.54]; on the random splits the two bootstraps nearly coincide
+because most geometries appear at one angle. At 1,260 cases the interval
+includes 1.0 under every scheme, so parity stands, and the 86-of-118
+geometry count there is a small systematic edge for ISLA, not a tie.
+Chapters 5 and 12 now quote the geometry-level counts and intervals for the
+unseen-geometry and fixed-angle rungs; the tech-tree node GEOSTAT is DONE.
+What no resampling of one training subset can supply remains: the variance
+over which 35 cases, or which four geometries, are drawn (@sec-nb-audit-2026-09-08).
+
+### Preregistered: MOM2, is a second-moment channel worth having? {#sec-nb-mom2-prereg}
+
+*Hypothesis.* ISLA's slice anchors are first moments, so two boundaries
+whose transverse first moments about the drive agree within every slice
+are indistinguishable to it whatever their second moments; the item-4
+counterexample is one instance. A per-slice second-moment channel, the
+measure-weighted second-moment tensor of the points routed to a slice about
+its anchor, contracted equivariantly at each point as r̂ᵀ C_s r̂ (and its
+trace, both invariants) and appended to the eight relational invariants,
+restores the distinction at negligible cost; the existing local-distance
+channel restores it too, by a different route. Which of the two does so
+more reliably, and whether either is worth carrying into the reference
+configuration, is what this benchmark decides. It does *not* test whether
+the limitation affects any benchmark: that is a separate question and is
+not established.
+
+*Instrument (eval-only, no training).* A random collision family: for each
+of N = 200 draws, two arrangements of five equal spherical component
+samples (8 points each, radius 0.15 at distance 2 from the axis) about the
+axial drive, one at azimuths {0, 120, 240, φ, φ+180}° and one at
+{0, 120, 240, φ', φ'+180}° with φ, φ' drawn uniformly on (0, 120)° and
+|φ − φ'| ≥ 10°, so every pair has zero transverse first moment, differs in
+its pairwise-distance profile, and admits no rotation preserving geometry
+and drive; plus 200 congruent control pairs (the same arrangement rotated
+about the drive), which every arm must call identical. Three arms, each an
+untrained ISLA (hidden 64, 4 layers, 32 slices) at three seeds, in float64:
+the base model (default gauge and, separately, the similarity gauge); the
+base model with `use_local_features=True` at radii (0.2, 0.4); the base
+model with the second-moment channel. Readout per pair: the maximum
+absolute difference of the scalar output on the common component (the
+component at azimuth 0), and, over the 200 pairs, the accuracy of a linear
+probe (logistic regression, 5-fold cross-validated) that classifies each
+common-component output vector as coming from the φ- or the φ'-family; the
+probe is trained on the outputs only, so chance is 50%.
+
+*Bars, in readout units.* **Supported** if the second-moment arm's probe
+accuracy is ≥ 95% on every seed while the base arm's is within 45–55% and
+its common-component differences stay below 1e-12 (it must remain blind, or
+the family was mis-drawn), with the local-distance arm's accuracy reported
+alongside for the comparison. **Falsified** if neither the second-moment
+nor the local-distance arm exceeds 60%, in which case the collision is not
+removable by either cheap channel and the limitation stays documented and
+unaddressed. Between 60% and 95% for the second-moment arm: inconclusive,
+reported with the accuracy. Control pairs: every arm must give
+common-component differences below 1e-12 on all 200 congruent pairs, or the
+arm is disqualified as not equivariant. Secondary readout, not a bar: the
+per-pair separation of each channel as a function of |φ − φ'|, to see
+whether either channel's resolution degrades for nearly congruent
+arrangements.
+
+*What each outcome changes.* Supported: the second-moment channel becomes a
+candidate ingredient for the successor design (MT3), and the next node is a
+trained control on DrivAerML at 435 cars (falsifier: more than 3% in-family
+pressure cost) before any claim that it helps a benchmark; the limitation
+is then "removable at known cost", still not "a cause of the DrivAerML
+gap". Falsified: the collision family is recorded as a known blind spot of
+first-moment anchor architectures, and the remedy, if one is ever needed,
+is a richer anchor (a geometric-algebra token or an explicit
+orientation frame per slice), which is a design-brief item and not a
+patch. Either way, M3's row stays qualified as "not established as the cause
+on cars".
+
+**Scheduling decision.** MOM2 is READY (depends on M3, done); it is
+eval-only and runs on a CPU in minutes. UDRV is READY and is the first
+training node to launch, ahead of any further architecture change, because
+it is the cheapest test that could move part of the headline from
+architecture to conditioning. QMASS and GEOSTAT are RUNNING; FORCE-REF and
+MEM-INST are READY and eval-only; PASSIVE2 and ABUPT wait on QMASS and UDRV.
+
+### Preregistered: UDRV, the unit-drive baseline control {#sec-nb-udrv-prereg}
+
+*Setting.* Every surface comparison in this book feeds ISLA the unit
+freestream direction while GeoTransolver and plain Transolver receive the
+physical freestream velocity: 2679.5 in/s on HiLiftAeroML, 38.9 m/s on
+DrivAerML. The dataset pipelines nondimensionalize fields and coordinates but
+not this global input. The independent audit (@sec-nb-audit-2026-09-08)
+showed, and the coordinator reproduced on the production projector with
+fixed random weights, that GeoTransolver's global-context projector spreads
+each head over about 200 of 256 slices at unit drive magnitude, collapses to
+1.0–3.8 slices at 38.9 and to one slice at 2679.5, with the largest context
+entry rising from 0.66 to 22.7 to 1530
+(results/geotransolver_drive_conditioning_2026-09-08.json). The same frozen
+configurations were used by every baseline lane on the cluster.
+
+*Question.* Does the baselines' physical-scale drive input carry a material
+part of their small-data deficit on HiLiftAeroML? At 35 mixed-angle cases the
+drive direction varies and is informative, so a unit direction is the same
+information at a benign scale. At the fixed angle (126 geometries at 12°) the
+drive is constant across cases, so the change is purely the scale of a
+constant input and the result measures conditioning alone. Prior: DrivAerML's
+38.9 m/s also collapses the projector and GeoTransolver still leads ISLA there
+from 27 cars up, so collapse is not fatal at that magnitude; the HiLift
+magnitude is 69 times larger. A partial effect is the most likely outcome.
+
+*Instrument.* Eight lanes under the frozen ladder protocol (10,000 sampled
+points, 500 epochs, bf16, no augmentation, final checkpoint, the lane's own
+validation split), launcher `highlift/hl_udrv_aga.sbatch` with lane table
+`highlift/udrv_lanes.tsv`; the only change from the reference baseline lanes
+is the hydra override of the drive input (GeoTransolver
+`forward_kwargs.global_embedding=global_data.U_inf_dir`; Transolver
+`forward_kwargs.fx.source=global_data.U_inf_dir`): GeoTransolver and
+Transolver at 35 cases (lr 1e-3 and 3e-3, each baseline's declared rate at
+that rung) and at the fixed angle, seeds 42 and 43. Readout: two-seed mean
+over validation cases of the surface-pressure relative L2. References under
+the same protocol with the physical drive: GeoTransolver 0.381 at 35 cases
+(seeds 0.374, 0.409, 0.359) and 0.179 at the fixed angle (0.175, 0.183);
+Transolver 0.404 (0.406, 0.398, 0.409) and 0.091 (0.087, 0.096); ISLA 0.138
+and 0.036.
+
+*Bars, in readout units.* With g = ln(baseline/ISLA) the reference log gap
+(1.02 and 1.07 at 35 cases; 1.61 and 0.93 at the fixed angle):
+**supported** (the drive scale carries a material part of the deficit) if the
+unit-drive mean closes at least one third of the log gap: GeoTransolver 35
+cases ≤ 0.27 (≤ 1.96x ISLA), Transolver 35 cases ≤ 0.29, GeoTransolver fixed
+angle ≤ 0.105 (≤ 2.9x), Transolver fixed angle ≤ 0.067; **falsified** (null)
+if the unit-drive mean lies within the reference seed band widened by one band
+width: GeoTransolver 35 cases ≥ 0.34, Transolver ≥ 0.38, GeoTransolver fixed
+angle ≥ 0.165, Transolver fixed angle ≥ 0.082; between, partial, reported
+with the fraction of the log gap closed. Each arm is graded separately.
+
+*What each outcome changes.* If GeoTransolver at 35 cases is supported, the
+headline 2.8x contains a baseline input-scaling artifact: the verdict
+sentence, the data-multiplier reading and every 2.8x statement are rewritten
+with the unit-drive baseline as the reference, and the fair-comparison
+protocol gains a rule that every model receives the drive at unit scale. If
+falsified, the input asymmetry is recorded as excluded and the
+fair-comparison chapter gains the control. Not tested: a separately
+normalized speed channel (speed does not vary within either dataset),
+input normalization inside GeoTransolver's projector (a change to the
+baseline), and the DrivAerML surface gap (a follow-up only if the HiLift
+control is supported). The preregistration file, written before launch, is
+results/udrv_unit_drive_preregistration_2026-09-08.md.
+
+## 2026-09-08 — QMASS verdict: the interior advantage holds only at or above the training query count; every ISLA interior arm saw about 365 surface cells {#sec-nb-qmass-verdict}
+
+*Setting.* ISLA's promoted interior configuration (@sec-interior) admits the
+interior query points as interacting tokens and gives each a routing weight
+tied to the geometric mean of the surface tokens' weights, so a prediction at
+one point depends on which other points are requested with it. The
+independent audit (@sec-nb-audit-2026-09-08) showed on small random models
+that a pure re-representation of the source measure moves the output by
+4–9%; the open question was the size of the dependence on the trained
+checkpoint, against the model's 0.005 absolute pressure advantage over
+GeoTransolver-volume.
+
+*Instrument.* The trained query-token + signed-distance checkpoint (seed 42,
+epoch 500, code snapshot `code_isla2`) and, as control, the passive
+SDF-gradient checkpoint (seed 42), run through the recipe's own inference
+path on the first four validation cars the loader yields. One 40,000-point
+interior sample per car; the first 1,000 points are fixed sentinels,
+predicted alone, with 1,000 companions, with 9,000 (the training request of
+10,000) and with 39,000, in bf16 (the recipe's inference precision) and in
+fp32. Readouts: relative L2 change of the sentinel predictions against the
+training-count request, and their error against the truth.
+
+*Result.* Pressure error at the sentinels 0.110 alone, 0.077 at 2,000
+queries, 0.062 at 10,000, 0.056 at 40,000 (bf16; fp32 0.114 / 0.080 /
+0.055 / 0.054); relative change against the training count 0.100 / 0.051 /
+0 / 0.029 for pressure, 0.348 / 0.181 / 0 / 0.048 for eddy viscosity, 0.142
+/ 0.090 / 0 / 0.045 for velocity. The passive control changes by exactly
+0.000 in fp32 for every request size and by under 1% in bf16 (autocast
+numerics), with identical error to three decimals. A two-half chunking of the
+sentinels with the same companions moves the prediction 0.4–0.7% in fp32
+(2–4% in bf16). **Verdict: the dependence exceeds the 0.005 margin by 3x at
+2,000 queries and 10x at 1,000, and is bounded (3%) at 40,000; the interior
+advantage is a property of requests at or above the training count, not of
+the model at arbitrary request sizes.** Chapter 8 gains
+@sec-interior-companion and the verdict table qualifies the interior row.
+The measure-consistent query-mass convention (`query_mass="source_total"`,
+committed with tests) removes the source-refinement dependence but the
+trained checkpoints do not use it; whether training with it, or over a range
+of query counts, removes the count dependence is open. Artifact:
+results/isla_qt_companion_dependence_2026-09-08.json.
+
+*Side finding, verified in the reader code and the cluster's dataset
+configuration.* To reproduce the training request the probe had to rebuild
+the surface sample as the recipe delivers it, and the recipe does not deliver
+10,000 surface cells. The volume dataset sets both `subsample_n_points` and
+`subsample_n_cells` to the sampling resolution, and `DomainMeshReader`
+applies both to every boundary, cells first: 10,000 cells (about 30,000
+vertices) are cut to 10,000 points, and the point cut keeps only the cells
+whose three vertices all survive, 10,000 × (1/3)³ ≈ 370. On four validation
+cars 341–395 vehicle cells remained. The ISLA volume configuration consumes
+`boundaries.vehicle.cell_centroids/cell_normals/cell_areas`, so **every ISLA
+interior arm in the book (passive, latent tokens, query tokens, query tokens
++ SDF, the 54/109-car ladders, the h256 width control) was trained and
+evaluated with about 365 surface tokens plus 10,000 queries**; GeoTransolver's
+volume configuration reads no boundary and is unaffected. Consequences
+recorded: chapter 8's input description is corrected everywhere; the
+query-token cost numbers from training logs describe about 10,400 tokens,
+not 20,000 (the synthetic 10,000 + 10,000 cost measurement stands as what it
+is); and the scientific reading sharpens, since the query-token + SDF model
+beat GeoTransolver-volume on pressure and velocity with almost no surface
+information, which credits the interaction and the signed distance rather
+than the surface sample. A probe with the boundary pinned at 10,000 cells is
+out of the checkpoint's training distribution (pressure 0.079 at the training
+request) and is recorded as a labelled secondary in the artifact, not as a
+result. The reader gains a `boundary_subsample` option (`cells` applies only
+the cell subsample to boundaries) and the repository's volume dataset sets
+it; no interior number in the book was produced with it.
+
+### Preregistered: V0-SURF10K, ISLA query tokens + SDF with the intended 10,000 surface cells {#sec-nb-v0surf-prereg}
+
+*Question.* Does giving the interacting configuration the surface sample the
+chapter intended change any interior number? Two seeds (42, 43), 435
+training cars, the frozen interior protocol (500 epochs, lr 1e-3, bf16, no
+augmentation, 10,000 interior queries), the query-token + SDF model of
+@sec-interior-query-tokens unchanged, and the dataset variant with
+`boundary_subsample: cells` so that 10,000 vehicle cells reach the model.
+Readout: the 48-car relative L2 for pressure, velocity and eddy viscosity,
+two-seed mean, against the 365-token arm (0.0567 / 0.0853 / 0.1215; seed
+spread under 1%) and GeoTransolver-volume (0.0620 / 0.1334 / 0.0939).
+
+*Bars.* **Supported** (surface information matters for the interior) if
+pressure ≤ 0.054 or eddy viscosity ≤ 0.115, a 5% improvement, five times
+the 365-token arm's seed spread. **Null** if all three fields lie within 3%
+of the 365-token arm. Between: partial, reported per field. Cost is
+reported alongside (the per-slice geometry now spans 20,000 tokens, so the
+step time and memory of the query-token arm rise; the recompute and compiled
+paths of @sec-mt2-cost are the mitigation). Either outcome corrects the
+chapter's input description; a supported outcome also reopens the passive
+decoder question with the full surface (PASSIVE2), because the passive
+arm's 2.6x deficit was measured with the same 365 tokens.

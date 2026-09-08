@@ -1,0 +1,69 @@
+{
+ "date": "2026-09-08",
+ "question": "Are the book's headline peak-training-memory numbers, ISLA 1.5 GB and GeoTransolver 4.6 GB at 10,000 tokens, the same quantity measured the same way?",
+ "answer": "No. The two numbers come from different instruments, different code states, different hardware and different unit labelling. ISLA's 1.5 GB is the increment of torch.cuda.max_memory_allocated over a memory_allocated baseline for one forward+backward step (excluding resident parameters, gradients and any optimizer state) of the current recompute-enabled code on a laptop RTX 4090, 1.416 GiB reported as 1.52 GB. GeoTransolver's 4.6 GB is the largest per-step 'Mem:' figure in a recipe train.log on 4x GB300, which the recipe computes as torch.cuda.memory_reserved()/1024**3 (the CUDA caching allocator's reserved pool: parameters, gradients, optimizer state, live activations and cache fragmentation) and prints with a 'GB' suffix although the divisor makes it GiB: 4.62 GiB = 4.96 GB. On the recipe's own instrument the ISLA lanes whose accuracy the book reports logged 9.83 'GB' (GiB reserved) against GeoTransolver's 4.62, i.e. 2.1x more, not 3x less; the book and CLAIMS.md do disclose the as-trained 9.8 GB figure, but the paired headline is not a like-for-like measurement.",
+ "book_locations_of_the_headline": [
+  "book/index.qmd:54-55", "book/01-problem.qmd:595-596", "book/02-meshtransformer2.qmd:10-11 and 379-394 (sec-mt2-cost)",
+  "book/04-baselines-and-fair-comparison.qmd:10-11, 56, 58, 129-131", "book/05-data-efficiency.qmd:44", "book/06-accuracy-and-robustness.qmd:19, 92, 352-353, 442, 603",
+  "book/12-limits-and-directions.qmd:472-474", "book/18-notebook.qmd:6529-6531 (sec-nb-geo-recompute)", "book/CLAIMS.md:39-44, 54, 72-76, 208-209, 332-347, 456"
+ ],
+ "isla_1_5_gb": {
+  "artifact": "results/isla_memory_recompute_2026-09-07.json",
+  "value_recorded": {"peak_step_memory_gib_recompute_10000_tokens": 1.416487693786621, "peak_step_memory_gib_stored_10000_tokens": 3.233875274658203, "recompute_20000_tokens_gib": 2.779580593109131, "stored_20000_tokens_gib": 6.3429341316223145},
+  "value_in_gb": {"recompute_10000": 1.521, "stored_10000": 3.472},
+  "instrument": "isla_ab_time.py (local bench, /home/psharpe/.claude/jobs/df3b0417/tmp/isla_ab_time.py lines 35-38): torch.cuda.reset_peak_memory_stats(); b = torch.cuda.memory_allocated(); step(model); p = torch.cuda.max_memory_allocated() - b; reported p/2**30 as GiB. The artifact note states: 'peak = torch.cuda.max_memory_allocated over one forward+backward step minus resident params/optimizer state'.",
+  "what_it_measures": "incremental peak allocated memory during one forward+backward step, above whatever was resident before the step (parameters, and after the first step gradients); allocator cache/reserved headroom excluded; optimizer state excluded",
+  "hardware_and_protocol": "NVIDIA GeForce RTX 4090 Laptop GPU, single process, batch 1, 10,000 random tokens, bf16 autocast, fp32 geometry; hidden 192, 12 layers, 256 slices; geo_checkpoint=True (recipe default since 2026-09-07); GPU shared with another process during timing",
+  "code_state": "current ISLA code with pool-then-project rewrite (2026-09-05) and geo_checkpoint recompute (2026-09-07); no HiLift or DrivAerML accuracy number in the book was produced by this code path",
+  "companion_stored_activation_figure": "3.23 GiB (3.47 GB) on the same instrument; the book rounds this to 3.5 GB",
+  "compiled_region_variant": "1.28 GiB with torch.compile on _geo_region (not part of the frozen protocol)"
+ },
+ "geotransolver_4_6_gb": {
+  "artifact": "results/incumbent_resource_accounting_amendment_2026-08-08.json -> extracted_resource_table_bf16_4xGB300_res10k.gt_9.0M.peak_gpu_mem_gb = 4.62",
+  "provenance": "extracted from training telemetry (per-step 'Mem:' figure in the recipe train.log) of committed DrivAerML lanes; the same 4.62 figure is the maximum 'Mem:' in the HiLift GeoTransolver lanes read on 2026-09-08 (below)",
+  "instrument": "unified_external_aero_recipe/src/train.py line 612 (and 904 for the data-loader probe): mem_gb = torch.cuda.memory_reserved() / 1024**3, logged at line 631 as f' Mem: {mem_gb:.2f}GB'. The archived execution_source copies of train.py under results/historical_*_2026-07-28/ carry the same expression at lines 582/874.",
+  "what_it_measures": "total memory reserved by the CUDA caching allocator on the logging rank at the time of the log line: parameters, gradients, AdamW state, live activations, and cached-but-free blocks; not a peak statistic (per-step sample, max taken over the log), not an increment",
+  "unit_labelling": "divisor 1024**3 gives GiB but the suffix printed is GB; 4.62 GiB = 4.96 GB",
+  "hardware_and_protocol": "4x GB300 (per-GPU figure, DDP), bf16 autocast, batch 1, 10,000 surface tokens, full training run with optimizer",
+  "note_in_book": "book/02-meshtransformer2.qmd:385-387 says the 4.6 GB 'is the peak recorded during a training run on the same protocol, so it includes optimizer state; for a 9M-parameter model that is under 0.2 GB' — this accounts for optimizer state but not for reserved-vs-allocated, the GiB/GB label, or the different hardware."
+ },
+ "same_instrument_comparison_read_2026_09_08": {
+  "source": "max over the train.log 'Mem:' lines (torch.cuda.memory_reserved()/1024**3, printed as GB) under $T/runs/<run>/train.log; $T = /scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0",
+  "runs": {
+   "mt2_hl_lr1_seed42": {"max_mem_logged": "9.83GB", "gib": 9.83, "gb": 10.55, "parameters": 8868221, "n_mem_lines": 176185},
+   "lad_hl_mt2_scarce_seed42": {"max_mem_logged": "9.83GB", "gib": 9.83, "gb": 10.55, "parameters": 8868221, "n_mem_lines": 27510},
+   "mech_hl_mt2_single_aoa_12_seed42": {"max_mem_logged": "9.83GB", "gib": 9.83, "gb": 10.55, "parameters": 8868221, "n_mem_lines": 15709},
+   "gt_hl_lr1_seed42": {"max_mem_logged": "4.62GB", "gib": 4.62, "gb": 4.96, "parameters": 9047301, "n_mem_lines": 180088},
+   "lad_hl_gt_scarce_seed42": {"max_mem_logged": "4.62GB", "gib": 4.62, "gb": 4.96, "parameters": 9047301, "n_mem_lines": 27985},
+   "mech_hl_gt_single_aoa_12_seed42": {"max_mem_logged": "4.62GB", "gib": 4.62, "gb": 4.96, "parameters": 9047301, "n_mem_lines": 15707}
+  },
+  "reading": "Every ISLA HiLift lane behind the book's accuracy numbers trained with the pre-rewrite stored-activation code at 9.83 GiB reserved, 2.13x GeoTransolver's 4.62 GiB on the identical instrument, protocol and hardware. The 1.5 GB figure describes a code path that has not trained any reported checkpoint."
+ },
+ "v0_interior_resources_2026_09_07": {
+  "artifact": "results/v0_interior_resources_2026-09-07.json",
+  "values": {"gt_vol": 8.8, "mt2_int_sdf": 4.86, "mt2_int": 4.88, "mt2_lvt_sdf": 5.77, "mt1k_vol": 4.04, "isla_qt_sdf": 6.01, "isla_qtsdfval": 6.05},
+  "instrument": "the artifact's note says 'maximum of the per-step Mem: figure (peak allocated memory per GPU ...)'; the recipe's Mem: figure is torch.cuda.memory_reserved()/1024**3, so these are GiB reserved (not peak allocated) with a GB label. The description 'peak allocated' in that artifact is inaccurate.",
+  "comparability": "these DrivAerML interior figures (10,000 surface tokens + 10,000 interior queries, 4x GB300) are on the same instrument as GeoTransolver's 4.62 and ISLA's 9.83 and are internally comparable; they are not comparable to the 1.42 GiB local bench figure"
+ },
+ "other_memory_numbers_in_the_record": {
+  "9.8_gb_as_trained_isla": "book/18-notebook.qmd:5507-5519 (sec-nb-geo-pool-memory) and CLAIMS.md:456: MT2 'trained at 9.8 GB' — this is the 9.83 GiB reserved figure above, same instrument as GeoTransolver's 4.62",
+  "3.6_gb_pooled_stored": "book/18-notebook.qmd:5554-5558: local RTX 4090 bench of the pool-then-project code, 3.33 GiB (3.58 GB), allocated-increment instrument; the notebook says the old code on this bench gave 9.15 GiB (9.82 GB) 'reproducing the 9.81 GB recorded in the V6 arm to 0.1%'. The V6 arm figure is memory_reserved in GiB, so the 0.1% agreement is between 9.82 GB (allocated increment, local) and 9.81 GiB = 10.53 GB (reserved, cluster); like-for-like the instruments differ by about 7%, and the claimed agreement rests on the GiB/GB label mismatch.",
+  "critic_review_c16": "book/13-program-status.qmd:216 'peak memory 9.8 GB vs GeoTransolver 4.6 GB' — the only place the two arms are compared on one instrument"
+ },
+ "conclusion": {
+  "same_quantity": false,
+  "differences": [
+   "instrument: max_memory_allocated increment over a pre-step baseline (ISLA) vs memory_reserved total sampled per step (GeoTransolver)",
+   "resident state: ISLA figure excludes parameters/gradients/optimizer; GeoTransolver figure includes them plus allocator cache",
+   "units: both computed with 2**30 divisors; ISLA converted to GB (1.42 GiB -> 1.5 GB), GeoTransolver's GiB value printed with a GB suffix (4.62 GiB -> stated as 4.6 GB, actually 4.96 GB)",
+   "hardware/process: single-process laptop RTX 4090 bench vs 4-GPU DDP GB300 training run",
+   "code: recompute code path that trained no reported checkpoint vs the production run"
+  ],
+  "like_for_like_statements_available": [
+   "recipe instrument, as trained: ISLA 9.83 GiB reserved vs GeoTransolver 4.62 GiB reserved at 10,000 tokens (ISLA 2.13x higher)",
+   "local allocated-increment bench, ISLA only: stored 3.23 GiB, recompute 1.42 GiB, old code 9.15 GiB (the 9.15 -> 9.83 gap is the reserved-vs-allocated plus resident-state difference, ~7%)",
+   "a GeoTransolver figure on the local allocated-increment bench does not exist in the record; producing one (same bench script, same 10,000 tokens) is the missing measurement for a fair headline"
+  ],
+  "suggested_correction_for_the_book": "state the as-trained same-instrument pair (9.8 vs 4.6 GiB reserved) as the measured comparison, and report the 1.4 GiB recompute figure as an ISLA-only bench result until GeoTransolver is measured on the same bench"
+ }
+}

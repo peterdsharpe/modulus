@@ -32,6 +32,11 @@ pipeline:
     pattern: "run_*/domain_*.pdmsh"
     subsample_n_points: ${sampling_resolution}
     subsample_n_cells: ${sampling_resolution}
+    # Boundaries get only the cell subsample. Applying both to the triangulated
+    # vehicle surface keeps only cells whose three vertices all survive the
+    # point cut (~N/27 cells instead of N); the interior is a point cloud and
+    # is unaffected by this setting.
+    boundary_subsample: cells
     # The volume model consumes the interior as a point cloud (interior.points +
     # interior.point_data); dropping interior tet topology makes the point
     # subsample a cheap contiguous block read instead of a full slice_points
