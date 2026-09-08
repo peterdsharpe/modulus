@@ -534,18 +534,19 @@ described and one that is understood.
   GeoTransolver's; falsified at 1.25x or more; pressure and velocity changes
   above 5% are reported as width effects. A null does not rule capacity out,
   since the control is still the narrower and smaller model.
-- **How much does the query-token prediction depend on the query cloud?**
-  The trained query-token checkpoints, with and without the signed distance,
-  evaluated at fixed sentinel points with 1,000, 10,000 and 40,000 companion
-  queries, on plane and near-wall query sets and under different chunk
-  layouts; readout, the relative change of the sentinel predictions. The
-  measured pressure advantage over GeoTransolver-volume is 0.005 in
-  absolute rel-L2 (0.057 against 0.062), so a companion-count sensitivity
-  above that consumes it; below 1% the dependence is documented and bounded.
-  Alongside it, the source-refinement invariance of a query-mass convention
-  in which the queries' total mass is a learned fraction of the total source
-  measure, divided by the query count (@sec-mt2-contracts), and the
-  composition tests for the optional channels.
+- **The query-token prediction depends on the query cloud, and the
+  dependence is measured** (@sec-interior-companion): on the trained
+  query-token model with the signed distance, the pressure error at 1,000
+  fixed points is 0.062 when they are queried with 9,000 companions (the
+  training count), 0.077 with 1,000, 0.110 alone, and 0.056 with 39,000;
+  the passive configuration's dependence is exactly zero in fp32. The
+  0.005 advantage over GeoTransolver-volume therefore exists at or above the
+  training query count and is consumed below it. Open: whether training
+  with a range of query counts, or the measure-consistent query-mass
+  convention (@sec-mt2-contracts), removes the dependence; and whether ISLA
+  with the intended 10,000 surface tokens rather than the 365 it received
+  (@sec-interior-task) changes any interior number (V0-SURF10K,
+  @sec-nb-v0surf-prereg).
 - **What does query independence itself cost on the interior?** ISLA with
   the queries routed through the same twelve encoder blocks as in the
   query-token configuration, with the signed distance, but with their writes

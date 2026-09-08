@@ -619,9 +619,24 @@ Rules from the independent audit, verified in-session by the coordinator
   small random models (plain surface model 8e-16). Source refinement, query
   count, query distribution and chunking can therefore change the predicted
   field; the uniform-weight-scaling contract test cannot catch it. Trained
-  checkpoints keep this convention; their dependence on companion-query count
-  is not yet measured (node QMASS). Never describe the query-token
-  configuration as measure-refinement invariant.
+  checkpoints keep this convention. Their dependence on companion-query
+  count is measured (results/isla_qt_companion_dependence_2026-09-08.json):
+  pressure error at 1,000 fixed points 0.110 alone, 0.077 with 1,000
+  companions, 0.062 with 9,000 (training count), 0.056 with 39,000; passive
+  configuration exactly 0 in fp32. Canonical wording: "the interior
+  advantage holds at or above the training query count of 10,000 and is
+  consumed below it". Never describe the query-token configuration as
+  measure-refinement invariant or as query-count invariant.
+- **Interior surface tokens (node V0-SURF10K):** every ISLA interior arm
+  (passive, latent, query tokens, query tokens + SDF, ladders, h256) received
+  about 365 vehicle surface cells, not 10,000: the volume recipe applied a
+  10,000-cell and then a 10,000-point subsample to the boundary and the
+  point cut keeps only fully retained cells. Never write "10,000 surface
+  tokens" for the interior arms; write "about 365 surface cells (the
+  recipe's nominal 10,000; @sec-interior-task)". GeoTransolver-volume reads
+  no boundary and is unaffected. The reader option `boundary_subsample:
+  cells` fixes the pipeline; no interior number in the book was produced
+  with it.
 - **Composition failures (node QMASS):** similarity gauge + surface local
   features is not scale-equivariant (up to 0.79 output change under a 2.7x
   rescale; unnormalized patch log-mass); passive queries + boundary scalars /

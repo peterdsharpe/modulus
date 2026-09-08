@@ -8472,3 +8472,94 @@ input normalization inside GeoTransolver's projector (a change to the
 baseline), and the DrivAerML surface gap (a follow-up only if the HiLift
 control is supported). The preregistration file, written before launch, is
 results/udrv_unit_drive_preregistration_2026-09-08.md.
+
+## 2026-09-08 — QMASS verdict: the interior advantage holds only at or above the training query count; every ISLA interior arm saw about 365 surface cells {#sec-nb-qmass-verdict}
+
+*Setting.* ISLA's promoted interior configuration (@sec-interior) admits the
+interior query points as interacting tokens and gives each a routing weight
+tied to the geometric mean of the surface tokens' weights, so a prediction at
+one point depends on which other points are requested with it. The
+independent audit (@sec-nb-audit-2026-09-08) showed on small random models
+that a pure re-representation of the source measure moves the output by
+4–9%; the open question was the size of the dependence on the trained
+checkpoint, against the model's 0.005 absolute pressure advantage over
+GeoTransolver-volume.
+
+*Instrument.* The trained query-token + signed-distance checkpoint (seed 42,
+epoch 500, code snapshot `code_isla2`) and, as control, the passive
+SDF-gradient checkpoint (seed 42), run through the recipe's own inference
+path on the first four validation cars the loader yields. One 40,000-point
+interior sample per car; the first 1,000 points are fixed sentinels,
+predicted alone, with 1,000 companions, with 9,000 (the training request of
+10,000) and with 39,000, in bf16 (the recipe's inference precision) and in
+fp32. Readouts: relative L2 change of the sentinel predictions against the
+training-count request, and their error against the truth.
+
+*Result.* Pressure error at the sentinels 0.110 alone, 0.077 at 2,000
+queries, 0.062 at 10,000, 0.056 at 40,000 (bf16; fp32 0.114 / 0.080 /
+0.055 / 0.054); relative change against the training count 0.100 / 0.051 /
+0 / 0.029 for pressure, 0.348 / 0.181 / 0 / 0.048 for eddy viscosity, 0.142
+/ 0.090 / 0 / 0.045 for velocity. The passive control changes by exactly
+0.000 in fp32 for every request size and by under 1% in bf16 (autocast
+numerics), with identical error to three decimals. A two-half chunking of the
+sentinels with the same companions moves the prediction 0.4–0.7% in fp32
+(2–4% in bf16). **Verdict: the dependence exceeds the 0.005 margin by 3x at
+2,000 queries and 10x at 1,000, and is bounded (3%) at 40,000; the interior
+advantage is a property of requests at or above the training count, not of
+the model at arbitrary request sizes.** Chapter 8 gains
+@sec-interior-companion and the verdict table qualifies the interior row.
+The measure-consistent query-mass convention (`query_mass="source_total"`,
+committed with tests) removes the source-refinement dependence but the
+trained checkpoints do not use it; whether training with it, or over a range
+of query counts, removes the count dependence is open. Artifact:
+results/isla_qt_companion_dependence_2026-09-08.json.
+
+*Side finding, verified in the reader code and the cluster's dataset
+configuration.* To reproduce the training request the probe had to rebuild
+the surface sample as the recipe delivers it, and the recipe does not deliver
+10,000 surface cells. The volume dataset sets both `subsample_n_points` and
+`subsample_n_cells` to the sampling resolution, and `DomainMeshReader`
+applies both to every boundary, cells first: 10,000 cells (about 30,000
+vertices) are cut to 10,000 points, and the point cut keeps only the cells
+whose three vertices all survive, 10,000 × (1/3)³ ≈ 370. On four validation
+cars 341–395 vehicle cells remained. The ISLA volume configuration consumes
+`boundaries.vehicle.cell_centroids/cell_normals/cell_areas`, so **every ISLA
+interior arm in the book (passive, latent tokens, query tokens, query tokens
++ SDF, the 54/109-car ladders, the h256 width control) was trained and
+evaluated with about 365 surface tokens plus 10,000 queries**; GeoTransolver's
+volume configuration reads no boundary and is unaffected. Consequences
+recorded: chapter 8's input description is corrected everywhere; the
+query-token cost numbers from training logs describe about 10,400 tokens,
+not 20,000 (the synthetic 10,000 + 10,000 cost measurement stands as what it
+is); and the scientific reading sharpens, since the query-token + SDF model
+beat GeoTransolver-volume on pressure and velocity with almost no surface
+information, which credits the interaction and the signed distance rather
+than the surface sample. A probe with the boundary pinned at 10,000 cells is
+out of the checkpoint's training distribution (pressure 0.079 at the training
+request) and is recorded as a labelled secondary in the artifact, not as a
+result. The reader gains a `boundary_subsample` option (`cells` applies only
+the cell subsample to boundaries) and the repository's volume dataset sets
+it; no interior number in the book was produced with it.
+
+### Preregistered: V0-SURF10K, ISLA query tokens + SDF with the intended 10,000 surface cells {#sec-nb-v0surf-prereg}
+
+*Question.* Does giving the interacting configuration the surface sample the
+chapter intended change any interior number? Two seeds (42, 43), 435
+training cars, the frozen interior protocol (500 epochs, lr 1e-3, bf16, no
+augmentation, 10,000 interior queries), the query-token + SDF model of
+@sec-interior-query-tokens unchanged, and the dataset variant with
+`boundary_subsample: cells` so that 10,000 vehicle cells reach the model.
+Readout: the 48-car relative L2 for pressure, velocity and eddy viscosity,
+two-seed mean, against the 365-token arm (0.0567 / 0.0853 / 0.1215; seed
+spread under 1%) and GeoTransolver-volume (0.0620 / 0.1334 / 0.0939).
+
+*Bars.* **Supported** (surface information matters for the interior) if
+pressure ≤ 0.054 or eddy viscosity ≤ 0.115, a 5% improvement, five times
+the 365-token arm's seed spread. **Null** if all three fields lie within 3%
+of the 365-token arm. Between: partial, reported per field. Cost is
+reported alongside (the per-slice geometry now spans 20,000 tokens, so the
+step time and memory of the query-token arm rise; the recompute and compiled
+paths of @sec-mt2-cost are the mitigation). Either outcome corrects the
+chapter's input description; a supported outcome also reopens the passive
+decoder question with the full surface (PASSIVE2), because the passive
+arm's 2.6x deficit was measured with the same 365 tokens.
