@@ -570,8 +570,14 @@ cars, 1.06x at 109), velocity turns into an ISLA advantage at every size
 between 109 and 435 cars (results/v0l_reduction_2026-09-08b.json). The
 eddy-viscosity gap, flat across an eightfold change in data with the inputs
 matched, is what GeoTransolver's local features and 2.8x parameters still
-buy, and the natural target of a local-feature channel on ISLA's query
-tokens. Neither passive construction of a query normal closes
+buy. The ISLA-native reading of "local features", measure-weighted
+surface-patch integrals at three radii around each query, was tested and
+does not close it: eddy viscosity 0.127 against 0.122 without the channel
+(1.36x GeoTransolver, past the preregistered 1.25 falsifier), pressure and
+velocity unchanged within 1%
+(results/a35_v0_reduction_2026-09-08b.json). What GeoTransolver aggregates
+locally is the neighbouring interior points, not the surface; that, or its
+parameters, is where the last 1.29x lives. Neither passive construction of a query normal closes
 the gap, the SDF gradient is the better of the two by 1.2x, and the
 distance stratification locates the missing quantity as volumetric
 context available to the query. The exact-kernel decoder is not a

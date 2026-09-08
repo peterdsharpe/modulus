@@ -264,6 +264,11 @@ surface alone; 435/48 cars; 10k surface tokens, 10k interior query points;
   flattens first, parity at 435 is where the curves cross. Do NOT write
   "ISLA's interior error falls faster at every size". Artifacts
   results/v0l_reduction_2026-09-07.json (54), results/v0l_reduction_2026-09-08.json (54+109).
+- Local surface-patch features on query tokens (QT-SDF-LF, 2026-09-08):
+  FALSIFIED. ν_t 0.1274 (1.36x GT) vs 0.1215 without; pressure +1%, velocity
+  +0.2%. Do not describe surface-patch local features as a remedy for the
+  eddy-viscosity gap; the remaining candidates are query-to-query local
+  aggregation and parameters (untested). Artifact results/a35_v0_reduction_2026-09-08b.json.
 - Signed-distance ladder (54/109 cars): QT+SDF / GT = 1.11 / 0.83 / 1.44 at
   54 and 1.06 / 0.73 / 1.49 at 109 (pressure / velocity / ν_t); plain QT
   1.21 / 1.26 / 1.73 and 1.20 / 1.27 / 1.79. Pressure bar inconclusive
