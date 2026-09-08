@@ -1,0 +1,261 @@
+{
+ "date": "2026-09-08",
+ "metric": "pressure_l2 (validation mean over 180 full_val cases; seed mean of per-run means)",
+ "sources": {
+  "seeds_42_43": "results/hilift_ladder_reduction_2026-09-03.json",
+  "seed_44": "results/w2_reduction_2026-09-07b.json (runs)"
+ },
+ "slope_definition": "slope = -d ln(error) / d ln(n_cases) between adjacent rungs; positive = error falls with data",
+ "conventions": {
+  "two_seed_42_43": {
+   "per_arm": {
+    "gt": {
+     "rungs": {
+      "35": {
+       "seeds": [
+        42,
+        43
+       ],
+       "per_seed": [
+        0.37446,
+        0.40939
+       ],
+       "mean": 0.39192499999999997
+      },
+      "210": {
+       "seeds": [
+        42,
+        43
+       ],
+       "per_seed": [
+        0.15985,
+        0.15738
+       ],
+       "mean": 0.158615
+      },
+      "1260": {
+       "seeds": [
+        42,
+        43
+       ],
+       "per_seed": [
+        0.04083,
+        0.04355
+       ],
+       "mean": 0.04219
+      }
+     },
+     "slope_35_to_210": 0.5048616336109853,
+     "slope_210_to_1260": 0.7391040365013207
+    },
+    "isla": {
+     "rungs": {
+      "35": {
+       "seeds": [
+        42,
+        43
+       ],
+       "per_seed": [
+        0.13515,
+        0.14104
+       ],
+       "mean": 0.138095
+      },
+      "210": {
+       "seeds": [
+        42,
+        43
+       ],
+       "per_seed": [
+        0.06219,
+        0.06658
+       ],
+       "mean": 0.064385
+      },
+      "1260": {
+       "seeds": [
+        42,
+        43
+       ],
+       "per_seed": [
+        0.04013,
+        0.04251
+       ],
+       "mean": 0.041319999999999996
+      }
+     },
+     "slope_35_to_210": 0.4258725462267142,
+     "slope_210_to_1260": 0.24754106234214432
+    }
+   },
+   "data_multiplier": {
+    "definition": "training cases GeoTransolver needs to reach ISLA's 35-case seed-mean pressure_l2, log-log linear interpolation between adjacent GT rungs",
+    "isla_35_error": 0.138095,
+    "gt_curve": [
+     [
+      35,
+      0.39192499999999997
+     ],
+     [
+      210,
+      0.158615
+     ],
+     [
+      1260,
+      0.04219
+     ]
+    ],
+    "interpolation_segment": [
+     210,
+     1260
+    ],
+    "gt_cases_needed": 253.29328030010598,
+    "multiplier_vs_35": 7.236950865717314
+   }
+  },
+  "three_seed_42_43_44_where_available": {
+   "per_arm": {
+    "gt": {
+     "rungs": {
+      "35": {
+       "seeds": [
+        42,
+        43,
+        44
+       ],
+       "per_seed": [
+        0.37446,
+        0.40939,
+        0.3588
+       ],
+       "mean": 0.3808833333333333
+      },
+      "210": {
+       "seeds": [
+        42,
+        43,
+        44
+       ],
+       "per_seed": [
+        0.15985,
+        0.15738,
+        0.10697
+       ],
+       "mean": 0.1414
+      },
+      "1260": {
+       "seeds": [
+        42,
+        43
+       ],
+       "per_seed": [
+        0.04083,
+        0.04355
+       ],
+       "mean": 0.04219
+      }
+     },
+     "slope_35_to_210": 0.5530320224707513,
+     "slope_210_to_1260": 0.6749843090530873
+    },
+    "isla": {
+     "rungs": {
+      "35": {
+       "seeds": [
+        42,
+        43,
+        44
+       ],
+       "per_seed": [
+        0.13515,
+        0.14104,
+        0.13759
+       ],
+       "mean": 0.13792666666666667
+      },
+      "210": {
+       "seeds": [
+        42,
+        43,
+        44
+       ],
+       "per_seed": [
+        0.06219,
+        0.06658,
+        0.06572
+       ],
+       "mean": 0.06483
+      },
+      "1260": {
+       "seeds": [
+        42,
+        43
+       ],
+       "per_seed": [
+        0.04013,
+        0.04251
+       ],
+       "mean": 0.041319999999999996
+      }
+     },
+     "slope_35_to_210": 0.42134767346079116,
+     "slope_210_to_1260": 0.25138520134598313
+    }
+   },
+   "data_multiplier": {
+    "definition": "training cases GeoTransolver needs to reach ISLA's 35-case seed-mean pressure_l2, log-log linear interpolation between adjacent GT rungs",
+    "isla_35_error": 0.13792666666666667,
+    "gt_curve": [
+     [
+      35,
+      0.3808833333333333
+     ],
+     [
+      210,
+      0.1414
+     ],
+     [
+      1260,
+      0.04219
+     ]
+    ],
+    "interpolation_segment": [
+     210,
+     1260
+    ],
+    "gt_cases_needed": 217.88202272764093,
+    "multiplier_vs_35": 6.225200649361169
+   }
+  }
+ },
+ "audit_claim_check": {
+  "audit_reported_gt_three_seed": [
+   0.553,
+   0.675
+  ],
+  "computed_gt_three_seed": [
+   0.5530320224707513,
+   0.6749843090530873
+  ],
+  "book_gt_two_seed": [
+   0.5,
+   0.74
+  ],
+  "computed_gt_two_seed": [
+   0.5048616336109853,
+   0.7391040365013207
+  ],
+  "book_isla_two_seed": [
+   0.43,
+   0.25
+  ],
+  "computed_isla_two_seed": [
+   0.4258725462267142,
+   0.24754106234214432
+  ],
+  "computed_isla_three_seed": [
+   0.42134767346079116,
+   0.25138520134598313
+  ]
+ }
+}

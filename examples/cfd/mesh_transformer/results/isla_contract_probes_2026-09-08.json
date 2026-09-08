@@ -1,0 +1,36 @@
+{
+  "purpose": "Contract probes on ISLA (Invariant Slice Attention) prompted by the independent audit (audit.md items 2 and 12), measured before and after the repairs committed on 2026-09-08 (query_mass option, gauge-normalized local features, passive-decode option composition). Small random models on CPU; these are code-level contracts, not trained-checkpoint errors.",
+  "source_measure_refinement": {
+    "construction": "60 random source tokens (positions scaled (3,2,1), unit normals, weights in [0.5,1.5]), 17 queries = first 17 source points, drive random; every source token replaced by two identical copies at half weight (same discrete measure). Readout: relative L2 change of the output. ISLA(hidden=32, n_layers=2, n_slices=8, similarity_gauge=True), float64.",
+    "plain_surface_model": 7.96e-16,
+    "query_tokens_geometric_mean_default": 0.03711,
+    "query_tokens_plus_sdf_scalar_geometric_mean_default": 0.09056,
+    "query_tokens_source_total": 8.4e-16,
+    "query_tokens_plus_sdf_scalar_source_total": 7.6e-16,
+    "scale_contract_x3_7_source_total": [8.3e-16, 8.0e-16],
+    "note": "The default convention is unchanged so trained query-token checkpoints reproduce exactly; the dependence of the trained query-token+SDF checkpoint on companion-query count is measured separately (results/isla_qt_companion_dependence_2026-09-08.json when it lands)."
+  },
+  "similarity_gauge_plus_surface_local_features": {
+    "construction": "Rescale geometry by k=2.7 with a shift; areas by k^2. Readout: max abs output difference after undoing the scale (float64).",
+    "before_encoder": {"max_abs": 0.443, "relative": 0.257},
+    "before_passive_decoder": {"max_abs": 0.532, "relative": 0.217},
+    "after_encoder": 1.07e-14,
+    "after_passive_decoder": 8.8e-15,
+    "non_gauge_path": "bit-identical before and after (the trained DrivAerML local-features arm used this path)"
+  },
+  "passive_decode_option_composition": {
+    "reproduced_failures": ["n_boundary_scalars (shape error at embed)", "scale_conditioning", "seed_mode=raw", "raw_coord_channel", "odd_head (source normals overwritten by query normals)", "odd_head + n_anchors"],
+    "after": "all decode with distinct source/query counts (60/17), finite outputs, query independence at 1e-12; boundary scalars with distinct query points raise a ValueError (no query-side scalar exists)",
+    "bit_identity_check": "11 configurations (plain, gauge, local features, local+boundary scalars, odd head with/without gauge, passive with local features / interior+gauge / anchors, query tokens, query tokens+SDF+local) bit-identical to HEAD before the repairs"
+  },
+  "bf16_equivariance_residual": {
+    "construction": "Default surface ISLA (hidden 64, 4 layers, 32 slices), 500-point anisotropic cloud, rigid rotation; relative output difference after rotating back, CPU.",
+    "float64": 1.40e-15,
+    "float32": 7.13e-7,
+    "bf16_autocast_cpu": 1.36e-2,
+    "reading": "Equivariance is exact by algebraic construction; the finite-precision residual on the deployed bf16 path is a measured quantity of order 1e-2 on CPU autocast. The GPU trained-path residual has not been measured."
+  },
+  "tests": ["test_query_mass_source_total_refinement_invariance", "test_similarity_gauge_local_features_scale_equivariance", "test_passive_decode_seed_and_head_options", "test_passive_decode_boundary_scalars"],
+  "suite": "49 passed (39 existing + 10 new parametrizations)",
+  "commit": "e07c0cf19 on branch audit-response"
+}
