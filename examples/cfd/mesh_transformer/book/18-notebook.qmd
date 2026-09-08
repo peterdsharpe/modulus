@@ -7220,3 +7220,38 @@ the lane after two identical failures instead of letting it loop until the
 walltime budget was spent. A GeoTransolver warning line in another lane
 (`mech_hl_gt_single_aoa_12_lr3e3_seed42`) is a torchrun rendezvous notice at
 a link restart, not an error; the lane is at epoch 273 and advancing.
+
+## 2026-09-07 — Preregistered: V0-L, interior data efficiency — ISLA query tokens vs GeoTransolver-volume at 54 cars {#sec-nb-v0l-prereg}
+
+**Setting.** With query tokens, ISLA matches GeoTransolver-volume on
+interior pressure at full data (435 cars; @sec-nb-qt-verdict). The
+program's central result is ISLA's small-data advantage, which on the
+*surface* holds on HiLiftAeroML (2.8x at 35 cases) but not on DrivAerML,
+where GeoTransolver is 1.2–1.3x more accurate from 27 cars up
+(@sec-nb-drivaer-percase: a uniform fit deficit). Whether the interior
+follows the surface on DrivAerML is unknown, and it decides how the "one
+architecture" statement reads at small data.
+
+**Hypotheses.** *H-a:* ISLA's slice routing over surface and query tokens
+learns the volume map from fewer cars than GeoTransolver's interior-point
+tokens with local features, so ISLA-QT/GT < 1 at 54 cars. *H-b:* the
+DrivAerML fit deficit carries over and the ratio at 54 cars is about the
+surface ladder's 1.2–1.3. *H-c:* parity persists.
+
+**Instrument.** `v0/v0_ladder_aga.sbatch`: GeoTransolver-volume and ISLA
+query tokens (SDF-gradient normal, similarity gauge), seeds 42 and 43,
+trained on `train_n54` of the job-local scaling manifest (54 cars, the
+same nested subset the surface ladder used at this rung; disjoint from the
+48-car validation set), 500 epochs, lr 1e-3, 10,000 boundary cells plus
+10,000 interior points, bf16, no augmentation: the V0 protocol with the
+training set replaced. Each arm runs from the code snapshot of its
+full-data twin (GeoTransolver from `code`, ISLA-QT from `code_isla`) so the
+two points of each curve are strictly comparable. Runs
+`v0l_{gt_vol,isla_qt_sdf}_n54_seed{42,43}`; readout interior pressure,
+velocity and ν_t relative L2 on the 48 validation cars.
+
+**Bars, in readout units.** H-a supported if ISLA-QT/GT ≤ 0.9 on interior
+pressure; H-b supported if ≥ 1.15; between is H-c (parity carries).
+Secondary: the 54-to-435 slope of each architecture, −Δlog(error)/Δlog(cars),
+reported for both fields. Four lanes, within the 32-node budget after the
+query-token lanes released theirs.
