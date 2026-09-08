@@ -7255,3 +7255,17 @@ pressure; H-b supported if ≥ 1.15; between is H-c (parity carries).
 Secondary: the 54-to-435 slope of each architecture, −Δlog(error)/Δlog(cars),
 reported for both fields. Four lanes, within the 32-node budget after the
 query-token lanes released theirs.
+
+**Cost frontier of the query-token configuration** (local RTX 4090, bf16,
+10,000 surface + 10,000 interior tokens, interleaved A/B, same weights;
+results/isla_qt_cost_2026-09-07.json): stored activations 6.34 GiB at 659 ms
+per step (the cluster lanes' 6.0 GB is the same operating point on GB300);
+with the per-slice geometry rebuilt in backward (@sec-nb-geo-recompute)
+2.78 GiB at 773 ms; with the geometry region also compiled
+(@sec-nb-geo-compile) **2.51 GiB at 547 ms**, 0.83x the eager step. Against
+GeoTransolver-volume's 8.8 GB at 27.6M parameters, ISLA with query tokens
+reaches the same interior pressure at 8.9M parameters and about 2.7 GB;
+per step it remains roughly five times slower than GeoTransolver-volume at
+this size (0.28 s eager on GB300 against 0.044 s), because its per-slice
+geometry spans all 20,000 tokens. That step-time gap is the honest cost
+side of the "one architecture" statement.

@@ -1,0 +1,20 @@
+{
+ "stored/eager": {
+  "peak_gib": 6.3441596031188965,
+  "step_ms_median": 658.9449614984915
+ },
+ "recompute/eager": {
+  "peak_gib": 2.780226230621338,
+  "step_ms_median": 772.694441024214
+ },
+ "recompute/compiled": {
+  "peak_gib": 2.513216972351074,
+  "step_ms_median": 547.0211380161345
+ },
+ "_meta": {
+  "n_surface": 10000,
+  "n_query": 10000,
+  "device": "NVIDIA GeForce RTX 4090 Laptop GPU",
+  "params": 8866870
+ }
+}

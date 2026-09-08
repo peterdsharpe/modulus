@@ -1,20 +1,23 @@
 # Boundary to interior: predicting volume fields from the surface {#sec-interior}
 
 **On the one task that asks for the flow rather than the wall pressure,
-GeoTransolver is 2.6x more accurate than ISLA, and the
-gap is a property of how each architecture treats an interior point.**
-GeoTransolver lets interior query points interact with everything as
-tokens; ISLA decodes them passively, so a prediction at one interior point
-never depends on which other interior points are asked for. That contract is worth
-keeping for a surrogate queried on arbitrary probe sets, and on
-DrivAerML it costs 2.6x in interior pressure error. The deficit is
-smallest at the wall and grows with distance from it: the missing
-ingredient is volumetric context, not local detail. Two attempts to
-supply it without breaking the contract fail: off-surface latent tokens
-along anchor normals make ISLA worse, and the exact-kernel
-MeshTransformer's boundary-integral decoder is 8x behind (a comparison
-that is not resource-matched: its parameter count on this task was not
-recorded) because potential flow is the wrong prior for a separated wake.
+how an architecture treats an interior point decides the result. Let the
+interior queries interact as tokens and ISLA matches GeoTransolver's volume
+configuration on interior pressure (0.064 against 0.062) at a third of the
+parameters; decode them passively, so that a prediction at one point never
+depends on which other points are asked for, and ISLA is 2.6x behind.**
+That passive contract is worth keeping for a surrogate queried on
+arbitrary probe sets, and on DrivAerML it costs 2.6x in interior pressure
+error. The passive deficit is smallest at the wall and grows with distance
+from it: the missing ingredient is volumetric context, not local detail.
+Two attempts to supply it without breaking the contract fail: off-surface
+latent tokens along anchor normals make ISLA worse, and the exact-kernel
+MeshTransformer's boundary-integral decoder is 8x behind (0.76M parameters
+against 27.6M) because potential flow is the wrong prior for a separated
+wake. Interaction among the queries supplies it: the query-token
+configuration closes the pressure gap and leaves velocity (1.16x) and eddy
+viscosity (1.71x) behind, the two fields most tied to wall distance, which
+GeoTransolver receives as an input and ISLA does not.
 
 ## The task {#sec-interior-task}
 
@@ -85,7 +88,13 @@ position and, in the SDF-gradient arm, the same wall normal GeoTransolver
 receives, but not the distance itself. The latent-volume-token arm has
 10.0M parameters at 5.8 GB; the exact-kernel MeshTransformer 0.76M at
 4.0 GB. Per-step times at this size are 0.04–0.05 s for every arm except
-the query-token variant of @sec-interior-open (0.28 s). Three
+the query-token configuration (0.28 s; its per-slice geometry spans all
+20,000 tokens). With the exact activation recompute and the compiled
+geometry region of @sec-mt2-cost, the query-token configuration's peak
+memory falls from 6.3 to 2.5 GiB at 0.83x the step time
+(results/isla_qt_cost_2026-09-07.json), so it matches GeoTransolver-volume's
+interior pressure at a third of the parameters and under a third of the
+memory, while remaining about five times slower per training step. Three
 differences therefore separate GeoTransolver from ISLA's passive decode
 on this task: interaction among the query tokens, the signed-distance
 input, and 2.8x the parameters with local features. The chapter's
@@ -94,8 +103,8 @@ query-token arm isolates the first difference.
 
 ### Query independence as a first-class property {#sec-interior-query-independence}
 
-An interior query in ISLA is never a token. The encoder sees the surface
-only; interior queries are decoded passively, by read blocks
+In ISLA's passive configuration an interior query is never a token. The
+encoder sees the surface only; interior queries are decoded passively, by read blocks
 (@sec-mt2-forward) that read the slice states and the boundary tokens
 and write nothing back, so a prediction at one interior point is
 independent of the other interior points queried (verified in fp64 to
