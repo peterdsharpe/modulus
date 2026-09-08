@@ -103,10 +103,10 @@
    "n_cases": 180
   },
   "geo_hl_gt_geometry_scarce_seed43": {
-   "pressure_l2": 0.13738,
-   "velocity_l2": 0.16414,
-   "tau_wall_l2": 0.24479,
-   "n_cases": 89
+   "pressure_l2": 0.13224,
+   "velocity_l2": 0.1555,
+   "tau_wall_l2": 0.24077,
+   "n_cases": 180
   },
   "geo_hl_mt2_geometry_super_scarce_seed42": {
    "pressure_l2": 0.24817,
@@ -201,9 +201,9 @@
    ],
    "gt": [
     0.15313,
-    0.13738
+    0.13224
    ],
-   "gt_over_isla": 1.428
+   "gt_over_isla": 1.403
   },
   "F_geometry_super_scarce": {
    "isla": [
