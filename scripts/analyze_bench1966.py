@@ -13,6 +13,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter, NullFormatter
 
 D = Path(sys.argv[1]); OUT = Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 BLUE, RED, INK2, GRID = "#2a78d6", "#e34948", "#52514e", "#e1e0d9"
@@ -63,19 +64,43 @@ def synth_table(g, key_labels, impls=("before", "after", "search_only")):
     return rows
 
 
-def synth_figure(g, path, title, xlabel, emphasize, series_key):
-    fig, ax = plt.subplots(figsize=(7.2, 4.4), constrained_layout=True)
-    for impl, c in (("before", RED), ("after", BLUE), ("search_only", GREY)):
-        for b, ls in (("memory", "-"), ("memmap", "--")):
-            for s in sorted({series_key(k) for k in g}):
-                pts = sorted((k[0], med([r["seconds"] for r in g[k][impl]])) for k in g if k[2] == b and series_key(k) == s and g[k][impl])
+IMPLS = (  # (record label, legend label, colour)
+    ("before", "main: full-mesh lookup table", RED),
+    ("after", "this PR: lookup table or binary search, chosen by mesh shape", BLUE),
+    ("search_only", "rejected first version: binary search always", GREY),
+)
+BACKINGS = (("memory", "mesh in memory", "-"), ("memmap", "mesh memory-mapped from disk", "--"))
+
+
+def _legend(fig, backings=True):
+    from matplotlib.lines import Line2D
+    handles = [Line2D([], [], color=c, lw=2, marker="o", ms=4, label=lab) for _, lab, c in IMPLS]
+    if backings:
+        handles += [Line2D([], [], color=INK2, lw=1.5, ls=ls, label=lab) for _, lab, ls in BACKINGS]
+    fig.legend(handles=handles, loc="outside lower center", ncol=2, fontsize=8.5)
+
+
+def synth_figure(g, path, suptitle, xlabel, panel_key, panel_title):
+    """One panel per value of ``panel_key`` (a component of the group key);
+    colour = implementation, line style = storage backing."""
+    panels = sorted({k[panel_key] for k in g})
+    fig, axes = plt.subplots(1, len(panels), figsize=(4.0 * len(panels), 4.6), sharex=True, sharey=True,
+                             constrained_layout=True)
+    for ax, pv in zip(axes, panels):
+        for impl, _, c in IMPLS:
+            for b, _, ls in BACKINGS:
+                pts = sorted((k[0], med([r["seconds"] for r in g[k][impl]]))
+                             for k in g if k[panel_key] == pv and k[2] == b and g[k][impl])
                 if pts:
                     xs, ys = zip(*pts)
-                    ax.plot(xs, ys, color=c, ls=":" if impl == "search_only" else ls, marker="o", ms=4,
-                            alpha=0.95 if s == emphasize else 0.4, lw=1.8 if s == emphasize else 1.0)
-    ax.set_xscale("log"); ax.set_yscale("log"); ax.set_xlabel(xlabel); ax.set_ylabel("time [s]")
-    ax.set_title(title, loc="left", fontsize=9, color=INK2)
-    fig.savefig(OUT / path); plt.close(fig)
+                    ax.plot(xs, ys, color=c, ls=ls, marker="o", ms=4, lw=1.8)
+        ax.set_xscale("log"); ax.set_yscale("log")
+        ax.set_title(panel_title(pv, g), fontsize=9.5, color=INK2)
+        ax.set_xlabel(xlabel)
+    axes[0].set_ylabel("wall time [s]")
+    fig.suptitle(suptitle, fontsize=10.5)
+    _legend(fig)
+    fig.savefig(OUT / path, bbox_inches="tight"); plt.close(fig)
 
 
 p = D / "bench_slice_points_local.json"
@@ -83,12 +108,12 @@ if p.exists():
     g = load_with_searchonly(p, "bench1966_synth_full_searchonly.json", ("n_points", "k", "backing"))
     md += ["### Synthetic, `slice_points` on the full mesh", "",
            "Keep k random vertices of an N-vertex triangle mesh (2N random cells, one scalar and one vector point field), on one AGA node. Median of 3 runs. The third column is the first version of this PR (binary search always), kept to show why the algorithm is chosen by shape.", "",
-           "| N vertices | k kept | backing | before | after (this PR) | search only (rejected) | speed-up after/before |", "|---|---|---|---|---|---|---|"]
+           "| N vertices | k kept | backing | main: lookup table | this PR: table or search, by shape | rejected: search always | speed-up, this PR vs main |", "|---|---|---|---|---|---|---|"]
     md += synth_table(g, lambda key: (f"{key[0]:,}", f"{key[1]:,}", key[2]))
     md.append("")
     synth_figure(g, "synthetic_full_mesh.png",
-                 "slice_points on the full mesh, keeping k of N vertices\nbefore = red, after = blue, search-only = grey dotted\nsolid = in memory, dashed = memmap; k = 1e3 / 3e4 / 1e6, 3e4 emphasized",
-                 "N vertices", 30000, lambda k: k[1])
+                 "Mesh.slice_points on a whole mesh: keep k random vertices of an N-vertex triangle mesh with 2N cells (median of 3 runs)",
+                 "N, vertices in the mesh", 1, lambda k, g: f"keep k = {k:,} vertices")
 
 # ---------- synthetic, reader path ----------
 p = D / "bench_slice_points_block_local.json"
@@ -96,16 +121,19 @@ if p.exists():
     g = load_with_searchonly(p, "bench1966_synth_block_searchonly.json", ("n_points", "k_cells", "backing"))
     md += ["### Synthetic, the reader's path (cell block, then vertex compaction)", "",
            "`slice_cells(block)` then `slice_points(unique(cells))`: the mesh reader's per-sample operation, on one AGA node. The block is already small; the cost that matters is how compaction scales with the size of the mesh it came from. Median of 3 runs.", "",
-           "| N vertices | block cells | kept vertices | backing | before | after (this PR) | search only | speed-up after/before |", "|---|---|---|---|---|---|---|---|"]
+           "| N vertices | block cells | kept vertices | backing | main: lookup table | this PR: table or search, by shape | rejected: search always | speed-up, this PR vs main |", "|---|---|---|---|---|---|---|---|"]
     def _labels(key):
         n, kc, b = key
         kp = next(r["k_points"] for i in ("after", "before") for r in g[key][i])
         return (f"{n:,}", f"{kc:,}", f"{kp:,}", b)
     md += synth_table(g, _labels)
     md.append("")
+    def _panel_title(kc, g):
+        kp = [next(r["k_points"] for i in ("after", "before") for r in g[k][i]) for k in g if k[1] == kc]
+        return f"block of {kc:,} cells (about {med(kp):,.0f} vertices kept)"
     synth_figure(g, "synthetic_reader_path.png",
-                 "reader path: a block of 1e4 / 1e5 cells, then vertex compaction\nbefore = red, after = blue, search-only = grey dotted\nsolid = in memory, dashed = memmap; 1e4-cell block emphasized",
-                 "N vertices of the source mesh", 10000, lambda k: k[1])
+                 "The mesh reader's per-sample path: slice_cells(block) then slice_points(unique(block cells)), on an N-vertex triangle mesh (median of 3 runs)",
+                 "N, vertices in the source mesh", 1, _panel_title)
 
 # ---------- HiLiftAeroML on AGA ----------
 p = D / "bench1966.jsonl"
@@ -117,7 +145,7 @@ if p.exists():
     g = group(recs, ("n_cells",))
     md += ["### HiLiftAeroML boundaries on the AGA cluster (lustre memmaps, cold per case)", "",
            "Real reader operation on 285M-cell / 142M-vertex surfaces: lazy memmap load, contiguous cell block, vertex compaction. Each measurement is a fresh process on a case no other measurement touched (cold page cache); the two packages alternate. Median (min–max) over 6 cases per row.", "",
-           "| block cells | metric | before (main) | after (PR) | speed-up |", "|---|---|---|---|---|"]
+           "| block cells | metric | main: lookup table | this PR: table or search, by shape | speed-up |", "|---|---|---|---|---|"]
     def stat(rs, k):
         v = [r[k] for r in rs if k in r]
         return (med(v), min(v), max(v)) if v else (float("nan"),) * 3
@@ -135,23 +163,37 @@ if p.exists():
     if errs:
         md.append(f"\n{len(errs)} measurement(s) errored: " + "; ".join(f"{e['impl']} {e['case']} {e['n_cells']}" for e in errs))
     md.append("")
-    fig, axes = plt.subplots(1, 3, figsize=(12.5, 4.2), constrained_layout=True)
-    for ax, key, title in ((axes[0], "subsample_cold_s", "cold sample: load + block + compaction [s]"),
-                           (axes[1], "slice_points_warm_s", "slice_points alone, block in memory [s]"),
-                           (axes[2], "subsample_peak_rss_delta_mib", "peak RSS increase during the sample [MiB]")):
+    from matplotlib.lines import Line2D
+    fig, axes = plt.subplots(1, 3, figsize=(12.5, 4.8), constrained_layout=True)
+    for ax, key, title, ylabel in (
+            (axes[0], "subsample_cold_s", "cold sample: lazy load + cell block + vertex compaction", "wall time [s]"),
+            (axes[1], "slice_points_warm_s", "slice_points alone, block already in memory", "wall time [s]"),
+            (axes[2], "subsample_peak_rss_delta_mib", "peak resident memory added during the sample", "peak RSS increase [MiB]")):
         for j, ((nc,), byimpl) in enumerate(sorted(g.items())):
-            for i, (impl, c) in enumerate((("before", RED), ("after", BLUE))):
+            for i, (impl, _, c) in enumerate(IMPLS[:2]):
                 v = [r[key] for r in byimpl[impl] if key in r]
                 x = j * 3 + i
                 ax.scatter([x] * len(v), v, color=c, s=20, alpha=0.75, zorder=3)
                 if v:
                     ax.hlines(med(v), x - 0.4, x + 0.4, color=c, lw=3, zorder=4)
         ax.set_xlim(-0.8, 4.8)
-        ax.set_xticks([0.5, 3.5]); ax.set_xticklabels([f"{nc:,}-cell block" for (nc,) in sorted(g)])
-        ax.set_yscale("log"); ax.set_title(title, loc="left", fontsize=9.5, color=INK2)
+        ax.set_xticks([0.5, 3.5]); ax.set_xticklabels([f"{nc:,}" for (nc,) in sorted(g)])
+        ax.set_xlabel("cells per sample block")
+        ax.set_yscale("log"); ax.set_ylabel(ylabel)
+        plain = FuncFormatter(lambda v, _: f"{v:,.0f}" if v >= 10 else f"{v:g}")
+        ax.yaxis.set_major_formatter(plain)
+        allv = [r[key] for byimpl in g.values() for impl in ("before", "after") for r in byimpl[impl] if key in r]
+        if max(allv) / min(allv) < 30:  # narrow range: label the minor ticks too
+            ax.yaxis.set_minor_formatter(plain)
+        else:
+            ax.yaxis.set_minor_formatter(NullFormatter())
+        ax.set_title(title, fontsize=9.5, color=INK2)
         ax.grid(axis="x", visible=False)
-    fig.suptitle("HiLiftAeroML boundaries on AGA (lustre memmaps, 285M cells): before = main (red), after = this PR (blue); dots = cases, bars = medians",
-                 fontsize=9.5, color=INK2, x=0.01, ha="left")
-    fig.savefig(OUT / "hilift_aga.png"); plt.close(fig)
+    fig.suptitle("HiLiftAeroML boundary meshes (285M cells, 142M vertices, memory-mapped on Lustre), one fresh process per case", fontsize=10.5)
+    handles = [Line2D([], [], color=c, lw=3, marker="o", ms=5, label=lab) for _, lab, c in IMPLS[:2]]
+    handles += [Line2D([], [], color=INK2, lw=0, marker="o", ms=5, label="one case (6 per group)"),
+                Line2D([], [], color=INK2, lw=3, label="median of the 6 cases")]
+    fig.legend(handles=handles, loc="outside lower center", ncol=2, fontsize=8.5)
+    fig.savefig(OUT / "hilift_aga.png", bbox_inches="tight"); plt.close(fig)
 
 print("\n".join(md))
