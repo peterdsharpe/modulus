@@ -7519,3 +7519,87 @@ held-out geometries with the wave-2 evaluation launcher. Readout: mean
 pressure relative L2 over the 18 geometries; ratio Transolver/ISLA (ISLA
 0.036). Six nodes were free after the interior ladder and the steel-man
 finished; this uses two.
+
+## 2026-09-08 — Verdict QT-SDF: with the signed distance as an input, ISLA's query tokens beat GeoTransolver-volume on interior pressure (0.91x) and velocity (0.64x) and trail on eddy viscosity (1.29x), at 8.9M vs 27.6M parameters with matched inputs; the preregistered pressure bar lands in the inconclusive band (0.89) {#sec-nb-qt-sdf-verdict}
+
+**Setting and bars.** The arm (@sec-nb-qt-sdf-prereg) gives ISLA's query
+tokens the one input GeoTransolver-volume had and ISLA lacked, the signed
+distance to the wall at each query (`n_query_scalars=1`, entered as
+[s/gauge, sign(s)·log|s/gauge|]), on top of the SDF-gradient normal both
+already used. Everything else is the query-token configuration
+(@sec-nb-qt-verdict). Preregistered on interior pressure: supported if
+QT-SDF/QT ≤ 0.85, falsified if ≥ 0.95, inconclusive between; secondary,
+QT-SDF/GT ≤ 1.1 closes the interior gap at a third of the parameters.
+Velocity and eddy viscosity were named as the fields most likely to
+respond, without bars.
+
+**Readout** (results/a35_v0_reduction_2026-09-08.json, V0 section; 48
+validation cars, two seeds; per-arm resources from the lane logs,
+results/v0_interior_resources_2026-09-07.json updated):
+
+| arm | params | peak memory | pressure (42 / 43 → mean) | velocity | ν_t |
+|---|---|---|---|---|---|
+| GeoTransolver-volume (SDF + SDF gradient inputs, six-radius local features) | 27.6M | 8.8 GB | 0.0622 / 0.0618 → 0.0620 | 0.1334 | 0.0939 |
+| ISLA query tokens, SDF gradient only | 8.9M | 6.0 GB | 0.0636 / 0.0642 → 0.0639 | 0.1552 | 0.1604 |
+| **ISLA query tokens + SDF value** | 8.9M | 6.0 GB | 0.0569 / 0.0565 → **0.0567** | **0.0853** | **0.1215** |
+| QT-SDF / QT | | | 0.89 | 0.55 | 0.76 |
+| QT-SDF / GeoTransolver | | | **0.91** | **0.64** | 1.29 |
+
+**Verdict against the bars.** On interior pressure QT-SDF/QT = 0.89:
+inside the preregistered inconclusive band, so the primary hypothesis that
+the input is worth at least 15% of pressure error is neither supported nor
+falsified by its own bar (it is worth 11%). The secondary bar is met with
+margin: QT-SDF/GT = 0.91, ISLA is now *ahead* of GeoTransolver-volume on
+interior pressure at a third of the parameters, with the two models'
+inputs matched (both receive the signed distance and its gradient). The
+fields named as most likely to respond respond strongly: velocity error
+falls 45% (0.155 → 0.085) and ISLA leads GeoTransolver by 1.56x on it;
+eddy viscosity falls 24% (0.160 → 0.122) and the deficit to GeoTransolver
+shrinks from 1.71x to 1.29x. Seeds agree to 1% on pressure and velocity
+and 7% on ν_t.
+
+**Reading.** Of the three differences between GeoTransolver-volume and
+ISLA's passive decode, the first (query interaction) closed the pressure
+gap and the second (the signed-distance input) closes most of the rest,
+inverting the pressure and velocity orderings; the third (2.8x parameters
+and local ball-query features) is what GeoTransolver still has and does not
+translate into accuracy here. What remains in GeoTransolver's favour is
+eddy viscosity at 1.29x, a near-wall quantity for which its six-radius
+local features over the interior cloud are the natural remaining
+explanation, and a factor of 3 in parameters that ISLA does not need. The
+data-efficiency question for this configuration (54 and 109 cars) is not
+measured; the query-token ladder without the SDF value showed a constant
+1.2x GeoTransolver lead below full data.
+
+**What changes in the book.** The interior standing statement becomes:
+ISLA with query tokens and the signed-distance input is the more accurate
+volume surrogate on pressure and velocity at a third of the parameters and
+two thirds of the memory, exactly SE(3)-covariant; GeoTransolver-volume
+keeps the lead on eddy viscosity; the passive decode remains the
+query-independent option at its price. The index, the limits chapter, the
+architecture chapter's cost section and the claims ledger are updated in
+the same pass.
+
+## 2026-09-08 — Preregistered: the signed-distance configuration on the interior ladder (54 and 109 cars) {#sec-nb-qtsdf-ladder-prereg}
+
+**Setting.** ISLA query tokens with the signed distance beat
+GeoTransolver-volume at full data (@sec-nb-qt-sdf-verdict); without the
+signed distance the query tokens trail by a constant 1.2x at 54 and 109
+cars (@sec-nb-v0l-109-verdict). Whether the input changes the small-data
+ordering decides whether the "one architecture" statement holds below
+full data on DrivAerML's interior.
+
+**Instrument.** Lanes 8–11 of `v0/v0_ladder_aga.sbatch`:
+`v0l_isla_qtsdfval_n{54,109}_seed{42,43}`, the QT-SDF configuration
+(`code_isla2`) trained on `train_n54` and `train_n109` under the V0
+protocol; evaluated by the same launcher (array task 2) and reduced by
+`reduce_v0l.py` (arm `isla_qtsdf`). Readout: interior pressure, velocity
+and ν_t relative L2 on the 48 validation cars against GeoTransolver-volume
+at the same size.
+
+**Bars.** *Input closes the small-data gap:* QT-SDF/GT ≤ 1.05 on pressure at
+54 cars (GeoTransolver 0.104) and ISLA ahead on velocity (QT-SDF/GT < 1.0).
+*Fit deficit persists:* QT-SDF/GT ≥ 1.15 on pressure at 54 cars, as for the
+query tokens without the input. Between is inconclusive. Secondary: the
+54→109→435 slopes of this configuration against GeoTransolver's
+(0.41, 0.17) and the plain query tokens' (0.42, 0.28).

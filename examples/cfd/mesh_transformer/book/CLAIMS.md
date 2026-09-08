@@ -264,13 +264,17 @@ surface alone; 435/48 cars; 10k surface tokens, 10k interior query points;
   flattens first, parity at 435 is where the curves cross. Do NOT write
   "ISLA's interior error falls faster at every size". Artifacts
   results/v0l_reduction_2026-09-07.json (54), results/v0l_reduction_2026-09-08.json (54+109).
-- Product statement (2026-09-07): ONE architecture covers surface and
-  interior. ISLA with query tokens matches GeoTransolver-volume on interior
-  pressure (1.03x) at 8.9M vs 27.6M params, exact SE(3) covariance, no SDF
-  input; trails on velocity 1.16x and ν_t 1.71x (QT-SDF arm running). ISLA
-  passive decode = the configuration when query independence is contractual,
-  at 2.6x on pressure. Never write "GeoTransolver for the interior" as the
-  standing recommendation any more. Artifact results/a35_v0_reduction_2026-09-07.json.
+- Product statement (2026-09-08): ONE architecture covers surface and
+  interior. ISLA with query tokens + SDF value: interior pressure 0.0567
+  (0.91x GeoTransolver-volume), velocity 0.0853 (0.64x), ν_t 0.1215 (1.29x),
+  at 8.9M vs 27.6M params, 6.0 vs 8.8 GB, inputs matched (both get SDF + SDF
+  gradient), exact SE(3) covariance. Query tokens without the SDF value:
+  1.03 / 1.16 / 1.71. QT-SDF/QT on pressure = 0.89 = preregistered
+  INCONCLUSIVE band (0.85–0.95): say so; do not claim the pressure bar was
+  met. Secondary bar (QT-SDF/GT ≤ 1.1) met. ISLA passive decode = the
+  configuration when query independence is contractual, at 2.6x on pressure.
+  Never write "GeoTransolver for the interior" as the standing
+  recommendation. Artifact results/a35_v0_reduction_2026-09-08.json.
 
 ## Controlled suites — the exact-kernel line (ARCHIVED: chapters 03/09/10/11 live unrendered in book/archive/; the reader-facing book mentions the exact-kernel design only in the interior chapter's "Why not an exact boundary-integral prior?" section and one footnote in the index)
 

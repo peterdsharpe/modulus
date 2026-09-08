@@ -299,25 +299,30 @@ GeoTransolver's smaller ratio, and no mechanism for it has been isolated.
 The discriminator the preregistration names next, GeoTransolver with its raw
 coordinates removed, is not yet measured (@sec-program-status).
 
-### Interior accuracy: parity on pressure with query tokens; the passive decode trails by 2.6x {#sec-limits-interior}
+### Interior accuracy: ahead on pressure and velocity with query tokens and the signed distance; the passive decode trails by 2.6x {#sec-limits-interior}
 
-**On the boundary → interior task, ISLA with query tokens matches
-GeoTransolver's volume configuration on interior pressure (1.03x) but
-trails on velocity (1.16x) and eddy viscosity (1.71x); ISLA's passive,
-query-independent decode trails by 2.6x on pressure, and that deficit
-grows with distance from the wall** (@sec-interior). The setting is
+**On the boundary → interior task, ISLA with query tokens and the signed
+distance as an input is more accurate than GeoTransolver's volume
+configuration on interior pressure (0.91x) and velocity (0.64x) and less
+accurate on eddy viscosity (1.29x); without the signed distance it matches
+on pressure (1.03x) and trails on the other two (1.16x, 1.71x); ISLA's
+passive, query-independent decode trails by 2.6x on pressure, and that
+deficit grows with distance from the wall** (@sec-interior). The setting is
 DrivAerML volume fields at 10,000 interior query points; ISLA predicts them
 from 10,000 surface tokens, GeoTransolver from the interior points
 themselves as interacting tokens carrying the signed distance to the wall,
-at 27.6M parameters against ISLA's 8.9M. The parity holds at full data
-only: at 54 and 109 training cars GeoTransolver leads the query-token
-configuration by a constant 1.2x on interior pressure, the same 1.2x by
-which it leads ISLA on the DrivAerML surface below full data, and the two
-curves cross only above 109 cars, where GeoTransolver's flattens first
-(@sec-interior-open). The remaining velocity and
-eddy-viscosity gaps are the two fields most tied to wall distance, which
-GeoTransolver receives as an input and ISLA does not; the arm that gives
-ISLA's query tokens the signed distance is not yet measured
+at 27.6M parameters against ISLA's 8.9M. Two limits. The signed-distance
+arm's preregistered pressure bar landed in its inconclusive band (an 11%
+fall against 15% to count as supported), so its pressure gain is reported
+as measured, not as a confirmed hypothesis; its velocity and
+eddy-viscosity gains were anticipated but not given bars. And the
+full-data statement does not extend to small data for the configuration
+measured on the ladder: at 54 and 109 training cars GeoTransolver leads
+the query-token configuration without the signed distance by a constant
+1.2x on interior pressure, the same 1.2x by which it leads ISLA on the
+DrivAerML surface below full data, and the curves cross only above 109
+cars, where GeoTransolver's flattens first (@sec-interior-open); the
+signed-distance configuration's ladder is not yet measured
 (@sec-program-status). For the passive decode, the deficit is 2.5x near the wall and
 3.3–5.4x in the far bands, the signature of missing volumetric context.
 Interior queries are always decoded passively; the one attempt to supply

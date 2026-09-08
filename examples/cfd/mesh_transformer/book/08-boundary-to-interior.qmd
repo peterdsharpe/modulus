@@ -2,10 +2,13 @@
 
 **On the one task that asks for the flow rather than the wall pressure,
 how an architecture treats an interior point decides the result. Let the
-interior queries interact as tokens and ISLA matches GeoTransolver's volume
-configuration on interior pressure (0.064 against 0.062) at a third of the
-parameters; decode them passively, so that a prediction at one point never
-depends on which other points are asked for, and ISLA is 2.6x behind.**
+interior queries interact as tokens and give them the signed distance to
+the wall, the input GeoTransolver's volume configuration receives, and
+ISLA is more accurate than that configuration on interior pressure (0.057
+against 0.062) and velocity (0.085 against 0.133) at a third of the
+parameters, trailing only on eddy viscosity (0.122 against 0.094); decode
+the queries passively, so that a prediction at one point never depends on
+which other points are asked for, and ISLA is 2.6x behind on pressure.**
 That passive contract is worth keeping for a surrogate queried on
 arbitrary probe sets, and on DrivAerML it costs 2.6x in interior pressure
 error. The passive deficit is smallest at the wall and grows with distance
@@ -15,9 +18,11 @@ latent tokens along anchor normals make ISLA worse, and the exact-kernel
 MeshTransformer's boundary-integral decoder is 8x behind (0.76M parameters
 against 27.6M) because potential flow is the wrong prior for a separated
 wake. Interaction among the queries supplies it: the query-token
-configuration closes the pressure gap and leaves velocity (1.16x) and eddy
-viscosity (1.71x) behind, the two fields most tied to wall distance, which
-GeoTransolver receives as an input and ISLA does not.
+configuration closes the pressure gap (1.03x) and leaves velocity (1.16x)
+and eddy viscosity (1.71x) behind, the two fields most tied to wall
+distance; adding the signed distance as a query input, so that the two
+models see the same inputs, moves ISLA ahead on pressure (0.91x) and
+velocity (0.64x) and halves the eddy-viscosity deficit (1.29x).
 
 ## The task {#sec-interior-task}
 
@@ -195,19 +200,24 @@ input, no local features.
 
 ## Results {#sec-interior-results}
 
-**With its interior queries admitted as interacting tokens, ISLA matches
-GeoTransolver's volume configuration on interior pressure (0.064 against
-0.062, a ratio of 1.03) at a third of the parameters and without the
-signed-distance input; its passive, query-independent decode is 2.6x
-behind, and no passive construction tried closes that gap.** @tbl-interior
-gives the arithmetic-mean relative L2 over the 48 validation cars for each
-arm, both seeds, and the ratio to GeoTransolver; @fig-interior-arms draws
-the pressure column.
+**With its interior queries admitted as interacting tokens and given the
+signed distance to the wall, ISLA is more accurate than GeoTransolver's
+volume configuration on interior pressure (0.057 against 0.062, a ratio of
+0.91) and velocity (0.085 against 0.133, 0.64) and less accurate on eddy
+viscosity (0.122 against 0.094, 1.29), at a third of the parameters and
+with the two models' inputs matched; without the signed distance the
+query tokens match GeoTransolver on pressure (1.03) and trail on the other
+two fields; the passive, query-independent decode is 2.6x behind, and no
+passive construction tried closes that gap.** @tbl-interior gives the
+arithmetic-mean relative L2 over the 48 validation cars for each arm, both
+seeds, and the ratio to GeoTransolver; @fig-interior-arms draws the
+pressure column.
 
 | arm | parameters | peak memory | pressure (seed 42 / 43) | velocity | ν_t | pressure ratio, arm ÷ GeoTransolver |
 |---|---|---|---|---|---|---|
 | GeoTransolver-volume: interior points as interacting tokens with signed distance and wall normal as inputs; no surface tokens | 27.6M | 8.8 GB | 0.062 (0.0622 / 0.0618) | 0.133 | 0.094 | 1.0 |
-| ISLA, query tokens: interior queries as interacting tokens on the surface tokens' slice routing, SDF-gradient normal at the query; no signed-distance input | 8.9M | 6.0 GB | 0.064 (0.0636 / 0.0642) | 0.155 | 0.160 | 1.03 |
+| ISLA, query tokens + signed distance: interior queries as interacting tokens on the surface tokens' slice routing, with the SDF-gradient normal and the signed distance at the query | 8.9M | 6.0 GB | 0.057 (0.0569 / 0.0565) | 0.085 | 0.122 | 0.91 |
+| ISLA, query tokens, SDF-gradient normal only; no signed-distance input | 8.9M | 6.0 GB | 0.064 (0.0636 / 0.0642) | 0.155 | 0.160 | 1.03 |
 | ISLA, passive decode from 10,000 surface tokens, SDF-gradient normal at the query | 9.9M | 4.9 GB | 0.160 (0.166 / 0.153) | 0.308 | 0.372 | 2.6 |
 | ISLA, passive decode, proxy normal | 9.9M | 4.9 GB | 0.193 (0.195 / 0.191) | 0.337 | 0.418 | 3.1 |
 | ISLA + 769 latent volume tokens | 10.0M | 5.8 GB | 0.228 (0.233 / 0.224) | 0.371 | 0.581 | 3.7 |
@@ -224,7 +234,7 @@ inputs (parameters and peak per-GPU training memory from each lane's log,
 results/v0_interior_resources_2026-09-07.json; inputs in the *Resources
 and inputs* paragraph of @sec-interior-task). Seed spreads are 1–8% of
 the means, so every ratio is resolved. Sources:
-`results/a35_v0_reduction_2026-09-07.json` (GeoTransolver, query-token,
+`results/a35_v0_reduction_2026-09-08.json` (GeoTransolver, both query-token,
 passive-decode and exact-kernel rows) and
 `results/v0_lvt_reduction_2026-09-07.json` (the latent-volume-token row).
 {#tbl-interior}
@@ -239,9 +249,10 @@ passive-decode and exact-kernel rows) and
 #|   GeoTransolver (arm ÷ GeoTransolver; above 1 means less accurate than
 #|   GeoTransolver). How to read this: it shows the pressure column of the
 #|   table only; velocity and eddy viscosity rank the arms identically
-#|   except that the query-token arm trails GeoTransolver by 1.16x and 1.71x
-#|   on them, and are not drawn. Data:
-#|   results/a35_v0_reduction_2026-09-07.json (five arms) and
+#|   except for the two query-token arms (with the signed distance ISLA leads
+#|   GeoTransolver on velocity, 0.64x, and trails on eddy viscosity, 1.29x;
+#|   without it 1.16x and 1.71x), and are not drawn. Data:
+#|   results/a35_v0_reduction_2026-09-08.json (six arms) and
 #|   results/v0_lvt_reduction_2026-09-07.json (the latent-volume-token bar).
 #| code-fold: true
 import json, statistics
@@ -258,11 +269,12 @@ mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASEL
                      "ytick.labelcolor": INK2, "axes.spines.top": False,
                      "axes.spines.right": False, "legend.frameon": False})
 
-red = json.load(open(Path("..") / "results" / "a35_v0_reduction_2026-09-07.json"))["v0"]
+red = json.load(open(Path("..") / "results" / "a35_v0_reduction_2026-09-08.json"))["v0"]
 lvt = json.load(open(Path("..") / "results" / "v0_lvt_reduction_2026-09-07.json"))
 LVT_PRESSURE = {s: lvt[f"v0_mt2_lvt_sdf_seed{s}"]["pressure_l2"] for s in (42, 43)}
 arms = [
     ("GeoTransolver-volume\ninterior points as tokens", lambda s: red[f"v0_gt_vol_seed{s}"]["pressure_l2"], RED),
+    ("ISLA, query tokens\n+ signed distance", lambda s: red[f"v0_isla_qtsdfval_seed{s}"]["pressure_l2"], BLUE),
     ("ISLA, query tokens\nSDF-gradient normal", lambda s: red[f"v0_isla_qt_sdf_seed{s}"]["pressure_l2"], BLUE),
     ("ISLA, passive decode\nSDF-gradient normal", lambda s: red[f"v0_mt2_int_sdf_seed{s}"]["pressure_l2"], BLUE),
     ("ISLA, passive decode\nproxy normal", lambda s: red[f"v0_mt2_int_seed{s}"]["pressure_l2"], BLUE),
@@ -272,7 +284,7 @@ arms = [
 seeds = (42, 43)
 means = [statistics.mean(get(s) for s in seeds) for _, get, _ in arms]
 gt = means[0]
-fig, ax = plt.subplots(figsize=(8.8, 4.2))
+fig, ax = plt.subplots(figsize=(9.8, 4.4))
 x = range(len(arms))
 ax.bar(x, means, width=0.58, color=[c for _, _, c in arms], alpha=0.85, zorder=2)
 for i, (_, get, c) in enumerate(arms):
@@ -321,7 +333,16 @@ tokens therefore accounts for essentially the whole pressure gap; the
 signed-distance input and the 2.8x parameters are not needed for it. What
 interaction does not close is velocity (1.16x) and eddy viscosity (1.71x),
 the two fields most tied to distance from the wall, which is the second
-difference and the subject of the arm in @sec-interior-open.
+difference. The row above it measures that difference: with the signed
+distance added as a query input, pressure error falls 11% (to 0.91x
+GeoTransolver), velocity 45% (to 0.64x) and eddy viscosity 24% (to 1.29x),
+so the input is worth most on the distance-dominated fields, as expected.
+Against its preregistered bar on pressure (a 15% fall to count as
+"supported", 5% to count as falsified) the 11% is in the inconclusive
+band; the secondary bar, closing to within 1.1x of GeoTransolver, is met
+(@sec-nb-qt-sdf-verdict). The third difference, GeoTransolver's 2.8x
+parameters and six-radius local features, is what it still has, and eddy
+viscosity at 1.29x is the one field where that still shows.
 
 ## Where the deficit lives {#sec-interior-distance}
 
@@ -528,10 +549,11 @@ three-dimensional aerodynamics on every readout in this book.
 ## Standing and open designs {#sec-interior-open}
 
 **One architecture now covers the surface and the interior. ISLA with
-query tokens matches GeoTransolver's volume configuration on interior
-pressure (1.03x) at 8.9M parameters and 6.0 GB against 27.6M and 8.8 GB,
-keeps exact SE(3) covariance, and trails on velocity (1.16x) and eddy
-viscosity (1.71x); ISLA's passive decode is the configuration to use when
+query tokens and the signed distance as an input is more accurate than
+GeoTransolver's volume configuration on interior pressure (0.91x) and
+velocity (0.64x) at 8.9M parameters and 6.0 GB against 27.6M and 8.8 GB,
+with the two models' inputs matched, keeps exact SE(3) covariance, and
+trails on eddy viscosity (1.29x); ISLA's passive decode is the configuration to use when
 interior query independence is contractual, at 9.9M parameters, 4.9 GB
 and a 2.6x price in interior pressure error on DrivAerML.** The parity is
 a full-data statement: trained on 54 or 109 cars, GeoTransolver-volume

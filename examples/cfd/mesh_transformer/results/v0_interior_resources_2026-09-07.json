@@ -59,11 +59,23 @@
    "params": 8866870,
    "peak_mem_gb": 6.01,
    "last_step_s": 0.28,
-   "status": "training (500 epochs, seeds 42/43) as of 2026-09-07",
+   "status": "complete 2026-09-07",
    "seeds": [
     42,
     43
    ]
+  },
+  "isla_qtsdfval": {
+   "label": "ISLA query tokens + signed distance input, SDF-gradient normal",
+   "params": 8904502,
+   "peak_mem_gb": 6.05,
+   "last_step_s": 0.17,
+   "inputs": "as isla_qt_sdf plus query_scalars = interior.point_data.sdf (n_query_scalars=1)",
+   "seeds": [
+    42,
+    43
+   ],
+   "code": "code_isla2 (commit 16b62765a)"
   }
  }
 }
