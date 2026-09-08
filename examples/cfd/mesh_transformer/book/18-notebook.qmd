@@ -7853,3 +7853,11 @@ preregistered prediction (ratio within 0.1 of the random split) assumed
 case count was the controlling variable; it is not, and the ladder says
 which is. Per-case paired statistics on the 180 validation cases are being
 reduced and are appended below when they land.
+
+**Per-case count for the 210-geometry rung (landed).** On the 180 validation
+cases ISLA is more accurate than GeoTransolver on **172 of 180** by two-seed
+means (157 on both seeds individually; sign test p = 3 × 10⁻⁴¹), median
+per-case ratio 1.48, 10th–90th percentiles 1.07–2.02
+(results/hilift_paired_stats_case_2026-09-08.json, arm `geo210`). The same
+172-of-180 count as the 40-case rung with a smaller median (1.48 against
+2.24): the advantage on never-seen geometries is case-by-case at both rungs.

@@ -346,7 +346,9 @@ same ladder (21 geometries at all ten angles) repeats the pattern: ISLA
 0.100 and 0.103 against GeoTransolver 0.153 and 0.132, a 1.40x advantage on
 pressure (1.37x velocity, 1.34x wall shear), where the random 210-case split
 with about 126 geometries gives 0.065 against 0.141: cutting the training
-geometries six-fold costs ISLA 1.6x and GeoTransolver nothing. The
+geometries six-fold costs ISLA 1.6x and GeoTransolver nothing; ISLA wins
+172 of the 180 validation cases at this rung too (157 on both seeds, median
+per-case ratio 1.48; results/hilift_paired_stats_case_2026-09-08.json). The
 advantage on never-seen geometries is therefore real and case-by-case, and
 it is smaller than at the random split only because ISLA, not
 GeoTransolver, responds to geometry diversity.
