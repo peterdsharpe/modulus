@@ -7290,3 +7290,19 @@ protocol changes: a resumed link replays the same epochs from the same
 state. The incident is one more instance of the file system, not the
 models, setting the program's cadence (@sec-nb-hilift-io); it cost about
 20 minutes of six nodes and 30–40 epochs of recomputation.
+
+**Second stall, 53 minutes later.** At 19:19 the same six lanes stalled
+again on a one-element all-reduce and timed out at 19:29, while the login
+node read the DrivAerML tree at 50 MB/s and the HiLift lanes kept stepping
+(slowly, 3–6 s data stalls). The stalls are transient and I/O-side, so the
+right response is a longer distributed timeout, not a shorter one: the two
+DrivAerML launchers now set `PHYSICSNEMO_DIST_TIMEOUT_S=3600`, so a stall of
+up to an hour lets the lane wait it out instead of dying and replaying up to
+ten epochs. The failure fingerprints were cleared so the identical-failure
+guard would not block the lanes on a repeat, and the hung links were
+cancelled and resumed from checkpoint a second time. The links that started
+at 19:30 still carry the old timeout (a chain link's script is copied at
+submission); the ones they queue ahead carry the new one. A hypothesis for
+the timing, that the HiLift lanes' synchronized chain-link restarts cause
+the read-ahead bursts, is not supported by the link ages at either stall
+and is not claimed; the cluster was running 81 jobs from many users.
