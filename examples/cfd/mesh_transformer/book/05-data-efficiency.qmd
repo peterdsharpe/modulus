@@ -313,6 +313,23 @@ advantage is uniform — 2.2x to 4.3x at every angle — and largest in
 attached flow (4°–12°), where ISLA's error is 0.09–0.10 against 0.33–0.39
 for the baselines.
 
+The strictest version of the geometry question removes the seen geometries
+altogether. Trained on 40 cases made of only four geometries at all ten
+angles, and validated on the 180 cases of 18 geometries that appear in no
+training set at any angle, ISLA reaches 0.248 and 0.251 (two seeds) against
+GeoTransolver's 0.407 and 0.492: 1.8x on pressure, 1.9x on velocity, 1.7x on
+wall shear, and 172 of 180 cases (158 on both seeds; median per-case ratio
+2.24; results/w2_reduction_2026-09-07b.json,
+results/hilift_paired_stats_case_2026-09-07b.json). Two things in these
+numbers matter beyond the ratio. ISLA's error nearly doubles relative to the
+35-case random split (0.138 → 0.250) when the number of distinct training
+geometries falls from 33 to 4 at a similar case count, so its accuracy is
+paid for in geometries, not cases; GeoTransolver's error barely changes
+(0.39 → 0.45) and its two seeds disagree by 20%. The advantage on never-seen
+geometries is therefore real and case-by-case, and it is smaller than at the
+random split because ISLA, not GeoTransolver, responds to geometry
+diversity.
+
 The strata also show *what kind* of model each is at 35 cases. The
 baselines' error is nearly flat — 0.33 to 0.47 at every angle, identical on
 seen and unseen geometries — while ISLA's tracks the physics, doubling from

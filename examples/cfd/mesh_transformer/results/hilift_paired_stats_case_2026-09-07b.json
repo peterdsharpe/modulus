@@ -1,0 +1,82 @@
+{
+ "35": {
+  "mt2_vs_gt": {
+   "n_cases": 180,
+   "mt2_wins_seed_mean": 180,
+   "mt2_wins_both_seeds": 180,
+   "win_fraction": 1.0,
+   "sign_test_p_n180": 1.305060893599705e-54,
+   "median_ratio_base_over_mt2": 3.1269870802499273,
+   "q10_ratio": 1.8143449209746663,
+   "q90_ratio": 4.612983036991012
+  },
+  "mt2_vs_transolver": {
+   "n_cases": 180,
+   "mt2_wins_seed_mean": 180,
+   "mt2_wins_both_seeds": 180,
+   "win_fraction": 1.0,
+   "sign_test_p_n180": 1.305060893599705e-54,
+   "median_ratio_base_over_mt2": 3.176283724608525,
+   "q10_ratio": 1.8795757773026947,
+   "q90_ratio": 4.711060991196407
+  }
+ },
+ "210": {
+  "mt2_vs_gt": {
+   "n_cases": 180,
+   "mt2_wins_seed_mean": 177,
+   "mt2_wins_both_seeds": 175,
+   "win_fraction": 0.9833333333333333,
+   "sign_test_p_n180": 1.2687162527738467e-48,
+   "median_ratio_base_over_mt2": 3.0794529325793,
+   "q10_ratio": 1.6733370645139414,
+   "q90_ratio": 3.9380937069108457
+  },
+  "mt2_vs_transolver": {
+   "n_cases": 180,
+   "mt2_wins_seed_mean": 165,
+   "mt2_wins_both_seeds": 156,
+   "win_fraction": 0.9166666666666666,
+   "sign_test_p_n180": 4.0608480156227896e-33,
+   "median_ratio_base_over_mt2": 1.5215304756925931,
+   "q10_ratio": 1.011369299811145,
+   "q90_ratio": 1.8473385379000575
+  }
+ },
+ "1260": {
+  "mt2_vs_gt": {
+   "n_cases": 180,
+   "mt2_wins_seed_mean": 130,
+   "mt2_wins_both_seeds": 103,
+   "win_fraction": 0.7222222222222222,
+   "sign_test_p_n180": 2.1348242017868693e-09,
+   "median_ratio_base_over_mt2": 1.0622491249115107,
+   "q10_ratio": 0.9218939954944096,
+   "q90_ratio": 1.1847836732695085
+  }
+ },
+ "geo40": {
+  "mt2_vs_gt": {
+   "n_cases": 180,
+   "mt2_wins_seed_mean": 172,
+   "mt2_wins_both_seeds": 158,
+   "win_fraction": 0.9555555555555556,
+   "sign_test_p_n180": 3.1930545209179334e-41,
+   "median_ratio_base_over_mt2": 2.243735484235634,
+   "q10_ratio": 1.0809387083172943,
+   "q90_ratio": 3.3357431116731737
+  }
+ },
+ "single12": {
+  "mt2_vs_gt": {
+   "n_cases": 18,
+   "mt2_wins_seed_mean": 18,
+   "mt2_wins_both_seeds": 18,
+   "win_fraction": 1.0,
+   "sign_test_p_n180": 7.62939453125e-06,
+   "median_ratio_base_over_mt2": 4.8996968903874984,
+   "q10_ratio": 4.271031668924432,
+   "q90_ratio": 5.972023311043304
+  }
+ }
+}

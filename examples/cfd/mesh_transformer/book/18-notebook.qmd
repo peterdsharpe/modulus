@@ -7139,3 +7139,11 @@ still training and tests whether the ratio returns towards the random-split
 value as geometry diversity is restored; its bars are unchanged. The
 per-case paired count on the 180 validation cases is reduced separately
 (`paired_stats_case.py`, arm `geo40`) and recorded below when it lands.
+
+**Per-case count (landed).** On the 180 validation cases (18 never-seen
+geometries × 10 angles), ISLA is more accurate than GeoTransolver on **172
+of 180** by two-seed means (158 on both seeds individually; exact sign test
+p = 3 × 10⁻⁴¹), median per-case ratio GeoTransolver/ISLA 2.24, 10th–90th
+percentiles 1.08–3.34 (results/hilift_paired_stats_case_2026-09-07b.json,
+arm `geo40`). The advantage on never-seen geometries is case-by-case, not
+an average over a few outliers.
