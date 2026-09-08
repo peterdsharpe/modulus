@@ -7346,3 +7346,12 @@ eightfold change in data, is the clearest candidate for an *input* effect
 gains its small-data clause: parity on interior pressure at full data,
 GeoTransolver ahead by 1.2x at 54 cars, the same ordering as the surface on
 this dataset. The index and the limits chapter carry the same sentence.
+
+**Second rung launched (109 cars).** With the 54-car lanes' nodes free, the
+same launcher runs `train_n109` for both architectures and both seeds
+(`v0l_{gt_vol,isla_qt_sdf}_n109_seed{42,43}`, lanes 4–7), same protocol
+and code snapshots. Preregistered reading, in readout units: the two-point
+slopes above predict GeoTransolver at 0.087 and ISLA query tokens at 0.100
+on interior pressure at 109 cars (ratio 1.15); the H-b picture is confirmed
+if the measured ratio is between 1.10 and 1.25, and the slope story is
+falsified if ISLA's 54→109 slope is not steeper than GeoTransolver's.
