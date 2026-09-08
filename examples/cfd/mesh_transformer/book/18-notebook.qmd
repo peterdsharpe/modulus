@@ -7200,3 +7200,23 @@ independence is not required; the passive decode remains the configuration
 where it is, at its 2.6x price. The index, the limits chapter and the
 claims ledger are updated in the same pass; the query-token configuration
 is added to the architecture chapter's cost section with its own numbers.
+
+## 2026-09-07 — Ops: one Transolver lane blocked by a checkpoint truncated at walltime; quarantined and resumed from the previous checkpoint {#sec-nb-truncated-ckpt}
+
+Lane 12 of wave 2 (`t1_hl_transolver_medium_lr3e3_seed42`, Transolver at
+lr 3e-3 on the 510-case rung) raised the chain's identical-failure guard:
+two consecutive links failed with "Could not determine checkpoint format
+... neither a valid zip nor tar archive" on `Transolver.0.171.mdlus`. The
+file is 16.0 MB where every other checkpoint of the lane is 24.1 MB: the
+link was killed at walltime while writing it, and each restart then tried
+to load the truncated latest checkpoint. The epoch-166 checkpoint is a valid
+archive. The two epoch-171 files (model and optimizer) were moved to
+`runs/<lane>/quarantine_2026-09-07/`, the BLOCKED marker and failure
+fingerprint removed, and the lane resubmitted; it resumes from epoch 166,
+losing five epochs of the 500, which does not touch the protocol (resume
+from the last complete checkpoint is what every link does). The launcher's
+chain-ahead design is what makes this possible to catch: the guard stopped
+the lane after two identical failures instead of letting it loop until the
+walltime budget was spent. A GeoTransolver warning line in another lane
+(`mech_hl_gt_single_aoa_12_lr3e3_seed42`) is a torchrun rendezvous notice at
+a link restart, not an error; the lane is at epoch 273 and advancing.
