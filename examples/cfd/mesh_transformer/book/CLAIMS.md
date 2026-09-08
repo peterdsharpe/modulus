@@ -92,7 +92,7 @@ Artifacts: `results/hilift_ladder_reduction_2026-09-03.json`,
 | train cases | GeoTransolver | Transolver (best lr) | ISLA | GT/ISLA | T/ISLA |
 |---|---|---|---|---|---|
 | 35 | 0.392 (0.375–0.409) | 0.402 (0.398–0.406; lr 3e-3) | 0.138 (0.135–0.141) | 2.9 | 2.9 |
-| 210 | 0.159 (0.157–0.160) | 0.086 (0.083–0.089; lr 3e-3) | 0.064 (0.062–0.067) | 2.5 | 1.3 |
+| 210 | 0.141 (0.107–0.160; three seeds, GT seed-fragile) | 0.087 (0.083–0.089; lr 3e-3; three seeds) | 0.065 (0.062–0.067; three seeds) | **2.2** (was 2.5 on two seeds; never write 2.5x again) | 1.3 |
 | 1,260 | 0.042 | — | 0.041 | 1.02 | — |
 
 - Paired per-case: at 35 cases ISLA has lower error on 360/360 paired
@@ -140,7 +140,7 @@ Artifacts: `results/hilift_ladder_reduction_2026-09-03.json`,
 - Third seed (44) at 35 cases: ISLA 0.1376, GeoTransolver 0.359, Transolver
   0.409 — inside the two-seed spread ×1.5 for all three (three-seed means
   0.138 / 0.381 / 0.404). Pending (state as running, with preregistered
-  bars, no numbers): third seed at 210; 510-case rung; 1,260 cases at 20,000
+  bars, no numbers): 510-case rung; 1,260 cases at 20,000
   tokens; single-angle split vs matched mixed-angle control; unseen-geometry
   ladder.
 
