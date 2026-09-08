@@ -6,18 +6,25 @@ interior queries interact as tokens and give them the signed distance to
 the wall, the input GeoTransolver's volume configuration receives, and
 ISLA is more accurate than that configuration on interior pressure (0.057
 against 0.062) and velocity (0.085 against 0.133) at a third of the
-parameters, trailing only on eddy viscosity (0.122 against 0.094); decode
+parameters, trailing only on eddy viscosity (0.122 against 0.094, on the
+recipe's normalized viscosity metric); decode
 the queries passively, so that a prediction at one point never depends on
 which other points are asked for, and ISLA is 2.6x behind on pressure.**
 That passive contract is worth keeping for a surrogate queried on
-arbitrary probe sets, and on DrivAerML it costs 2.6x in interior pressure
-error. The passive deficit is smallest at the wall and grows with distance
-from it: the missing ingredient is volumetric context, not local detail.
-Two attempts to supply it without breaking the contract fail: off-surface
+arbitrary probe sets, and on DrivAerML the complete passive configuration
+as built (a separate four-block read decoder, no signed-distance input)
+costs 2.6x in interior pressure error; what query independence alone would
+cost, at matched decoder depth and inputs, is not yet measured. The passive
+deficit ratio is smallest at the wall and grows with distance from it, but
+almost all of the excess squared error on the sampled points (95%) lies
+within the first 5 cm of the wall, so the ratio's growth does not by itself
+name a missing mechanism (@sec-interior-distance).
+Two attempts to supply interior context without breaking the contract fail:
+off-surface
 latent tokens along anchor normals make ISLA worse, and the exact-kernel
 MeshTransformer's boundary-integral decoder is 8x behind (0.76M parameters
 against 27.6M) because potential flow is the wrong prior for a separated
-wake. Interaction among the queries supplies it: the query-token
+wake. Interaction among the queries closes the gap: the query-token
 configuration closes the pressure gap (1.03x) and leaves velocity (1.16x)
 and eddy viscosity (1.71x) behind, the two fields most tied to wall
 distance; adding the signed distance as a query input, so that the two
@@ -58,7 +65,12 @@ $$
 over the 10,000 interior sample points, where f is the field in training
 normalisation: pressure as the coefficient C_p = (p − p_∞)/q_∞ with
 p_∞ = 0, velocity as U/|U_∞| with the freestream mean included, Frobenius
-norm over the three components. The number reported for an arm is the
+norm over the three components, and eddy viscosity as the standardized
+(ν_t − 4.8×10⁻⁴)/9.4×10⁻⁴, scored *before* inverse normalization. The
+viscosity denominator is therefore the norm of a mean-subtracted field, and
+an eddy-viscosity value of 0.122 is not a 12.2% error in physical ν_t;
+orderings between arms under this frozen metric stand, but a ratio of
+arithmetic means need not survive a different centering. The number reported for an arm is the
 arithmetic mean of ε over the 48 validation cars; where a table cell is a
 ratio, the numerator is the named arm and the denominator is
 GeoTransolver on the same 48 cars, so a ratio above 1 means the arm is
@@ -75,7 +87,10 @@ tuning on this task), bf16, no augmentation, two seeds (42 and 43).
 **Resources and inputs.** The arms are not resource-matched, and they do
 not see the same inputs; both facts are read from each lane's training
 log and configuration
-(results/v0_interior_resources_2026-09-07.json). GeoTransolver's volume
+(results/v0_interior_resources_2026-09-07.json). Every memory figure in this
+chapter is the training logger's peak `torch.cuda.memory_reserved()`, one
+instrument for all arms here but a different one from the allocated-memory
+figures of @sec-mt2-cost. GeoTransolver's volume
 configuration has **27.6M parameters** and peaks at **8.8 GB** per GPU: it is
 the surface configuration's 12-layer, 256-wide backbone (@sec-baselines)
 plus local ball-query features at six radii from 0.01 to 5.0
@@ -99,12 +114,16 @@ geometry region of @sec-mt2-cost, the query-token configuration's peak
 memory falls from 6.3 to 2.5 GiB at 0.83x the step time
 (results/isla_qt_cost_2026-09-07.json), so it matches GeoTransolver-volume's
 interior pressure at a third of the parameters and under a third of the
-memory, while remaining about five times slower per training step. Three
+memory (the 2.5 GiB is allocated memory on one GPU and the 8.8 GB reserved
+memory from a training run, so that fraction is indicative), while
+remaining about five times slower per training step. Three
 differences therefore separate GeoTransolver from ISLA's passive decode
 on this task: interaction among the query tokens, the signed-distance
 input, and 2.8x the parameters with local features. The chapter's
 headline ratio bounds the price of ISLA's contracts as ISLA is built; the
-query-token arm isolates the first difference.
+query-token arm isolates the first difference between GeoTransolver and
+ISLA, though not between ISLA's two interior configurations, which also
+differ in decoder depth (@sec-interior-results).
 
 ### Query independence as a first-class property {#sec-interior-query-independence}
 
@@ -191,10 +210,17 @@ type embedding, and enters the measure-weighted slice routing with a
 learned weight relative to the surface measure; the twelve slice layers
 then run over surface and query tokens together, and the heads read the
 query tokens. Every invariant is a function of relative geometry, so the
-prediction stays exactly rotation- and translation-covariant (and, with the
-similarity gauge, scale-covariant; verified in fp64). What is given up is
+prediction stays rotation- and translation-covariant by construction (and,
+with the similarity gauge, scale-covariant; verified to roundoff in fp64,
+@sec-mt2-contracts). What is given up is
 query independence: a query's prediction now depends on the other queries
-in the batch, as GeoTransolver's does. Nothing else changes: 8.9M
+in the batch, as GeoTransolver's does, and, because each query's routing
+weight is a learned multiple of the *geometric mean* of the source weights,
+on how finely the surface is sampled and how many queries are asked for
+(splitting every surface cell in two at half the area moves a small random
+model's output by 4–9%, @sec-mt2-contracts); the size of that dependence
+for the trained checkpoints is not yet measured (@sec-program-status).
+Nothing else changes: 8.9M
 parameters, the surface configuration's hyperparameters, no signed-distance
 input, no local features.
 
@@ -226,7 +252,10 @@ pressure column.
 : Interior relative L2 error on the 48 DrivAerML validation cars
 (arithmetic mean over cars, then over two seeds; per-seed pressure in
 parentheses), 10,000 interior queries per car (plus 10,000 surface tokens
-for the ISLA and exact-kernel arms), 500 epochs, learning rate 1e-3.
+for the ISLA and exact-kernel arms), 500 epochs, learning rate 1e-3. Peak
+memory is the training logger's reserved memory for every row (one
+instrument within this table; not the allocated-memory instrument of
+@sec-mt2-cost).
 Ratio = arm ÷ GeoTransolver, so a value above 1 means less accurate than
 GeoTransolver; this is the reverse of the book's usual baseline ÷ ISLA
 convention. The arms are not resource-matched and do not receive the same
@@ -328,9 +357,19 @@ by the query-token row of @tbl-interior: ISLA with its interior queries
 admitted as interacting tokens on the same slice routing as the surface
 tokens (@sec-interior-query-tokens) reaches 0.064 interior pressure, a
 ratio of 1.03 to GeoTransolver, with the same wall-normal input as the
-passive arm and no signed-distance value. Interaction among the query
-tokens therefore accounts for essentially the whole pressure gap; the
-signed-distance input and the 2.8x parameters are not needed for it. What
+passive arm and no signed-distance value. The complete interacting
+configuration therefore accounts for essentially the whole pressure gap
+without the signed-distance input or the 2.8x parameters. It does not
+isolate interaction as such: the passive arm decodes its queries through a
+separate four-block read decoder, while the query-token arm sends them
+through the twelve encoder blocks with a token-type embedding and a routing
+weight, so the two ISLA configurations differ in query depth and readout as
+well as in whether queries write into the shared state, and the
+signed-distance scalar is available only to the interacting one. A
+comparison that holds query depth and readout fixed and disables only the
+writes from queries into the shared state is the experiment that would
+price query independence itself; it is not yet measured
+(@sec-program-status). What
 interaction does not close is velocity (1.16x) and eddy viscosity (1.71x),
 the two fields most tied to distance from the wall, which is the second
 difference. The row above it measures that difference: with the signed
@@ -346,9 +385,22 @@ viscosity at 1.29x is the one field where that still shows.
 
 ## Where the deficit lives {#sec-interior-distance}
 
-**ISLA's deficit is smallest at the wall and grows with distance from it,
-the signature of missing volumetric context rather than missing local
-detail.** The interior sample is stratified by the unsigned distance from
+**The passive decode's error *ratio* to GeoTransolver is smallest at the
+wall and grows with distance from it; its *excess error* is almost entirely
+at the wall.** The two readings are of the same numbers and neither
+identifies a missing mechanism. Summing the per-band squared errors of the
+passive SDF-normal arm and of GeoTransolver-volume over the 48 cars and two
+seeds, 94.6% of ISLA's excess pressure squared error over GeoTransolver
+and 93.7% of its excess velocity squared error fall in the first
+wall-distance band (below 0.01 nondimensional, about 5 cm), and over 99%
+within 2 m (results/v0_interior_excess_sse_2026-09-08.json, reduced from
+the band artifact below); those are fractions of the error on the
+near-wall-biased sample, not volume integrals, and the query-token
+configurations have not been reduced this way. The far-field ratio growth is
+real, and it is where a passive read of surface-centred slices has least
+to go on, but the far bands carry a negligible share of the sampled error,
+so "missing volumetric context" is a reading of the ratio panel, not a
+measured cause. The interior sample is stratified by the unsigned distance from
 each query to the full-resolution vehicle surface (the SDF magnitude),
 into three bands fixed before the models were evaluated. The thresholds
 are 0.4 and 4.0 in the recipe's nondimensional coordinates, which
@@ -577,13 +629,26 @@ does not close it: eddy viscosity 0.127 against 0.122 without the channel
 velocity unchanged within 1%
 (results/a35_v0_reduction_2026-09-08b.json). What GeoTransolver aggregates
 locally is the neighbouring interior points, not the surface; that, or its
-parameters, is where the last 1.29x lives, and a matched-width control
-(the same configuration at hidden width 256) is not yet measured
-(@sec-program-status). For the passive decode, neither construction of a
-query normal closes the gap, the SDF gradient is the better of the two by
-1.2x, and the distance stratification locates the missing quantity as
-volumetric context available to the query; a request-independent probe
-set that would supply that context while keeping the passive decode is a
+parameters, is where the last 1.29x lives. A width control (the same
+configuration at hidden width 256, about 15.7M parameters) is not yet
+measured (@sec-program-status); it is a width *increase*, not a matched
+width, because GeoTransolver-volume's blocks run at an effective width of
+448 once its six 32-channel local features are appended to the 256-wide
+token, so a gain would show that widening helps and a null could not rule
+capacity out. Two further qualifications on the eddy-viscosity gap. The
+metric is on the standardized viscosity (@sec-interior-task), so the 1.29x
+is an ordering under that centering and not a statement about physical
+viscosity error. And DrivAerML's closure is a hybrid RANS/LES model whose
+modeled viscosity depends on a grid or filter length, so a query's
+neighbours in the volume mesh carry information about the discretization as
+well as about the flow; that GeoTransolver's local aggregation recovers
+discretization information rather than a physical wall feature is a
+hypothesis to discriminate, not a finding. For the passive decode, neither
+construction of a query normal closes the gap, the SDF gradient is the
+better of the two by 1.2x, and the distance stratification shows the excess
+error concentrated at the wall with a ratio that grows away from it
+(@sec-interior-distance); a request-independent probe
+set that would supply interior context while keeping the passive decode is a
 design, not a result, and is not pursued while the query-token
 configuration leads on two fields of three. The exact-kernel decoder is
 not a contender on this task. @sec-limits collects the interior limits

@@ -8,7 +8,10 @@ more seeds, shared validation cases, and sealed test splits opened once. The
 baselines are strong, not straw: GeoTransolver has at least as many
 parameters as ISLA (9.0M against 8.9M) and receives raw coordinates that ISLA
 never sees. ISLA's peak training memory at 10,000 tokens is 1.5 GB, against
-GeoTransolver's 4.6 GB.
+GeoTransolver's 4.6 GB, two figures from two instruments
+(@sec-resource-matching). One asymmetry of the protocol is disclosed and
+not yet resolved: the baselines receive the freestream as a physical
+velocity, ISLA as a unit direction (@sec-part-baseline).
 Two questions are settled here so that the results chapters need not carry
 them: ISLA's exact equivariance is *not* an accuracy advantage over a
 canonicalized GeoTransolver (exactly pose-invariant at 1.01x cost), and
@@ -51,21 +54,50 @@ freestream direction as its only global input, consumed through invariants
 and equivariant anchors only (@sec-mt2): 12 layers, hidden 192, 256 slices,
 8.9M parameters.
 
+**The global input is not delivered at the same numerical scale.** ISLA's
+recipe configuration consumes the unit freestream direction; GeoTransolver's
+and Transolver's consume the physical freestream velocity, which the dataset
+pipelines pass through without normalizing: 2,679.5 in/s on HiLiftAeroML
+(the dataset is in inches and seconds) and 38.9 m/s on DrivAerML. Coordinates
+and fields are nondimensionalized; this one global vector is not.
+GeoTransolver's global-context projector applies linear maps and a slice
+softmax to it directly, and its conditioning depends on the magnitude: with
+the production projector dimensions and untrained weights, the
+entropy-equivalent number of occupied slices per head is 191–232 at drive
+magnitude 1, 1.0–3.8 at 38.9 and 1.00–1.02 at 2,679.5, while the maximum
+context magnitude rises from 0.66 to 22.7 to 1,530
+(results/geotransolver_drive_conditioning_2026-09-08.json). That is a
+verified difference in how the two baselines are conditioned at
+initialization; it is *not* evidence that it explains any trained accuracy
+gap, since training can rescale the projection. The discriminating
+control, GeoTransolver and Transolver trained with the unit direction in
+place of the velocity at 35 cases and on the fixed-angle split with
+everything else frozen, is preregistered (@sec-nb-udrv-prereg) and not yet
+measured (@sec-program-status). Until it reads out, the small-data and
+fixed-angle margins of @sec-data-efficiency are margins over baselines
+conditioned as their recipes ship them. The transplant test of
+@sec-mechanism, which appended invariant features while keeping the raw
+velocity, does not answer this question.
+
 | architecture | per-point inputs | global input | layers | hidden | slices | parameters | peak memory at 10k tokens |
 |---|---|---|--:|--:|--:|--:|--:|
-| GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream velocity vector | 12 | 256 | 256 | 9.0M | 4.6 GB |
-| Transolver | centered coordinates, unit normal | freestream velocity vector, broadcast per point | 8 | 256 | 256 | 6.0M | not measured |
-| ISLA | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 1.5 GB |
+| GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream velocity vector (physical units) | 12 | 256 | 256 | 9.0M | 4.6 GB (reserved) |
+| Transolver | centered coordinates, unit normal | freestream velocity vector (physical units), broadcast per point | 8 | 256 | 256 | 6.0M | not measured |
+| ISLA | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 1.5 GB (allocated, net of parameters) |
 
 : The three architectures compared on the aerodynamic datasets. *Per-point
 inputs*: channels attached to each of the 10,000 sampled surface points per
 case. *Global input*: the one per-case vector. *Layers*: soft-slice attention
 blocks in the encoder. *Hidden*: width of the per-point feature vector.
 *Slices*: slice tokens per layer. *Parameters*: trainable parameters of the
-recipe configuration. *Peak memory*: largest allocated GPU memory over one
-forward-plus-backward step on one case of 10,000 sampled points in bfloat16
-(ISLA's figure is derived in @sec-mt2-cost). GeoTransolver's figure
-is from its training run, which adds under 0.2 GB of optimizer state. Not
+recipe configuration. *Peak memory*: two instruments. ISLA's figure is the
+maximum allocated GPU memory over one forward-plus-backward step on one case
+of 10,000 sampled points in bfloat16, net of resident parameter and optimizer
+memory (derived in @sec-mt2-cost). GeoTransolver's figure is the training
+logger's peak `torch.cuda.memory_reserved()` over its training run, which
+includes optimizer state (under 0.2 GB) and the allocator's cached blocks;
+the two are not a ratio, and a common-instrument measurement is not yet made
+(@sec-program-status). Not
 measured for Transolver, which serves only as a same-family control on
 HiLiftAeroML. Configuration source:
 `unified_external_aero_recipe/conf/model/{mt2,geotransolver,transolver}_surface.yaml`.
@@ -108,6 +140,11 @@ Datasets and splits are defined in @sec-problem, the metric in @sec-metrics.
 7. **Sealed test splits evaluated once.** The 360-case HiLiftAeroML test
    set and the regime-extrapolation test lists (@sec-regime-extrapolation)
    are taken verbatim from the dataset manifest and evaluated a single time.
+   "Sealed" is a per-checkpoint property (no model is scored on a case it
+   trained on); it is not a program-level one, because the manifests overlap
+   (@sec-splits) and the regime-extrapolation tests already read every
+   geometry, so no later HiLiftAeroML test evaluation is an independent
+   confirmation of the program's choices (@sec-limits-validation).
 8. **Preregistered bars.** Each experiment states, in readout units and
    before it runs, the value that confirms and the value that refutes.
 
@@ -126,14 +163,19 @@ a thin noise estimate (@sec-limits).
 ## Resource matching {#sec-resource-matching}
 
 **At the recipe operating point ISLA matches GeoTransolver on parameters and
-tokens per case; peak training memory is 1.5 GB against 4.6 GB.** Parameters
+tokens per case; peak training memory is 1.5 GB against 4.6 GB, on two
+different instruments.** Parameters
 8.9M against 9.0M; tokens per case 10,000 each; peak training memory at
-10,000 tokens 1.5 GB against 4.6 GB; ISLA runs at 330 ms per
+10,000 tokens 1.5 GB of allocated memory net of parameters for ISLA against
+4.6 GB of reserved memory from GeoTransolver's training run; ISLA runs at
+330 ms per
 forward-plus-backward step on an RTX 4090 in bfloat16 (3.5 GB and 285 ms
 if the per-slice invariants are stored rather than recomputed in backward;
 the two paths are bitwise identical in output and gradients). ISLA's memory
 figure is set by which per-slice tensors autograd keeps, derived and measured
-in @sec-mt2-cost. The checkpoints reported in this book were trained by an
+in @sec-mt2-cost; the within-ISLA 2.3x reduction from recompute is a
+one-instrument measurement and stands, while the cross-model comparison
+awaits a matched measurement (@sec-program-status). The checkpoints reported in this book were trained by an
 implementation of the same function that used more memory (the two agree to
 4e-15 in fp64), so memory was not a controlled variable in any comparison
 and no result depends on it.
@@ -185,7 +227,9 @@ print(": The token-count control on DrivAerML. *Tokens per case*: sampled "
 
 ## Pose: equivariant by construction, invariant by canonicalization {#sec-pose}
 
-**ISLA is exactly rotation- and translation-covariant by construction;
+**ISLA is rotation- and translation-covariant by algebraic construction
+(exact in float64; the bf16 training path carries a finite-precision
+residual that is measured, not assumed, @sec-mt2-contracts);
 GeoTransolver trained in a canonical frame is exactly pose-invariant at 1.01x
 accuracy cost. On vehicle data the two are equally good, so equivariance is a
 contract about what the model needs at inference, not an accuracy

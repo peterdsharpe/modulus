@@ -32,8 +32,10 @@ on the full split), 3e-3 for Transolver where stated.
   replaces this with passive read blocks (queries read slices and boundary
   tokens, never write) and makes predictions at a point exactly independent
   of the other queries, at a measured 2.7–3.9x accuracy cost on DrivAerML.
-  Interior (volume) queries in the boundary→interior task are always decoded
-  passively. Every HiLift and DrivAerML surface checkpoint in this book is
+  Interior (volume) queries in the boundary→interior task are decoded
+  passively in the passive-decode configuration and as interacting tokens in
+  the promoted query-token configuration (never write "always decoded
+  passively"). Every HiLift and DrivAerML surface checkpoint in this book is
   the reference (interacting) configuration. Heads: scalars and vectors
   (vectors in an equivariant basis). Parameters 8.9M (8,866,484 at hidden
   192, 12 layers, 256 slices; 11.0M with query_independent). Peak training memory
@@ -119,8 +121,11 @@ Artifacts: `results/hilift_ladder_reduction_2026-09-03.json`,
   cases (baselines −0.20, −0.47); all architectures ≈ +0.6 at 210; 0.15–0.19
   for both at 1,260. Two-seed ensembles gain only 1–5%.
 - Scope: a data-efficiency claim for 35–1,260 cases; not a scaling-law
-  claim. Segment slopes (log error vs log cases): GeoTransolver 0.50 then
-  0.74; ISLA 0.43 then 0.25. Shared-floor evidence at 1,260: 70% shared
+  claim. Segment slopes (log error vs log cases), two-seed fits: GeoTransolver
+  0.50 then 0.74; ISLA 0.43 then 0.25; on the three-seed headline means
+  GeoTransolver's are 0.553 and 0.675
+  (results/hilift_slopes_threeseed_2026-09-08.json). Label every slope with
+  its seed count. Shared-floor evidence at 1,260: 70% shared
   residual between architectures (DrivAerML/HiLift noise probe), collapse
   of seed-disagreement correlation, accuracy still rising with tokens per
   case (6,500 → 10,000 tokens worth 8% for ISLA).
@@ -368,7 +373,10 @@ stops". Present-tense, no chronology. Key current statements:
   ISLA 0.0577 (GeoTransolver 1.05x ahead).
 - **Checkpoint selection:** the final-epoch checkpoint is evaluated; no
   checkpoint is selected on validation error. The validation set was used
-  only for the per-architecture learning-rate choice on the full split.
+  for the per-architecture learning-rate choice on the full split, for
+  Transolver's learning-rate choice per small-data rung, and it was reused
+  by every adaptive ablation and by the narrative selection of which
+  results to report; never write "used only for the learning-rate choice".
   HiLift accuracy figures are therefore validation-set figures with no
   checkpoint selection; the sealed test split was spent only on the
   regime-extrapolation and raw-coordinate evaluations.
@@ -483,12 +491,14 @@ where the interior chapter needs it.
 - **One verdict sentence, stated once in the index (@sec-verdict) and
   referenced everywhere else:** "ISLA is a large improvement over
   GeoTransolver in one regime, scarce training data on a family of
-  multi-element wing geometries, and its equal everywhere else; it is not a
-  new capability." Chapters support or bound clauses of it; no chapter
-  offers a competing verdict paragraph.
+  multi-element wing geometries; elsewhere it ranges from parity to 1.3x
+  behind, and it is not a new capability." (Superseded wording, never
+  reuse: "and its equal everywhere else".) Chapters support or bound clauses
+  of it; no chapter offers a competing verdict paragraph.
 - **Calibration words:** "a large improvement" (not "groundbreaking", not
   "a little better") for the HiLift small-data regime; "parity" at full
-  data on HiLift; "behind" on DrivAerML; "no new capability" because regime
+  data on HiLift; "behind" on DrivAerML (surface 1.2–1.3x below full data,
+  8.5% at full data; interior eddy viscosity 1.29x); "no new capability" because regime
   extrapolation and cross-family transfer fail for every architecture and
   the advantage vanishes with data.
 - **Data multiplier (the horizontal reading; state alongside every ratio
@@ -527,3 +537,155 @@ where the interior chapter needs it.
   to the similarity-gauge configuration; one sentence in chapter 6 and the
   "does not claim" list); SHIFT-SUV in the thesis sentence (it stays defined
   in chapter 1 and used in the frontier table).
+
+## Audit response 2026-09-08
+
+Rules from the independent audit, verified in-session by the coordinator
+(notebook entry @sec-nb-audit-2026-09-08). Each overrides earlier wording.
+
+- **Memory: name both instruments whenever memory is compared.** ISLA's
+  1.5 GB (and the 3.5 GB stored-activation figure) is `max_memory_allocated`
+  minus resident parameter/optimizer memory on an RTX 4090
+  (results/isla_memory_recompute_2026-09-07.json). GeoTransolver's 4.6 GB and
+  every "peak memory" value in the interior resources artifact
+  (results/v0_interior_resources_2026-09-07.json: 8.8 / 6.0 / 4.9 / 5.8 /
+  4.0 GB) are the training logger's `torch.cuda.memory_reserved()`
+  (train.py:612), a different and larger quantity. Write "1.5 GB (allocated,
+  net of parameters) against 4.6 GB (reserved, from the training run)", or
+  "measured with two instruments; a matched measurement is not yet made
+  (node MEM-INST)". Never "3x less memory" as a bare ratio. The within-model
+  2.28x recompute reduction stands (one instrument). Parameter counts are
+  unaffected.
+- **Width control (QT-SDF-h256).** GeoTransolver-volume's blocks run at an
+  effective width of 448 (256 + six 32-channel local features,
+  geotransolver.py:542). ISLA at hidden 256 (~15.7M parameters) is therefore
+  a *width increase*, still narrower and smaller than the 27.6M comparator:
+  write "width control" or "a width increase", never "matched-width control".
+  A success shows one width increase helps; a null cannot refute capacity.
+  (Status and verdict wording of that node belong to its own entry.)
+- **"Held out per checkpoint" vs "program-level confirmation".** The pinned
+  HiLift manifest (revision bbec30bcfc6103309c1375c5228b3ad0a586bfaf) puts
+  179 of full_test's 360 cases, 182 of geometry_test's and 182 of
+  deflection_test's inside the already-evaluated aoa_test/stall_test sets
+  (results/hilift_sealed_test_2026-09-04.json), which between them cover all
+  180 geometries; geometry_test also shares 37 and deflection_test 40 cases
+  with full_val. No HiLift geometry is unexposed at the program level. A
+  split is "held out per checkpoint" (no training leakage) unless it has
+  been used by no training, tuning, diagnostic or prior test evaluation in
+  the program, in which case it is a "program-level confirmation". Removing
+  previously evaluated cases post hoc defines a new selected population and
+  is never called a replacement confirmatory test. full_val's 180 cases span
+  118 geometries; geometry_val's 180 cases span 18 geometries at ten angles.
+  Artifact results/hilift_exposure_ledger_2026-09-08.json.
+- **Geometry is the independent unit on HiLift unseen-geometry claims.** On
+  the geometry ladder (W2-F) and the single-angle split the 180 validation
+  cases are 18 geometries × 10 angles; a paired sign test on 180 cases
+  overstates the evidence, and the geometry-level test has n = 18 (smallest
+  two-sided p 7.6e-6). Report case-win counts as descriptive alongside the
+  geometry-level statistic (results/hilift_paired_stats_geometry_2026-09-08.json).
+  On the random split the 180 cases represent 118 geometries; the 180/180
+  win at 35 cases survives any clustering. All seeds at a rung share one
+  training subset, so seed spread does not measure training-set selection
+  variance; the data-multiplier reading (GeoTransolver at 210 ≈ ISLA at 35)
+  is a measured horizontal comparison, not a minimum CFD-run count under
+  optimized sampling.
+- **Verdict wording:** "ISLA is a large improvement over GeoTransolver in one
+  regime, scarce training data on a family of multi-element wing geometries;
+  elsewhere it ranges from parity to 1.3x behind, and it is not a new
+  capability." One sentence, one place (@sec-verdict).
+- **Baseline input scale.** ISLA's recipe consumes the unit freestream
+  direction (isla_surface.yaml:32); GeoTransolver (geotransolver_surface.yaml:41)
+  and Transolver (transolver_surface.yaml:34) consume the physical freestream
+  velocity, 2679.5 in/s on HiLiftAeroML and 38.9 m/s on DrivAerML, which the
+  pipelines do not normalize. GeoTransolver's global-context projector,
+  untrained, at production dimensions, collapses from 191–232 effective
+  occupied slices per head at drive magnitude 1 to 1.0–3.8 at 38.9 and
+  1.00–1.02 at 2679.5 (max context magnitude 0.66 → 22.7 → 1530;
+  results/geotransolver_drive_conditioning_2026-09-08.json). Write this as a
+  conditioning difference, never as an explanation of the trained gap, until
+  the training control (node UDRV, @sec-nb-udrv-prereg) reads out.
+- **Query-token measure convention.** In the query-token configuration the
+  query weight is exp(qt_logw) × geometric mean of source weights
+  (model.py ~756); duplicating every source token at half weight leaves the
+  discrete source measure unchanged but changes outputs by 3.7% (query
+  tokens) and 9.1% (query tokens + signed distance) in a float64 probe on
+  small random models (plain surface model 8e-16). Source refinement, query
+  count, query distribution and chunking can therefore change the predicted
+  field; the uniform-weight-scaling contract test cannot catch it. Trained
+  checkpoints keep this convention; their dependence on companion-query count
+  is not yet measured (node QMASS). Never describe the query-token
+  configuration as measure-refinement invariant.
+- **Composition failures (node QMASS):** similarity gauge + surface local
+  features is not scale-equivariant (up to 0.79 output change under a 2.7x
+  rescale; unnormalized patch log-mass); passive queries + boundary scalars /
+  scale conditioning / raw seed features give shape errors when source and
+  query counts differ; passive queries + odd vector head collide on normals.
+  The plain reference surface configuration is unaffected. State these where
+  the optional channels are listed as contracts.
+- **First-moment limitation:** two non-congruent five-component arrangements
+  with zero transverse first moment about the drive give identical ISLA
+  outputs to 4e-15 (default and similarity gauge, two seeds); the
+  local-distance channel separates them (0.039–0.063), a second-moment
+  contraction distinguishes them (2.41 vs 1.99)
+  (results/isla_first_moment_collision_2026-09-08.json). Anchor collapse does
+  NOT require rotational symmetry about the drive. Write "not established as
+  the cause on cars" for the relationship to any benchmark deficit; never
+  "refuted on cars". A documented representation limitation, not a
+  demonstrated cause of any measured deficit (benchmark: node MOM2,
+  @sec-nb-mom2-prereg).
+- **Mechanism claims, narrowed.** (a) Random-split and geometry-ladder
+  validation sets share 20 of 180 cases, so 0.138 vs 0.250 and 0.065 vs
+  0.102 change both training composition and evaluation population: write
+  "supports a geometry-generalization advantage", never "only geometry
+  count". (b) Plain Transolver differs from GeoTransolver in depth (8 vs 12
+  layers), parameters (6M vs 9M), drive injection and learning rate; the
+  ~2/5 encoder / ~3/5 backbone split is a numerical decomposition of the
+  log-gap, not a causal attribution to the geometry encoder. (c) Passive ISLA
+  decodes through a separate four-block read decoder while query-token ISLA
+  routes queries through twelve encoder blocks with token-type and weight
+  parameters, and the SDF scalar is unavailable in passive mode: the 2.6x is
+  the cost of the complete passive configuration, not a fundamental price of
+  query independence (node PASSIVE2 holds query depth and readout fixed and
+  disables writes). (d) HLREG locates output error, not input information: a
+  uniform ratio does not falsify a gap-information mechanism; grade it as
+  localization.
+- **Interior interpretation.** Of the passive-SDF arm's excess pressure
+  squared error over GeoTransolver-volume, 94.6% lies within the first
+  wall-distance band (below 0.01 nondimensional, about 5 cm), 93.7% for
+  velocity, over 99% within 2 m (results/v0_interior_excess_sse_2026-09-08.json);
+  fractions of the mesh-sampled error, not volume integrals. The far-field
+  ratio growth is real but identifies no missing mechanism; never write
+  "missing volumetric context" as a finding. Eddy-viscosity rel-L2 is
+  computed on the normalized target (ν_t − 4.8e-4)/9.4e-4 before inverse
+  normalization (infer.py:590; drivaer_ml_volume.yaml:62): 0.122 is not a
+  12.2% physical error; orderings under the frozen metric stand, ratios of
+  means need not survive a different centering. DrivAerML's closure is hybrid
+  RANS/LES with a grid/filter-length-dependent modeled viscosity, so
+  query-neighbour features could recover discretization information: a
+  hypothesis, not established.
+- **Forces are against sampled-cell integrals until FORCE-REF.** The recipe
+  integrates predictions and labels on the same 10,000 sampled cells
+  (forces.py:296); the 3% (35-case) and 0.6% (fixed-angle lift) figures are
+  errors against the sampled-cell label integral, not the full-surface
+  force, and shared quadrature can cancel sampling error. Say so wherever a
+  force error is quoted. HiLift dataset revision used:
+  bbec30bcfc6103309c1375c5228b3ad0a586bfaf (six force-monitor means replaced
+  by surface-field integrations in that revision).
+- **Equivariance wording:** "exact by algebraic construction; the
+  finite-precision residual on the deployed bf16 path is a measured
+  quantity" (CPU autocast probe: 1.2–1.3% scalar rotation residual in bf16
+  vs 6e-7 in float32 and 1e-15 in float64; GPU trained-path residual not yet
+  measured). Never bare "exact" for the deployed path.
+- **Symmetry argument (chapter 1):** homogeneous constant-coefficient
+  equations do not imply isotropy or scale invariance (anisotropic
+  diffusion, screened Laplace); state the symmetry of the actual PDE,
+  boundary data, coefficients and nondimensional parameters.
+- **Baselines:** "strongest baseline tested under this protocol", never
+  "strongest available mainstream baseline". Candidate nodes: AB-UPT
+  (anchored neural-field decoder; TMLR, arXiv 2502.09692), AB-GATr (arXiv
+  2605.18816), regularized family adaptation (arXiv 2605.27968),
+  Transolver++ (the template's plus flag; flipping it is not reproducing the
+  paper).
+- **Reader-facing numbers:** "146 cases on 96 geometries" (not "146
+  never-seen geometries"; results/hilift_seen_vs_unseen_geometry_2026-09-07.json);
+  the single-angle split trains on 126 geometries and validates on 18.

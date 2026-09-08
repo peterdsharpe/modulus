@@ -5,8 +5,8 @@ and GeoTransolver reach the same accuracy on high-lift wings and
 GeoTransolver is 1.085x more accurate on cars; what separates the two
 architectures at full data is not accuracy but behaviour off the tuned
 operating point. ISLA holds its accuracy across a decade of learning rate
-where GeoTransolver degrades 4--14x, and is exactly covariant to rigid
-motions without any frame estimation. Sampling-density robustness
+where GeoTransolver degrades 4--14x, and is covariant to rigid
+motions by construction, without any frame estimation. Sampling-density robustness
 depends on the configuration: ISLA with the similarity gauge loses 1.20x
 under a 10:1 sampling bias where GeoTransolver loses 3.6x, but the
 constant-gauge configuration behind every accuracy number in this book
@@ -16,7 +16,8 @@ and exact query independence, the property that would make ISLA a true
 evaluate-anywhere surrogate, is an optional configuration that costs
 3.0--3.7x in accuracy; the reference configuration behind every result
 in this book does not have it. Peak training memory at 10,000 tokens is
-1.5 GB for ISLA against 4.6 GB for GeoTransolver. Across a flow-regime
+1.5 GB for ISLA against 4.6 GB for GeoTransolver, on two different
+instruments (@sec-cost). Across a flow-regime
 boundary, from attached to separated flow or from low to high angle of
 attack, neither architecture generalizes: both lose about a factor of ten
 (@sec-regime-extrapolation).
@@ -89,7 +90,9 @@ tokens per case and epochs, each architecture at its own best learning
 rate, shared validation cases, and a matched parameter count (ISLA 8.9M
 against GeoTransolver 9.0M). Memory is not matched, and the mismatch is
 in GeoTransolver's favour: ISLA's peak training memory at 10,000 tokens
-is 1.5 GB against GeoTransolver's 4.6 GB (@sec-cost). The comparison is
+is 1.5 GB (allocated, net of parameters) against GeoTransolver's 4.6 GB
+(reserved, from its training run), two instruments whose difference
+bounds but does not fix the factor (@sec-cost). The comparison is
 also narrow: two seeds, one validation split per dataset, and no
 test-split evaluation of the full-split models (the sealed test splits
 are spent on regime extrapolation, @sec-regime-extrapolation).
@@ -297,8 +300,11 @@ GeoTransolver trained in a canonical frame is exactly pose-invariant at
 contract rather than an in-distribution accuracy advantage.** The
 readout is the ratio of validation pressure rel-L2 under random SO(3)
 poses of every validation car to the same model's rel-L2 in the
-dataset's native pose. ISLA's ratio is 1.00 by construction, verified in
-fp64 (@sec-mt2). GeoTransolver trained in the native frame degrades
+dataset's native pose. ISLA's ratio is 1.00 by algebraic construction,
+verified to roundoff in fp64 (@sec-mt2); on the bf16 path the recipe runs,
+the residual is finite (1.2--1.3% on scalar outputs in a CPU autocast probe)
+and its value on the trained GPU path is not yet measured
+(@sec-mt2-contracts). GeoTransolver trained in the native frame degrades
 26--32x across three seeds. GeoTransolver trained with the
 canonicalization of @sec-pose (freestream to +x, roll fixed from the
 geometry's principal axes) scores 0.0536/0.0535 in-pose and
@@ -342,22 +348,33 @@ which a fixed core of 2,560 interacting tokens carries all the
 interaction). The consequence is a choice, not a defect: exact
 evaluate-anywhere semantics at about three times the error, or
 GeoTransolver-class accuracy with a few percent of sensitivity to how the
-boundary was sampled; not yet both. The interior task prices the same
-trade from the other direction: the passive decode is 2.6x behind
-GeoTransolver on interior pressure, and admitting the queries as
-interacting tokens closes that and more (@sec-interior).
+boundary was sampled; not yet both. The interior task shows the same
+trade from the other direction, less cleanly: the passive decode is 2.6x
+behind GeoTransolver on interior pressure and admitting the queries as
+interacting tokens closes that and more, but the two ISLA configurations
+differ in decoder depth and inputs as well as in interaction, so the 2.6x
+is the cost of the complete passive configuration rather than of query
+independence alone (@sec-interior).
 
 ## Cost {#sec-cost}
 
 **At 10,000 tokens per case ISLA's peak training memory is 1.5 GB against
-GeoTransolver's 4.6 GB, and ISLA's forward plus backward step takes
+GeoTransolver's 4.6 GB, measured with two different instruments, and ISLA's
+forward plus backward step takes
 330 ms.** The ISLA figures are measured under bf16 autocast on an RTX 4090
 with hidden width 192, 12 layers, 256 slices and batch 1, with the recipe's
 recompute of the per-slice invariants in backward (storing them instead:
-3.5 GB, 285 ms; identical function, @sec-mt2-cost); the
-GeoTransolver figure is the peak of its training run on the same
+3.5 GB, 285 ms; identical function, @sec-mt2-cost), as maximum allocated
+memory net of the resident parameter and optimizer tensors; the
+GeoTransolver figure is the training logger's peak of
+`torch.cuda.memory_reserved()` over its training run on the same
 protocol, which includes optimizer state (under 0.2 GB for a 9M-parameter
-model). ISLA is the smaller of the two in memory because its relational
+model) and the allocator's cached blocks. Reserved memory is never below
+allocated memory, so the 4.6 GB is an upper bound on GeoTransolver's
+allocated peak and the cross-model factor is not fixed by these two numbers;
+the within-ISLA 2.3x recompute saving is a one-instrument measurement and
+stands. A matched measurement of both models is not yet made
+(@sec-program-status). ISLA is the smaller of the two in memory because its relational
 readback pools the relational invariants over slices before projecting
 them, an exact identity since the routing weights sum to one
 (@sec-mt2-cost), so no per-point-per-slice activation is materialized in
@@ -474,9 +491,10 @@ print(f": The DrivAerML frontier at full data. In-family: validation pressure "
       f"native-pose rel-L2 (GeoTransolver seeds 42--44; augmentation and ISLA "
       f"seed 42; ISLA's covariance is exact by construction and verified in "
       f"fp64, so its ratio is 1.00 for every checkpoint). Peak memory at 10k "
-      f"tokens: peak training memory at 10,000 tokens per case (ISLA under "
-      f"bf16 autocast on an RTX 4090; GeoTransolver from its training run; "
-      f"@sec-cost). Seeds per cell: GeoTransolver "
+      f"tokens: peak training memory at 10,000 tokens per case, two "
+      f"instruments (ISLA: allocated memory net of parameters under "
+      f"bf16 autocast on an RTX 4090; GeoTransolver: reserved memory from "
+      f"its training run; @sec-cost). Seeds per cell: GeoTransolver "
       f"reference 3, augmentation 2, canonical frame 2, ISLA constant gauge 5 "
       f"in-family and 3 zero-shot, ISLA similarity gauge 2, two-family rows 3. "
       f"Data: "
@@ -600,7 +618,8 @@ error measures how far it carries beyond it. Training follows the frozen
 protocol of @sec-protocol (10,000 sampled surface points per case, 500
 epochs, bf16, no augmentation, learning rate 1e-3 for both architectures,
 ISLA in its constant-gauge configuration, seeds 42 and 43; 8.9M against
-9.0M parameters, 1.5 GB against 4.6 GB peak memory). The sealed test was
+9.0M parameters, 1.5 GB against 4.6 GB peak memory on two instruments,
+@sec-cost). The sealed test was
 run under a protocol declared before any test case was read: the eight
 checkpoints were each evaluated exactly once on their own split's test list
 with the frozen inference configuration, with no reruns and no
