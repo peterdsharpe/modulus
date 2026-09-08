@@ -7427,3 +7427,41 @@ hourly (18:36, 19:19, 20:39, 22:10) and always hit every DrivAerML reader
 at once. Procedure while it lasts: on the watcher's stall event, cancel the
 running links of the silent lanes; the chain-ahead singletons restart
 immediately, and the guard cannot block them.
+
+## 2026-09-08 — V0-L second rung (109 cars): ratio 1.20 (predicted 1.15, band 1.10–1.25 met); the two curves are parallel from 54 to 109 and converge only above 109, where GeoTransolver's slope halves {#sec-nb-v0l-109-verdict}
+
+**Readout** (results/v0l_reduction_2026-09-08.json; interior relative L2,
+mean over 48 cars, two seeds within 1% for every cell):
+
+| cars | GeoTransolver-volume: pressure / velocity / ν_t | ISLA query tokens: pressure / velocity / ν_t | ratio ISLA-QT / GT |
+|---|---|---|---|
+| 54 | 0.104 / 0.202 / 0.190 | 0.126 / 0.254 / 0.329 | 1.21 / 1.26 / 1.73 |
+| 109 | 0.078 / 0.163 / 0.142 | 0.094 / 0.207 / 0.254 | **1.20** / 1.27 / 1.79 |
+| 435 | 0.062 / 0.133 / 0.094 | 0.064 / 0.155 / 0.160 | 1.03 / 1.16 / 1.71 |
+
+Log-log slopes, −Δlog(error)/Δlog(cars), pressure: GeoTransolver 0.41
+(54→109) then 0.17 (109→435); ISLA query tokens 0.42 then 0.28. Velocity:
+0.31 then 0.14 against 0.30 then 0.21. Eddy viscosity: 0.42 then 0.30
+against 0.37 then 0.33.
+
+**Verdict.** The preregistered band held: 1.20 measured against 1.15
+predicted from the two-point slopes, inside 1.10–1.25. The slope
+prediction as written ("ISLA's 54→109 slope steeper than GeoTransolver's")
+is met only nominally (0.42 against 0.41): from 54 to 109 cars the two
+curves are parallel, the ratio constant at 1.20–1.21, and the convergence
+happens entirely above 109 cars, where GeoTransolver's pressure slope
+halves (0.41 → 0.17) while ISLA's falls less (0.42 → 0.28). The
+eddy-viscosity ratio is 1.7–1.8 at all three sizes.
+
+**Reading.** On DrivAerML's interior the picture is: a constant 1.2x
+GeoTransolver advantage through the small-data regime, and a GeoTransolver
+curve that flattens first as data grows, so that ISLA catches up by 435
+cars. That is the mirror image of the HiLift surface curves, where ISLA's
+curve flattened first and GeoTransolver caught up at 1,260 cases
+(@sec-nb-w2-prereg); on both datasets the architecture that is behind at
+small data has the steeper large-data slope, which is what one expects
+when the leader is nearer the protocol's floor. The interior parity at
+full data is therefore not a coincidence of one size: it is where the two
+curves cross. Nothing in this rung changes the standing statement; it
+adds the middle point and removes the reading that ISLA's small-data
+interior error falls faster at every size.
