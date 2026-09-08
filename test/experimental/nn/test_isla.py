@@ -770,3 +770,126 @@ def test_query_tokens_contracts():
     assert not missing, missing
     with pytest.raises(ValueError):
         ISLA(hidden=32, n_layers=1, n_slices=8, query_tokens=True, query_independent=True)
+
+
+@pytest.mark.parametrize("extra", [{}, {"n_query_scalars": 1, "query_scalar_scale": "length"}])
+def test_query_mass_source_total_refinement_invariance(extra):
+    """Audit 2026-09-08: splitting every source token into two half-weight
+    copies leaves the discrete source measure unchanged (positions, normals,
+    total area, every integral). With query_mass="source_total" the query
+    tokens' weight is a fraction of the total source measure, so the output
+    is exactly unchanged and the similarity-gauge scale contract still holds;
+    the default "geometric_mean" is the trained convention and is asserted to
+    keep its (refinement-dependent) formula so checkpoints reproduce."""
+    torch.manual_seed(42)
+    pts = torch.randn(1, 60, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn_like(pts), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, 60, dtype=torch.float64) + 0.5
+    q, qn = pts[:, :17], nrm[:, :17]
+    fk = dict(query_points=q, query_normals=qn)
+    if extra:
+        fk["query_scalars"] = q.norm(dim=-1)
+    kw = dict(hidden=32, n_layers=2, n_slices=8, similarity_gauge=True, query_tokens=True, **extra)
+    torch.manual_seed(0)
+    total = ISLA(query_mass="source_total", **kw).double().eval()
+    torch.manual_seed(0)
+    default = ISLA(**kw).double().eval()
+    refined = (pts.repeat_interleave(2, 1), nrm.repeat_interleave(2, 1), drv, w.repeat_interleave(2, 1) / 2)
+    s = 3.7
+    scaled_fk = {**fk, "query_points": q * s}
+    if extra:
+        scaled_fk["query_scalars"] = fk["query_scalars"] * s
+    with torch.no_grad():
+        a = total(pts, nrm, drv, w, **fk)
+        b = total(*refined, **fk)
+        c = total(pts * s, nrm, drv, w * s**2, **scaled_fk)
+        a0 = default(pts, nrm, drv, w, **fk)
+        b0 = default(*refined, **fk)
+    assert torch.allclose(b, a, atol=1e-10, rtol=0.0)
+    assert torch.allclose(c, a, atol=1e-10, rtol=0.0)
+    ### regression guard: the default convention is unchanged (and therefore
+    ### still refinement-dependent); the two conventions are not the same model
+    assert not torch.allclose(b0, a0, atol=1e-3)
+    assert not torch.allclose(a0, a, atol=1e-6)
+    with pytest.raises(ValueError):
+        ISLA(hidden=32, n_layers=1, n_slices=8, query_mass="source_total")
+    with pytest.raises(ValueError):
+        ISLA(hidden=32, n_layers=1, n_slices=8, query_tokens=True, query_mass="mean")
+
+
+@pytest.mark.parametrize("extra", [{}, {"query_independent": True, "n_decoder_layers": 2}])
+def test_similarity_gauge_local_features_scale_equivariance(extra):
+    """Audit 2026-09-08: under the similarity gauge the surface patch
+    integrals normalize the measure weights to fractions of the total, so a
+    geometric rescale (points x k, areas x k^2) leaves log(mass) -- and the
+    output -- exactly unchanged, for the encoder seeds and the passive
+    decoder's query-side patch integrals alike."""
+    torch.manual_seed(0)
+    n = 400
+    pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n, dtype=torch.float64) + 0.5
+    m = ISLA(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True,
+             use_local_features=True, local_radii=(0.5, 1.5), **extra).double().eval()
+    k = 2.7
+    shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
+    fk = dict(query_points=pts[:, :50], query_normals=nrm[:, :50]) if extra else {}
+    fk_sc = {**fk, "query_points": k * fk["query_points"] + shift} if extra else {}
+    with torch.no_grad():
+        a = m(pts, nrm, drv, w, **fk)
+        b = m(k * pts + shift, nrm, drv, k * k * w, **fk_sc)
+    assert torch.allclose(b, a, atol=1e-10, rtol=0.0)
+
+
+@pytest.mark.parametrize("kw", [{"scale_conditioning": True}, {"seed_mode": "raw"},
+                                {"raw_coord_channel": True}, {"odd_head": True},
+                                {"odd_head": True, "n_anchors": 30}])
+def test_passive_decode_seed_and_head_options(kw):
+    """Audit 2026-09-08: passive decoding at a query set whose size differs
+    from the source used to fail with a shape error for every seed-widening
+    option (the query seed lacked the extra channels) and for the odd head
+    (it read the source normal and count after they were overwritten by the
+    query-side values). Now: finite outputs of the right shape, and the
+    passive contract -- a prediction at one query does not depend on which
+    other points are queried -- holds to 1e-12."""
+    torch.manual_seed(0)
+    pts = torch.randn(1, 60, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn_like(pts), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, 60, dtype=torch.float64) + 0.5
+    q = torch.randn(1, 17, 3, dtype=torch.float64) * 2.0
+    qn = torch.nn.functional.normalize(torch.randn_like(q), dim=-1)
+    m = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2, **kw)
+    m = m.double().eval()
+    if kw.get("odd_head"):
+        with torch.no_grad():
+            m.odd_gate.weight.normal_(0.0, 0.1)  # make the odd channels live
+    with torch.no_grad():
+        out = m(pts, nrm, drv, w, query_points=q, query_normals=qn)
+        sub = m(pts, nrm, drv, w, query_points=q[:, :8], query_normals=qn[:, :8])
+    assert out.shape == (1, 17, 4) and torch.isfinite(out).all()
+    assert torch.allclose(sub, out[:, :8], atol=1e-12, rtol=0.0)
+
+
+def test_passive_decode_boundary_scalars():
+    """Audit 2026-09-08: boundary scalars are per-surface-point data. Passive
+    decoding of the surface itself (query_points=None) carries them into the
+    query seeds and runs; distinct query points have none and must raise
+    rather than fail with a shape error."""
+    torch.manual_seed(0)
+    pts = torch.randn(1, 60, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn_like(pts), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, 60, dtype=torch.float64) + 0.5
+    bs = torch.randn(1, 60, 2, dtype=torch.float64)
+    m = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2,
+             n_boundary_scalars=2).double().eval()
+    with torch.no_grad():
+        out = m(pts, nrm, drv, w, boundary_scalars=bs)
+        out2 = m(pts, nrm, drv, w, boundary_scalars=bs * 2)
+    assert out.shape == (1, 60, 4) and torch.isfinite(out).all()
+    assert not torch.allclose(out, out2, atol=1e-6)  # the channel is live on the query side
+    with pytest.raises(ValueError):
+        m(pts, nrm, drv, w, boundary_scalars=bs, query_points=pts[:, :17], query_normals=nrm[:, :17])

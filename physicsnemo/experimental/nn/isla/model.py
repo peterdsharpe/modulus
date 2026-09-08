@@ -45,6 +45,8 @@ Contracts, all by construction rather than per-layer enforcement:
 :class:`ISLA`.
 """
 
+import math
+
 import torch
 import torch.nn as nn
 from jaxtyping import Float
@@ -295,6 +297,7 @@ class ISLA(Module):
         query_scalar_scale: str = "length",
         query_local_features: bool = False,
         query_local_radii: tuple[float, ...] = (0.05, 0.15, 0.5),
+        query_mass: str = "geometric_mean",
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -447,6 +450,24 @@ class ISLA(Module):
                 raise ValueError("query_tokens supports the plain invariant seed set only")
             self.qt_logw = nn.Parameter(torch.zeros(1))
             self.qt_type = nn.Parameter(torch.zeros(hidden))
+        ### Query-token measure weight (audit 2026-09-08). "geometric_mean":
+        ### each query's log-weight is qt_logw + the MEAN surface log-weight.
+        ### That depends on how the source measure is represented -- splitting
+        ### every surface token into two half-weight copies leaves positions,
+        ### normals, total area and every integral unchanged but halves each
+        ### query weight (3.7%-9.1% output change in the probe). It is kept as
+        ### the default only so that trained query-token checkpoints reproduce
+        ### exactly. "source_total": the queries' total weight is a learned
+        ### fraction exp(qt_logw) of the TOTAL source measure, split equally
+        ### over the queries -- invariant to any re-representation of the same
+        ### discrete measure, and it scales like an area, so the similarity
+        ### gauge scale contract still holds. The successor recipe should use
+        ### "source_total".
+        if query_mass not in ("geometric_mean", "source_total"):
+            raise ValueError(f"unknown query_mass {query_mass!r}")
+        if query_mass != "geometric_mean" and not self.query_tokens:
+            raise ValueError("query_mass requires query_tokens=True")
+        self.query_mass = query_mass
         ### Optional per-query scalar inputs for the query tokens (e.g. the
         ### signed distance to the wall, which GeoTransolver's volume
         ### configuration receives at every interior point). Scalars are
@@ -542,15 +563,26 @@ class ISLA(Module):
         n_hat: Float[torch.Tensor, "batch tokens 3"],
         d_hat: Float[torch.Tensor, "batch tokens 3"],
         log_w: Float[torch.Tensor, "batch tokens 1"],
+        normalize_weights: bool = False,
     ) -> Float[torch.Tensor, "batch tokens feats"]:
         """Measure-weighted Gaussian patch integrals at fixed physical radii.
 
         Exactly equivariant (integrals of equivariant vectors, projected on
         n_i and d); unbiased under HT sampling via the measure weights;
         row-chunked so the pairwise kernel never materializes at full size.
+
+        With ``normalize_weights`` the weights are fractions of the total
+        measure, so log(mass) is invariant to geometric scale (areas x k^2);
+        the radii are already in gauge units. The caller passes
+        ``similarity_gauge`` here (audit 2026-09-08): the raw-weight formula
+        is kept for the non-gauge path so that the trained DrivAerML
+        "local features" arm reproduces bit-identically, and only the gauge
+        path -- whose scale contract the raw log(mass) broke -- changes.
         """
         b, n, _ = r.shape
         w = torch.exp(log_w.squeeze(-1))  # (B, N) relative measure weights
+        if normalize_weights:
+            w = w / w.sum(dim=-1, keepdim=True).clamp_min(self.eps)
         feats = []
         chunk = 4096
         for rho in self.local_radii:
@@ -647,7 +679,8 @@ class ISLA(Module):
             )
         if self.use_local_features:
             invariants = torch.cat(
-                [invariants, self._local_invariants(r, n_hat, d_hat, log_w)],
+                [invariants, self._local_invariants(r, n_hat, d_hat, log_w,
+                                                    normalize_weights=self.similarity_gauge)],
                 dim=-1,
             )
         if self.n_boundary_scalars:
@@ -758,7 +791,13 @@ class ISLA(Module):
             ### the geometry (areas x k^2) shifts every token's log-weight by
             ### the same 2 log k and the similarity-gauge scale contract holds
             ### exactly; an absolute learned weight broke it (2026-09-07).
-            q_logw = self.qt_logw.to(log_w.dtype) + log_w[:, :n_surface].mean(dim=1, keepdim=True)
+            ### "source_total" (see __init__) ties the queries' total weight to
+            ### the total surface measure instead of the per-token mean.
+            if self.query_mass == "source_total":
+                q_logw = (self.qt_logw.to(log_w.dtype)
+                          + torch.logsumexp(log_w[:, :n_surface], dim=1, keepdim=True) - math.log(nq))
+            else:
+                q_logw = self.qt_logw.to(log_w.dtype) + log_w[:, :n_surface].mean(dim=1, keepdim=True)
             log_w = torch.cat([log_w, q_logw.expand(b, nq, 1)], dim=1)
             n = n + nq
 
@@ -766,6 +805,13 @@ class ISLA(Module):
             for block in self.blocks:
                 h = block(h, log_w, r, n_hat, d_hat, self.eps)
 
+        ### The odd head builds its slice anchors from the SOURCE tokens
+        ### (src_r, src_n, src_logw, and h); the branches below overwrite
+        ### r_hat/n_hat/d_hat/n with the query-side values, so the source
+        ### tensors are captured here (audit 2026-09-08: the head used to read
+        ### the overwritten n_hat and n and failed whenever the query count
+        ### differed from the source count).
+        src_r, src_n, src_logw = r, n_hat, log_w
         if qt_active:
             ### Heads read the query tokens only (surface tokens were context).
             h_out = h[:, n_surface:]
@@ -818,24 +864,47 @@ class ISLA(Module):
             q_nhat = q_nrm / q_nrm.norm(dim=-1, keepdim=True).clamp_min(self.eps)
             bq, nq, _ = q_pts.shape
             q_d = (drive / drive_mag)[:, None, :].expand(bq, nq, 3)
-            q_inv = torch.cat(
-                [
-                    q_mag,
-                    torch.log(q_mag),
-                    (q_rhat * q_d).sum(-1, keepdim=True),
-                    (q_rhat * q_nhat).sum(-1, keepdim=True),
-                    (q_nhat * q_d).sum(-1, keepdim=True),
-                ],
-                dim=-1,
-            )
+            if self.seed_mode == "raw":
+                q_inv = torch.cat([q_r, q_nhat, q_d], dim=-1)
+            else:
+                q_inv = torch.cat(
+                    [
+                        q_mag,
+                        torch.log(q_mag),
+                        (q_rhat * q_d).sum(-1, keepdim=True),
+                        (q_rhat * q_nhat).sum(-1, keepdim=True),
+                        (q_nhat * q_d).sum(-1, keepdim=True),
+                    ],
+                    dim=-1,
+                )
             if self.use_local_features:
                 ### Local integrals read the SOURCE sample -- query-passive.
                 q_inv = torch.cat(
-                    [q_inv, self._local_invariants_at(q_r, q_nhat, q_d, r, n_hat, log_w)],
+                    [q_inv, self._local_invariants_at(q_r, q_nhat, q_d, r, n_hat, log_w,
+                                                      normalize_weights=self.similarity_gauge)],
                     dim=-1,
                 )
+            ### The remaining seed channels must match the encoder's seed
+            ### layout (audit 2026-09-08: passive decoding used to fail with a
+            ### shape error for every option below). Boundary scalars are
+            ### per-surface-point data, so they exist for the queries only when
+            ### the queries ARE the surface points.
+            if self.n_boundary_scalars:
+                if query_points is not None:
+                    raise ValueError(
+                        "n_boundary_scalars > 0 with query_independent=True decodes the surface "
+                        "points only (query_points=None): distinct query points carry no "
+                        "boundary scalars"
+                    )
+                q_inv = torch.cat([q_inv, bs.to(q_inv.dtype)], dim=-1)
+            if self.raw_coord_channel:
+                q_inv = torch.cat([q_inv, q_r, q_nhat], dim=-1)
+            if self.scale_conditioning:
+                q_inv = torch.cat([q_inv, log_s.expand(bq, nq, 1)], dim=-1)
             q_h = self.embed(q_inv)
-            src_w = torch.exp((log_w_enc if 0 < self.n_anchors < n else log_w).squeeze(-1))
+            src_logw = log_w_enc if 0 < self.n_anchors < n else log_w
+            src_r, src_n = r_src, n_src
+            src_w = torch.exp(src_logw.squeeze(-1))
             for rb in self.read_blocks:
                 q_h = rb(
                     q_h, q_r, q_nhat, q_d, z_states, z_pos, m_s, self.eps,
@@ -870,11 +939,7 @@ class ISLA(Module):
             )  # (B, N, 7, 3)
         if self.odd_head and self.vector_basis == "globe7":
             ### per-point soft slice anchor (true vectors, equivariant)
-            src_r = r_src if (self.query_independent and 0 < self.n_anchors < n) else r
-            src_n = n_src if (self.query_independent and 0 < self.n_anchors < n) else n_hat
-            src_h = h
-            src_logw = log_w_enc if (self.query_independent and 0 < self.n_anchors < n) else log_w
-            lg = self.odd_assign(src_h)
+            lg = self.odd_assign(h)
             a_s = torch.softmax(lg + src_logw, dim=1)  # slices over source points
             z_s = torch.einsum("bns,bnc->bsc", a_s, src_r)
             m_s = torch.einsum("bns,bnc->bsc", a_s, src_n)
