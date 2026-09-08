@@ -7091,3 +7091,51 @@ control the coefficients are 0.19 against 0.57
 (results/hilift_single_angle_error_spread_2026-09-07.json). With the angle
 fixed, GeoTransolver has almost nothing left that varies by case: at 126
 cases it is geometry-blind to within seed noise.
+
+## 2026-09-07 — W2-F, first rung: trained on 4 geometries (40 cases), validated on 18 geometries never seen at any angle, ISLA leads GeoTransolver 1.8x (0.250 vs 0.449); the falsifier (ISLA/GT ≥ 0.8) does not fire, the 0.1 band does {#sec-nb-w2f-40-verdict}
+
+**Setting.** The unseen-geometry ladder (@sec-nb-w2f-launch) trains on the
+`geometry_super_scarce` split, 40 cases made of 4 geometries at all 10
+angles of attack, and validates on the 180 cases of 18 geometries that
+appear in no training set at any angle; the same protocol as the
+data-efficiency ladder otherwise (10,000 tokens, lr 1e-3, 500 epochs, two
+seeds). The preregistered prediction was that ISLA/GeoTransolver would fall
+within 0.1 of its value at the same-size data-efficiency rung (35 random
+cases spanning 33 geometries: GT/ISLA 2.8, ISLA/GT 0.36); the falsifier was
+ISLA/GT ≥ 0.8, which would have said the advantage depends on having seen
+the validation geometry at another angle.
+
+**Readout** (results/w2_reduction_2026-09-07b.json, arm
+`F_geometry_super_scarce`; surface pressure relative L2, mean over the 180
+validation cases):
+
+| model | seed 42 | seed 43 | mean | velocity | wall shear |
+|---|---|---|---|---|---|
+| ISLA | 0.248 | 0.251 | 0.250 | 0.230 / 0.222 | 0.357 / 0.348 |
+| GeoTransolver | 0.407 | 0.492 | 0.449 | 0.411 / 0.436 | 0.575 / 0.636 |
+| GeoTransolver / ISLA | | | **1.80** | 1.87 | 1.72 |
+
+**Verdict.** ISLA/GeoTransolver = 0.56: far below the 0.8 falsifier, so
+**the advantage does not depend on having seen the validation geometry**;
+but 0.20 above the 0.36 of the 35-case random split, outside the
+preregistered 0.1 band, so the prediction that the ratio would carry over
+at matched case count is not met. The reason is visible in the absolute
+numbers. ISLA's error nearly doubles when the 35 random cases (33
+geometries) are replaced by 40 cases from 4 geometries (0.138 → 0.250):
+its accuracy responds to the *number of distinct geometries* it has seen,
+which is what a model that has learned a geometry-to-pressure map should
+do. GeoTransolver's error barely moves (0.39 → 0.45), consistent with the
+flat, geometry-blind small-data behaviour measured today
+(@sec-nb-hilift-percase, @sec-nb-seen-unseen); with only 4 geometries its
+two seeds also disagree by 20% (0.407 vs 0.492), against ISLA's 1%. The
+two curves therefore approach each other from ISLA's side as geometry
+diversity is removed, and the ratio shrinks from 2.8x to 1.8x.
+
+**What is established.** On geometries never seen at any angle, trained on
+four geometries, ISLA is 1.8x more accurate than GeoTransolver on pressure,
+1.9x on velocity and 1.7x on wall shear, with a tenth of the seed spread.
+The 210-case rung of this ladder (`geometry_scarce`, 21 geometries) is
+still training and tests whether the ratio returns towards the random-split
+value as geometry diversity is restored; its bars are unchanged. The
+per-case paired count on the 180 validation cases is reduced separately
+(`paired_stats_case.py`, arm `geo40`) and recorded below when it lands.

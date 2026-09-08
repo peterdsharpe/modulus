@@ -1,0 +1,145 @@
+{
+ "runs": {
+  "lad_hl_mt2_super_scarce_seed44": {
+   "pressure_l2": 0.13759,
+   "velocity_l2": 0.16786,
+   "tau_wall_l2": 0.25634,
+   "n_cases": 180
+  },
+  "lad_hl_gt_super_scarce_seed44": {
+   "pressure_l2": 0.3588,
+   "velocity_l2": 0.30249,
+   "tau_wall_l2": 0.51727,
+   "n_cases": 180
+  },
+  "t1_hl_transolver_super_scarce_lr3e3_seed44": {
+   "pressure_l2": 0.40891,
+   "velocity_l2": 0.37779,
+   "tau_wall_l2": 0.60813,
+   "n_cases": 180
+  },
+  "mech_hl_mt2_single_aoa_12_seed42": {
+   "pressure_l2": 0.0354,
+   "velocity_l2": 0.06299,
+   "tau_wall_l2": 0.10172,
+   "n_cases": 18
+  },
+  "mech_hl_mt2_single_aoa_12_seed43": {
+   "pressure_l2": 0.03627,
+   "velocity_l2": 0.06756,
+   "tau_wall_l2": 0.11075,
+   "n_cases": 18
+  },
+  "mech_hl_gt_single_aoa_12_seed42": {
+   "pressure_l2": 0.17488,
+   "velocity_l2": 0.18741,
+   "tau_wall_l2": 0.30707,
+   "n_cases": 18
+  },
+  "mech_hl_gt_single_aoa_12_seed43": {
+   "pressure_l2": 0.18291,
+   "velocity_l2": 0.19247,
+   "tau_wall_l2": 0.31553,
+   "n_cases": 18
+  },
+  "mech_hl_mt2_mixed126_seed42": {
+   "pressure_l2": 0.07669,
+   "velocity_l2": 0.10659,
+   "tau_wall_l2": 0.16456,
+   "n_cases": 180
+  },
+  "mech_hl_mt2_mixed126_seed43": {
+   "pressure_l2": 0.07644,
+   "velocity_l2": 0.11148,
+   "tau_wall_l2": 0.1684,
+   "n_cases": 180
+  },
+  "mech_hl_gt_mixed126_seed42": {
+   "pressure_l2": 0.18977,
+   "velocity_l2": 0.19968,
+   "tau_wall_l2": 0.32229,
+   "n_cases": 180
+  },
+  "mech_hl_gt_mixed126_seed43": {
+   "pressure_l2": 0.26215,
+   "velocity_l2": 0.22962,
+   "tau_wall_l2": 0.40078,
+   "n_cases": 180
+  },
+  "geo_hl_mt2_geometry_super_scarce_seed42": {
+   "pressure_l2": 0.24817,
+   "velocity_l2": 0.22952,
+   "tau_wall_l2": 0.35678,
+   "n_cases": 180
+  },
+  "geo_hl_mt2_geometry_super_scarce_seed43": {
+   "pressure_l2": 0.25146,
+   "velocity_l2": 0.22214,
+   "tau_wall_l2": 0.34817,
+   "n_cases": 180
+  },
+  "geo_hl_gt_geometry_super_scarce_seed42": {
+   "pressure_l2": 0.40722,
+   "velocity_l2": 0.4108,
+   "tau_wall_l2": 0.57546,
+   "n_cases": 180
+  },
+  "geo_hl_gt_geometry_super_scarce_seed43": {
+   "pressure_l2": 0.49168,
+   "velocity_l2": 0.43622,
+   "tau_wall_l2": 0.63634,
+   "n_cases": 180
+  }
+ },
+ "arms": {
+  "D_single_aoa_12": {
+   "isla": [
+    0.0354,
+    0.03627
+   ],
+   "gt": [
+    0.17488,
+    0.18291
+   ],
+   "gt_over_isla": 4.992
+  },
+  "D_mixed126": {
+   "isla": [
+    0.07669,
+    0.07644
+   ],
+   "gt": [
+    0.18977,
+    0.26215
+   ],
+   "gt_over_isla": 2.951
+  },
+  "G_single_aoa_12_gt_lr3e3": {
+   "isla": [],
+   "gt": []
+  },
+  "F_geometry_scarce": {
+   "isla": [],
+   "gt": []
+  },
+  "F_geometry_super_scarce": {
+   "isla": [
+    0.24817,
+    0.25146
+   ],
+   "gt": [
+    0.40722,
+    0.49168
+   ],
+   "gt_over_isla": 1.799
+  },
+  "B_medium": {
+   "isla": [],
+   "gt": []
+  },
+  "C_floor_20k": {
+   "isla": [],
+   "gt": []
+  }
+ }
+}
