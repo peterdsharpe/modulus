@@ -497,6 +497,13 @@ and leaves GeoTransolver's nearly unchanged. What ISLA does with few samples is 
 *geometries* — flap and slat settings and the gaps between elements — and
 GeoTransolver, from 126 distinct geometries at one operating point, has not
 begun to (its error there, 0.18, is where it also sits at 35 mixed cases).
+Plain Transolver on the same split scores 0.087 and 0.096 (mean 0.091): 1.96x
+ahead of GeoTransolver and 2.55x behind ISLA, so of GeoTransolver's
+fixed-angle deficit about two fifths (in log-error) is its geometry-encoder
+path and the remaining 2.5x is the slice-attention backbone both baselines
+share (results/w2_reduction_2026-09-08b.json, arm
+`D_single_aoa_12_transolver`; preregistered bands at 2.0x and 3.5x, so the
+split between the two is measured, not decided).
 The DrivAerML contrast fits this reading: smooth single-body morphs of one
 car, where GeoTransolver is 1.2–1.3x ahead, are not the kind of geometry
 variation on which ISLA's routing has an advantage. Which ingredient of the

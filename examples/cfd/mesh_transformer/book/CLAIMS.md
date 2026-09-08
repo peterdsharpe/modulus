@@ -174,6 +174,12 @@ Artifacts: `results/hilift_ladder_reduction_2026-09-03.json`,
   0.203–0.211 vs 0.0577 in-family pressure on DrivAerML; the anchor-
   conditioned variant with a fixed interacting core 0.209/0.221 vs
   0.0697/0.0671 at matched memory (6.35 vs 6.56 GB).
+- Transolver single angle (2026-09-08): 0.0872/0.0955 → 0.091 on the 18
+  held-out geometries; Transolver/ISLA 2.55x, GT/Transolver 1.96x. Bands
+  (≤2.0 encoder, ≥3.5 backbone) both missed → write "about two fifths of
+  GeoTransolver's fixed-angle deficit is its geometry encoder, the rest the
+  shared backbone"; never "the geometry encoder explains the failure".
+  Artifact results/w2_reduction_2026-09-08b.json (arm D_single_aoa_12_transolver).
 - Single-angle steel-man (2026-09-08): GeoTransolver at lr 3e-3 on the
   single-angle split = 0.296/0.264 (worse than its lr 1e-3 0.175/0.183); ISLA
   0.036. The 5.0x single-angle advantage is stated with GeoTransolver at its

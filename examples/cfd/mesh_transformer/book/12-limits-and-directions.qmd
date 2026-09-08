@@ -243,7 +243,11 @@ ISLA's error nearly doubles when the training geometries fall from 33 to 4
 while GeoTransolver's barely moves (@sec-de-strata). A learning-rate
 steel-man at the single angle made GeoTransolver worse, not better (0.280 at
 3e-3 against 0.179 at 1e-3), so the 5.0x there is stated at its better rate
-and the optimisation axis is closed for that result. The 210-case rung of
+and the optimisation axis is closed for that result. Plain Transolver at the
+same angle scores 0.091, 1.96x ahead of GeoTransolver and 2.55x behind
+ISLA: about two fifths of GeoTransolver's fixed-angle deficit is its
+geometry-encoder path, the rest is the backbone the two baselines share
+(@sec-de-strata). The 210-case rung of
 the unseen-geometry ladder and whether Transolver's partial gain persists
 at 210 cases are not yet measured (@sec-program-status).
 

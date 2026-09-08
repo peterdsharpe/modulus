@@ -7786,3 +7786,35 @@ Tests after the sync: 594 (transforms, readers, recipe) and 97 (readers,
 slice_points equivalence, row gather, ISLA) pass. Cluster lanes run from
 frozen code snapshots and are unaffected. Commits 30338f599 (upstream
 merge), dea2adcf1 (#1966 merge), c7134fe5d (reader restored).
+
+## 2026-09-08 — Verdict: Transolver at the single angle scores 0.091 on the 18 never-seen geometries — 2.55x behind ISLA, 1.96x ahead of GeoTransolver; the fixed-angle failure is partly the geometry encoder's and partly the backbone's (inconclusive band, both bars missed) {#sec-nb-transolver-single-verdict}
+
+**Readout** (wave-2 lanes 40–41, `mech_hl_transolver_single_aoa_12_lr3e3_seed{42,43}`;
+126 geometries at 12°, validated on the 18 held-out geometries; two seeds):
+
+| model (single angle) | pressure (42 / 43 → mean) | wall shear (42 / 43) | vs ISLA | vs GeoTransolver |
+|---|---|---|---|---|
+| ISLA | 0.0354 / 0.0363 → 0.0358 | 0.102 / 0.111 | 1.0 | 5.0x ahead |
+| Transolver (lr 3e-3) | 0.0872 / 0.0955 → **0.0914** | 0.189 / 0.199 | **2.55x behind** | **1.96x ahead** |
+| GeoTransolver (lr 1e-3, its better rate) | 0.1749 / 0.1829 → 0.1789 | 0.307 / 0.316 | 5.0x behind | 1.0 |
+
+**Verdict against the bars** (@sec-nb-transolver-single-prereg). H-encoder
+(Transolver within 2.0x of ISLA): missed at 2.55x. H-backbone (Transolver
+3.5x or more behind): missed. **Inconclusive by the preregistered bands, and
+informative anyway**: in log-error, removing GeoTransolver's geometry
+encoder recovers 42% of its 5.0x deficit to ISLA (log 1.96 / log 5.0), and
+the remaining 2.55x belongs to the slice-attention backbone that both
+baselines share. The same ordering held on the mixed-angle 210-case split
+(Transolver 1.8x ahead of GeoTransolver, 1.3x behind ISLA); at the fixed
+angle every gap widens (1.96x and 2.55x) because the angle can no longer
+carry any of the fit.
+
+**Reading.** GeoTransolver's geometry encoder is a liability for
+generalizing across multi-element geometries from ~100 training cases: its
+own backbone without it does twice as well. But the backbone is not the
+answer either; it is 2.5x behind ISLA at the fixed angle with a seed spread
+(0.087–0.096) three times ISLA's. Whatever ISLA's soft-slice design carries
+(@sec-nb-inv-verdict: not the invariant inputs alone) is worth 2.5x over the
+Transolver backbone and 5x over GeoTransolver when the geometry is the only
+thing that varies. The mechanism ledger now reads: geometry encoder −42%,
+backbone-versus-ISLA the remaining 58%, invariant inputs not the carrier.
