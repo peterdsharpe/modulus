@@ -45,8 +45,10 @@ interior queries admitted as interacting tokens matches GeoTransolver's
 volume configuration on interior pressure (0.064 against 0.062) at 8.9M
 parameters against 27.6M and without the signed-distance input that
 GeoTransolver receives, trailing on velocity (1.16x) and eddy viscosity
-(1.71x); ISLA's passive, query-independent decode from the surface sample
-alone is 2.6x behind on pressure, the price of that contract. Where nothing leads is regime extrapolation: across an
+(1.71x); at 54 training cars GeoTransolver leads it by 1.2x, as it leads
+ISLA on the DrivAerML surface below full data. ISLA's passive,
+query-independent decode from the surface sample alone is 2.6x behind on
+pressure, the price of that contract. Where nothing leads is regime extrapolation: across an
 angle-of-attack or stall boundary every architecture tested loses about a
 factor of ten, so coverage, not architecture, governs that axis.
 

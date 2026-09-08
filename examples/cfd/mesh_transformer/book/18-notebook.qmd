@@ -7306,3 +7306,43 @@ submission); the ones they queue ahead carry the new one. A hypothesis for
 the timing, that the HiLift lanes' synchronized chain-link restarts cause
 the read-ahead bursts, is not supported by the link ages at either stall
 and is not claimed; the cluster was running 81 jobs from many users.
+
+## 2026-09-07 — Verdict V0-L: at 54 cars GeoTransolver-volume leads ISLA query tokens 1.21x on interior pressure (H-b); the DrivAerML fit deficit carries to the interior at small data and closes with data (ISLA's slope 0.33 vs 0.25) {#sec-nb-v0l-verdict}
+
+**Readout** (results/v0l_reduction_2026-09-07.json; interior relative L2,
+mean over the 48 validation cars; 54 training cars = `train_n54`, 500
+epochs, V0 protocol; the 435-car points are the full-data twins):
+
+| cars | model | pressure (42 / 43 → mean) | velocity | ν_t | ISLA-QT / GT (pressure, velocity, ν_t) |
+|---|---|---|---|---|---|
+| 54 | GeoTransolver-volume (27.6M) | 0.1037 / 0.1044 → **0.104** | 0.202 | 0.190 | |
+| 54 | ISLA query tokens (8.9M) | 0.1256 / 0.1270 → **0.126** | 0.254 | 0.329 | **1.21**, 1.26, 1.73 |
+| 435 | GeoTransolver-volume | 0.0620 | 0.133 | 0.094 | |
+| 435 | ISLA query tokens | 0.0639 | 0.155 | 0.160 | 1.03, 1.16, 1.71 |
+| slope 54→435, −Δlog(error)/Δlog(cars) | GeoTransolver | 0.25 | 0.20 | 0.34 | |
+| | ISLA query tokens | 0.33 | 0.24 | 0.34 | |
+
+**Verdict.** ISLA-QT/GT = 1.21 on interior pressure at 54 cars: above the
+preregistered 1.15, so **H-b holds**: on DrivAerML the small-data fit
+deficit that GeoTransolver holds over ISLA on the surface (1.2–1.3x from 27
+to 218 cars) carries to the interior, at the same size. Seeds agree to 1%
+for both models. ISLA's pressure error falls faster with data (slope 0.33
+against 0.25), which is how a 1.21x gap at 54 cars becomes 1.03x at 435;
+the velocity slopes differ the same way (0.24 vs 0.20) and the
+eddy-viscosity gap is a constant 1.7x at both sizes, unmoved by data.
+
+**Reading.** The interior on DrivAerML behaves like the surface on
+DrivAerML, not like the surface on HiLift: GeoTransolver is the more
+data-efficient model on this family at every size measured, by a nearly
+constant 1.2x, and ISLA reaches it only at full data. The uniform fit
+deficit measured on the surface today (@sec-nb-drivaer-percase) is
+therefore a property of ISLA on smooth single-body cars, independent of
+whether the output is on the wall or in the volume, and independent of
+query interaction. The eddy-viscosity gap, flat at 1.7x across an
+eightfold change in data, is the clearest candidate for an *input* effect
+(the signed distance GeoTransolver receives), which the QT-SDF arm tests.
+
+**What changes in the book.** The interior chapter's standing statement
+gains its small-data clause: parity on interior pressure at full data,
+GeoTransolver ahead by 1.2x at 54 cars, the same ordering as the surface on
+this dataset. The index and the limits chapter carry the same sentence.

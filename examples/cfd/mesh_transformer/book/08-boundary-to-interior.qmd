@@ -533,7 +533,16 @@ pressure (1.03x) at 8.9M parameters and 6.0 GB against 27.6M and 8.8 GB,
 keeps exact SE(3) covariance, and trails on velocity (1.16x) and eddy
 viscosity (1.71x); ISLA's passive decode is the configuration to use when
 interior query independence is contractual, at 9.9M parameters, 4.9 GB
-and a 2.6x price in interior pressure error on DrivAerML.** Neither passive construction of a query normal closes
+and a 2.6x price in interior pressure error on DrivAerML.** The parity is
+a full-data statement: trained on 54 cars, GeoTransolver-volume leads the
+query-token configuration by 1.21x on interior pressure (0.104 against
+0.126; velocity 1.26x, eddy viscosity 1.73x), the same 1.2x by which it
+leads ISLA on the DrivAerML surface at every size below full data
+(@sec-de-drivaerml), and ISLA closes the gap with data because its error
+falls faster (log-log slope 0.33 against 0.25 from 54 to 435 cars;
+results/v0l_reduction_2026-09-07.json). The eddy-viscosity gap is 1.7x at
+both sizes, unmoved by data, which points at an input rather than a
+capacity difference. Neither passive construction of a query normal closes
 the gap, the SDF gradient is the better of the two by 1.2x, and the
 distance stratification locates the missing quantity as volumetric
 context available to the query. The exact-kernel decoder is not a

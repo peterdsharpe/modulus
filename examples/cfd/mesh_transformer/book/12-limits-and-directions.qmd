@@ -307,7 +307,11 @@ grows with distance from the wall** (@sec-interior). The setting is
 DrivAerML volume fields at 10,000 interior query points; ISLA predicts them
 from 10,000 surface tokens, GeoTransolver from the interior points
 themselves as interacting tokens carrying the signed distance to the wall,
-at 27.6M parameters against ISLA's 8.9M. The remaining velocity and
+at 27.6M parameters against ISLA's 8.9M. The parity holds at full data
+only: at 54 training cars GeoTransolver leads the query-token
+configuration by 1.21x on interior pressure, the same 1.2x by which it leads
+ISLA on the DrivAerML surface below full data, and ISLA reaches it because
+its error falls faster with data (@sec-interior-open). The remaining velocity and
 eddy-viscosity gaps are the two fields most tied to wall distance, which
 GeoTransolver receives as an input and ISLA does not; the arm that gives
 ISLA's query tokens the signed distance is not yet measured

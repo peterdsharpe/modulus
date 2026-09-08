@@ -251,6 +251,12 @@ surface alone; 435/48 cars; 10k surface tokens, 10k interior query points;
   usable prior for separated flow (potential-flow oracle rel-L2 4.8 vs 0.77
   for predicting the case mean), and its "good" far-field pressure is a
   zero-output artefact (far-field velocity 16.7x GT).
+- Interior data efficiency (V0-L, 54 cars): GeoTransolver-volume 0.104 vs
+  ISLA-QT 0.126 interior pressure (1.21x; velocity 1.26x; ν_t 1.73x); at 435
+  cars 1.03 / 1.16 / 1.71. Slopes 54→435 (pressure): ISLA 0.33, GT 0.25.
+  READ AS: on DrivAerML GeoTransolver is ~1.2x more data-efficient on the
+  interior as on the surface; parity only at full data. Artifact
+  results/v0l_reduction_2026-09-07.json.
 - Product statement (2026-09-07): ONE architecture covers surface and
   interior. ISLA with query tokens matches GeoTransolver-volume on interior
   pressure (1.03x) at 8.9M vs 27.6M params, exact SE(3) covariance, no SDF
