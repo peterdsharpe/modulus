@@ -15,9 +15,10 @@ covariance is a contract rather than an accuracy edge on vehicle data,
 and exact query independence, the property that would make ISLA a true
 evaluate-anywhere surrogate, is an optional configuration that costs
 3.0--3.7x in accuracy; the reference configuration behind every result
-in this book does not have it. Peak training memory at 10,000 tokens is
-1.5 GB for ISLA against 4.6 GB for GeoTransolver, on two different
-instruments (@sec-cost). Across a flow-regime
+in this book does not have it. On one GPU and one instrument, peak
+training memory at 10,000 tokens is 1.6 GiB for ISLA's current code
+against 4.1 GiB for GeoTransolver, 9.3 GiB for the ISLA code that trained
+the checkpoints, and ISLA's step is 3.7x slower (@sec-cost). Across a flow-regime
 boundary, from attached to separated flow or from low to high angle of
 attack, neither architecture generalizes: both lose about a factor of ten
 (@sec-regime-extrapolation).
@@ -89,10 +90,10 @@ The comparison is fair by the criteria of @sec-fair-comparison: matched
 tokens per case and epochs, each architecture at its own best learning
 rate, shared validation cases, and a matched parameter count (ISLA 8.9M
 against GeoTransolver 9.0M). Memory is not matched, and the mismatch is
-in GeoTransolver's favour: ISLA's peak training memory at 10,000 tokens
-is 1.5 GB (allocated, net of parameters) against GeoTransolver's 4.6 GB
-(reserved, from its training run), two instruments whose difference
-bounds but does not fix the factor (@sec-cost). The comparison is
+in GeoTransolver's favour: ISLA's current code peaks at 1.6 GiB of
+training memory at 10,000 tokens against GeoTransolver's 4.1 GiB on one
+instrument, but the checkpoints compared here were trained by ISLA code
+that peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost). The comparison is
 also narrow: two seeds, one validation split per dataset, and no
 test-split evaluation of the full-split models (the sealed test splits
 are spent on regime extrapolation, @sec-regime-extrapolation).
@@ -358,29 +359,23 @@ independence alone (@sec-interior).
 
 ## Cost {#sec-cost}
 
-**At 10,000 tokens per case ISLA's peak training memory is 1.5 GB against
-GeoTransolver's 4.6 GB, measured with two different instruments, and ISLA's
-forward plus backward step takes
-330 ms.** The ISLA figures are measured under bf16 autocast on an RTX 4090
-with hidden width 192, 12 layers, 256 slices and batch 1, with the recipe's
-recompute of the per-slice invariants in backward (storing them instead:
-3.5 GB, 285 ms; identical function, @sec-mt2-cost), as maximum allocated
-memory net of the resident parameter and optimizer tensors; the
-GeoTransolver figure is the training logger's peak of
-`torch.cuda.memory_reserved()` over its training run on the same
-protocol, which includes optimizer state (under 0.2 GB for a 9M-parameter
-model) and the allocator's cached blocks. Reserved memory is never below
-allocated memory, so the 4.6 GB is an upper bound on GeoTransolver's
-allocated peak and the cross-model factor is not fixed by these two numbers;
-the within-ISLA 2.3x recompute saving is a one-instrument measurement and
-stands. A matched measurement of both models is not yet made
-(@sec-program-status). ISLA is the smaller of the two in memory because its relational
-readback pools the relational invariants over slices before projecting
-them, an exact identity since the routing weights sum to one
-(@sec-mt2-cost), so no per-point-per-slice activation is materialized in
-any layer. No matched step-time figure for GeoTransolver on the same
-instrument is among the artifacts, so only memory is compared across
-architectures here.
+**At 10,000 tokens per case, on one GB300 with one instrument, ISLA's
+current code peaks at 1.6 GiB of training memory against GeoTransolver's
+4.1 GiB and steps 3.7x slower (246 against 65 ms); the ISLA code that
+trained the checkpoints compared in this chapter peaked at 9.3 GiB.** The
+measurement (results/matched_memory_isla_gt_2026-09-08.json) runs both models at the
+recipe dimensions (ISLA hidden 192, GeoTransolver hidden 256, 12 layers and
+256 slices each) under bf16 autocast at batch 1 with an AdamW step, and
+reads maximum allocated memory, reserved memory and step time in one
+harness; it reproduces the training logger's reserved figures for both
+models. ISLA's current code is the smaller of the two because its
+relational readback pools the relational invariants over slices before
+projecting them, an exact identity since the routing weights sum to one, and
+recomputes the per-slice geometry inside the backward pass (storing it
+instead: 3.4 GiB, 3% less step time; @sec-mt2-cost); the code that trained
+the checkpoints had neither rewrite and was the larger model by 2.3x. Both
+rewrites compute the same function, so no accuracy number depends on them,
+and no accuracy number was produced at the smaller footprint.
 
 ## The frontier in one table {#sec-review-frontier}
 
@@ -456,7 +451,7 @@ mt2m_zs = mean([mega[f"mt2_multi_seed{s}"]["fastback"]["mean"] for s in (42, 43,
 gtm_in = mean([mega[f"gt_multi_seed{s}"]["in10k"]["mean"] for s in (42, 43, 44)])
 gtm_zs = mean([mega[f"gt_multi_seed{s}"]["fastback"]["mean"] for s in (42, 43, 44)])
 
-GT_MEM, MT2_MEM = "4.6 GB", "1.5 GB"
+GT_MEM, MT2_MEM = "4.1 GiB", "1.6 GiB (9.3 as trained)"
 rows = [
     ("GeoTransolver (9.0M), native frame", 1.0, gt_zs, f"{gt_dens:.1f}x",
      f"{min(gt_pose):.0f}--{max(gt_pose):.0f}x", GT_MEM),
@@ -618,8 +613,7 @@ error measures how far it carries beyond it. Training follows the frozen
 protocol of @sec-protocol (10,000 sampled surface points per case, 500
 epochs, bf16, no augmentation, learning rate 1e-3 for both architectures,
 ISLA in its constant-gauge configuration, seeds 42 and 43; 8.9M against
-9.0M parameters, 1.5 GB against 4.6 GB peak memory on two instruments,
-@sec-cost). The sealed test was
+9.0M parameters; memory and step time in @sec-cost). The sealed test was
 run under a protocol declared before any test case was read: the eight
 checkpoints were each evaluated exactly once on their own split's test list
 with the frozen inference configuration, with no reruns and no

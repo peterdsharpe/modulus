@@ -8,10 +8,10 @@ from an equivariant basis. The result is a surrogate whose rotation and
 translation covariance is exact by algebraic construction rather than
 learned (verified to roundoff in float64; the residual of the bf16 training
 path is a measured quantity, @sec-mt2-contracts), whose parameter count
-matches GeoTransolver's (8.9M vs 9.0M) and whose peak training memory at
-10,000 tokens is 1.5 GB of allocated memory net of parameters
-(GeoTransolver: 4.6 GB of reserved memory from its training run, a different
-instrument; @sec-mt2-cost), and whose accuracy advantage
+matches GeoTransolver's (8.9M vs 9.0M) and whose current code peaks at
+1.6 GiB of training memory at 10,000 tokens against GeoTransolver's 4.1 GiB
+on the same instrument, though the trained checkpoints used an earlier
+version that peaked at 9.3 GiB (@sec-mt2-cost), and whose accuracy advantage
 on small training sets (@sec-data-efficiency) comes from the combination
 of its parts rather than from any one of them (@sec-mechanism). This chapter
 describes what ISLA computes, states its contracts as the tests that
@@ -434,22 +434,26 @@ What is not a contract:
 ## Cost {#sec-mt2-cost}
 
 **At the recipe dimensions (hidden 192, 12 layers, 256 slices) ISLA has
-8.9M parameters, against GeoTransolver's 9.0M, and its peak training
-memory at 10,000 tokens per case is 1.5 GB, against GeoTransolver's
-4.6 GB, but the two numbers come from two instruments and are not a
-ratio.** ISLA's figure, and the 330 ms per training step, are for one
-forward and backward pass in bf16 autocast on an RTX 4090 at batch
-size 1 with the recipe's activation recompute on (below), read as the
-maximum allocated memory minus the resident parameter and optimizer memory
-(results/isla_memory_recompute_2026-09-07.json); storing the
-per-slice invariants instead costs 3.5 GB at 285 ms per step on the same
-instrument. GeoTransolver's 4.6 GB is the training logger's peak of
-`torch.cuda.memory_reserved()` during a training run on the same protocol:
-it includes optimizer state (under 0.2 GB for a 9M-parameter model) and the
-allocator's cached but unused blocks, which allocated memory excludes, so it
-is an upper bound on the quantity ISLA's number measures and the
-cross-model factor is not known to better than that. A measurement of both
-models on one instrument is not yet made (@sec-program-status). The
+8.9M parameters, against GeoTransolver's 9.0M. Measured on one GB300 with
+one instrument (bf16 autocast, batch 1, 10,000 tokens, AdamW step included),
+ISLA's current code peaks at 1.6 GiB of allocated memory against
+GeoTransolver's 4.1 GiB, 2.6x less; the ISLA code that trained every
+checkpoint in this book peaked at 9.3 GiB, 2.3x more than GeoTransolver;
+and ISLA's training step takes 246 ms against GeoTransolver's 65 ms, 3.7x
+slower (results/matched_memory_isla_gt_2026-09-08.json).** Two exact rewrites separate the
+two ISLA figures: pooling the slice mixture before the affine projection
+(9.3 → 3.4 GiB) and recomputing the per-slice invariants inside the
+backward pass instead of storing them (3.4 → 1.6 GiB at 3% more step time);
+both compute the same function (fp64 maximum difference 4e-15, and the
+losses of the three ISLA variants agree step for step within 1e-3). The
+same instrument reproduces the training logger's reserved-memory figures
+(4.6 GiB for GeoTransolver, 9.5 against 9.8 GiB logged for ISLA as trained)
+and the earlier RTX 4090 figure for the current code (1.4 GiB incremental
+over the resident parameters; results/isla_memory_recompute_2026-09-07.json),
+so the numbers quoted elsewhere in the program were real but came from
+different code and different instruments. Memory was not a controlled
+variable in any accuracy comparison: the checkpoints were trained by the
+9.3 GiB implementation. The
 passive decoder adds four read blocks (1.1M parameters, 9.9M total; 4.9 GB
 reserved at 10,000 surface tokens plus 10,000 interior queries) and the
 query-token interior configuration adds only a type embedding and a routing

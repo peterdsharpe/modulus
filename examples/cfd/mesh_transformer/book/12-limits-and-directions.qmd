@@ -26,9 +26,8 @@ statement in its home section; this chapter adds only the limits.
 - The pose contract: rotation and translation covariance exact by
   construction, with a finite-precision residual on the bf16 path that is
   measured rather than assumed (@sec-pose, @sec-mt2-contracts).
-- Learning-rate robustness, and the memory and compute measurements, the
-  cross-model memory comparison being one of two instruments
-  (@sec-mt2-cost).
+- Learning-rate robustness, and the memory and step-time measurements of
+  both models in one harness (@sec-mt2-cost).
 - Sampling-density robustness of ISLA with the similarity gauge, and the
   failure of the constant-gauge configuration without it
   (@sec-robustness-density).
@@ -618,13 +617,13 @@ described and one that is understood.
 
 ## Engineering directions {#sec-future}
 
-**Memory headroom.** ISLA's peak training memory at 10,000 tokens is
-1.5 GB of allocated memory net of parameters, against GeoTransolver's
-4.6 GB of reserved memory from its training run; the two instruments
-differ, so the factor between the models is bounded, not measured
-(@sec-mt2-cost).^[Measurement
+**Memory headroom.** On one GB300 with one instrument, ISLA's current
+code peaks at 1.6 GiB of training memory at 10,000 tokens against
+GeoTransolver's 4.1 GiB, 2.6x less, while the ISLA code that trained every
+checkpoint in this book peaked at 9.3 GiB, 2.3x more; ISLA's step is 3.7x
+slower (results/matched_memory_isla_gt_2026-09-08.json; @sec-mt2-cost).^[Measurement
 records: @sec-nb-geo-pool-memory, @sec-nb-geo-recompute.] Two exact
-rewrites set ISLA's figure. The relational readback pools the
+rewrites set the current figure. The relational readback pools the
 softmax slice mixture before the affine projection, so the activation
 saved per layer for the backward pass is (points × 8) rather than
 (points × slices × hidden/2), and the remaining per-slice geometry is
@@ -634,9 +633,9 @@ rebuilt inside the backward pass rather than stored (2.3x less memory for
 compiler recovers the step time and more (0.82x the eager stored path, at
 1.28 GiB), but rounds the bf16 chain differently, so it is a validated speed
 option rather than part of the frozen protocol (@sec-nb-geo-compile). The
-within-ISLA saving is on one instrument and stands; how much of the gap
-below GeoTransolver's footprint is real headroom for more tokens per case,
-or a wider model, is what the matched measurement above will say. The
+gap below GeoTransolver's footprint is real headroom for more tokens per
+case or a wider model, at 3.7x GeoTransolver's step time; no accuracy
+number in this book was produced at the smaller footprint. The
 20,000-token floor test is affordable on ISLA's own measured numbers
 (2.78 GiB).
 

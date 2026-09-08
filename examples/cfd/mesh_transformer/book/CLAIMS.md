@@ -550,11 +550,18 @@ Rules from the independent audit, verified in-session by the coordinator
   every "peak memory" value in the interior resources artifact
   (results/v0_interior_resources_2026-09-07.json: 8.8 / 6.0 / 4.9 / 5.8 /
   4.0 GB) are the training logger's `torch.cuda.memory_reserved()`
-  (train.py:612), a different and larger quantity. Write "1.5 GB (allocated,
-  net of parameters) against 4.6 GB (reserved, from the training run)", or
-  "measured with two instruments; a matched measurement is not yet made
-  (node MEM-INST)". Never "3x less memory" as a bare ratio. The within-model
-  2.28x recompute reduction stands (one instrument). Parameter counts are
+  (train.py:612), a different and larger quantity. The matched measurement exists
+  (results/matched_memory_isla_gt_2026-09-08.json, one GB300, bf16, batch 1, 10,000
+  tokens, AdamW step; total peak allocated): GeoTransolver 4.1 GiB and 65 ms
+  per step; ISLA current code with recompute 1.6 GiB, without 3.4 GiB, and
+  the code that trained every checkpoint in the book 9.3 GiB, all at about
+  246 ms per step. Canonical wording: "on one GPU and one instrument, ISLA's
+  current code peaks at 1.6 GiB against GeoTransolver's 4.1 GiB; the ISLA
+  code that trained the checkpoints peaked at 9.3 GiB; ISLA's step is 3.7x
+  slower". Never "3x less memory" without saying which ISLA code; never
+  present memory as a settled ISLA advantage in the verdict table (row reads
+  "Mixed"). No accuracy number was produced at the smaller footprint. The
+  within-model 2.28x recompute reduction stands. Parameter counts are
   unaffected.
 - **Width control (QT-SDF-h256).** GeoTransolver-volume's blocks run at an
   effective width of 448 (256 + six 32-channel local features,

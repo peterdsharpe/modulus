@@ -8190,11 +8190,26 @@ reduction is one instrument and stands. Read on the same instrument, the
 comparison reverses: every ISLA HiLift lane behind the book's accuracy
 numbers (full data, 210 cases, fixed angle; trained before the activation
 recompute existed) logged 9.83 GiB reserved against GeoTransolver's 4.62 GiB,
-2.1x more (results/memory_instrument_audit_2026-09-08.json). The book's
-"3x less memory" is therefore withdrawn until node MEM-INST, a
-matched-instrument measurement of both models with and without the recompute
-on one GPU, reports; the chapters name both instruments and no longer rank
-the two architectures on memory. Also verified: GeoTransolver-volume's blocks run at
+2.1x more (results/memory_instrument_audit_2026-09-08.json). Node MEM-INST then
+measured both models in one harness on one GB300 (bf16 autocast, batch 1,
+10,000 tokens, AdamW step included; results/matched_memory_isla_gt_2026-09-08.json):
+total peak allocated memory is 4.07 GiB for GeoTransolver, 9.26 GiB for the
+ISLA code that trained every checkpoint (no rewrite, no recompute), 3.40 GiB
+for the current ISLA code without recompute and 1.57 GiB with it; reserved
+memory 4.58 / 9.53 / 3.63 / 1.77 GiB; step time 65 / 246 / 239 / 246 ms.
+The harness reproduces both trainer-log reserved figures (4.62 and 9.83 GiB)
+and the RTX 4090 incremental figure (1.40 GiB), so every number in the
+program was real and the disagreement was code version plus instrument. The
+reading for the book: ISLA's current code is 2.6x smaller than
+GeoTransolver and the trained checkpoints were 2.3x larger; the losses of
+the three ISLA variants agree step for step within 1e-3, so no accuracy
+number depends on the footprint, and none was produced at the small one; and
+ISLA's step is 3.7x slower at this size. The "3x less memory" headline is
+replaced everywhere by that sentence and the verdict table's cost row reads
+"Mixed". An unplanned finding: the pool-then-project rewrite alone accounts
+for 9.3 → 3.4 GiB (2.7x), more than the 2.3x that the recompute adds; the
+earlier notebook entries attributed the two savings correctly but had not
+measured them against GeoTransolver. Also verified: GeoTransolver-volume's blocks run at
 an effective width of 448 (256 plus six 32-channel local features,
 `geotransolver.py` line 542), so the h256 ISLA control (about 15.7M
 parameters) is a width increase, still narrower and smaller than the 27.6M

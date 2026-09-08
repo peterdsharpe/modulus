@@ -113,10 +113,11 @@ the query-token configuration (0.28 s; its per-slice geometry spans all
 geometry region of @sec-mt2-cost, the query-token configuration's peak
 memory falls from 6.3 to 2.5 GiB at 0.83x the step time
 (results/isla_qt_cost_2026-09-07.json), so it matches GeoTransolver-volume's
-interior pressure at a third of the parameters and under a third of the
-memory (the 2.5 GiB is allocated memory on one GPU and the 8.8 GB reserved
-memory from a training run, so that fraction is indicative), while
-remaining about five times slower per training step. Three
+interior pressure at a third of the parameters and, indicatively, under a
+third of the memory (the 2.5 GiB is allocated memory on one GPU and the
+8.8 GB reserved memory from a training run; the lanes that produced the
+interior numbers ran the stored path at 6.0 GB reserved), while remaining
+about five times slower per training step. Three
 differences therefore separate GeoTransolver from ISLA's passive decode
 on this task: interaction among the query tokens, the signed-distance
 input, and 2.8x the parameters with local features. The chapter's

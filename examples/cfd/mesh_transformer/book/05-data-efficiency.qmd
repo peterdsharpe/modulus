@@ -43,9 +43,11 @@ Transolver's learning-rate choice per small-data rung, and, as in any
 sequential program, by the ablations designed after earlier readouts and by
 the selection of which results to present (@sec-de-limits). Resources are
 matched in parameters (8.9M for ISLA against 9.0M
-for GeoTransolver and 6.0M for Transolver) and tokens per case; peak
-training memory at this token count is 1.5 GB for ISLA against 4.6 GB for
-GeoTransolver, on two different instruments (@sec-resource-matching). The
+for GeoTransolver and 6.0M for Transolver) and tokens per case; on
+one GPU and one instrument, peak training memory at this token count is
+1.6 GiB for ISLA's current code against 4.1 GiB for GeoTransolver, while
+the ISLA code that trained these checkpoints peaked at 9.3 GiB, and ISLA's
+step is 3.7x slower (@sec-resource-matching). The
 baselines receive the freestream as a physical velocity and ISLA as a unit
 direction, a conditioning difference whose effect is not yet measured
 (@sec-part-baseline). The test split was never read by any model in this
