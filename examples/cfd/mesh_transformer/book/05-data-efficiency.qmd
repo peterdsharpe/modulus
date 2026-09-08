@@ -503,8 +503,10 @@ variation on which ISLA's routing has an advantage. Which ingredient of the
 soft-slice design carries that geometry generalization is still not
 isolated; the first rung of the unseen-geometry ladder is in
 @sec-de-strata (1.8x on 18 never-seen geometries from four training
-geometries), and its 210-case rung and a GeoTransolver learning-rate
-steel-man at the single angle are not yet measured (@sec-program-status).
+geometries); a GeoTransolver learning-rate steel-man at the single angle
+made GeoTransolver worse (0.280 at 3e-3 against 0.179 at 1e-3, so the 5.0x
+is stated at its better rate; results/w2_reduction_2026-09-08.json); the
+ladder's 210-case rung is not yet measured (@sec-program-status).
 
 ## The same protocol on DrivAerML {#sec-de-drivaerml}
 

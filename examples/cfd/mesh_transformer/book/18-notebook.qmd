@@ -7465,3 +7465,31 @@ full data is therefore not a coincidence of one size: it is where the two
 curves cross. Nothing in this rung changes the standing statement; it
 adds the middle point and removes the reading that ISLA's small-data
 interior error falls faster at every size.
+
+## 2026-09-08 — Verdict W2-G: the learning-rate steel-man does not rescue GeoTransolver at the single angle (lr 3e-3: 0.296/0.264 against 0.175/0.183 at lr 1e-3); the 5.0x stands {#sec-nb-w2g-verdict}
+
+**Setting and bar.** The single-angle split (126 geometries at 12°, 18
+held-out geometries) gave ISLA 0.0354/0.0363 against GeoTransolver
+0.1749/0.1829 at the frozen learning rate of 1e-3 (@sec-nb-w2d-single-angle),
+a 5.0x advantage attributed to geometry generalization. The steel-man
+(@sec-nb-w2f-launch) re-ran GeoTransolver at 3e-3, the rate at which it had
+sometimes recovered on other splits, with the falsifier that GeoTransolver
+at 3e-3 comes within 1.2x of ISLA.
+
+**Readout** (results/w2_reduction_2026-09-08.json, arm `G_single_aoa_12_gt_lr3e3`;
+18 held-out geometries, two seeds):
+
+| model | learning rate | pressure (42 / 43 → mean) | wall shear (42 / 43) | vs ISLA (pressure) |
+|---|---|---|---|---|
+| GeoTransolver | 3e-3 | 0.296 / 0.264 → 0.280 | 0.426 / 0.389 | 7.8x behind |
+| GeoTransolver | 1e-3 | 0.175 / 0.183 → 0.179 | 0.307 / 0.316 | 5.0x behind |
+| ISLA | 1e-3 | 0.0354 / 0.0363 → 0.036 | 0.102 / 0.111 | |
+
+**Verdict.** The higher rate makes GeoTransolver 1.56x worse, not better;
+the falsifier is nowhere near firing (7.8x against a 1.2x bar). With
+GeoTransolver at its better rate the single-angle advantage is 5.0x on
+pressure and 3.0x on wall shear, on 18 of 18 geometries, and the
+learning-rate axis is closed as an explanation. Together with the
+1000-epoch control at 35 and 210 cases (@sec-nb-ctrl-complete), every
+optimisation steel-man tried for GeoTransolver on HiLift has now been run;
+none moves its small-data error into ISLA's range.

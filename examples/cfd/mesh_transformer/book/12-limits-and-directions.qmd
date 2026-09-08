@@ -240,10 +240,12 @@ geometries and validated on 18 geometries never seen at any angle, ISLA is
 wins 172 of 180 cases; the advantage does not require having seen the
 geometry, but it is smaller than at the 35-case random split (2.8x) because
 ISLA's error nearly doubles when the training geometries fall from 33 to 4
-while GeoTransolver's barely moves (@sec-de-strata). The 210-case rung of
-that ladder, the GeoTransolver learning-rate steel-man at the single angle,
-and whether Transolver's partial gain persists at 210 cases are not yet
-measured (@sec-program-status).
+while GeoTransolver's barely moves (@sec-de-strata). A learning-rate
+steel-man at the single angle made GeoTransolver worse, not better (0.280 at
+3e-3 against 0.179 at 1e-3), so the 5.0x there is stated at its better rate
+and the optimisation axis is closed for that result. The 210-case rung of
+the unseen-geometry ladder and whether Transolver's partial gain persists
+at 210 cases are not yet measured (@sec-program-status).
 
 The DrivAerML shortfall, in turn, is not located anywhere on the car. The
 natural hypothesis is that ISLA lacks the global context a bluff body's

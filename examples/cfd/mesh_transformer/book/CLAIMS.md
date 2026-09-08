@@ -174,6 +174,11 @@ Artifacts: `results/hilift_ladder_reduction_2026-09-03.json`,
   0.203–0.211 vs 0.0577 in-family pressure on DrivAerML; the anchor-
   conditioned variant with a fixed interacting core 0.209/0.221 vs
   0.0697/0.0671 at matched memory (6.35 vs 6.56 GB).
+- Single-angle steel-man (2026-09-08): GeoTransolver at lr 3e-3 on the
+  single-angle split = 0.296/0.264 (worse than its lr 1e-3 0.175/0.183); ISLA
+  0.036. The 5.0x single-angle advantage is stated with GeoTransolver at its
+  better rate; the learning-rate axis is closed. Artifact
+  results/w2_reduction_2026-09-08.json (arm G_single_aoa_12_gt_lr3e3).
 - **Per-case structure (2026-09-07 artifacts):** HiLift per-case error rank
   correlation ISLA vs GeoTransolver 0.57 (35), 0.64 (210), 0.94 (1,260)
   against seed self-consistency 0.87–0.97; DrivAerML 0.86–0.89 (= self).
