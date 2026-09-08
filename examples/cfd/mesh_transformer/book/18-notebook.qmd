@@ -7399,3 +7399,21 @@ are refreshed with the third seed where the reducer supports it. The
 qualitative result does not move: ISLA leads GeoTransolver 2.2–2.8x on
 35–210 cases with a tenth of its seed spread, and the advantage closes to
 parity at 1,260.
+
+**Third stall, an hour long.** The six DrivAerML lanes stalled again at
+20:39, this time under the 3600 s watchdog, which fired at 21:39 after the
+full hour ("ran for 3600093 ms"); the links restarted from checkpoint at
+21:48 and stepped normally afterwards. So the stalls are not brief
+transients: a read on the DrivAerML tree can block a rank for at least an
+hour while the same tree answers a login-node read in under a second and
+every HiLiftAeroML lane keeps stepping. Three episodes (18:36, 19:19,
+20:39) have hit all six lanes within the same minute each time, on six
+different nodes, so the trigger is shared and external, not a per-job
+deadlock. The cost per episode is an hour of six nodes plus up to ten
+epochs of replay; the failure fingerprint the chain guard extracts does not
+match the watchdog's message, so the guard cannot block these lanes, and
+they will keep resuming. The signed-distance arm is at epoch 141 of 500
+after 3.7 hours of wall time for what should have been 1.4 hours of
+training. Nothing about this touches the results or the protocol; it sets
+the cadence, and it is another entry for the program owner's file-system
+list (@sec-nb-hilift-io-verdict).
