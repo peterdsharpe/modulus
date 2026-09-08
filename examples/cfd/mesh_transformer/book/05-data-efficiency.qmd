@@ -485,7 +485,9 @@ The DrivAerML contrast fits this reading: smooth single-body morphs of one
 car, where GeoTransolver is 1.2–1.3x ahead, are not the kind of geometry
 variation on which ISLA's routing has an advantage. Which ingredient of the
 soft-slice design carries that geometry generalization is still not
-isolated; the unseen-geometry ladder and a GeoTransolver learning-rate
+isolated; the first rung of the unseen-geometry ladder is in
+@sec-de-strata (1.8x on 18 never-seen geometries from four training
+geometries), and its 210-case rung and a GeoTransolver learning-rate
 steel-man at the single angle are not yet measured (@sec-program-status).
 
 ## The same protocol on DrivAerML {#sec-de-drivaerml}
