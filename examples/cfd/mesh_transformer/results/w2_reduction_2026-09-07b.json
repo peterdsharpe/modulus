@@ -6,16 +6,34 @@
    "tau_wall_l2": 0.25634,
    "n_cases": 180
   },
+  "lad_hl_mt2_scarce_seed44": {
+   "pressure_l2": 0.06572,
+   "velocity_l2": 0.09508,
+   "tau_wall_l2": 0.14694,
+   "n_cases": 180
+  },
   "lad_hl_gt_super_scarce_seed44": {
    "pressure_l2": 0.3588,
    "velocity_l2": 0.30249,
    "tau_wall_l2": 0.51727,
    "n_cases": 180
   },
+  "lad_hl_gt_scarce_seed44": {
+   "pressure_l2": 0.10697,
+   "velocity_l2": 0.13983,
+   "tau_wall_l2": 0.22085,
+   "n_cases": 180
+  },
   "t1_hl_transolver_super_scarce_lr3e3_seed44": {
    "pressure_l2": 0.40891,
    "velocity_l2": 0.37779,
    "tau_wall_l2": 0.60813,
+   "n_cases": 180
+  },
+  "t1_hl_transolver_scarce_lr3e3_seed44": {
+   "pressure_l2": 0.08753,
+   "velocity_l2": 0.12069,
+   "tau_wall_l2": 0.19241,
    "n_cases": 180
   },
   "mech_hl_mt2_single_aoa_12_seed42": {

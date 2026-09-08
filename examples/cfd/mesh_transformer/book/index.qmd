@@ -18,7 +18,7 @@ checked-in artifact.
 ## The result in one paragraph
 
 **ISLA**, an SE(3)-equivariant soft-slice transformer, is **2.8x more accurate than GeoTransolver and
-than plain Transolver when trained on 35 high-lift wing cases**, 1.3–2.5x more
+than plain Transolver when trained on 35 high-lift wing cases**, 1.3–2.2x more
 accurate at 210 cases depending on the baseline, and at parity at 1,260
 cases. The advantage holds on every one of the 180 shared validation cases at
 35 cases, at every angle of attack including one absent from training, on
@@ -64,12 +64,13 @@ factor of ten, so coverage, not architecture, governs that axis.
 #|   the seeds; annotated factors are each baseline's error divided by ISLA's
 #|   at the same rung (above one favours ISLA). Protocol: 10,000 sampled surface
 #|   points per case, 500 epochs, bfloat16, no augmentation, each architecture
-#|   at its best learning rate, two seeds, final-epoch checkpoints, validation
-#|   set; the test split is sealed. The full figure, the
+#|   at its best learning rate, three seeds at 35 and 210 cases and two at
+#|   1,260, final-epoch checkpoints, validation set; the test split is sealed. The full figure, the
 #|   paired per-case statistics, the force-coefficient errors and the controls
 #|   are in @sec-data-efficiency. It does not show scaling beyond 1,260 cases
 #|   (@sec-limits). Data: results/hilift_ladder_reduction_2026-09-03.json,
-#|   results/t1_transolver_control_reduction_2026-09-05.json.
+#|   results/t1_transolver_control_reduction_2026-09-05.json,
+#|   results/w2_reduction_2026-09-07b.json (third seeds).
 #| code-fold: true
 import json, statistics
 from pathlib import Path
@@ -84,20 +85,23 @@ mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASEL
                      "axes.spines.right": False, "legend.frameon": False})
 lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
 t1 = json.load(open(Path("..") / "results" / "t1_transolver_control_reduction_2026-09-05.json"))
+w2 = json.load(open(Path("..") / "results" / "w2_reduction_2026-09-07b.json"))["runs"]
+lad = {**lad, **{k: v for k, v in w2.items() if k.startswith("lad_hl_")}}
+t1 = {**t1, **{k: v for k, v in w2.items() if k.startswith("t1_hl_transolver")}}
 rungs = [(35, "lad_hl_{a}_super_scarce_seed{s}"), (210, "lad_hl_{a}_scarce_seed{s}"), (1260, "{a}_hl_lr1_seed{s}")]
 data = {}
 for arch in ("gt", "mt2"):
     xs, means, lo, hi = [], [], [], []
     for n, pat in rungs:
-        v = [lad[pat.format(a=arch, s=s)]["pressure_l2"] for s in (42, 43) if pat.format(a=arch, s=s) in lad]
+        v = [lad[pat.format(a=arch, s=s)]["pressure_l2"] for s in (42, 43, 44) if pat.format(a=arch, s=s) in lad]
         xs.append(n); means.append(statistics.mean(v)); lo.append(min(v)); hi.append(max(v))
     data[arch] = (xs, means, lo, hi)
 xs, means, lo, hi = [], [], [], []
 for n, pat in [(35, "t1_hl_transolver_super_scarce_{lr}_seed{s}"), (210, "t1_hl_transolver_scarce_{lr}_seed{s}")]:
     best = None
     for lr in ("lr1e3", "lr3e3"):
-        v = [t1[pat.format(lr=lr, s=s)]["pressure_l2"] for s in (42, 43) if pat.format(lr=lr, s=s) in t1]
-        if len(v) == 2 and (best is None or statistics.mean(v) < statistics.mean(best)):
+        v = [t1[pat.format(lr=lr, s=s)]["pressure_l2"] for s in (42, 43, 44) if pat.format(lr=lr, s=s) in t1]
+        if len(v) >= 2 and (best is None or statistics.mean(v) < statistics.mean(best)):
             best = v
     xs.append(n); means.append(statistics.mean(best)); lo.append(min(best)); hi.append(max(best))
 data["t"] = (xs, means, lo, hi)

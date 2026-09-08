@@ -2,7 +2,7 @@
 
 Trained on 35 high-lift wing cases, ISLA predicts surface
 pressure 2.8x more accurately than GeoTransolver and than plain Transolver;
-at 210 cases the advantage is 2.5x over GeoTransolver and 1.3x over
+at 210 cases the advantage is 2.2x over GeoTransolver and 1.3x over
 Transolver; at 1,260 cases ISLA and GeoTransolver are at parity (Transolver
 was not run at that rung). The result
 is specific to HiLiftAeroML: on DrivAerML, where the freestream is fixed,
@@ -54,16 +54,16 @@ every number in this chapter is a validation-set number.
 #|   versus number of training cases, for GeoTransolver (red circles),
 #|   ISLA (blue squares) and plain Transolver without a geometry
 #|   encoder (grey triangles, dashed; at its better learning rate, 3e-3).
-#|   Lines join seed means, shaded bands span the two seeds, small dots are
-#|   the individual seeds. The annotated factors are each baseline's error
+#|   Lines join seed means, shaded bands span the seeds (three at 35 and 210
+#|   cases, two at 1,260), small dots are the individual seeds. The annotated factors are each baseline's error
 #|   divided by ISLA's at the same rung (above one favours ISLA). Protocol: 10,000 sampled surface
 #|   points per case, 500 epochs, bfloat16, no augmentation, learning rate
-#|   1e-3 for GeoTransolver and ISLA, two seeds; ISLA in its constant-gauge
-#|   configuration. The figure does not show scaling beyond 1,260 cases and
-#|   does not include the third seed (reported in the text), and does not show
+#|   1e-3 for GeoTransolver and ISLA; ISLA in its constant-gauge
+#|   configuration. The figure does not show scaling beyond 1,260 cases and does not show
 #|   DrivAerML, where the ordering reverses (@tbl-drivaerml-dataeff-ladder). Data:
 #|   results/hilift_ladder_reduction_2026-09-03.json,
-#|   results/t1_transolver_control_reduction_2026-09-05.json.
+#|   results/t1_transolver_control_reduction_2026-09-05.json,
+#|   results/w2_reduction_2026-09-07b.json (third seeds).
 #| code-fold: true
 import json, statistics
 from pathlib import Path
@@ -78,20 +78,23 @@ mpl.rcParams.update({"figure.dpi": 110, "font.size": 10, "axes.edgecolor": BASEL
                      "axes.spines.right": False, "legend.frameon": False})
 lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
 t1 = json.load(open(Path("..") / "results" / "t1_transolver_control_reduction_2026-09-05.json"))
+w2 = json.load(open(Path("..") / "results" / "w2_reduction_2026-09-07b.json"))["runs"]
+lad = {**lad, **{k: v for k, v in w2.items() if k.startswith("lad_hl_")}}
+t1 = {**t1, **{k: v for k, v in w2.items() if k.startswith("t1_hl_transolver")}}
 rungs = [(35, "lad_hl_{a}_super_scarce_seed{s}"), (210, "lad_hl_{a}_scarce_seed{s}"), (1260, "{a}_hl_lr1_seed{s}")]
 data = {}
 for arch in ("gt", "mt2"):
     xs, means, lo, hi, pts = [], [], [], [], []
     for n, pat in rungs:
-        v = [lad[pat.format(a=arch, s=s)]["pressure_l2"] for s in (42, 43) if pat.format(a=arch, s=s) in lad]
+        v = [lad[pat.format(a=arch, s=s)]["pressure_l2"] for s in (42, 43, 44) if pat.format(a=arch, s=s) in lad]
         xs.append(n); means.append(statistics.mean(v)); lo.append(min(v)); hi.append(max(v)); pts.append(v)
     data[arch] = (xs, means, lo, hi, pts)
 xs, means, lo, hi, pts = [], [], [], [], []
 for n, pat in [(35, "t1_hl_transolver_super_scarce_{lr}_seed{s}"), (210, "t1_hl_transolver_scarce_{lr}_seed{s}")]:
     best = None
     for lr in ("lr1e3", "lr3e3"):
-        v = [t1[pat.format(lr=lr, s=s)]["pressure_l2"] for s in (42, 43) if pat.format(lr=lr, s=s) in t1]
-        if len(v) == 2 and (best is None or statistics.mean(v) < statistics.mean(best)):
+        v = [t1[pat.format(lr=lr, s=s)]["pressure_l2"] for s in (42, 43, 44) if pat.format(lr=lr, s=s) in t1]
+        if len(v) >= 2 and (best is None or statistics.mean(v) < statistics.mean(best)):
             best = v
     xs.append(n); means.append(statistics.mean(best)); lo.append(min(best)); hi.append(max(best)); pts.append(best)
 data["t"] = (xs, means, lo, hi, pts)
@@ -138,9 +141,12 @@ import json, statistics
 from pathlib import Path
 lad = json.load(open(Path("..") / "results" / "hilift_ladder_reduction_2026-09-03.json"))
 t1 = json.load(open(Path("..") / "results" / "t1_transolver_control_reduction_2026-09-05.json"))
+w2 = json.load(open(Path("..") / "results" / "w2_reduction_2026-09-07b.json"))["runs"]
+lad = {**lad, **{k: v for k, v in w2.items() if k.startswith("lad_hl_")}}
+t1 = {**t1, **{k: v for k, v in w2.items() if k.startswith("t1_hl_transolver")}}
 inv = json.load(open(Path("..") / "results" / "inv_transplant_2026-09-07.json"))
 def pair(d, pat):
-    v = [d[pat.format(s=s)]["pressure_l2"] for s in (42, 43) if pat.format(s=s) in d]
+    v = [d[pat.format(s=s)]["pressure_l2"] for s in (42, 43, 44) if pat.format(s=s) in d]
     return v
 rows = []
 for n, gpat, mpat, tpat in [(35, "lad_hl_gt_super_scarce_seed{s}", "lad_hl_mt2_super_scarce_seed{s}", "t1_hl_transolver_super_scarce_lr3e3_seed{s}"),
@@ -162,7 +168,7 @@ print(": Surface-pressure relative L2 error on the shared 180-case validation se
 Two features of the numbers matter before any interpretation. The seed
 spreads are small against the gaps at 35 and 210 cases (0.006 for ISLA and
 0.035 for GeoTransolver against a gap of 0.25 at 35 cases), and the gap
-closes monotonically with data: 2.8x, then 2.5x, then parity. GeoTransolver
+closes monotonically with data: 2.8x, then 2.2x, then parity. GeoTransolver
 reaches the accuracy ISLA has at 210 cases somewhere between 210 and 1,260
 cases (the 510-case rung is not yet measured).
 
@@ -170,7 +176,7 @@ The same-family control sharpens the statement rather than weakening it.
 Plain Transolver — GeoTransolver's attention family without the geometry
 encoder — collapses exactly like GeoTransolver at 35 cases (0.40, 2.9x ISLA)
 but recovers faster, reaching 0.086 at 210 cases, where it is 1.8x more
-accurate than GeoTransolver itself. So at 210 cases most of the 2.5x gap
+accurate than GeoTransolver itself. So at 210 cases most of the 2.2x gap
 to GeoTransolver is GeoTransolver's geometry encoder falling behind its own
 backbone, and ISLA's advantage over the *best* Transolver-family baseline is
 1.3x. At 35 cases the two baselines are indistinguishable and the 2.8x
@@ -263,7 +269,17 @@ A third seed at 35 cases gives ISLA 0.138, GeoTransolver 0.359 and Transolver
 0.409. ISLA's third seed falls inside its two-seed range (0.135–0.141);
 GeoTransolver's falls below its range (0.375–0.409) and Transolver's just
 above (0.398–0.406). The three-seed means are 0.138, 0.381 and 0.404, for
-factors of 2.8x and 2.9x.
+factors of 2.8x and 2.9x. At 210 cases the third seed gives ISLA 0.0657
+and Transolver 0.0875, each inside its two-seed range, and GeoTransolver
+0.107, far below its two-seed range of 0.157–0.160: GeoTransolver's three
+seeds at 210 cases span a factor of 1.5 (0.107–0.160) where ISLA's and
+Transolver's span 1.07. The three-seed means are 0.0648, 0.141 and 0.087,
+for factors of 2.2x and 1.3x, and those are the 210-case factors this
+book states (results/w2_reduction_2026-09-07b.json). GeoTransolver's
+small-data results on this dataset are seed-fragile in a way the other
+two architectures' are not, which fits its flat, geometry-blind error at
+these sizes (@tbl-hilift-percase-rho): which basin the optimizer lands in
+matters more than which cases it sees.
 
 ## Where the advantage lives {#sec-de-strata}
 

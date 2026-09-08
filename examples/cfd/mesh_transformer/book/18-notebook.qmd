@@ -7355,3 +7355,47 @@ slopes above predict GeoTransolver at 0.087 and ISLA query tokens at 0.100
 on interior pressure at 109 cars (ratio 1.15); the H-b picture is confirmed
 if the measured ratio is between 1.10 and 1.25, and the slope story is
 falsified if ISLA's 54→109 slope is not steeper than GeoTransolver's.
+
+## 2026-09-08 — W2-A at 210 cases: ISLA's and Transolver's third seeds land inside their spreads; GeoTransolver's lands far below (0.107 vs 0.157–0.160) — the 210-case ratio is 2.2x on three seeds, not 2.5x {#sec-nb-w2a-210-verdict}
+
+**Setting and bar.** The W2 preregistration (@sec-nb-w2-prereg, arm A)
+added a third seed (44) at 35 and 210 cases for all three architectures.
+Prediction: every seed-44 result lands inside the seed-42/43 spread
+widened by 1.5x; falsifier: any architecture's third seed moves its rung
+mean by more than 15%. The 35-case readout was recorded earlier
+(@sec-nb-w2a-35: all three inside, factors 2.8x and 2.9x). The 210-case
+lanes finished tonight after their evaluations on the shared 180 cases
+(results/w2_reduction_2026-09-07b.json).
+
+| architecture, 210 cases | seed 42 | seed 43 | seed 44 | two-seed mean | three-seed mean | shift |
+|---|---|---|---|---|---|---|
+| ISLA | 0.0622 | 0.0666 | **0.0657** | 0.0644 | 0.0648 | +0.7% |
+| GeoTransolver (lr 1e-3, its better rate at 210) | 0.1599 | 0.1574 | **0.1070** | 0.1587 | 0.1414 | −10.9% |
+| Transolver (lr 3e-3) | 0.0892 | 0.0832 | **0.0875** | 0.0862 | 0.0866 | +0.5% |
+
+**Verdict.** ISLA and Transolver: inside their spreads, means unchanged; the
+prediction holds. GeoTransolver: the third seed is 1.5x better than either
+of the first two, far outside a spread that was only 0.0025 wide; the
+prediction fails for GeoTransolver, while the 15% falsifier does not fire
+(−10.9%). At 35 cases GeoTransolver's third seed was likewise below its
+two-seed range (0.359 against 0.375–0.409). **GeoTransolver's small-data
+results on HiLift are seed-fragile in a way ISLA's and Transolver's are
+not**: at 210 cases its three seeds span 0.107–0.160 (a factor of 1.5),
+ISLA's span 0.062–0.067 (1.07) and Transolver's 0.083–0.089 (1.07). The
+per-case decorrelation recorded today (@sec-nb-hilift-percase) had already
+shown GeoTransolver's error to be flat across cases; this shows it is also
+volatile across initialisations, which is what a model that has not
+found the geometry dependence looks like: which basin it lands in matters
+more than which case it sees.
+
+**What changes.** The 210-case factor is stated on three seeds: **2.2x**
+over GeoTransolver (0.1414/0.0648 = 2.18) and 1.3x over Transolver
+(0.0866/0.0648 = 1.34); the 35-case factors stay 2.8x and 2.9x. The
+data-efficiency figure and tables now draw every available seed (three at
+35 and 210, two at 1,260), and GeoTransolver's 210-case seed range is
+written next to its mean wherever the ratio appears. The paired per-case
+statistics, which use two-seed means per case, are unchanged in kind and
+are refreshed with the third seed where the reducer supports it. The
+qualitative result does not move: ISLA leads GeoTransolver 2.2–2.8x on
+35–210 cases with a tenth of its seed spread, and the advantage closes to
+parity at 1,260.

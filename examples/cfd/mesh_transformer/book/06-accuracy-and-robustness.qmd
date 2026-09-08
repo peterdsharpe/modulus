@@ -579,7 +579,7 @@ This is also the right place to state what the parity result is and is
 not. It is a two-seed, one-split measurement per dataset that ISLA and
 GeoTransolver reach the same accuracy at 1,260 HiLift cases and differ
 by 8.5% at 435 DrivAerML cars under a fixed protocol. It does not say
-that the two architectures are equivalent, which the 2.5--2.8x gap at
+that the two architectures are equivalent, which the 2.2--2.8x gap at
 35--210 cases (@sec-data-efficiency), the robustness columns of
 @tbl-frontier, and the 2.6x interior gap of ISLA's passive decode
 (@sec-interior) each contradict in a different direction. The
