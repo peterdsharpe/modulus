@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import glob as _glob
 import logging
-import os
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -119,139 +118,15 @@ def _subsample_mesh_cells(
         device=mesh.cells.device,
     )
     mesh = mesh.slice_cells(indices)
-    # Compact: drop vertices not referenced by any surviving cell. Done
-    # directly (unique + inverse remap + row gather) rather than through
-    # Mesh.slice_points, which would allocate two n_points-sized index
-    # tensors and scatter-gather the kept rows -- on a 142M-vertex,
-    # memmap-backed surface that is ~2.3 GB of temporaries and ~30k random
-    # page reads per 10k-cell sample. Same result, same ordering (ascending
-    # referenced ids), as the zarr partial-read path.
-    referenced, inverse = torch.unique(mesh.cells, return_inverse=True)
+    # Compact: drop vertices not referenced by any surviving cell
+    referenced = torch.unique(mesh.cells)
     if referenced.numel() < mesh.n_points:
-        mesh = Mesh(
-            points=_gather_rows(mesh.points, referenced),
-            cells=inverse.reshape(mesh.cells.shape),
-            point_data=mesh.point_data.apply(
-                lambda v: _gather_rows(v, referenced),
-                batch_size=[referenced.numel()],
-            ),
-            cell_data=mesh.cell_data,
-            global_data=mesh.global_data,
-        )
+        mesh = mesh.slice_points(referenced)
     ### Compose the Horvitz-Thompson weight for this sampling stage.
     ### slice_cells/slice_points returned fresh TensorDicts, so the
     ### in-place update cannot leak into the memmap-backed source.
     compose_measure_weights(mesh, n_total / n_cells)
     return mesh
-
-
-_RANGE_READ_MAX_BYTES = 256 * 2**20
-_PREAD_PAGE = 4096
-_PREAD_THREADS = 1
-# Page-wise positional reads for scattered gathers on file-backed leaves are
-# OPT-IN (env PHYSICSNEMO_MESH_PREAD_GATHER=1). Measured on lustre (AGA,
-# 2026-09-07, HiLiftAeroML surfaces, 28k scattered rows of a 142M-row
-# memmap per sample): a single cold reader moved 0.29 GB with page reads
-# against 1.08 GB through the memmap (each page fault drags in the client's
-# read-ahead window), but inside the training loop with 16 reader processes
-# per node the page reads were latency-bound (5-29 s per step against ~1-3 s)
-# because the file system serialises small reads per file, while the
-# memmap's read-ahead turns the same access into large sequential RPCs.
-# Threads on one file did not help there either (16 never beat 1).
-_USE_PREAD_GATHER = os.environ.get("PHYSICSNEMO_MESH_PREAD_GATHER", "0") == "1"
-
-
-def _gather_rows(t: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
-    """``t[idx]`` for sorted ``idx``, choosing the I/O pattern by how the rows
-    are laid out.
-
-    * Rows spanning at most ``_RANGE_READ_MAX_BYTES``: one sequential slice
-      ``t[lo:hi]`` then an in-memory index (one sequential read instead of
-      one page fault per row).
-    * Otherwise, if ``_USE_PREAD_GATHER`` is set and the leaf is file-backed
-      (tensordict ``MemoryMappedTensor``): page-sized positional reads of
-      exactly the pages holding the rows (:func:`_pread_rows`).
-    * Otherwise: the plain gather.
-
-    All branches return a fresh tensor equal to ``t[idx]``.
-    """
-    if idx.numel() == 0 or t.ndim == 0:
-        return t[idx]
-    lo = int(idx[0])
-    hi = int(idx[-1]) + 1
-    row_bytes = t.element_size() * (t[0].numel() if t.ndim > 1 else 1)
-    if (hi - lo) * row_bytes <= _RANGE_READ_MAX_BYTES:
-        return t[lo:hi][idx - lo]
-    filename = getattr(t, "filename", None)
-    if (
-        _USE_PREAD_GATHER
-        and filename is not None
-        and t.device.type == "cpu"
-        and t.is_contiguous()
-        and t.storage_offset() == 0
-        and t.dtype != torch.bfloat16  # no numpy view for bf16
-    ):
-        return _pread_rows(str(filename), t, idx, row_bytes)
-    return t[idx]
-
-
-def _pread_rows(
-    filename: str, t: torch.Tensor, idx: torch.Tensor, row_bytes: int
-) -> torch.Tensor:
-    """Read rows ``idx`` (sorted) of the contiguous file-backed tensor ``t``
-    with positional reads of whole 4 KiB pages, each page read once, runs of
-    consecutive pages read in one call, reads issued from a small thread
-    pool (``os.preadv`` releases the GIL). Returns a fresh tensor equal to
-    ``t[idx]``."""
-    import os
-    from concurrent.futures import ThreadPoolExecutor
-
-    import numpy as np
-
-    page = _PREAD_PAGE
-    offsets = idx.cpu().numpy().astype(np.int64) * row_bytes
-    first = offsets // page
-    last = (offsets + row_bytes - 1) // page
-    pages = np.unique(np.concatenate([first, last]))
-    # Runs of consecutive pages -> one preadv per run.
-    breaks = np.nonzero(pages[1:] != pages[:-1] + 1)[0] + 1
-    starts = np.concatenate([[0], breaks])
-    ends = np.concatenate([breaks, [len(pages)]])
-    buf = bytearray(len(pages) * page)
-    view = memoryview(buf)
-    fd = os.open(filename, os.O_RDONLY)
-    try:
-
-        page_of = pages.tolist()
-        s_list, e_list = starts.tolist(), ends.tolist()
-
-        def read_runs(lo_run: int, hi_run: int) -> None:
-            # Reads at the file tail may return fewer bytes; the unread slack
-            # is never addressed because no row lies beyond the file.
-            for r in range(lo_run, hi_run):
-                s, e = s_list[r], e_list[r]
-                os.preadv(fd, [view[s * page : e * page]], page_of[s] * page)
-
-        n_runs = len(s_list)
-        n_threads = max(1, min(_PREAD_THREADS, n_runs // 64))
-        if n_threads > 1:
-            bounds = np.linspace(0, n_runs, n_threads + 1).astype(int).tolist()
-            with ThreadPoolExecutor(max_workers=n_threads) as ex:
-                list(ex.map(lambda b: read_runs(*b), zip(bounds[:-1], bounds[1:])))
-        else:
-            read_runs(0, n_runs)
-    finally:
-        os.close(fd)
-    # Assemble: each row's bytes start at slot(first_page)*page + in-page
-    # offset; a row that straddles a page boundary continues in the next
-    # slot, which holds the next page because both pages are in `pages`.
-    slots = np.searchsorted(pages, first)
-    row_start = slots * page + (offsets - first * page)
-    take = row_start[:, None] + np.arange(row_bytes)[None, :]
-    raw = np.frombuffer(buf, dtype=np.uint8)[take]
-    np_dtype = torch.empty(0, dtype=t.dtype).numpy().dtype
-    out = raw.view(np_dtype).reshape(len(idx), *t.shape[1:])
-    return torch.from_numpy(np.ascontiguousarray(out))
 
 
 def _indices_to_runs(indices: torch.Tensor) -> list[tuple[int, int]]:
