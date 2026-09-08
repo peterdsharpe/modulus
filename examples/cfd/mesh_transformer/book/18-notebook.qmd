@@ -7417,3 +7417,13 @@ after 3.7 hours of wall time for what should have been 1.4 hours of
 training. Nothing about this touches the results or the protocol; it sets
 the cadence, and it is another entry for the program owner's file-system
 list (@sec-nb-hilift-io-verdict).
+
+**Fourth stall, caught early.** All six DrivAerML lanes went silent again
+between 22:08 and 22:16; the watcher now flags a lane whose log has been
+quiet for 15 minutes, and the six hung links were cancelled at 22:27–22:29
+and resumed from checkpoint within 15 seconds, at a cost of about 20
+minutes of six nodes instead of an hour. The episodes are now roughly
+hourly (18:36, 19:19, 20:39, 22:10) and always hit every DrivAerML reader
+at once. Procedure while it lasts: on the watcher's stall event, cancel the
+running links of the silent lanes; the chain-ahead singletons restart
+immediately, and the guard cannot block them.
