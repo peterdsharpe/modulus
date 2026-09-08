@@ -520,9 +520,16 @@ At 14 cars the two architectures tie at 0.27; from 27 cars up GeoTransolver is 1
 persists to the full split (1.085x at each architecture's best rate,
 @sec-full-data). The HiLift advantage is therefore a property of that
 dataset's variation — 180 geometries crossed with ten angles of attack —
-and not of small training sets in general. Why the two datasets differ is
-not known; the one mechanism hypothesis tested (@sec-mechanism) did not
-explain it.
+and not of small training sets in general. The same 1.2x appears on the
+interior: trained on 54 cars, GeoTransolver's volume configuration leads
+ISLA's query-token configuration by 1.21x on interior pressure, and the two
+reach parity only at 435 cars (@sec-interior). On DrivAerML the deficit is
+uniform in every way measured: the same on every third of the car
+(@sec-limits-mechanism), a near-constant factor per car on a difficulty
+ordering both architectures share (@tbl-hilift-percase-rho), unchanged by a
+wider ISLA, and the same for the surface and the volume. Why the two
+datasets differ is not known; the one mechanism hypothesis tested
+(@sec-mechanism) did not explain it.
 
 ## Limits of the claim {#sec-de-limits}
 
