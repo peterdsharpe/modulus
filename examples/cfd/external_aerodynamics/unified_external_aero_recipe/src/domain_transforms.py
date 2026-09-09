@@ -69,6 +69,7 @@ from physicsnemo.datapipes.readers.mesh import DomainMeshReader, _subsample_mesh
 from physicsnemo.datapipes.registry import register
 from physicsnemo.datapipes.transforms.mesh import (
     MeshToDomainMesh,
+    RandomRotateMesh,
     SetGlobalField,
     SubsampleMesh,
 )
@@ -644,3 +645,66 @@ class ComputeDriveInvariants(MeshTransform):
             f"{self._output_field} = [n.d, r_hat.d, |r|/{self._reference_length}] "
             f"from {self._normals_field}, {self._direction_field}"
         )
+
+
+def _pose_rotation_for_key(key: int, salt: int) -> torch.Tensor:
+    """Uniform SO(3) rotation matrix drawn from a generator seeded by (key, salt).
+
+    Same construction as ``RandomRotateMesh(mode="uniform")``: an isotropic
+    Gaussian 4-vector normalized to a unit quaternion. Deterministic in
+    ``key`` and ``salt``, independent of process, worker, epoch or shuffle
+    order.
+    """
+    g = torch.Generator().manual_seed((int(key) * 1_000_003 + int(salt)) % (2**63 - 1))
+    q = torch.randn(4, generator=g, dtype=torch.float64)
+    q = q / q.norm()
+    return RandomRotateMesh._quaternion_to_rotation_matrix(q)
+
+
+@register()
+class FixedRandomPose(MeshTransform):
+    """Rotate a case by a uniform SO(3) rotation that is a deterministic function of the case.
+
+    POSE-BENCH (transfer program, 2026-09-09). Every training and validation
+    case receives an independent random pose, but the SAME pose every time
+    the case is loaded, so that (a) the validation set is a fixed posed
+    benchmark identical for every architecture, and (b) training on posed
+    data is a data property, not an augmentation stream. The rotation is
+    seeded by the reader's ``case_key`` global field
+    (``MeshReaderWithGlobalData(store_case_key=True)``) and ``salt``.
+    Positions, every vector field in point/cell/global data (e.g. wall shear,
+    normals, ``U_inf``) rotate together; scalars are invariant. Place it
+    BEFORE ``ComputeFreestreamDirection`` so the unit direction is computed
+    from the rotated freestream. Deterministic: no generator, never reseeded.
+    """
+
+    def __init__(self, salt: int = 0, key_field: str = "case_key") -> None:
+        super().__init__()
+        self.salt = int(salt)
+        self.key_field = key_field
+
+    def _matrix(self, global_data: TensorDict, dtype: torch.dtype) -> torch.Tensor:
+        if self.key_field not in global_data.keys():
+            raise KeyError(
+                f"FixedRandomPose needs global_data[{self.key_field!r}]; enable "
+                "store_case_key on MeshReaderWithGlobalData"
+            )
+        return _pose_rotation_for_key(int(global_data[self.key_field]), self.salt).to(dtype)
+
+    def __call__(self, mesh: Mesh) -> Mesh:
+        R = self._matrix(mesh.global_data, mesh.points.dtype)
+        return mesh.transform(
+            R, transform_point_data=True, transform_cell_data=True,
+            transform_global_data=True, assume_invertible=True,
+        )
+
+    def apply_to_domain(self, domain: DomainMesh) -> DomainMesh:
+        gd = domain.global_data if self.key_field in domain.global_data.keys() else domain.interior.global_data
+        R = self._matrix(gd, domain.interior.points.dtype)
+        return domain.transform(
+            R, transform_point_data=True, transform_cell_data=True,
+            transform_global_data=True, assume_invertible=True,
+        )
+
+    def extra_repr(self) -> str:
+        return f"salt={self.salt}, key_field={self.key_field!r}"
