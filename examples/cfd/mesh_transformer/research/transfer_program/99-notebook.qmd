@@ -1,0 +1,84 @@
+# Lab notebook {.unnumbered}
+
+## 2026-09-09 — Program start: from the audit's agenda to preregistered experiments {#sec-nb-start}
+
+**Setting.** The companion review of the ISLA record
+([cross-dataset generalization](../cross_dataset_generalization/index.qmd))
+audited the repository, thirty-one primary papers and five analytic
+controls, and concluded that the record does not establish a cross-dataset
+accuracy advantage for ISLA; with the freestream input matched, GeoTransolver
+and Transolver are more accurate at both completed HiLiftAeroML rungs, and on
+the DrivAerML → SHIFT-SUV fastback transfer ISLA's source-only error is 0.99
+against GeoTransolver's 0.59, both falling to 0.11–0.13 when the estate family
+joins training. The review proposed four directions (rich computational
+support with independent queries; topology- and conditioning-aware boundary
+responses; local flux responses with numerical global coupling; transferred
+correction spaces), a physical-input prerequisite, and a nonlinear extension.
+
+**Decision.** This program runs in a worktree parallel to the main ISLA
+session (which owns the program book and its cluster lanes) and keeps in
+sync with it at milestones. Order of work, as the review recommended:
+controls first (C1 pressure-offset versus spatial error, eval-only on saved
+predictions; C2 source-only normalization audit; C3 a paired
+physical-condition control with exact labels), then in parallel the
+computational-support study (D1, which needs training lanes and therefore
+node budget from the main program) and the three nonlearned gates (D2
+boundary-response rank and basis transfer on 2D Laplace; D3 local-response
+composition on 2D diffusion ports; D4 solver correction-space transfer on 2D
+finite-element systems), each run by a separate agent in its own worktree
+with a preregistration written before its first run. A literature chapter
+(L) asks what classical solvers do that surrogates do not.
+
+**Heilmeier answers, compressed.** We want field and force predictions on
+geometries and families outside the training distribution without a new
+labeled dataset. Today's surrogates fit their family and fail outside it,
+and the largest reported advantages in this program turned out to be
+protocol artifacts. The new element is not an architecture but a set of
+gates: each proposed mechanism has a cheap nonlearned test that can reject
+it before training. If it works, the payoff is a surrogate whose failure
+modes are understood and whose accuracy is stated with its cost. The risks
+are that no mechanism passes its gate (a useful negative), or that a passing
+gate does not carry to turbulent 3D data. Cost: CPU studies today; one
+four-lane training study when budget allows.
+
+## 2026-09-09 — Preregistered: C1, pressure-offset versus spatial error on the fastback transfer {#sec-nb-c1-prereg}
+
+**Setting.** DrivAerML (static wheels, fixed freestream, OpenFOAM hybrid
+RANS–LES) and SHIFT-SUV (rolling floor, rotating wheels, a different
+freestream speed and a different detached-eddy formulation) are different
+label-generating conventions on smooth single-body car families. Pressure is
+nondimensionalized by each dataset's own metadata (q_∞) and not shifted, so
+a difference in the two datasets' pressure reference would appear in a
+zero-shot prediction as a per-case constant, and a constant is exactly what
+makes a relative L2 error approach 1.0 when the predicted field is otherwise
+sensible. ISLA's source-only fastback error is 0.99; GeoTransolver's 0.59.
+
+**Instrument (eval-only).** From the saved zero-shot predictions
+(`smoke_fastback/{mt2_v3c,gt_fixed,mt2_multi,gt_multi}_seed{42,43,44}`, 99
+fastback cases) and the in-family DrivAerML evaluations of the same
+checkpoints, with cell areas recomputed from the saved triangles and cell
+normals from the saved mesh: per case and arm (seed-mean predictions), the
+area-weighted mean error (the offset), the centered remainder, the share of
+area-weighted squared error carried by the offset, the relative L2 error of
+the full and of the offset-removed error against the centered true field,
+the surface closedness |Σ a n| / Σ a, and the relative error of the
+integrated pressure force with and without the offset. Script:
+`studies/controls/pressure_offset_diagnostic.py`.
+
+**Bars, in readout units.** For the two source-only fastback arms:
+*offset-dominated* if the constant carries ≥ 50% of the area-weighted
+squared error (median over cases) and the offset-removed relative L2 is at
+most 0.6 of the full one; *spatial* if the constant carries ≤ 20%; between,
+mixed. The in-family arms must show an offset share ≤ 10%, or the instrument
+is not measuring a transfer effect. Force: on surfaces with closedness
+≤ 0.05 the force error with and without the offset must agree within the
+offset's share, or the normals are inconsistent and the force reading is
+withdrawn.
+
+**What each outcome changes.** Offset-dominated: the historical transfer
+gap is a label-convention question before it is an architecture question;
+C3 (paired physical conditions) becomes the next control, and any transfer
+claim must state the pressure reference. Spatial: the gap is a genuine field
+error; the offset hypothesis is closed and D1/D2 proceed on their own
+merits. Either way the readout is descriptive: target labels are used only
+to diagnose, never to correct predictions.

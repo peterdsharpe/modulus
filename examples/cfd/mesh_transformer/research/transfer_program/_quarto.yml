@@ -1,0 +1,26 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: "Transfer program: from the ISLA audit to testable mechanisms"
+  author: "Peter Sharpe"
+  chapters:
+    - index.qmd
+    - 01-controls.qmd
+    - 02-computational-support.qmd
+    - 03-boundary-response.qmd
+    - 04-composition.qmd
+    - 05-solver-spaces.qmd
+    - 06-classical-solvers.qmd
+    - 99-notebook.qmd
+
+format:
+  html:
+    theme: cosmo
+    code-fold: true
+    toc: true
+    number-sections: true
+
+execute:
+  freeze: auto

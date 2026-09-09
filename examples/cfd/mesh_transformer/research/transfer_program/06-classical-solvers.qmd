@@ -1,0 +1,3 @@
+# classical solvers
+
+Drafted when its study reports; see the notebook for the preregistration and running record.
