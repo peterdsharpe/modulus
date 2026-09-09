@@ -9156,3 +9156,28 @@ their ISLA arms are kept as measurements.
 **Scheduling.** Node UDRV-L, RUNNING, depends on UDRV; lanes 8–15
 launched, 16–17 queued behind the fixed-angle lanes. Edges UDRV → UDRV-L,
 UDRV-L → MT3, UDRV-L → ABUPT.
+
+## 2026-09-09 — Scheduling: the physical-drive GeoTransolver arms of the 20,000-token floor and the deflection experiment are stopped and replaced by unit-drive lanes; UDRV-L lanes 16–19 launched {#sec-nb-udrv-resched}
+
+**Decision.** The UDRV verdict (@sec-nb-udrv-verdict) makes every HiLift
+comparison against a physical-velocity baseline invalid as a comparison. Of
+the wave-2 lanes still training, the GeoTransolver arms of the
+20,000-token floor (`floor_hl_gt_full_20k_seed{42,43}`, epoch 154 of 500)
+and of the deflection experiment (`defl_hl_gt_deflection_seed{42,43}`,
+epoch 165–170) had weeks of compute left and no comparison to serve; their
+chains were cancelled (checkpoints kept; resumable). The 510-case rung's
+GeoTransolver and Transolver arms are at epoch 418–459 and finish within a
+day; they run to completion and are kept as physical-drive measurements, not
+comparisons. The ISLA arms of all three experiments continue. Four
+unit-drive replacements were added to `highlift/udrv_lanes.tsv` (rows 18–21:
+GeoTransolver on the deflection split, seeds 42/43; GeoTransolver at
+20,000 tokens on the full split, seeds 42/43), each identical to the arm it
+replaces except for the drive override. Launched now under the program's
+node budget (30 nodes): UDRV-L lanes 16–17 (GeoTransolver at 1,260 cases)
+and 18–19 (deflection); lanes 20–21 (floor) follow when the 510-case rung
+frees nodes.
+
+**Bars for the replacements.** The deflection experiment's sealed test
+(@sec-nb-w2-prereg, arm H) keeps its bars with the unit-drive GeoTransolver
+as the reference arm; the floor test (arm C) likewise. Neither is evaluated
+against the stopped physical-drive arms.
