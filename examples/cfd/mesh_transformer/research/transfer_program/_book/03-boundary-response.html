@@ -166,8 +166,16 @@ ul.task-list li input[type="checkbox"] {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-boundary-gate" id="toc-sec-boundary-gate" class="nav-link active" data-scroll-target="#sec-boundary-gate"><span class="header-section-number">3.1</span> The gate</a></li>
+  <li><a href="#sec-boundary-result" id="toc-sec-boundary-result" class="nav-link" data-scroll-target="#sec-boundary-result"><span class="header-section-number">3.2</span> What the gate found</a></li>
+  <li><a href="#sec-boundary-consequence" id="toc-sec-boundary-consequence" class="nav-link" data-scroll-target="#sec-boundary-consequence"><span class="header-section-number">3.3</span> What this changes</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -191,9 +199,158 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Drafted when its study reports; see the notebook for the preregistration and running record.</p>
+<p><strong>After the exact principal part is removed, the Laplace boundary response of a 2D geometry is low-rank and resolution-stable, but the singular vectors of that residual are geometry-specific: a basis fitted on smooth bodies and wide-gap pairs misses narrow gaps, thin annuli and corners by one to two orders of magnitude at equal rank.</strong> The audit’s second direction proposed learning the geometry-dependent boundary response with its known singular structure removed, and predicted that the difficult residual modes would track topology and near interactions. The nonlearned gate confirms the compressibility half and rejects the transfer half as posed.</p>
+<section id="sec-boundary-gate" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="sec-boundary-gate"><span class="header-section-number">3.1</span> The gate</h2>
+<p>Dirichlet-to-Neumann (DtN) operators of the interior Laplace problem on closed 2D curves, assembled by a Nyström boundary-integral discretization (Kress quadrature for the logarithmic kernel, trapezoid double layer, arclength resampling), qualified against the unit-disk DtN (exact to 10⁻¹³ on every mode), the annulus (log r fluxes exact to four digits), a two-body flux identity (2 × 10⁻¹³) and a resolution doubling on every geometry (22 of 23 converged to 10⁻⁸; one star excluded). Families: ellipses and stars (smooth single bodies), two-body pairs with gap-to-length ratio from 0.5 to 0.02, annuli with inner radius 0.3 to 0.85, and rounded squares with corner radius from 0.14 to 0.016 of the side. Principal part: the arclength-Fourier symbol |k| per component; component constants (the DtN null space) removed explicitly. Readouts: the rank needed for 1% (and 0.1%) relative Frobenius error by the full operator, by the residual after the principal part, and after constants too, in both the L2 and the energy pairing; and the projection error of a basis fitted on the source development set (single bodies plus wide-gap pairs) on each held-out family at that family’s oracle rank. Bars, written before the run (<code>studies/boundary_response/PREREG.md</code>): worth a learner if the residual reaches 1% at no more than a third of the full rank on the held-out families AND the source-fitted basis is within 2x of the oracle basis at that rank.</p>
+</section>
+<section id="sec-boundary-result" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-boundary-result"><span class="header-section-number">3.2</span> What the gate found</h2>
+<div id="tbl-boundary-rank" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-boundary-rank-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3.1: Rank for 1% self-relative Frobenius error (L2 pairing); identical at double resolution for every qualified geometry. Data: <code>studies/boundary_response/results.json</code>.
+</figcaption>
+<div aria-describedby="tbl-boundary-rank-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>family</th>
+<th>nodes</th>
+<th>full operator</th>
+<th>residual after principal part</th>
+<th>after constants</th>
+<th>residual share of the operator (L2 / energy)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ellipses (aspect 1.5 / 2 / 3)</td>
+<td>192</td>
+<td>184</td>
+<td>8 / 12 / 20</td>
+<td>same</td>
+<td>0.001–0.003 / 0.03–0.12</td>
+</tr>
+<tr class="even">
+<td>stars (five qualified)</td>
+<td>512</td>
+<td>489</td>
+<td>12–32</td>
+<td>same</td>
+<td>≤ 0.001 / 0.02–0.07</td>
+</tr>
+<tr class="odd">
+<td>pairs, gap 0.5 / 0.3 (source)</td>
+<td>768</td>
+<td>733</td>
+<td>16 / 19</td>
+<td>16 / 18</td>
+<td>0.001 / 0.07–0.09</td>
+</tr>
+<tr class="even">
+<td>pairs, gap 0.2 / 0.1 / 0.05 / 0.02</td>
+<td>1,024–1,536</td>
+<td>977–1,467</td>
+<td>22 / 29 / 38 / 58</td>
+<td>21 / 28 / 37 / 56</td>
+<td>0.001–0.008 / 0.11–0.44</td>
+</tr>
+<tr class="odd">
+<td>annuli, inner radius 0.3 / 0.6 / 0.85</td>
+<td>384 / 384 / 768</td>
+<td>361 / 369 / 740</td>
+<td>20 / 50 / 160</td>
+<td>21 / 50 / 160</td>
+<td>0.002–0.014 / 0.14–0.62</td>
+</tr>
+<tr class="even">
+<td>rounded squares, corner radius 0.14 → 0.016</td>
+<td>256–1,024</td>
+<td>245–977</td>
+<td>16 / 24 / 32 / 39</td>
+<td>same</td>
+<td>≤ 0.002 / 0.03–0.05</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The residual is low-rank everywhere: 2.5–7% of the full rank for narrow gaps and corners, with the thin annulus the worst case at 22% (11% in the energy pairing). The rank grows with narrowing gaps roughly as (g/L)^−0.4, and the residual’s share of the operator grows faster (7% to 44% of the energy norm from gap 0.5 to 0.02), so the principal part explains less of the operator exactly where geometry matters most. The energy pairing lowers the ranks by 25–45%, and about 98% of the operator’s squared Frobenius norm lives in modes above N/4, which is the audit’s spectrum point (wall flux is dominated by modes that interior values barely see) made quantitative.</p>
+<div id="tbl-boundary-transfer" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-boundary-transfer-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3.2: Projection error at each held-out block’s oracle 1% rank; the bar was a ratio of 2. Random-probe readouts agree within 0.01.
+</figcaption>
+<div aria-describedby="tbl-boundary-transfer-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>pairing / object</th>
+<th>held-out family</th>
+<th>oracle basis error</th>
+<th>source-fitted basis error</th>
+<th>ratio, median / worst</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>energy / residual</td>
+<td>gaps (16 blocks)</td>
+<td>0.007</td>
+<td>0.31</td>
+<td>46 / 70</td>
+</tr>
+<tr class="even">
+<td>energy / residual</td>
+<td>annuli (12)</td>
+<td>0.009</td>
+<td>0.063</td>
+<td>7 / 33</td>
+</tr>
+<tr class="odd">
+<td>energy / residual</td>
+<td>corners (4)</td>
+<td>0.008</td>
+<td>0.25</td>
+<td>34 / 61</td>
+</tr>
+<tr class="even">
+<td>L2 / residual</td>
+<td>gaps / annuli / corners</td>
+<td>0.009</td>
+<td>0.74 / 0.23 / 0.56</td>
+<td>83 / 25 / 64</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The source-fitted basis fails by one to two orders of magnitude on every held-out family; to reach 1% it needs rank 30 / 78 / 50 (annuli / corners / gaps, medians) against oracle ranks of 13 / 22 / 9, and up to 64–96 of 97 modes in the worst blocks, which is no compression at all.</p>
+</section>
+<section id="sec-boundary-consequence" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="sec-boundary-consequence"><span class="header-section-number">3.3</span> What this changes</h2>
+<p>The preregistered outcome is partial, and the informative half is the failure. A compressible residual exists for each geometry, so a learner has something small to produce; but the residual’s basis does not transfer, so the direction cannot be “a fixed basis with geometry-conditioned coefficients”. If it continues, the learner must be a geometry-to-operator map that produces a rank-r residual in component-local coordinates with explicit coupling blocks, with the principal part built in exactly, trained and graded in the energy pairing (where the residual is a sized object, 3–62% of the operator), with thin gaps and thin shells as the held-out family. The cheap next nonlearned test is a coordinate question, whether a curvature-indexed basis transfers better than a Fourier-indexed one, and it should precede any training. Two limits stand: no arclength-Fourier basis exists on 3D surfaces, so the principal part would have to be derived from the surface metric there; and nothing here touches Navier–Stokes, where the potential-flow prior already failed on separated cars.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

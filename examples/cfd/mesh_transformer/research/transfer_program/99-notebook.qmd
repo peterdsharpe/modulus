@@ -354,3 +354,23 @@ held out; the cheap next nonlearned test is whether a curvature-indexed
 basis transfers better than a Fourier-indexed one. Chapter
 @sec-boundary-response has the tables; figures
 `studies/boundary_response/fig_*.png`.
+
+## 2026-09-09 — Ops: DrivAerML volume filesystem stall; one campaign-A chain blocked by a truncated checkpoint {#sec-nb-ops-stall}
+
+Every lane reading the DrivAerML volume dataset (D1's six, campaign D's
+four, the main session's and the density track's interior lanes) stopped
+writing logs for about an hour from 13:42; DrivAerML surface and HiLift
+lanes were unaffected, so the stall was on that dataset's files, not the
+nodes. The chains carry a 3,600 s distributed timeout and resume from their
+last checkpoint, so the cost is lost minutes per lane, not results; the
+watchers report block markers so that two consecutive links failing with
+identical collective-timeout fingerprints are recognised as a stall and
+resubmitted, not read as a failure. Separately, campaign A's lane 28
+(`campA_hl_transolver_n35_d3_seed43`) blocked because a checkpoint written
+during the stall was truncated ("neither a valid zip nor tar archive"); the
+file was quarantined under the run's `checkpoints/quarantine/`, the block
+marker cleared, and the chain resubmitted (job 692786), resuming from the
+previous checkpoint at epoch 11. Campaign A's launch record: 72 chains,
+pilots accepted at epoch 100 after one hour, the 210-case rule corrected
+before launch because the pool is 180 geometries × 7 angles rather than
+126 × 10 (`studies/campaign_a_draws/PREREG.md` carries the correction).
