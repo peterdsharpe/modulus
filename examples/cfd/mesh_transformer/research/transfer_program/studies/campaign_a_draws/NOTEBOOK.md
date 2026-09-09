@@ -23,3 +23,24 @@ evaluation launcher `transfer/campaign_a_eval_aga.sbatch` writing to
 `hl_evals/<run_id>/`. Launch procedure: one pilot lane per arm, launch
 acceptance by a script-file watcher (log advances, no traceback, a `Loss:`
 line), then the remaining 68 lanes.
+
+## 2026-09-09 — Launched: 72 chains (camp-a-0..71)
+
+Draws built from the actual pool structure: `full_train` is 180 geometries
+× 7 angles (not 126 × 10 as first assumed; the rule for the 210-case draw
+was corrected before any lane ran and PREREG.md updated: every geometry
+once plus 30 second cases, 21 per angle). Draw summary
+(`campaign_a_summary.json`): 35-case draws have 35 geometries each and
+pairwise overlaps of 1, 1 and 0 cases; 210-case draws have 180 geometries
+each and pairwise overlaps of 36, 33 and 33 cases.
+
+Pilots (lanes 0, 3, 6, 9: unit-drive GeoTransolver, Transolver, ISLA,
+ISLA-noweights at 35 cases, draw 1, seed 42; jobs 691732–691735) accepted:
+at one hour all four were at epoch 100 of 500 with no error (per-GPU memory
+4.6 / 3.2 / 3.9 / 3.9 GB), so 35-case lanes take about five hours. The
+remaining 68 chains were then submitted (72 distinct camp-a-<lane> singleton
+names; 4 running, 68 pending at submission). Evaluation is submitted per
+trained lane by a watcher (`campaign_a_eval_aga.sbatch --array=<lane>`,
+short queue) and reduced by `reduce_campaign_a.py` into
+`$T/transfer/campaign_a_reduction.json`; the verdicts against PREREG.md are
+written here when the reduction covers all 72 runs.
