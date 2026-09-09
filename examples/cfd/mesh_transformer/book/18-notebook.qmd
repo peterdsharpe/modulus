@@ -9224,3 +9224,83 @@ change: UDRV fixed-angle lanes DONE.
 **Addendum (2026-09-09).** The fixed-angle lanes finished and freed four
 nodes; UDRV-L lanes 20–21 (GeoTransolver at 20,000 tokens, unit drive; jobs
 689091/689092) were submitted with the program at 28 nodes.
+
+## 2026-09-09 — Preregistered: QTDENS, does GeoTransolver-volume's eddy-viscosity lead come from reading the interior sample's density, and does an ISLA-native query-neighbour channel close the gap? {#sec-nb-qt-density-prereg}
+
+**Setting.** On the DrivAerML interior task ISLA's query-token
+configuration with the signed distance (the reference arm: about 365
+surface cells, 10,000 interior queries) scores 0.0567 / 0.0853 / 0.1215 on
+pressure / velocity / eddy viscosity ν_t against GeoTransolver-volume's
+0.0620 / 0.1334 / 0.0939 (48 validation cars, two-seed means;
+results/a35_v0_reduction_2026-09-09.json). The ν_t gap, 1.29x, survived
+surface-patch local features (@sec-nb-qt-lf-verdict), a width increase to
+256 (@sec-nb-qt-h256-verdict) and 27x more surface cells
+(@sec-nb-v0surf-verdict). GeoTransolver-volume's one remaining
+untransplanted ingredient is its local aggregation over *neighbouring
+interior points* at six radii. Two readings of what that ingredient
+supplies compete. The physical reading: near-wall flow structure that the
+global slice routing cannot resolve. The instrumental reading, raised by the
+audit (@sec-nb-audit-2026-09-08, item 7): DrivAerML's ν_t is a hybrid
+RANS/LES modelled viscosity tied to the local grid scale, the interior
+sample is drawn from the CFD volume mesh, so the local sampling density is a
+proxy for mesh scale and hence for the closure's filter length; a model
+that reads density reads the discretization, not the physics.
+
+**Arms** (two seeds each, 42 and 43; the frozen interior protocol: 435
+cars, 500 epochs, lr 1e-3, bf16, no augmentation, dataset
+`drivaer_ml_volume_mt` so the surface sample matches the reference arm's
+365 cells; code snapshot `code_qtdens` from branch isla-query-density;
+launcher v0/v0_qtdens_aga.sbatch):
+
+- *Density* (`v0_isla_qtsdf_dens_seed{42,43}`): the reference model plus
+  `query_density_feature=true`: each query token receives the number of
+  other queries within 0.05 gauge units (about 5% of the car's RMS radius),
+  entered as [log(1+c), log(1+c) − log n_queries]. This channel carries no
+  physics and no geometry beyond the sample's own spacing.
+- *Neighbours* (`v0_isla_qtsdf_nbr_seed{42,43}`): the reference model plus
+  `query_neighbor_features=true` (k = 16): the mean over the 16 nearest
+  other queries of the pair invariants {|Δr|, log|Δr|, Δr̂·n_q, Δr̂·d,
+  n_j·n_q, n_j·d, (s_j − s_q)/gauge} plus the 16th-neighbour distance and
+  its log. This is the ISLA-native transplant of GeoTransolver-volume's
+  query-to-query aggregation: relative geometry and wall-distance
+  differences of the neighbours, exactly equivariant, and it contains the
+  density information as well (the k-th neighbour distance).
+
+Both channels are exact invariants of the gauge-normalized query cloud
+(contract-tested: SE(3) covariance, drive degree one, measure-scale
+invariance, gauge scale equivariance; 56 ISLA tests pass), and both make
+the prediction depend on the query cloud, as the query-token mode already
+does (@sec-nb-qmass-verdict).
+
+**Bars, in readout units (ν_t, two-seed mean; GeoTransolver-volume
+0.0939).** The ν_t seed spread of this configuration is wide (h256 seeds
+0.1188 / 0.1169; 10,000-cell seeds 0.1101 / 0.1273), so the bars are the
+ones the width control used. An arm *closes the gap* if ν_t ≤ 0.1033
+(within 1.10x of GeoTransolver-volume); it *fails* if ν_t ≥ 0.1174 (at
+least 1.25x, the reference arm's 1.29x within noise); between,
+inconclusive. Pressure and velocity are reported alongside; a change of more
+than 5% in either (pressure outside 0.0539–0.0595, velocity outside
+0.0810–0.0896) is reported as an effect of the channel in its own right.
+
+**What each outcome means.**
+- Density closes the gap: GeoTransolver-volume's ν_t lead is, at least in
+  large part, a reading of the mesh scale through the sample density, not
+  of the flow; the book states the ν_t comparison as a discretization
+  artefact of the benchmark, the density channel is *not* adopted as a model
+  ingredient, and the interior ν_t metric is flagged as one that rewards
+  reading the mesh.
+- Neighbours close the gap and density does not: the missing ingredient is
+  neighbouring-point relative geometry (the physical reading); the channel
+  becomes a candidate for the successor configuration, with its query-cloud
+  dependence measured next.
+- Both close it: the two readings cannot be separated by this design; the
+  density result takes precedence in the interpretation (the cheaper
+  explanation), and a density-matched control (neighbour channel with the
+  distance features removed) is the next node.
+- Neither: the ν_t gap is not in the query-side inputs at this width and
+  depth; the remaining candidates are GeoTransolver-volume's effective width
+  448 and its multi-radius encoding, and the thread is deprioritized.
+
+**Scheduling.** Node QTDENS added (RUNNING), depends on QT-SDF and
+V0-SURF10K. Four GPU nodes at most; the density arm launches first, the
+neighbour arm when the program is at or below 30 nodes.
