@@ -230,7 +230,7 @@ ul.task-list li input[type="checkbox"] {
   POFF["C1 pressure-offset vs spatial-error diagnostic&lt;br/&gt;(DrivAerML→SHIFT-SUV fastback, eval-only)&lt;br/&gt;DONE - spatial: offset share 1.5-2.6% / 3.0-3.2%; force error 1.6x / 1.4x"]:::done
   SNORM["C2 source-only normalization audit&lt;br/&gt;DONE - source-only in effect; wall-shear constant flagged"]:::done
   PAIR["C3 paired physical-condition control&lt;br/&gt;(same geometry, one condition changed; exact potential flow)&lt;br/&gt;RUNNING"]:::running
-  SUPP["D1 computational support with passive readout&lt;br/&gt;(depth- and input-matched; DrivAerML volume)&lt;br/&gt;RUNNING - code and preregistration; lanes wait on node budget"]:::running
+  SUPP["D1 computational support with passive readout&lt;br/&gt;(depth- and input-matched; DrivAerML volume)&lt;br/&gt;RUNNING - six lanes training (SUPPORT-12, PASSIVE-12, SUPPORT-4 x 2 seeds)"]:::running
   RESP["D2 boundary-response rank and basis transfer&lt;br/&gt;(2D Laplace, nonlearned gate)&lt;br/&gt;RUNNING"]:::running
   COMP["D3 local-response composition&lt;br/&gt;(2D diffusion ports, nonlearned gate)&lt;br/&gt;DONE - not worth it as proposed: smooth-mode errors amplify 4-30x; hybrid survives"]:::done
   SOLV["D4 solver correction-space transfer&lt;br/&gt;(2D FEM, nonlearned probe)&lt;br/&gt;DONE - stops: geometric coarse grid wins everywhere"]:::done
@@ -298,7 +298,7 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="even">
 <td>D1</td>
-<td>RUNNING (code)</td>
+<td>RUNNING (lanes)</td>
 <td>Does a problem-derived computational support with passive readout keep the interacting configuration’s interior accuracy while making output batching immaterial?</td>
 <td>C1, C2; node budget from the main program</td>
 <td>Pressure, velocity, eddy viscosity within 3% of the interacting arm at matched depth and inputs; zero structural query dependence; bf16 drift within a measured floor</td>

@@ -269,3 +269,15 @@ which uses the normalized readout with 12 read blocks and the SDF scalar,
 bounds how much of the 2.6x was readout and depth rather than passivity;
 the main session has asked for this note to attach a caveat to that figure
 once the arm reports.
+
+**Launch acceptance (addendum).** SUPPORT-12 steps at 0.52 s and 10.8 GB
+per GPU and SUPPORT-4 at 0.46 s and 7.1 GB (the QT+SDF reference: 0.28 s,
+6.3 GB), both at epoch 3–4 within the first hour; the cost readout is
+therefore already known to be 1.6–1.9x the reference's step time. The two
+PASSIVE-12 chains blocked at model construction: with `support_tokens=false`
+the model rejects `query_mass=source_total` (the option needs interacting
+query or support tokens), so the override `model.query_mass=geometric_mean`
+was added to that arm (inert without interacting tokens), the block markers
+were cleared and the chains resubmitted (jobs 691370/691371). The
+preregistration is unchanged by this: the arm's definition never involved
+a query mass.
