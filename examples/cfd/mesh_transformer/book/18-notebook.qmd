@@ -9224,3 +9224,46 @@ change: UDRV fixed-angle lanes DONE.
 **Addendum (2026-09-09).** The fixed-angle lanes finished and freed four
 nodes; UDRV-L lanes 20–21 (GeoTransolver at 20,000 tokens, unit drive; jobs
 689091/689092) were submitted with the program at 28 nodes.
+
+## 2026-09-09 — Preregistered: MEAS-METRIC, are ISLA's measure weights costing accuracy because the model fits the area measure while the metric scores points? {#sec-nb-measure-metric-prereg}
+
+**Setting.** ISLA weights each surface point by its cell area in the slice
+routing softmax (`use_measure_weights`), so slice states are quadrature
+means over the surface measure. The book's pressure metric is the per-point
+relative L2 over the 10,000 sampled cells, in which every point counts
+equally. Turning the weights off improved the 35-case HiLift error from
+0.138 to 0.122 (0.88x; @sec-mechanism), a gain the book reads as removed
+gradient variance under uniform sampling. That gain is as large as ISLA's
+whole deficit to the unit-drive GeoTransolver (0.124), so the reading
+matters. A second reading: the weighted model is optimized for a different
+functional than the one it is scored on. On a CFD surface mesh the cells
+are far from uniform (fine on the wing, coarse on the fuselage), so the
+area-weighted model concentrates capacity on the coarse cells, and the
+per-point metric penalizes it exactly where the wing's fine cells are dense.
+
+**Instrument (eval-only).** From the saved predictions of the 35-case arms
+(ISLA weighted, three seeds; ISLA without measure weights, two seeds;
+unit-drive GeoTransolver and Transolver, two seeds each; the physical-drive
+baselines for reference) and the saved cell measure weights, compute per
+case both the uniform relative L2 and the *area-weighted* relative L2,
+sqrt(Σ w e² / Σ w t²), with seed-mean predictions; report per-arm means
+under both metrics, paired per-case ratios, and the share of each model's
+squared error on the finer half of the cells.
+
+**Bars, in readout units.** Let R_u = mean error of the unweighted ISLA ÷
+weighted ISLA under the uniform metric (0.88 from the reductions) and R_w
+the same ratio under the area-weighted metric. *Measure–metric mismatch
+supported* if R_w ≥ 0.97 (the unweighted model's 12% advantage shrinks to
+within seed spread or reverses when the metric adopts the model's measure).
+*Falsified* if R_w ≤ 0.91 (the advantage is essentially unchanged: the
+weights are a cost under either measure, i.e. variance or a worse
+optimization target). Between: partial. Consequence if supported: the fix is
+to route with weights tempered toward uniform, w^α with α ∈ {0, 0.5, 1}
+trained at 35 and 210 HiLift cases and on DrivAerML (the α ladder,
+preregistered separately), and the book gains a rule that the routing
+measure must match the scored measure. If falsified: the weights are
+dropped from the reference configuration for accuracy runs and kept only
+where density robustness is the target, and the book's variance reading
+stands. Either way the unit-drive baselines are reported under both metrics
+alongside, since a metric change that moves ISLA must be applied to them
+too.
