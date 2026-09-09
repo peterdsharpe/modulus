@@ -178,6 +178,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#sec-nb-d3-verdict" id="toc-sec-nb-d3-verdict" class="nav-link" data-scroll-target="#sec-nb-d3-verdict">2026-09-09 — Verdict: D3 not worth a learner as proposed — smooth-mode local errors are amplified 4–30x by the interface solve and grids grow superlinearly; the surviving form is a hybrid with exact low modes</a></li>
   <li><a href="#sec-nb-d1-launch" id="toc-sec-nb-d1-launch" class="nav-link" data-scroll-target="#sec-nb-d1-launch">2026-09-09 — D1 launched: six lanes for computational support with a depth-matched passive readout</a></li>
   <li><a href="#sec-nb-passive-clamp" id="toc-sec-nb-passive-clamp" class="nav-link" data-scroll-target="#sec-nb-passive-clamp">2026-09-09 — Finding while building D1: the legacy passive kernel readout clamps the kernel mass, so far-from-surface queries scale with the absolute source weights</a></li>
+  <li><a href="#sec-nb-campaign" id="toc-sec-nb-campaign" class="nav-link" data-scroll-target="#sec-nb-campaign">2026-09-09 — Campaign: Peter opened the node budget (367 idle nodes); five preregistered studies launched or delegated</a></li>
   </ul>
 </nav>
     </div>
@@ -330,6 +331,61 @@ ul.task-list li input[type="checkbox"] {
 <section id="sec-nb-passive-clamp" class="level2">
 <h2 class="anchored" data-anchor-id="sec-nb-passive-clamp">2026-09-09 — Finding while building D1: the legacy passive kernel readout clamps the kernel mass, so far-from-surface queries scale with the absolute source weights</h2>
 <p>In <code>physicsnemo/experimental/nn/isla/model.py</code>, the passive decoder’s local token readout <code>_kernel_readout(q_r, src_r, src_h, src_w, rho, eps)</code> (called from <code>_ReadBlock.forward</code> when <code>src_h</code> is given, with <code>rho = local_readout_rho</code>, default 0.02 in gauge-normalized coordinates) computes <code>k = exp(-d²/ρ²) · w</code> and divides by <code>mass = k.sum(-1).clamp_min(eps)</code>. For a query farther than a few ρ from every source point the true mass is below <code>eps = 1e-12</code>, the clamp replaces it, and the readout becomes <code>Σ k h / eps</code>, which scales with the absolute source weights instead of being a weighted mean: in the D1 track’s test a 4.2x rescale of the source weights moved the legacy passive output by 0.16 in relative norm at such queries. With ρ = 0.02 and interior queries whose median wall distance is about 5 mm on a 4 m car (below ρ in gauge units) most queries are inside the kernel’s reach, but the far tail of the interior sample is not, so the legacy passive arm’s 2.6x pressure deficit (program book, interior chapter) includes a contribution from this readout regime that the arm’s measure-scale contract test did not exercise. The legacy path is left bitwise unchanged so trained checkpoints reproduce; the support path uses an exactly normalized log-space form (softmax over sources with logits −d²/ρ² + log w), identical where the mass is not tiny. The PASSIVE-12 arm, which uses the normalized readout with 12 read blocks and the SDF scalar, bounds how much of the 2.6x was readout and depth rather than passivity; the main session has asked for this note to attach a caveat to that figure once the arm reports.</p>
+<p><strong>Launch acceptance (addendum).</strong> SUPPORT-12 steps at 0.52 s and 10.8 GB per GPU and SUPPORT-4 at 0.46 s and 7.1 GB (the QT+SDF reference: 0.28 s, 6.3 GB), both at epoch 3–4 within the first hour; the cost readout is therefore already known to be 1.6–1.9x the reference’s step time. The two PASSIVE-12 chains blocked at model construction: with <code>support_tokens=false</code> the model rejects <code>query_mass=source_total</code> (the option needs interacting query or support tokens), so the override <code>model.query_mass=geometric_mean</code> was added to that arm (inert without interacting tokens), the block markers were cleared and the chains resubmitted (jobs 691370/691371). The preregistration is unchanged by this: the arm’s definition never involved a query mass.</p>
+</section>
+<section id="sec-nb-campaign" class="level2">
+<h2 class="anchored" data-anchor-id="sec-nb-campaign">2026-09-09 — Campaign: Peter opened the node budget (367 idle nodes); five preregistered studies launched or delegated</h2>
+<p><strong>Decision.</strong> The 32-node ceiling was this program’s default, not a constraint of the cluster. With Peter’s authorization the following run in parallel, each with its own preregistration written before launch, its own job-name prefix, lane table and launcher under <code>$T/transfer/</code>, and its own recipe copy (<code>$T/recipe_support</code>) so the main program’s frozen recipe and lane tables are untouched. De-duplicated with the main session: the canonical-frame unit-drive GeoTransolver and Transolver references on DrivAerML are the main session’s (<code>uw_*</code>) and are read, not rerun; its WAVE-3 (weights-off ISLA on the higher rungs, unit-drive Transolver on the rungs it lacked, third seeds, learning-rate steel-men) is complementary.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>campaign</th>
+<th>question</th>
+<th>lanes</th>
+<th>owner</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>A, draws</td>
+<td>Data-draw variance of every HiLift comparison: unit-drive GeoTransolver, Transolver, ISLA and ISLA-without-weights at 35 and 210 cases on three independent geometry-stratified draws × three seeds (the curated split kept as a fourth draw)</td>
+<td>72</td>
+<td>agent; <code>studies/campaign_a_draws/</code></td>
+</tr>
+<tr class="even">
+<td>B, pose</td>
+<td>POSE-BENCH: DrivAerML surface with a per-case random SO(3) pose for train and validation; GeoTransolver and Transolver with SO(3) augmentation at unit drive; ISLA as is</td>
+<td>6–8</td>
+<td>agent; <code>studies/campaign_b_pose/</code></td>
+</tr>
+<tr class="odd">
+<td>C, transfer</td>
+<td>Fastback shift: complete conditioning (dataset-condition input vs none), matched-count diversity (435 single- vs mixed-family), few-shot adaptation (fine-tune vs scratch on 20 cases), field and force error, geometry as unit</td>
+<td>~20</td>
+<td>agent; <code>studies/campaign_c_transfer/</code></td>
+</tr>
+<tr class="even">
+<td>D, interior carriers</td>
+<td>ISLA QT+SDF at hidden 344 (27.6M parameters, matched to GeoTransolver-volume) and GeoTransolver-volume without its six-radius local features, unit drive, two seeds each</td>
+<td>4</td>
+<td>this session; jobs 691717–691720, names v0m-0..3</td>
+</tr>
+<tr class="odd">
+<td>E, eval-only</td>
+<td>Unit-drive GeoTransolver under the 10:1 density-bias probe (ISLA’s remaining robustness claim against a fair baseline); pressure-from-velocity Poisson test on saved volume predictions</td>
+<td>0</td>
+<td>this session; E waits for the <code>uw_*</code> checkpoints</td>
+</tr>
+</tbody>
+</table>
+<p><strong>D, preregistered bars</strong> (readout: 48-car relative L2, two-seed means; references: unit-drive GeoTransolver-volume 0.0617 / 0.1310 / 0.0936, QT+SDF 0.0572 / 0.0848 / 0.1187 at 10,000 cells; the D lanes read the frozen volume dataset <code>drivaer_ml_volume_mt</code>, i.e.&nbsp;about 365 surface cells for the ISLA arm as every existing interior ISLA arm did, which V0-SURF10K showed changes nothing within 3%). <em>Local features carry the eddy-viscosity lead</em> if GeoTransolver-volume without them scores ν_t ≥ 0.103 (10% worse); <em>they do not</em> if within 3% (≤ 0.0964); pressure and velocity reported alongside (if they also degrade ≥ 10%, the features are a general capacity carrier, not a ν_t-specific one). <em>Parameters carry ISLA’s ν_t deficit</em> if QT+SDF at hidden 344 reaches ν_t ≤ 1.10x GeoTransolver-volume (≤ 0.103); <em>falsified</em> if ≥ 1.25x (≥ 0.117), which is where hidden 256 landed (0.118, <span class="quarto-unresolved-ref">?sec-nb-qt-h256-verdict</span> of the program book); pressure and velocity changes above 5% are reported as width effects. Cost (step time, memory) is recorded from the logs; the hidden-344 arm runs with the exact activation recompute.</p>
+<p><strong>Scheduling.</strong> Program total after both waves: about 130 nodes for this program plus about 66 for the main session’s WAVE-3, within the 367 idle. Tech-tree nodes CAMP-A/B/C/D/E added, RUNNING (E READY).</p>
 
 
 </section>

@@ -314,8 +314,8 @@ do not* if within 3% (≤ 0.0964); pressure and velocity reported alongside
 (if they also degrade ≥ 10%, the features are a general capacity carrier,
 not a ν_t-specific one). *Parameters carry ISLA's ν_t deficit* if
 QT+SDF at hidden 344 reaches ν_t ≤ 1.10x GeoTransolver-volume (≤ 0.103);
-*falsified* if ≥ 1.25x (≥ 0.117), which is where hidden 256 landed (0.118,
-@sec-nb-qt-h256-verdict of the program book); pressure and velocity changes
+*falsified* if ≥ 1.25x (≥ 0.117), which is where hidden 256 landed (0.118, the
+program book's width-control verdict of 2026-09-08); pressure and velocity changes
 above 5% are reported as width effects. Cost (step time, memory) is
 recorded from the logs; the hidden-344 arm runs with the exact activation
 recompute.

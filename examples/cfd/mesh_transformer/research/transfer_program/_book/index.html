@@ -234,7 +234,12 @@ ul.task-list li input[type="checkbox"] {
   RESP["D2 boundary-response rank and basis transfer&lt;br/&gt;(2D Laplace, nonlearned gate)&lt;br/&gt;RUNNING"]:::running
   COMP["D3 local-response composition&lt;br/&gt;(2D diffusion ports, nonlearned gate)&lt;br/&gt;DONE - not worth it as proposed: smooth-mode errors amplify 4-30x; hybrid survives"]:::done
   SOLV["D4 solver correction-space transfer&lt;br/&gt;(2D FEM, nonlearned probe)&lt;br/&gt;DONE - stops: geometric coarse grid wins everywhere"]:::done
-  CLASS["L classical-solver review → new hypotheses&lt;br/&gt;RUNNING"]:::running
+  CLASS["L classical-solver review → new hypotheses&lt;br/&gt;DONE - inventory of 13 ingredients, 7 hypotheses with falsifiers"]:::done
+  CAMPA["Campaign A: data-draw variance, HiLift 35/210 × 3 draws × 3 seeds × 4 arms&lt;br/&gt;RUNNING - 72 lanes"]:::running
+  CAMPB["Campaign B: POSE-BENCH, DrivAerML random SO(3) poses&lt;br/&gt;RUNNING - 6-8 lanes"]:::running
+  CAMPC["Campaign C: fastback transfer (conditioning, diversity, few-shot)&lt;br/&gt;RUNNING - ~20 lanes"]:::running
+  CAMPD["Campaign D: interior carriers (ISLA h344; GT-volume without local features)&lt;br/&gt;RUNNING - 4 lanes"]:::running
+  CAMPE["Campaign E: eval-only (unit-drive GT density probe; Poisson pressure)&lt;br/&gt;READY - waits for uw_* checkpoints"]:::ready
   AUDIT --&gt; POFF
   AUDIT --&gt; SNORM
   AUDIT --&gt; PAIR
@@ -246,6 +251,11 @@ ul.task-list li input[type="checkbox"] {
   RESP --&gt; COMP
   CLASS --&gt; SUPP
   CLASS --&gt; SOLV
+  POFF --&gt; CAMPC
+  SNORM --&gt; CAMPA
+  CLASS --&gt; CAMPE
+  SUPP --&gt; CAMPD
+  AUDIT --&gt; CAMPB
 </pre>
 </div>
 <p></p></figure><p></p>
@@ -330,11 +340,51 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="even">
 <td>L</td>
-<td>RUNNING</td>
+<td>DONE</td>
 <td>What do classical solvers do that learned surrogates do not, and which of those mechanisms can be learned or transferred?</td>
 <td>AUDIT</td>
 <td>A ranked list of mechanisms each with a falsifiable experiment</td>
-<td>pending</td>
+<td><a href="06-classical-solvers.html" class="quarto-xref"><span>6&nbsp; What classical solvers do that surrogates do not</span></a>: thirteen ingredients, seven hypotheses ordered by information per cost</td>
+</tr>
+<tr class="odd">
+<td>CAMP-A</td>
+<td>RUNNING</td>
+<td>Data-draw variance of every HiLift comparison (unit-drive GT, Transolver, ISLA, ISLA-noweights at 35 and 210 cases; 3 draws × 3 seeds).</td>
+<td>C2; node budget</td>
+<td>Draw-wise 90% intervals of baseline ÷ ISLA; noweights gain persists if ≤ 0.93 on all draws.</td>
+<td><a href="99-notebook.html#sec-nb-campaign" class="quarto-xref"><span>2026-09-09 — Campaign: Peter opened the node budget (367 idle nodes); five preregistered studies launched or delegated</span></a>; studies/campaign_a_draws</td>
+</tr>
+<tr class="even">
+<td>CAMP-B</td>
+<td>RUNNING</td>
+<td>POSE-BENCH: does exact equivariance earn accuracy where pose varies?</td>
+<td>AUDIT; uw_* canonical references (main session)</td>
+<td>Baselines +≥ 10% posed vs canonical and ISLA ≤ 3% and ISLA leads by ≥ 5% → earns; baselines within 3% → augmentation suffices.</td>
+<td><a href="99-notebook.html#sec-nb-campaign" class="quarto-xref"><span>2026-09-09 — Campaign: Peter opened the node budget (367 idle nodes); five preregistered studies launched or delegated</span></a>; studies/campaign_b_pose</td>
+</tr>
+<tr class="odd">
+<td>CAMP-C</td>
+<td>RUNNING</td>
+<td>Fastback shift: conditioning, matched-count diversity, few-shot adaptation (field and force error, geometry as unit).</td>
+<td>C1</td>
+<td>Conditioning matters at ≥ 15% fastback improvement; diversity helps at ≥ 30% with ≤ 10% in-family cost; adaptation credible at ≤ 0.15 with 20 labels and ≥ 2x over scratch.</td>
+<td><a href="99-notebook.html#sec-nb-campaign" class="quarto-xref"><span>2026-09-09 — Campaign: Peter opened the node budget (367 idle nodes); five preregistered studies launched or delegated</span></a>; studies/campaign_c_transfer</td>
+</tr>
+<tr class="even">
+<td>CAMP-D</td>
+<td>RUNNING</td>
+<td>Interior eddy-viscosity carrier from both sides: ISLA QT+SDF at 27.6M params; GT-volume without local features.</td>
+<td>D1</td>
+<td>GT-volume ν_t ≥ 0.103 without local features → they carry the lead; ISLA h344 ν_t ≤ 0.103 → parameters carry the deficit; ≥ 0.117 falsified.</td>
+<td><a href="99-notebook.html#sec-nb-campaign" class="quarto-xref"><span>2026-09-09 — Campaign: Peter opened the node budget (367 idle nodes); five preregistered studies launched or delegated</span></a></td>
+</tr>
+<tr class="odd">
+<td>CAMP-E</td>
+<td>READY</td>
+<td>Unit-drive GeoTransolver under the 10:1 density-bias probe; pressure-from-velocity Poisson test.</td>
+<td>uw_* checkpoints (main session); saved volume predictions</td>
+<td>Density: GT unit degradation factor vs ISLA gauge 1.20x; Poisson: pressure from predicted velocity vs directly predicted pressure.</td>
+<td><a href="99-notebook.html#sec-nb-campaign" class="quarto-xref"><span>2026-09-09 — Campaign: Peter opened the node budget (367 idle nodes); five preregistered studies launched or delegated</span></a></td>
 </tr>
 </tbody>
 </table>
