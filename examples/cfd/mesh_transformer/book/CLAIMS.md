@@ -880,3 +880,9 @@ interior control @sec-nb-udrv-int-prereg.
   4 training geometries: ratio 0.76 by the mean; per case 96/180, per geometry 9/18 (median 1.03,
   10–90% 0.78–2.06). Write "ISLA behind by the mean, even by geometry"; the 1.8x is
   physical-drive only. Never write that ISLA generalizes across geometries from few samples.
+- **Passive-decode caveat (2026-09-09, transfer-program fork).** The legacy passive readout
+  (`_kernel_readout`, mass clamped at eps, rho = local_readout_rho = 0.02 gauge units) makes
+  queries far from every source scale with absolute source weights (a 4.2x weight rescale moved
+  the legacy passive output by 0.16 in relative norm at such queries). The 2.6x passive-decode
+  figure was measured with that readout; quote it as "as built", and point to the D1 arms
+  (research/transfer_program, #sec-nb-passive-clamp) for the normalized-readout comparison.
