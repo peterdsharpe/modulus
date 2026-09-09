@@ -8610,3 +8610,20 @@ width, closes the gap. The 10,000-surface-cell rerun (V0-SURF10K,
 @sec-nb-v0surf-prereg) takes precedence over a further width ladder, since
 it tests whether the surface information ISLA was designed around was
 ever in play on this task.
+
+## 2026-09-08 — Launched: V0-SURF10K (query tokens + SDF with 10,000 vehicle cells), and the width control closed {#sec-nb-v0surf-launch}
+
+**Scheduling decision.** The width control (QT-SDF-h256) is DONE and
+falsified (@sec-nb-qt-h256-verdict), so the eddy-viscosity thread's next
+node would be query-to-query aggregation; it is deferred behind V0-SURF10K
+(@sec-nb-v0surf-prereg), which tests whether the surface sample the interior
+chapter was designed around changes any interior number at all. Two chains
+`v0_isla_qtsdf_surf10k_seed{42,43}` (jobs 684511/684512, launcher
+v0/v0_surf10k_aga.sbatch) run from a fresh code snapshot `code_isla4`
+(966966f40, the merged audit-response branch, which adds the reader's
+`boundary_subsample` option) with a dataset variant
+`drivaer_ml_volume_mt10k` that differs from the frozen volume dataset only
+in `boundary_subsample: cells`; every model flag equals the QT-SDF arm's.
+Evaluation via v0/v0_surf10k_eval_aga.sbatch; reduction arm
+`isla_qtsdf_surf10k`. Tech-tree changes: QT-SDF-h256 RUNNING → DONE
+(falsified); V0-SURF10K READY → RUNNING.
