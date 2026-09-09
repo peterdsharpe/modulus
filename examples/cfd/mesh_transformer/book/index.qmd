@@ -16,104 +16,106 @@ checked-in artifact.
 
 ## The verdict {#sec-verdict}
 
-**ISLA is a large improvement over GeoTransolver in one regime, scarce
-training data on a family of multi-element wing geometries; elsewhere it
-ranges from parity to 1.3x behind, and it is not a new capability.** That
-sentence is the whole book, and every chapter either supports one clause of
-it or bounds it.
+**ISLA has no measured accuracy advantage over GeoTransolver or plain
+Transolver once every model receives the freestream at the same unit
+scale; the 2.8x small-data advantage this program reported on HiLiftAeroML
+was an artifact of the comparison protocol, and what ISLA contributes is a
+set of exact contracts and an interior configuration whose lead is still
+under the same control.** That sentence is the whole book, and every chapter
+either supports one clause of it or bounds it.
 
-The regime where it wins is practically important. On HiLiftAeroML, with
-35 CFD runs, ISLA's surface-pressure error is 2.8x lower than
-GeoTransolver's and than plain Transolver's. Read horizontally, the same
-curves say GeoTransolver needs about six times as many training cases to
-reach the accuracy ISLA reaches from 35, and plain Transolver about twice as
-many as ISLA at the 0.09 error level (@sec-de-result). In engineering terms, from 35 CFD runs ISLA predicts lift
-and drag coefficients of unseen configurations to about 3%, where the
-baselines reach 8–17% (errors against the label integrated on the same
-10,000 sampled cells, not against the full-surface force; @sec-de-forces);
-at a fixed angle of attack, 126 training geometries give ISLA lift to 0.6%
-on the same terms and a 5.0x advantage over GeoTransolver on 18 validation
-geometries never seen at any angle. The advantage holds on every one of the
-180 shared validation cases at 35 cases, on geometries never seen in
-training, and after every
-steel-man control constructed for the baselines (higher learning rate,
-doubled epochs, a third seed, the same attention family without a geometry
-encoder). What ISLA does with few samples is generalize across wing
-geometries; GeoTransolver does not turn additional training geometries into
-accuracy until it has hundreds of them.
+The artifact, and how it was found. Every surface comparison fed ISLA the
+unit freestream direction and fed GeoTransolver and Transolver the physical
+freestream velocity, 2679.5 in/s on HiLiftAeroML, because the recipe
+nondimensionalizes fields and coordinates but not that global input. An
+independent audit noticed the asymmetry and showed that GeoTransolver's
+global-context projector, untrained, collapses from about 200 occupied
+slices per head at unit magnitude to one slice at the HiLift magnitude
+(@sec-part-baseline). The preregistered control retrained both baselines with
+the unit direction, changing nothing else. At 35 training cases
+GeoTransolver's surface-pressure error fell from 0.381 to 0.124 and
+Transolver's from 0.404 to 0.115; ISLA's is 0.138. Both baselines are now
+more accurate than ISLA, on 130 and 152 of the 180 validation cases, by 1.1x
+and 1.2x (@sec-de-unit-drive). Every steel-man control run for the baselines
+before that (higher learning rate, doubled epochs, a third seed, the same
+attention family without a geometry encoder) had kept the input and could not
+find it.
 
-Three facts bound it. The multiplier shrinks with data: 2.2x at 210 cases,
-parity at 1,260, and a naive power-law extrapolation of the two curves
-favours GeoTransolver by two at 5,000 cases. It does not transfer to
-DrivAerML, whose geometries are smooth morphs of one car: there GeoTransolver
-is 1.2–1.3x more accurate from 27 training cases up and 8.5% more accurate at
-full data, and the ingredient of ISLA that makes the difference between the
-two datasets has not been isolated. And part of the 2.8x is GeoTransolver's
-weakness rather than ISLA's strength: plain Transolver beats GeoTransolver at
-210 cases, so against the strongest same-family baseline ISLA's margin there
-is 1.3x.
-
-What ISLA adds beyond accuracy is contracts and cost: rotation and
-translation covariance exact by algebraic construction (the finite-precision
-residual of the bf16 training path is a measured quantity, @sec-mt2-contracts),
-stable training across a decade of learning rate where GeoTransolver degrades
-4–14x, and, on one GPU with one instrument, 1.6 GiB of peak training
-memory at 10,000 tokens for its current code against GeoTransolver's
-4.1 GiB; the ISLA checkpoints behind this book's accuracy numbers were
-trained with an earlier version of the code that peaked at 9.3 GiB, and
-ISLA's training step is 3.7x slower (@sec-cost). One architecture
-covers both tasks: with its interior queries admitted as interacting tokens
-and given the signed distance to the wall, ISLA is more accurate than
-GeoTransolver's 27.6M-parameter volume configuration on interior pressure
-(0.057 against 0.062) and velocity (0.085 against 0.133) at 8.9M parameters,
-and less accurate on eddy viscosity (0.122 against 0.094); below full data it
-leads on velocity and trails within 6–11% on pressure. The passive,
-query-independent interior decode is 2.6x behind on pressure; that is the
-cost of the complete passive configuration as built (a separate read
-decoder, no signed-distance input), not a measured price of query
-independence alone (@sec-interior-results). Where nothing leads is regime
-extrapolation: across an
+What stands, and what waits. On DrivAerML, where GeoTransolver also received
+the physical velocity (38.9 m/s) and still led ISLA by 1.2–1.3x from 27 cars
+up, the ordering can only move further in GeoTransolver's favour. The HiLift
+rungs above 35 cases (210 and 1,260 cases, 4 and 21 training geometries, the
+fixed angle) were measured against physical-drive baselines and are being
+re-measured with unit-drive baselines (@sec-program-status); until they land,
+the 2.2x, the unseen-geometry factors and the 5.0x fixed-angle figure are
+measurements of a mis-scaled protocol, not comparisons, and the prediction
+written before the rerun is that the baselines match or beat ISLA at every
+rung. The regime-extrapolation result stands as it was: across an
 angle-of-attack or stall boundary every architecture tested loses about a
 factor of ten, so coverage, not architecture, governs that axis.
 
+What ISLA adds is contracts and one configuration. Rotation and translation
+covariance are exact by algebraic construction (the finite-precision residual
+of the bf16 training path is a measured quantity, @sec-mt2-contracts), and
+training is stable across a decade of learning rate where GeoTransolver
+degrades 4–14x. On the interior task, with its queries admitted as
+interacting tokens and given the signed distance to the wall, ISLA is more
+accurate than GeoTransolver's 27.6M-parameter volume configuration on
+interior pressure (0.057 against 0.062) and velocity (0.085 against 0.133) at
+8.9M parameters and less accurate on eddy viscosity (0.122 against 0.094);
+that lead holds only when at least the training count of 10,000 points is
+queried together (@sec-interior-companion), was obtained with about 365
+surface tokens rather than the intended 10,000 (@sec-interior-task), and
+GeoTransolver-volume also received the physical velocity, so the same control
+is running there (UDRV-INT, @sec-program-status). The passive,
+query-independent decode is 2.6x behind on pressure as built. Cost: on one
+GPU and one instrument ISLA's current code peaks at 1.6 GiB of training
+memory against GeoTransolver's 4.1 GiB, the code that trained the checkpoints
+peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
+
 | Setting | Standing | Measured |
 |---|---|---|
-| HiLift surface, 35 cases | ISLA far ahead | 2.8x vs both baselines; 180/180 cases; forces 3% vs 8–17% against sampled-cell label integrals |
-| HiLift surface, 210 cases | ISLA ahead | 2.2x vs GeoTransolver, 1.3x vs Transolver |
-| HiLift, never-seen geometries (18 validation geometries) | ISLA ahead | 1.4–1.8x mixed angle; 5.0x at a fixed angle |
-| HiLift surface, 1,260 cases | Parity | GeoTransolver/ISLA 1.02 |
-| DrivAerML surface, 27–435 cars | ISLA behind | GeoTransolver 1.2–1.3x ahead; 8.5% at full data |
-| DrivAerML interior, 435 cars | ISLA ahead on pressure, velocity; behind on eddy viscosity; advantage tied to querying ≥10,000 points together | 0.91x / 0.64x / 1.29x at a third of the parameters; pressure error 0.062 → 0.110 when 1,000 points are queried alone |
-| DrivAerML interior, 54–109 cars | Mixed | pressure 1.06–1.11x behind, velocity ahead, eddy viscosity 1.45x behind |
+| HiLift surface, 35 cases, unit-drive baselines | ISLA behind | GeoTransolver 0.124 and Transolver 0.115 vs ISLA 0.138 (0.90x, 0.83x); baselines lower on 130 and 152 of 180 cases |
+| HiLift surface, 35 cases, physical-drive baselines | Protocol artifact | 2.8x "advantage"; baselines 3.4–3.8x worse than their unit-drive selves on 180/180 cases |
+| HiLift surface, 210 and 1,260 cases; never-seen geometries; fixed angle | Not yet compared | 2.2x, parity, 1.4–1.8x and 5.0x against physical-drive baselines only; unit-drive rerun training |
+| DrivAerML surface, 27–435 cars | ISLA behind | GeoTransolver 1.2–1.3x ahead with the physical drive; a lower bound on its lead |
+| DrivAerML interior, 435 cars | ISLA ahead on pressure, velocity; behind on eddy viscosity; conditional | 0.91x / 0.64x / 1.29x at a third of the parameters; only at ≥10,000 queries together; ~365 surface tokens; GeoTransolver-volume's unit-drive control running |
+| DrivAerML interior, 54–109 cars | Mixed, same conditions | pressure 1.06–1.11x behind, velocity ahead, eddy viscosity 1.45x behind |
 | Regime extrapolation | Nobody wins | both lose about 10x |
 | Contracts and cost | Mixed | SE(3) covariance by construction; learning-rate robust; memory 1.6 vs 4.1 GiB for the current code, 9.3 GiB as trained; step 3.7x slower |
 
 : The standing of ISLA against GeoTransolver in every setting measured, as
 baseline error divided by ISLA error where a ratio is given (above one
-favours ISLA). Each row's protocol, seeds, statistics and artifact are in
-the chapter that owns it: @sec-data-efficiency (HiLift rows), @sec-full-data
-(parity, DrivAerML surface, regime extrapolation, contracts),
-@sec-interior (interior rows). {#tbl-verdict}
+favours ISLA). "Unit-drive" and "physical-drive" name what the baselines
+received as the freestream input; only unit-drive rows are valid
+comparisons. Each row's protocol, seeds, statistics and artifact are in the
+chapter that owns it: @sec-data-efficiency (HiLift rows), @sec-full-data
+(DrivAerML surface, regime extrapolation, contracts), @sec-interior
+(interior rows). {#tbl-verdict}
 
 ## The result in one picture
 
 ```{python}
 #| label: fig-headline
 #| fig-cap: >
-#|   Data efficiency on HiLiftAeroML. Surface-pressure relative L2 error on
-#|   the shared 180-case validation set versus number of training cases, for
-#|   GeoTransolver (red circles), ISLA (blue squares) and plain
-#|   Transolver (grey triangles, dashed). Lines join seed means; bands span
-#|   the seeds; annotated factors are each baseline's error divided by ISLA's
-#|   at the same rung (above one favours ISLA). Protocol: 10,000 sampled surface
-#|   points per case, 500 epochs, bfloat16, no augmentation, each architecture
-#|   at its best learning rate, three seeds at 35 and 210 cases and two at
-#|   1,260, final-epoch checkpoints, validation set; the test split is sealed. The full figure, the
-#|   paired per-case statistics, the force-coefficient errors and the controls
-#|   are in @sec-data-efficiency. It does not show scaling beyond 1,260 cases
-#|   (@sec-limits). Data: results/hilift_ladder_reduction_2026-09-03.json,
+#|   The headline and its correction. Surface-pressure relative L2 error on
+#|   the shared 180-case HiLiftAeroML validation set versus number of training
+#|   cases, for GeoTransolver (red circles), ISLA (blue squares) and plain
+#|   Transolver (grey triangles, dashed), as trained under the frozen protocol
+#|   in which the baselines received the freestream as a physical velocity
+#|   (2679.5 in/s) and ISLA as a unit direction. The open markers at 35 cases
+#|   are the same baselines retrained with the unit direction and nothing else
+#|   changed: both fall below ISLA. Lines join seed means; bands span the
+#|   seeds; the factors are each baseline's error divided by ISLA's (above one
+#|   favours ISLA). The higher rungs' unit-drive reruns are training
+#|   (@sec-program-status). Protocol: 10,000 sampled surface points per case,
+#|   500 epochs, bfloat16, no augmentation, each architecture at its declared
+#|   learning rate, three seeds at 35 and 210 cases (two for the unit-drive
+#|   arms) and two at 1,260, final-epoch checkpoints, validation set. Data:
+#|   results/hilift_ladder_reduction_2026-09-03.json,
 #|   results/t1_transolver_control_reduction_2026-09-05.json,
-#|   results/w2_reduction_2026-09-07b.json (third seeds).
+#|   results/w2_reduction_2026-09-07b.json (third seeds),
+#|   results/udrv_reduction_2026-09-09.json (unit-drive arms).
 #| code-fold: true
 import json, statistics
 from pathlib import Path
@@ -148,32 +150,39 @@ for n, pat in [(35, "t1_hl_transolver_super_scarce_{lr}_seed{s}"), (210, "t1_hl_
             best = v
     xs.append(n); means.append(statistics.mean(best)); lo.append(min(best)); hi.append(max(best))
 data["t"] = (xs, means, lo, hi)
-fig, ax = plt.subplots(figsize=(8.0, 4.8))
+udrv = json.load(open(Path("..") / "results" / "udrv_reduction_2026-09-09.json"))["arms"]
+unit = {"gt": udrv["gt_unit_35"]["seed_pressure"], "t": udrv["transolver_unit_35"]["seed_pressure"]}
+fig, ax = plt.subplots(figsize=(8.0, 5.2))
 style = {"gt": (RED, "GeoTransolver", "o", "-", 2.2), "t": (GREY, "Transolver", "^", "--", 1.6), "mt2": (BLUE, "ISLA", "s", "-", 2.2)}
 for arch in ("gt", "t", "mt2"):
     xs, means, lo, hi = data[arch]; c, name, mk, ls, lw = style[arch]
     ax.fill_between(xs, lo, hi, color=c, alpha=0.18, lw=0)
-    ax.plot(xs, means, color=c, lw=lw, ls=ls, marker=mk, ms=7, zorder=3)
-ax.annotate("GeoTransolver", (35, data["gt"][1][0]), xytext=(14, 2), textcoords="offset points", color=RED, fontweight="bold", va="center")
+    ax.plot(xs, means, color=c, lw=lw, ls=ls, marker=mk, ms=7, zorder=3, alpha=0.55)
+for arch in ("gt", "t"):
+    c, name, mk, ls, lw = style[arch]; v = unit[arch]; m = statistics.mean(v)
+    ax.plot([35, 35], [min(v), max(v)], color=c, lw=3, alpha=0.5, zorder=4)
+    ax.plot([35], [m], marker=mk, ms=10, mfc="white", mec=c, mew=2.2, ls="none", zorder=5)
+    ax.annotate("", (35, m), (35, data[arch][1][0]), arrowprops=dict(arrowstyle="-|>", color=c, lw=1.4, shrinkA=6, shrinkB=8))
+ax.annotate("GeoTransolver\n(physical drive)", (35, data["gt"][1][0]), xytext=(14, 4), textcoords="offset points", color=RED, fontweight="bold", va="center")
+ax.annotate("Transolver\n(physical drive)", (35, data["t"][1][0]), xytext=(14, -14), textcoords="offset points", color=GREY, fontweight="bold", va="center")
 ax.annotate("ISLA", (210, data["mt2"][1][1]), xytext=(14, -14), textcoords="offset points", color=BLUE, fontweight="bold", va="center")
-xm, ym = (35 * 210) ** 0.5, (data["t"][1][0] * data["t"][1][1]) ** 0.5
-ax.annotate("Transolver", (xm, ym), xytext=(-3, -7), textcoords="offset points", color=GREY, fontsize=9.5, ha="right", va="top",
-            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
-for i, n in enumerate((35, 210)):
-    r_gt = data["gt"][1][i] / data["mt2"][1][i]; r_t = data["t"][1][i] / data["mt2"][1][i]
-    ymid = (data["gt"][1][i] * data["mt2"][1][i]) ** 0.5
-    ax.annotate("", (n, data["mt2"][1][i]), (n, data["gt"][1][i]), arrowprops=dict(arrowstyle="<->", color=INK2, lw=0.9, shrinkA=4, shrinkB=4))
-    ax.text(n * 1.08, ymid, f"GeoTransolver {r_gt:.1f}x ISLA\nTransolver {r_t:.1f}x ISLA", color=INK2, fontsize=9, va="center", linespacing=1.3,
+m_gt, m_t = statistics.mean(unit["gt"]), statistics.mean(unit["t"])
+ax.annotate(f"unit freestream direction:\nGeoTransolver {m_gt/data['mt2'][1][0]:.2f}x ISLA\nTransolver {m_t/data['mt2'][1][0]:.2f}x ISLA", (35, m_t), xytext=(-8, -30), textcoords="offset points",
+            color=INK, fontsize=9, ha="left", va="top", linespacing=1.3, bbox=dict(boxstyle="round,pad=0.2", fc="white", ec=BASELINE))
+for i, n in enumerate((210,)):
+    r_gt = data["gt"][1][1] / data["mt2"][1][1]; r_t = data["t"][1][1] / data["mt2"][1][1]
+    ymid = (data["gt"][1][1] * data["mt2"][1][1]) ** 0.5
+    ax.text(n * 1.08, ymid, f"physical drive: GeoTransolver {r_gt:.1f}x, Transolver {r_t:.1f}x\nunit-drive rerun training", color=INK2, fontsize=8.5, va="center", linespacing=1.3,
             bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
 r_full = data["gt"][1][2] / data["mt2"][1][2]
-ax.annotate(f"{r_full:.2f}x (parity)", (1260, (data["gt"][1][2] * data["mt2"][1][2]) ** 0.5), xytext=(14, 30), textcoords="offset points", color=INK2, fontsize=9, va="bottom")
+ax.annotate(f"{r_full:.2f}x (physical drive)", (1260, (data["gt"][1][2] * data["mt2"][1][2]) ** 0.5), xytext=(14, 30), textcoords="offset points", color=INK2, fontsize=9, va="bottom")
 ax.set_xscale("log"); ax.set_yscale("log")
 ax.set_xticks([35, 210, 1260]); ax.set_xticklabels(["35", "210", "1,260"])
-ax.set_yticks([0.04, 0.06, 0.1, 0.2, 0.4]); ax.set_yticklabels(["0.04", "0.06", "0.10", "0.20", "0.40"])
+ax.set_yticks([0.04, 0.06, 0.1, 0.2, 0.4]); ax.set_yticklabels(["0.04", "0.06", "0.10", "0.20", "0.40"]); ax.set_ylim(0.033, 0.6)
 ax.set_xlim(22, 3200)
 ax.set_xlabel("Training cases [count]", color=INK2)
 ax.set_ylabel("Surface pressure error, rel-L2 [–]", color=INK2)
-ax.set_title("Data efficiency on HiLiftAeroML (shared 180-case validation set)", color=INK, loc="left", fontsize=11, pad=10)
+ax.set_title("HiLiftAeroML surface pressure vs training cases: the physical-drive protocol and its unit-drive correction at 35 cases", color=INK, loc="left", fontsize=10, pad=10)
 ax.grid(True, which="major", color=GRID); ax.grid(False, which="minor")
 fig.tight_layout()
 plt.show()
@@ -197,39 +206,34 @@ states the limits of every claim and the experiments that would move them
 failed ones, in the order they happened.
 
 Three habits of this book: a comparison is only reported when parameters,
-tokens per case, epochs and peak memory are matched or the mismatch is
-stated in the same sentence, and every ratio between architectures is written
+tokens per case, epochs, peak memory and the scale of every input are
+matched or the mismatch is stated in the same sentence, and every ratio between architectures is written
 as baseline error divided by ISLA error, so a value above one favours ISLA; a claim is only reported with the split it was
 measured on and the statistic behind it; and a limit is stated next to the
 claim it limits, not in a separate place.
 
 ## What this book does not claim
 
-ISLA's data-efficiency advantage is a statement about 35 to 1,260 training
-cases on HiLiftAeroML; on DrivAerML, at the frozen learning rate, GeoTransolver
-is 1.2–1.3x more accurate from 27 cases up and the two tie at 14. ISLA's curve
-flattens where GeoTransolver's steepens: a naive power-law extrapolation of the
-two curves puts GeoTransolver at 0.015 and ISLA at 0.029 at 5,000 cases, a
-factor of two in GeoTransolver's favour (@sec-limits). The 2.8x headline is
-against GeoTransolver and plain Transolver at 35 cases; at 210 cases the
-margin over plain Transolver, the stronger baseline there, is 1.3x. The
-HiLift accuracy figures are validation-set figures (final-epoch checkpoints,
-no checkpoint selection; the sealed test was spent on regime extrapolation,
-and because those regime test sets cover all 180 geometries, every remaining
-HiLiftAeroML split is held out per checkpoint but is not an independent
-program-level confirmation, @sec-limits-validation). The advantage is
-geometry generalization — at a fixed angle of attack on 18 validation
-geometries never seen at any angle ISLA is 5.0x more accurate than
-GeoTransolver — but the ingredient that carries it is not identified: no
-single ISLA ingredient accounts for more than 16% of it; the baselines
-receive the freestream as a physical velocity (2,679.5 in/s on
-HiLiftAeroML) where ISLA receives a unit direction, a conditioning
-difference whose effect on the trained gap is not yet measured
-(@sec-part-baseline); and the one hypothesis that would explain both
-datasets at once (that the advantage lives on the small-scale features of
-multi-element wings, the slat and flap gaps) predicts the opposite of what
-is measured: the error advantage is smallest in the gap regions and largest
-on the open surfaces (@sec-mechanism). ISLA's exact equivariance is a contract, not an
+It does not claim that ISLA is more accurate than GeoTransolver or plain
+Transolver anywhere on the surface task. The HiLiftAeroML figures that once
+carried that claim (2.8x at 35 cases, 2.2x at 210, 1.4–1.8x on never-seen
+geometries, 5.0x at a fixed angle, 3% force coefficients against 8–17%,
+a six-fold data multiplier) were measured against baselines that received
+the freestream as a physical velocity of 2,679.5 in/s while ISLA received a
+unit direction; with the unit direction the same baselines are 1.1–1.2x more
+accurate than ISLA at 35 cases (@sec-de-unit-drive), and the higher rungs are
+being re-measured. Those figures appear in this book as measurements of the
+physical-drive protocol and as the record of how the artifact was found, not
+as comparisons. On DrivAerML GeoTransolver, also fed the physical velocity, is
+1.2–1.3x more accurate from 27 cases up. The HiLift accuracy figures are
+validation-set figures (final-epoch checkpoints, no checkpoint selection;
+the sealed test was spent on regime extrapolation, and because those regime
+test sets cover all 180 geometries, every remaining HiLiftAeroML split is
+held out per checkpoint but is not an independent program-level
+confirmation, @sec-limits-validation). The interior lead is conditional:
+it requires at least the training count of points to be queried together,
+was obtained with about 365 surface tokens, and awaits the same unit-drive
+control for GeoTransolver-volume (@sec-interior). ISLA's exact equivariance is a contract, not an
 in-distribution accuracy edge on vehicle data: GeoTransolver trained in a
 canonical frame is exactly pose-invariant at 1% cost (@sec-pose). Its
 sampling-density robustness belongs to a configuration (the similarity
