@@ -295,6 +295,7 @@ class ISLA(Module):
         mlp_ratio: int = 4,
         reference_length: float = 8.0,
         use_measure_weights: bool = True,
+        measure_weight_power: float = 1.0,
         use_local_features: bool = False,
         local_radii: tuple[float, ...] = (0.01, 0.03),
         n_boundary_scalars: int = 0,
@@ -330,6 +331,11 @@ class ISLA(Module):
         ### the assignment softmax ignores quadrature weights entirely,
         ### isolating the measure-bias pathway of density sensitivity.
         self.use_measure_weights = use_measure_weights
+        ### MEAS-METRIC (2026-09-09): temper the routing measure toward uniform,
+        ### w -> w^alpha (alpha = 1 the quadrature measure, 0 uniform). Measure-scale
+        ### invariance is kept for every alpha (a common factor c^alpha cancels in
+        ### the softmax); alpha = 0 reproduces use_measure_weights=False exactly.
+        self.measure_weight_power = float(measure_weight_power)
         self.out_scalars = out_scalars
         self.out_vectors = out_vectors
         self.reference_length = float(reference_length)
@@ -692,6 +698,8 @@ class ISLA(Module):
         else:
             measure_weights = measure_weights.reshape(b, n)
             log_w = torch.log(measure_weights.clamp_min(self.eps))[..., None]
+            if self.measure_weight_power != 1.0:
+                log_w = log_w * self.measure_weight_power
 
         if self.seed_mode == "raw":
             invariants = torch.cat([r, n_hat, d_hat], dim=-1)

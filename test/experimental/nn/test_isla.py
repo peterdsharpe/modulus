@@ -976,3 +976,36 @@ def test_second_moment_features_separate_first_moment_collision():
     with torch.no_grad():
         rot = mom2(p1 @ R.T, n1 @ R.T, d @ R.T, w)
     assert torch.allclose(rot[..., :1], a2[..., :1], atol=1e-10)
+
+
+@pytest.mark.parametrize("alpha", [0.0, 0.5])
+def test_measure_weight_power_contracts(alpha):
+    """Tempered routing measure w^alpha: alpha=0 equals use_measure_weights=False exactly,
+    alpha=1 is the default, every alpha keeps SE(3) covariance and measure-scale invariance."""
+    torch.manual_seed(0)
+    m = ISLA(hidden=64, n_layers=3, n_slices=32, measure_weight_power=alpha).double().eval()
+    torch.manual_seed(0)
+    m_off = ISLA(hidden=64, n_layers=3, n_slices=32, use_measure_weights=False).double().eval()
+    torch.manual_seed(0)
+    m_ref = ISLA(hidden=64, n_layers=3, n_slices=32).double().eval()
+    n = 300
+    pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n, dtype=torch.float64) + 0.5
+    q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
+    if torch.det(q) < 0:
+        q[:, 0] = -q[:, 0]
+    with torch.no_grad():
+        base = m(pts, nrm, drv, w)
+        rot = m(pts @ q.T + 2.0, nrm @ q.T, drv @ q.T, w)
+        scaled_w = m(pts, nrm, drv, 4.1 * w)
+        off = m_off(pts, nrm, drv, w)
+        ref = m_ref(pts, nrm, drv, w)
+    p0, v0 = _split(base); p1, v1 = _split(rot)
+    assert torch.allclose(p1, p0, atol=1e-10) and torch.allclose(v1, v0 @ q.T, atol=1e-10)
+    assert torch.allclose(scaled_w, base, atol=1e-10)
+    if alpha == 0.0:
+        assert torch.allclose(base, off, atol=1e-12)
+    else:
+        assert not torch.allclose(base, ref, atol=1e-6) and not torch.allclose(base, off, atol=1e-6)
