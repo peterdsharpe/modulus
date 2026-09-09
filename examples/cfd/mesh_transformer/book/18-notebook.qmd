@@ -8689,3 +8689,40 @@ frozen protocol, `second_moment_features=True` against the reference
 configuration; falsifier: more than 3% in-family pressure cost; anything
 better than the reference is reported but is not the bar). It is queued
 behind V0-SURF10K and the unit-drive control, which bear on the headline.
+
+## 2026-09-08 — Preregistered and launched: MOM2-T, the second-moment channel trained on DrivAerML surface pressure at 435 cars (is the channel free?) {#sec-nb-mom2t-prereg}
+
+**Setting.** MOM2 (@sec-nb-mom2-verdict) showed that the per-slice
+second-moment channel removes the first-moment collision at roundoff cost in
+an untrained model. Whether it costs accuracy where ISLA is trained is the
+question the preregistration named as the next node. The channel adds two
+invariants to the eight relational ones in every slice block (the routing
+logit and the pooled-geometry projection gain two input columns each; about
+2 × 12 × (1 + 96) extra weights at width 192, under 3k parameters) and one
+(B, S, 3, 3) tensor per block; nothing else changes.
+
+**Instrument.** Two chains `mom2_mt2_lr1e3_seed{42,43}` (jobs 684565/684566,
+launcher mom2t_aga.sbatch cloned from instwave_aga.sbatch lanes 4–5 with
+`+model.second_moment_features=true`, code snapshot `code_isla4` at
+cf0572453): DrivAerML surface, 435 cars, 10,000 sampled cells, 500 epochs,
+lr 1e-3, bf16, no augmentation, the reference ISLA surface configuration
+otherwise. Reference: `iw_mt2_lr1e3_seed{42,43}`, pressure 0.0588 / 0.0567
+(mean 0.0577; results/instrument_wave_reduction_2026-09-01.json), trained
+from an earlier snapshot whose default-flag forward is unchanged by every
+later commit (all additions are flag-gated and contract-tested), so the
+reference is not re-run. Evaluation on the 48-car validation split with the
+instrument-wave evaluation launcher; readout the two-seed mean pressure
+relative L2 (wall shear alongside).
+
+**Bars, in readout units.** *Falsified as a free ingredient* if pressure
+≥ 0.0594 (more than 3% worse than 0.0577; the two reference seeds differ
+by 3.6%, so the bar is one seed spread). *Free* if pressure ≤ 0.0594 and
+wall shear within 3% of the reference. Better than the reference by more
+than 3% (≤ 0.0560) is reported as a finding but is not the bar: the
+collision family is not known to occur on DrivAerML, so no gain is
+predicted. Falsified moves the channel to "removable at a cost" and out of
+the successor design; free keeps it as a candidate ingredient, still with
+no claim that it helps any benchmark.
+
+**Scheduling.** Node MOM2-T added, RUNNING, depends on MOM2; it does not
+touch the surface headline lanes (UDRV, W2) or V0-SURF10K.
