@@ -886,3 +886,8 @@ interior control @sec-nb-udrv-int-prereg.
   the legacy passive output by 0.16 in relative norm at such queries). The 2.6x passive-decode
   figure was measured with that readout; quote it as "as built", and point to the D1 arms
   (research/transfer_program, #sec-nb-passive-clamp) for the normalized-readout comparison.
+
+- **NOW-L DrivAerML (2026-09-09).** Weights off 0.0561 (0.0569/0.0553) vs weighted 0.0577 on
+  DrivAerML: 2.8% better, 41/48 cars, inside the "fades" band. Write "a small, consistent gain
+  (2.8%) on DrivAerML against 12% at 35 HiLift cases"; the reference configuration is unchanged
+  until the ladder rule (persists at ≥ 4 of 6 rungs) is decided. results/nowt_reduction_2026-09-09.json.

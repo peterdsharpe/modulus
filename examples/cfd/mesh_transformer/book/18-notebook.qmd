@@ -9608,3 +9608,35 @@ Launchers: HiLift lanes as rows 44–68 of highlift/wave2_lanes.tsv
 (hl_wave2_aga.sbatch); DrivAerML lanes uw_aga.sbatch (cloned from
 instwave_aga.sbatch); interior seeds through v0/v0_qt2_aga.sbatch lane 2 and
 v0/v0_udrvint_aga.sbatch lane 2.
+
+## 2026-09-09 — NOW-L, DrivAerML rung: measure weights off scores 0.0561 against 0.0577 (2.8% better, 41 of 48 cars), inside the preregistered "fades" band; the 210-case HiLift rung is pending {#sec-nb-noweights-drivaer-verdict}
+
+**Setting and bars** (@sec-nb-noweights-prereg). ISLA's reference DrivAerML
+surface configuration at 435 cars with `use_measure_weights=false`
+(`now_mt2_lr1e3_seed{42,43}`, the reference lanes' own code snapshot) against
+the weighted reference `iw_mt2_lr1e3_seed{42,43}` (0.0588 / 0.0567 →
+0.0577). Bars: persists if ≥ 5% better (≤ 0.0548); fades if within 3%
+(0.0560–0.0594).
+
+**Readout** (results/nowt_reduction_2026-09-09.json; 48 validation cars):
+
+| arm | seed 42 | seed 43 | mean | vs weighted |
+|---|---|---|---|---|
+| ISLA, measure weights on | 0.0588 | 0.0567 | 0.0577 | 1.00 |
+| ISLA, measure weights off | 0.0569 | 0.0553 | **0.0561** | **0.972** (2.8% better) |
+| GeoTransolver, physical velocity (reference) | 0.0546 | 0.0550 | 0.0548 | 0.950 |
+
+Paired per car: the unweighted model is lower on 41 of 48 (median weighted ÷
+unweighted 1.025, 10–90% range 0.99–1.09).
+
+**Verdict for this rung: fades, narrowly.** The gain is 2.8%, inside the 3%
+band by 0.2 percentage points, but it is consistent (41 of 48 cars, both
+seeds) and in the predicted direction: the variance reading predicted a
+smaller gain on DrivAerML, whose sampled cell areas are more uniform than
+HiLift's, and 12% → 2.8% is that. On DrivAerML the unweighted ISLA sits 2.4%
+behind the physical-drive GeoTransolver (0.0561 against 0.0548) instead of
+5.3%; the unit-drive GeoTransolver (WAVE-3, `uw_gt_unit_lr1e3_*`) is the
+reference that matters and is training. The NOW-L decision (reference
+configuration change) waits for the 210-case HiLift rung
+(`a35_hl_mt2_noweights_scarce_seed{42,43}`, epoch ~110) and the WAVE-3
+weights-off ladder; the rule stays "persists at ≥ 4 of 6 rungs".
