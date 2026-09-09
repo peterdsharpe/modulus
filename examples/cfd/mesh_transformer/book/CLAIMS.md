@@ -891,3 +891,8 @@ interior control @sec-nb-udrv-int-prereg.
   DrivAerML: 2.8% better, 41/48 cars, inside the "fades" band. Write "a small, consistent gain
   (2.8%) on DrivAerML against 12% at 35 HiLift cases"; the reference configuration is unchanged
   until the ladder rule (persists at ≥ 4 of 6 rungs) is decided. results/nowt_reduction_2026-09-09.json.
+
+- **510-case rung (2026-09-09).** ISLA 0.0495 (0.0486/0.0504). ISLA ladder 0.138 / 0.065 / 0.0495 /
+  0.041 (slopes 0.42, 0.31, 0.21). Physical-drive GT 0.0568 and Transolver 0.0656 are
+  measurements of that protocol only (never an ISLA advantage); unit-drive baselines at 510 are
+  training (udrv_hl_gt_medium_*, udrv_hl_transolver_medium_lr3e3_*).

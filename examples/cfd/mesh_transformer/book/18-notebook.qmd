@@ -9755,3 +9755,33 @@ synthesis on bars 3–4 when all three are in. The heaviest ISLA arm sets the
 study's horizon (about six days); the GeoTransolver and Transolver grids and
 the ISLA width arms land within a day, so a partial synthesis at that point
 covers width scaling fully and the token ladder up to 40,000 cells.
+
+## 2026-09-09 — 510-case rung measured: ISLA 0.0495; the ISLA ladder flattens (slopes 0.42 → 0.31 → 0.21); physical-drive baselines recorded as measurements, unit-drive baselines added {#sec-nb-w2-medium-verdict}
+
+**Setting.** Wave-2 arm B (@sec-nb-w2-prereg): the `medium` split (510
+training cases), the shared 180-case validation set, frozen ladder protocol,
+two seeds. The GeoTransolver and Transolver arms were launched with the
+physical freestream velocity and are, since the UDRV verdict, measurements
+of that protocol rather than comparisons; unit-drive GeoTransolver and
+Transolver at 510 cases were not in WAVE-3 and were added now as wave-2 rows
+69–72 (`udrv_hl_gt_medium_seed{42,43}`, `udrv_hl_transolver_medium_lr3e3_seed{42,43}`).
+
+**Readout** (results/w2_medium_reduction_2026-09-09.json; 180 cases):
+
+| arm | pressure (seeds → mean) | velocity | wall shear | ÷ ISLA | cases ISLA lower |
+|---|---|---|---|---|---|
+| ISLA (weights on) | 0.0486 / 0.0504 → **0.0495** | 0.0709 | 0.111 | 1.00 | — |
+| GeoTransolver, physical velocity | 0.0610 / 0.0526 → 0.0568 | 0.0844 | 0.1346 | 1.15x | 156 of 180 (median 1.24) |
+| Transolver, physical velocity, lr 1e-3 | 0.0657 / 0.0656 → 0.0656 | 0.0931 | 0.1544 | 1.33x | 170 of 180 (median 1.51) |
+| Transolver, physical velocity, lr 3e-3 | 0.0675 / 0.0656 → 0.0666 | 0.0933 | 0.1555 | 1.35x | 168 of 180 (median 1.52) |
+
+**What it adds.** ISLA's own curve now has four rungs: 0.138, 0.065,
+0.0495, 0.041 at 35, 210, 510 and 1,260 cases, with log-log slopes 0.42,
+0.31 and 0.21 over the successive segments, so the flattening seen between
+210 and 1,260 is progressive rather than a single kink. The physical-drive
+GeoTransolver's seed spread at this rung (0.053 / 0.061) is the same
+seed-fragility seen at 210 cases and is expected to vanish with the unit
+drive, as it did at 35 cases (two seeds within 1%). No comparison is drawn
+from the physical-drive arms; the rung's fair comparison waits for rows
+69–72 (about two days). Chapter 5's ladder text and the W2 ledger row are
+updated.
