@@ -8921,3 +8921,46 @@ verdict rests on pressure. The channel stays a candidate ingredient for the
 successor design with the qualification of @sec-nb-mom2-verdict: it removes
 a documented blind spot at no measured cost, and there is still no claim
 that it helps any benchmark. Tech-tree change: MOM2-T RUNNING → DONE (free).
+
+## 2026-09-09 — Verdict: V0-SURF10K null — giving the interacting configuration 10,000 surface cells instead of about 365 changes no interior number (all fields within 3%) {#sec-nb-v0surf-verdict}
+
+**Setting and bars** (@sec-nb-v0surf-prereg). Every ISLA interior arm in
+@sec-interior was trained with about 365 vehicle surface cells because the
+volume recipe subsampled boundaries by cells and then by points
+(@sec-nb-audit-2026-09-08). The query-token + signed-distance configuration
+was rerun with the dataset variant `boundary_subsample: cells`, so that the
+intended 10,000 cells reach the model (runs `v0_isla_qtsdf_surf10k_seed{42,43}`,
+snapshot `code_isla4`, otherwise the frozen V0 protocol; 0.56 s per step and
+9.1 GB against 0.28 s and 6.3 GB for the 365-cell arm, since the per-slice
+geometry now spans 20,000 tokens). Bars: *surface information matters* if
+pressure ≤ 0.054 or eddy viscosity ≤ 0.115 (5% better); *null* if all three
+fields lie within 3% of the 365-cell arm.
+
+**Readout** (48 validation cars, two-seed means;
+results/a35_v0_reduction_2026-09-09.json):
+
+| arm | surface cells | pressure | velocity | eddy viscosity |
+|---|---|---|---|---|
+| GeoTransolver-volume (reads no surface) | 0 | 0.0620 | 0.1334 | 0.0939 |
+| ISLA query tokens + SDF | ~365 | 0.0567 | 0.0853 | 0.1215 |
+| ISLA query tokens + SDF | 10,000 | **0.0572** (0.0570 / 0.0574) | **0.0848** (0.0838 / 0.0858) | **0.1187** (0.1101 / 0.1273) |
+
+**Verdict: null.** Pressure +0.9%, velocity −0.6%, eddy viscosity −2.3%,
+all inside the 3% band; the eddy-viscosity seed spread (0.110 / 0.127) is
+wider than the change. Twenty-seven times more surface information adds
+nothing measurable to any interior field. Read with @sec-nb-qt-sdf-verdict
+(interaction closes the pressure gap, the signed distance flips velocity)
+and @sec-nb-qt-h256-verdict (width buys 2–4% uniformly), the interior
+result is carried by the interacting interior queries and their wall
+distance; the boundary sample, which ISLA was designed around, is close to
+irrelevant on this task at this query density. Two things this does not
+say: that ISLA ignores the surface (a zero-surface control was not run, and
+365 cells still fix the pose and scale), and anything about the surface
+task. Consequences: the chapter's 365-cell numbers stand as its headline
+numbers, with the 10,000-cell rerun as their confirmation; PASSIVE2 (the
+passive decoder with the full surface) loses its motivation, because the
+passive arm's deficit cannot be a surface-information deficit; and the
+open interior question narrows to the eddy-viscosity gap, whose remaining
+candidate is GeoTransolver-volume's query-to-query local aggregation.
+Tech-tree change: V0-SURF10K RUNNING → DONE (null); PASSIVE2 stays PLANNED
+with its motivation withdrawn.
