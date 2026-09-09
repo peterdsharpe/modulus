@@ -611,38 +611,60 @@ preregistered (@sec-nb-udrv-prereg) and not yet measured
 (@sec-program-status). The transplant test above kept the raw velocity and
 does not answer it.
 
-**The hypothesis that would explain both datasets at once is stated here
-and not yet measured.** A high-lift wing differs from its neighbours in the
-family in the slat and flap deflections and, through them, in the gaps
-between elements: geometric features a few percent of the chord in size,
-which at 10,000 sampled points per case are covered by a few dozen points
-each, and which set the pressure over the whole element downstream of them.
-A DrivAerML car differs from its neighbours by a smooth morph of one body,
-with no such small features. If ISLA's relational routing resolves small
-geometric features from few samples where GeoTransolver's geometry encoder
-does not, then ISLA's advantage on HiLift should concentrate on the
-elements and gap zones where the geometry actually varies, and be smaller
-away from them; and the DrivAerML non-transfer follows, because there is
-nothing of that kind to resolve. The test is eval-only on existing
-checkpoints: separate each validation surface into its connected
-components (slat, main element, flap) and into bands by distance to the
-nearest other element, and compute the per-band GeoTransolver/ISLA RMS
-pressure-error ratio at 35 and 210 cases. Preregistered bars are in
-@sec-nb-hlreg-prereg: the hypothesis is supported if the ratio in the
-near-gap band exceeds the ratio on the rest of the surface by 1.5x or more
-at 35 cases; it is falsified if the ratio is uniform within 1.15x across
-bands, as the DrivAerML gap is across a car's streamwise thirds
-(@sec-limits-mechanism). Either outcome sharpens the claim, with one
-limit on what it can say: the instrument locates where the *output* error
-differs, not where the *input* information that drives it lives. A change
-of slat gap alters circulation and hence pressure over the whole element,
-so a uniform ratio across bands would not by itself falsify the idea that
-gap information is what ISLA extracts better; it would falsify the
-prediction that the error advantage concentrates there. A supported verdict
-locates the advantage on the surface; the information question needs a
-perturbation test (gap-region points removed or perturbed against
-matched-area controls, on a fixed query set) that is not part of this node
-(@sec-program-status).
+**The hypothesis that would explain both datasets at once has been tested
+where it can be tested, and the error advantage does not sit where it
+predicts.** A high-lift wing differs from its neighbours in the family in
+the slat and flap deflections and, through them, in the gaps between
+elements: geometric features a few percent of the chord in size, covered
+by a few dozen of the 10,000 sampled points each, which set the pressure
+over the whole element downstream of them. A DrivAerML car differs from its
+neighbours by a smooth morph of one body, with no such features. If ISLA's
+relational routing resolves small geometric features from few samples where
+GeoTransolver's geometry encoder does not, the prediction was that ISLA's
+*error* advantage concentrates on the gap regions and is smaller elsewhere.
+The test is eval-only on the existing checkpoints. HiLiftAeroML carries no
+element labels and each CFD boundary mesh is one connected body (the slats
+and flaps are joined to the wing through brackets and fairings), so the
+preregistered partition by connected component is not available; the gap
+regions are defined geometrically instead, by the *facing-surface
+distance*: from each sampled point, the distance to the nearest
+boundary-mesh vertex in front of the surface within 10% of chord, which is
+the local gap or cove width and is infinite on an open convex surface
+(@sec-nb-hlreg-amendment). The bands are 0.7–2%, 2–10% and above 10% of
+chord; the near band holds about 15% of the points.
+
+| training cases | near band (0.7–2% chord) | 2–10% | open surface (>10%) | near ÷ rest | ISLA's error share in the near band | GeoTransolver's |
+|---|---|---|---|---|---|---|
+| 35 | 2.01 | 2.02 | 3.00 | 0.72 (0.38–1.31) | 59% | 33% |
+| 210 | 1.87 | 2.76 | 2.57 | 0.78 (0.54–1.09) | 71% | 56% |
+
+: GeoTransolver/ISLA RMS pressure-error ratio by facing-surface-distance band
+(two-seed mean predictions, median over the 180 validation cases; the
+near-over-rest column gives its 10th–90th percentiles), and each model's
+share of its own squared error that falls in the near band. Preregistered
+bars (@sec-nb-hlreg-prereg): supported if near ÷ rest ≥ 1.5 at 35 cases,
+falsified if within 0.87–1.15. Data:
+results/hlreg_facing_distance_35_2026-09-08.json,
+results/hlreg_facing_distance_210_2026-09-08.json. {#tbl-hilift-hlreg}
+
+The prediction is falsified, and in the opposite direction: ISLA's advantage
+is *smallest* in the gap regions (2.0x and 1.9x) and largest on the open
+surfaces at 35 cases (3.0x), with 61% of cases below the 0.87 floor of the
+"uniform" band and 7% above the 1.5 bar; the ordering is the same at 210
+cases. What the bands do show is where each model's residual error lives:
+59% of ISLA's squared error at 35 cases, and 71% at 210, falls on the 15% of
+points in the gap regions, against 33% and 56% for GeoTransolver, whose error
+is spread over the open surfaces. Both models find the gaps hardest; ISLA
+wins by more where the pressure field is smooth. One limit on what this can
+say, stated before the result (@sec-nb-hlreg-prereg): the instrument
+locates where the *output* error differs, not where the *input* information
+that drives it lives. A change of slat gap alters circulation and hence
+pressure over the whole element, so this result does not exclude the idea
+that gap geometry is what ISLA reads better from few samples; it excludes
+the prediction that the resulting error advantage sits at the gaps. The
+information question needs a perturbation test (gap-region points removed or
+perturbed against matched-area controls, on a fixed query set), which is a
+separate node (@sec-program-status).
 
 ## The same protocol on DrivAerML {#sec-de-drivaerml}
 

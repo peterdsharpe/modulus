@@ -726,3 +726,11 @@ Rules from the independent audit, verified in-session by the coordinator
   was ill-posed (exchangeable labels); the verdict uses the azimuth probes and says so.
   Second-moment separations are ~20x smaller than local-feature separations at radii
   (0.2, 0.4) but linearly decodable; do not write "weaker channel" without that qualifier.
+
+- **HLREG result (2026-09-08).** Facing-surface-distance bands (not connected components:
+  HiLift boundary meshes are single bodies). GeoTransolver/ISLA ratio near gaps 2.01 (35) /
+  1.87 (210) vs open surfaces 3.00 / 2.57; near ÷ rest 0.72 / 0.78. Write "the error
+  advantage is smallest in the gap regions and largest on open surfaces"; never "ISLA does
+  not use gap information" (localization only). ISLA's own squared error: 59% (35) / 71%
+  (210) in the near band, which holds ~15% of points. HiLift stored cell normals point
+  INWARD (sign rule chose −1 on 360/360 cases): a data fact, not a claim about the models.

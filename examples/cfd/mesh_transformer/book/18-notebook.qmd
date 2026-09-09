@@ -8780,3 +8780,75 @@ a slat-gap change moves pressure far from the gap. A uniform ratio across
 bands therefore does not falsify a gap-information mechanism; a concentrated
 one does not establish it. The preregistered bars are kept and the verdict
 is written as localization only.
+
+## 2026-09-08 — Verdict: HLREG falsified in direction — ISLA's advantage over GeoTransolver is smallest in the gap regions (2.0x) and largest on the open surfaces (3.0x); ISLA's own error concentrates at the gaps {#sec-nb-hlreg-verdict}
+
+**Setting.** HiLiftAeroML surface pressure at 35 and 210 training cases,
+ISLA against GeoTransolver, two seeds each, the 180 shared validation cases,
+existing predictions (@sec-nb-hlreg-prereg). The instrument is the amended
+one of @sec-nb-hlreg-amendment: each sampled point is binned by its
+facing-surface distance (the distance to the nearest boundary-mesh vertex in
+front of the surface within 10% of chord: the local gap or cove width, or
+the nose radius of a slat or flap; infinite on an open convex surface) into
+0.7–2%, 2–10% and above 10% of chord. Readout per band: the ratio of
+GeoTransolver's to ISLA's RMS pressure error over the band's points
+(two-seed mean predictions), median over cases; and each model's share of
+its own squared error in the band. Bars: supported if near ÷ rest ≥ 1.5 at
+35 cases with the ordering preserved at 210; falsified if within 0.87–1.15.
+
+**Instrument checks that passed.** Alignment residual median 0.10% chord
+(q99 up to 2.5% on a few fuselage-heavy cases, irrelevant to labelling);
+fitted scale 0.9957–1.0032 (median 0.9993). The stored cell normals turned
+out to point *inward* on every one of the 360 case-evaluations (the outward
+sign, chosen per case as the side with fewer facing hits, was −1 each
+time), so the sign convention is consistent and the instrument is well
+defined. With the outward sign, 18–32% of points have a facing surface
+within 10% chord and 66–72% have one on the inward side (the body's own
+opposite wall), as a closed thin body should. No point fell below the 0.7%
+floor.
+
+**Readout** (results/hlreg_facing_distance_35_2026-09-08.json and
+_210_; medians over 180 cases, 10–90% ranges for the headline ratio):
+
+| rung | near 0.7–2% | mid 2–10% | open >10% | near ÷ rest | cases < 0.87 / in 0.87–1.15 / ≥ 1.5 | ISLA error share near | GT error share near | points near |
+|---|---|---|---|---|---|---|---|---|
+| 35 cases | 2.01 (seeds 2.02 / 1.96) | 2.02 | 3.00 (2.88 / 3.16) | **0.72** (0.38–1.31) | 61% / 20% / 7% | 59% | 33% | 1,479 |
+| 210 cases | 1.87 (1.93 / 1.86) | 2.76 | 2.57 (2.66 / 2.52) | **0.78** (0.54–1.09) | 64% / 27% / 3% | 71% | 56% | 1,479 |
+
+RMS errors per band (35 cases, ISLA / GeoTransolver, physical units of the
+artifact): near 2.46 / 5.05, mid 1.29 / 2.49, open 0.88 / 2.66. The
+target's RMS is the same in every band (about 175), so the bands differ in
+error, not in signal.
+
+**Verdict: falsified, and in the opposite direction to the prediction.**
+The near-over-rest ratio is 0.72 at 35 cases, below the 0.87 floor of the
+"uniform" band in 61% of cases and above the 1.5 support bar in 7%; at 210
+cases it is 0.78 with the same ordering. ISLA's advantage over
+GeoTransolver is smallest where the geometry is intricate (the gap regions,
+2.0x) and largest where the pressure field is smooth (the open fuselage and
+wing surfaces, 3.0x at 35 cases). The error shares say why: 59% of ISLA's
+squared error at 35 cases, and 71% at 210, falls on the 15% of points in
+the gap regions, against 33% and 56% for GeoTransolver, whose error is
+spread over the open surfaces (RMS 2.66 there against ISLA's 0.88). Both
+models find the gaps hardest; as data grows ISLA's open-surface error falls
+faster than its gap error, so its residual concentrates further at the gaps.
+
+**What it means, within the instrument's limit.** This locates output
+error, not input information (@sec-nb-audit-2026-09-08, item 6): a slat-gap
+change sets the pressure over the whole element, so the result does not
+exclude that gap geometry is what ISLA reads better from few samples. It
+excludes the prediction that the resulting *error* advantage sits at the
+gaps, and it is consistent with a different picture: ISLA's routing fits
+the smooth, global part of the pressure field from few samples where
+GeoTransolver's does not, and neither model resolves the local gap flow from
+35 cases. The small-feature hypothesis of @sec-mechanism therefore joins the
+freestream-direction hypothesis as a prediction that failed, and the
+mechanism stays located at the level of the dataset (parametric
+multi-element variation), not the surface.
+
+**What's next.** The information question is answerable only by a
+perturbation test (gap-region points removed or perturbed against
+matched-area controls on a fixed query set), which is deferred behind the
+unit-drive control (UDRV), whose outcome decides whether the headline gap
+is an architecture result at all. Tech-tree change: HLREG RUNNING → DONE
+(falsified, localization).

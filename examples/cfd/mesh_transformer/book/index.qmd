@@ -227,8 +227,9 @@ HiLiftAeroML) where ISLA receives a unit direction, a conditioning
 difference whose effect on the trained gap is not yet measured
 (@sec-part-baseline); and the one hypothesis that would explain both
 datasets at once (that the advantage lives on the small-scale features of
-multi-element wings, the slat and flap gaps) is stated and not yet measured
-(@sec-mechanism). ISLA's exact equivariance is a contract, not an
+multi-element wings, the slat and flap gaps) predicts the opposite of what
+is measured: the error advantage is smallest in the gap regions and largest
+on the open surfaces (@sec-mechanism). ISLA's exact equivariance is a contract, not an
 in-distribution accuracy edge on vehicle data: GeoTransolver trained in a
 canonical frame is exactly pose-invariant at 1% cost (@sec-pose). Its
 sampling-density robustness belongs to a configuration (the similarity

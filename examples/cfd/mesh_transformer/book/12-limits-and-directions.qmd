@@ -337,21 +337,20 @@ for 80% of cars, with GeoTransolver ahead on 47–48 of 48
 (results/drivaer_percase_correlation_2026-09-07.json). The gap is a
 near-constant factor on a shared difficulty ordering.
 
-The same instrument has not been pointed at HiLift, and that is the
-cheapest open test in the program. The hypothesis stated in
-@sec-mechanism, that ISLA's advantage is in resolving the small geometric
-features of multi-element wings (slat and flap gaps) from few samples,
-predicts that the GeoTransolver/ISLA error ratio at 35 cases concentrates
-on the elements and gap zones where the geometry varies and is smaller
-elsewhere; the DrivAerML uniformity is then the absence of such features,
-not a counterexample. The test is eval-only on existing checkpoints and is
-preregistered in @sec-nb-hlreg-prereg with bars in readout units; it is not
-yet measured (@sec-program-status). It is a localization instrument: it
-finds where the *output* error advantage sits, not where the *input*
-information that produces it lives, and because a slat-gap change moves the
-pressure over the whole element, a uniform ratio would not falsify a
-gap-information mechanism, only the prediction that the error advantage
-concentrates at the gaps. Until it is measured, the honest statement is
+The same question was put to HiLift with a geometric definition of the
+gap regions (@sec-mechanism, @tbl-hilift-hlreg). The hypothesis stated
+there, that ISLA's advantage is in resolving the small geometric features
+of multi-element wings (slat and flap gaps) from few samples, predicted
+that the GeoTransolver/ISLA error ratio at 35 cases concentrates on the gap
+zones; it is smallest there (2.0x against 3.0x on the open surfaces at 35
+cases, 1.9x against 2.6x at 210), and ISLA's own residual error
+concentrates in the gap regions (59–71% of its squared error on 15% of the
+points). The instrument is a localization instrument: it finds where the
+*output* error advantage sits, not where the *input* information that
+produces it lives, and because a slat-gap change moves the pressure over
+the whole element, this result does not exclude a gap-information
+mechanism, only the prediction that the error advantage concentrates at the
+gaps. The honest statement is therefore
 that the mechanism is located at the level of the dataset (parametric
 multi-element geometry variation) and not at the level of the surface or
 of the architecture.
