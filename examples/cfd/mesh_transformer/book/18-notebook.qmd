@@ -9681,3 +9681,45 @@ highlift/hl_scale_<arch>_aga.sbatch cloned from hl_wave2_aga.sbatch), after
 a ten-minute probe of its three heaviest configurations for memory and step
 time; verdict entries per architecture follow, and one synthesis entry.
 Job-name prefix scale-<arch>-; run ids scale_<arch>_<dataset>_<arm>_seed<s>.
+
+## 2026-09-09 — SCALE launched: 64 lanes accepted; the cost half of the study is already measured, and it is step time, not memory, that scales {#sec-nb-scale-launch}
+
+**State.** Every lane of @sec-nb-scale-prereg is training (ISLA 24, including
+the weights-off pair; GeoTransolver 20; Transolver 20), each after a first-link
+acceptance check of steps advancing, memory recorded and no fault. The
+per-architecture agents' own launch entries carry the per-lane detail
+(@sec-nb-scale-isla-launch, @sec-nb-scale-gt-launch).
+
+**What the first links measured** (four GPUs per lane, bf16, peak memory
+per GPU from the training log; reference operating point 10,000 cells):
+
+| architecture | arm | parameters | peak memory | step time | projected wall time (HiLift 1,260) |
+|---|---|---|---|---|---|
+| ISLA | width 512 | 60.2M | 6.1 GB | 1.28 s | ~2.3 days |
+| ISLA | 80,000 cells (exact recompute) | 8.9M | 13.0 GB | 3.44 s | ~6.3 days |
+| GeoTransolver | width 512 | — | 6.0 GB | 0.15 s | hours |
+| GeoTransolver | 80,000 cells | — | 31.9 GB | 0.19 s | ~7 hours |
+| Transolver | width 512 | — | 4.2 GB | 0.08 s | hours |
+| Transolver | 80,000 cells | — | 22 GB | 0.10 s | hours |
+
+No configuration in the grid exceeds 32 GB of the 288 GB available, so the
+study is bounded by step time, not memory. The two baselines' step times are
+nearly flat in both width and token count at this scale (their attention is
+over 256 slices, so the token dimension enters only through linear
+projections); ISLA's grows about 5.6x from width 192 to 512 and about 15x
+from 10,000 to 80,000 cells, because its per-slice relational geometry
+(points × slices × 8 invariants per layer) scales with tokens and the
+per-token MLP with width. Whatever the accuracy half of the study returns,
+the cost frontier (bar 4) will be read against this: at 80,000 cells the
+baselines complete an epoch in the time ISLA completes a fraction of one,
+and the sparse-routing route to closing that gap was already measured as
+not worth it (@sec-nb-sparse-routing-verdict). The remaining speed lever is
+kernel-level (a fused slice-block kernel), which is an engineering item, not
+a research node.
+
+**Next.** Each agent evaluates its lanes as they train, reduces, and writes
+its verdict on bars 1–2; the coordinator writes the cross-architecture
+synthesis on bars 3–4 when all three are in. The heaviest ISLA arm sets the
+study's horizon (about six days); the GeoTransolver and Transolver grids and
+the ISLA width arms land within a day, so a partial synthesis at that point
+covers width scaling fully and the token ladder up to 40,000 cells.
