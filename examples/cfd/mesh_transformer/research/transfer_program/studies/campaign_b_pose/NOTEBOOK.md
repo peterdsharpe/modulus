@@ -40,3 +40,15 @@ Question, arms and bars are in PREREG.md (written before any lane). What was bui
   guard, `dataset=drivaer_ml_surface_pose`, `augment` per lane); eval launcher
   `$T/transfer/campaign_b_eval_aga.sbatch` (iw_eval clone; every arm scored on
   `drivaer_ml_surface_pose`; outputs `$T/iw_evals/campB_*`).
+
+## 2026-09-09 — Acceptance lanes submitted
+
+Deployed on AGA (the cluster's `merge_global_data.py` predates the repository's, so
+its `store_case_key` support was patched in additively; `domain_transforms.py` carries
+both the D1 `SplitInteriorSupport` and `FixedRandomPose`; the dataset variant was
+derived from the cluster's frozen `drivaer_ml_surface.yaml`). One lane per
+architecture submitted first for launch acceptance: camp-b-0 (GeoTransolver +
+SO(3) augmentation, seed 42; job 691774), camp-b-2 (Transolver + SO(3) augmentation,
+seed 42; 691775), camp-b-4 (ISLA, no augmentation, seed 42; 691776). The remaining
+five lanes (seeds 43 of the three arms; the two controls) follow once each arm has
+written its first training step without error.
