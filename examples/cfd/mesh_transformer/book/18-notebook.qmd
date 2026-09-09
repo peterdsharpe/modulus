@@ -9600,8 +9600,10 @@ increases the program to about 66 GPU nodes.
 6. *Interior third seeds*: ISLA query tokens + SDF seed 44 and unit-drive
    GeoTransolver-volume seed 44 (interior bars unchanged; spread reported).
 
-The pose-varying benchmark (POSE-BENCH, @sec-nb-pose-qcount-plan) launches
-in parallel from a separate worktree with its own preregistration entry.
+The pose-varying benchmark (POSE-BENCH, @sec-nb-pose-qcount-plan) is run
+by the transfer-program session (research/transfer_program) under its own
+preregistration, together with a geometry-stratified multi-draw study at 35
+and 210 cases; its results are offered to the book when they land.
 Launchers: HiLift lanes as rows 44–68 of highlift/wave2_lanes.tsv
 (hl_wave2_aga.sbatch); DrivAerML lanes uw_aga.sbatch (cloned from
 instwave_aga.sbatch); interior seeds through v0/v0_qt2_aga.sbatch lane 2 and
