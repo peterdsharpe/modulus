@@ -893,3 +893,86 @@ def test_passive_decode_boundary_scalars():
     assert not torch.allclose(out, out2, atol=1e-6)  # the channel is live on the query side
     with pytest.raises(ValueError):
         m(pts, nrm, drv, w, boundary_scalars=bs, query_points=pts[:, :17], query_normals=nrm[:, :17])
+
+
+def _rot_z(deg):
+    c, s = torch.cos(torch.deg2rad(torch.tensor(deg, dtype=torch.float64))), torch.sin(
+        torch.deg2rad(torch.tensor(deg, dtype=torch.float64))
+    )
+    return torch.tensor([[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]], dtype=torch.float64)
+
+
+def _collision_pair(angles_a, angles_b):
+    """Two five-component arrangements with zero transverse first moment about an
+    axial drive (audit 2026-09-08, item 3): first-moment anchors cannot tell them apart."""
+    normal = torch.tensor(
+        [[i, j, k] for i in (-1.0, 1.0) for j in (-1.0, 1.0) for k in (-1.0, 1.0)], dtype=torch.float64
+    ) / 3**0.5
+    point = torch.tensor([2.0, 0.0, 0.0], dtype=torch.float64) + 0.15 * normal
+
+    def cloud(angles):
+        ps, ns = [], []
+        for a in angles:
+            R = _rot_z(a)
+            ps.append(point @ R.T)
+            ns.append(normal @ R.T)
+        return torch.cat(ps)[None], torch.cat(ns)[None]
+
+    (p1, n1), (p2, n2) = cloud(angles_a), cloud(angles_b)
+    d = torch.tensor([[0.0, 0.0, 1.0]], dtype=torch.float64)
+    w = torch.full((1, 40), 4 * torch.pi * 0.15**2 / 8, dtype=torch.float64)
+    return p1, n1, p2, n2, d, w
+
+
+@pytest.mark.parametrize("extra", [{}, {"similarity_gauge": True}, {"geo_checkpoint": True}])
+def test_second_moment_features_contracts(extra):
+    """MOM2 channel: exact SE(3) covariance, drive degree one, measure-scale
+    invariance, and (with the gauge) geometric-scale equivariance."""
+    torch.manual_seed(0)
+    m = ISLA(hidden=64, n_layers=3, n_slices=32, second_moment_features=True, **extra).double().eval()
+    n = 300
+    pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n, dtype=torch.float64) + 0.5
+    q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
+    if torch.det(q) < 0:
+        q[:, 0] = -q[:, 0]
+    shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
+    with torch.no_grad():
+        base = m(pts, nrm, drv, w)
+        moved = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w)
+        rescaled_w = m(pts, nrm, drv, 3.7 * w)
+    p0, v0 = _split(base)
+    p1, v1 = _split(moved)
+    assert torch.allclose(p1, p0, atol=1e-10)
+    assert torch.allclose(v1, v0 @ q.T, atol=1e-10)
+    assert torch.allclose(rescaled_w, base, atol=1e-10)
+    if extra.get("similarity_gauge"):
+        with torch.no_grad():
+            scaled = m(2.7 * pts, nrm, drv, 2.7**2 * w)
+        assert torch.allclose(scaled, base, atol=1e-10)
+    # the channel is live: outputs differ from the eight-invariant model with the same seed
+    torch.manual_seed(0)
+    m8 = ISLA(hidden=64, n_layers=3, n_slices=32, **extra).double().eval()
+    assert m8.blocks[0].geo_logit.in_features == 8 and m.blocks[0].geo_logit.in_features == 10
+
+
+def test_second_moment_features_separate_first_moment_collision():
+    """The audit's counterexample: identical eight-invariant outputs on the common
+    component, separated once the second-moment channel is on."""
+    p1, n1, p2, n2, d, w = _collision_pair([0, 120, 240, 27, 207], [0, 120, 240, 43, 223])
+    torch.manual_seed(0)
+    base = ISLA(hidden=64, n_layers=4, n_slices=32).double().eval()
+    torch.manual_seed(0)
+    mom2 = ISLA(hidden=64, n_layers=4, n_slices=32, second_moment_features=True).double().eval()
+    with torch.no_grad():
+        a0, b0 = base(p1, n1, d, w), base(p2, n2, d, w)
+        a2, b2 = mom2(p1, n1, d, w), mom2(p2, n2, d, w)
+    assert (a0[:, :8] - b0[:, :8]).abs().max() < 1e-12  # blind by construction
+    assert (a2[:, :8] - b2[:, :8]).abs().max() > 1e-4  # separated
+    # congruent control: the same arrangement rotated about the drive is identical
+    R = _rot_z(37.0)
+    with torch.no_grad():
+        rot = mom2(p1 @ R.T, n1 @ R.T, d @ R.T, w)
+    assert torch.allclose(rot[..., :1], a2[..., :1], atol=1e-10)

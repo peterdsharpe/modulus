@@ -64,12 +64,15 @@ def _relational_invariants(
     z_pos: Float[torch.Tensor, "batch slices 3"],
     m_s: Float[torch.Tensor, "batch slices 3"],
     eps: float,
-) -> Float[torch.Tensor, "batch tokens slices 8"]:
+    c_s: Float[torch.Tensor, "batch slices 3 3"] | None = None,
+) -> Float[torch.Tensor, "batch tokens slices geo"]:
     """The eight point-anchor invariants (v3b set): distance and its log, the
     unit relative vector dotted with the drive, the point normal and the anchor
     normal, the point normal dotted with the anchor normal, the anchor radius
     and the anchor direction dotted with the drive. Shared by the encoder slice
-    blocks and the passive decoder blocks."""
+    blocks and the passive decoder blocks. With ``c_s`` (the per-slice
+    second-moment tensor about the anchor; MOM2, 2026-09-08) two more
+    invariants are appended: rel_hat^T C_s rel_hat and tr C_s."""
     rel = r[:, :, None, :] - z_pos[:, None, :, :]  # (B, N, S, 3)
     dist = rel.norm(dim=-1, keepdim=True).clamp_min(eps)
     rel_hat = rel / dist
@@ -77,28 +80,35 @@ def _relational_invariants(
     z_hat = z_pos / z_mag
     n_exp = n_hat[:, :, None, :]
     d_exp = d_hat[:, :, None, :]
-    return torch.cat(
-        [
-            dist,
-            torch.log(dist),
-            (rel_hat * d_exp).sum(-1, keepdim=True),
-            (rel_hat * n_exp).sum(-1, keepdim=True),
-            (rel_hat * m_s[:, None, :, :]).sum(-1, keepdim=True),
-            (n_exp * m_s[:, None, :, :]).sum(-1, keepdim=True),
-            z_mag[:, None, :, :].expand(rel.shape[0], rel.shape[1], -1, 1),
-            (z_hat[:, None, :, :] * d_exp).sum(-1, keepdim=True),
-        ],
-        dim=-1,
-    )
+    feats = [
+        dist,
+        torch.log(dist),
+        (rel_hat * d_exp).sum(-1, keepdim=True),
+        (rel_hat * n_exp).sum(-1, keepdim=True),
+        (rel_hat * m_s[:, None, :, :]).sum(-1, keepdim=True),
+        (n_exp * m_s[:, None, :, :]).sum(-1, keepdim=True),
+        z_mag[:, None, :, :].expand(rel.shape[0], rel.shape[1], -1, 1),
+        (z_hat[:, None, :, :] * d_exp).sum(-1, keepdim=True),
+    ]
+    if c_s is not None:
+        ### Second-moment channel: the anchor's covariance seen from the point.
+        ### Both quantities are invariant (C_s is a rank-2 equivariant tensor
+        ### about a translation-covariant anchor); they carry the transverse
+        ### arrangement that first-moment anchors lose whenever the routed
+        ### points' transverse first moment vanishes (audit 2026-09-08, item 3).
+        quad = torch.einsum("bnsi,bsij,bnsj->bns", rel_hat, c_s, rel_hat)[..., None]
+        trace = c_s.diagonal(dim1=-2, dim2=-1).sum(-1)[:, None, :, None]
+        feats += [quad, trace.expand(rel.shape[0], rel.shape[1], -1, 1)]
+    return torch.cat(feats, dim=-1)
 
 
-def _geo_region(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: float):
+def _geo_region(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: float, c_s=None):
     """One recompute region per layer: the per-slice routing bias from the
     invariants and the invariants pooled over slices by the resulting
     point->slice mix. Returns (bias (B,N,S), mix (B,N,S), pooled (B,N,8)); the
     (B,N,S,8) invariants and their (B,N,S,3) intermediates never leave the
     region, so under checkpointing they are rebuilt in backward, not stored."""
-    geo = _relational_invariants(r, n_hat, d_hat, z_pos, m_s, eps)
+    geo = _relational_invariants(r, n_hat, d_hat, z_pos, m_s, eps, c_s)
     bias = lin(geo).squeeze(-1)
     mix = torch.softmax(logits_pre + bias, dim=-1)  # normalized over slices
     return bias, mix, torch.einsum("bns,bnsg->bng", mix, geo)
@@ -110,9 +120,16 @@ class _SliceBlock(nn.Module):
     N_GEO = 8  # v3b: dist, log dist, rel dots (d, n, m_s), n.m_s, |z_s|, zhat_s.d
 
     def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
-                 use_relational_geo: bool = True, geo_checkpoint: bool = False) -> None:
+                 use_relational_geo: bool = True, geo_checkpoint: bool = False,
+                 second_moment: bool = False) -> None:
         super().__init__()
         self.use_relational_geo = use_relational_geo
+        ### MOM2 (2026-09-08): per-slice second-moment tensor about the anchor,
+        ### read at each point as rel_hat^T C_s rel_hat and tr C_s (two more
+        ### invariants). Restores the transverse arrangement that first-moment
+        ### anchors cannot see. Flag-gated; off reproduces the v3b set exactly.
+        self.second_moment = bool(second_moment)
+        self.n_geo = self.N_GEO + (2 if self.second_moment else 0)
         ### Activation recompute (2026-09-07 memory attribution): the per-slice
         ### geometry tensors -- rel (B,N,S,3), rel_hat, dist and two bf16 copies
         ### of the (B,N,S,8) invariants -- are 76% of ISLA's saved activations
@@ -129,8 +146,8 @@ class _SliceBlock(nn.Module):
         ### crash DDP (A35b nogeo, 2026-09-05).
         self.geo_width = hidden // 2
         if use_relational_geo:
-            self.geo_logit = nn.Linear(self.N_GEO, 1)
-            self.geo_feat = nn.Linear(self.N_GEO, self.geo_width)
+            self.geo_logit = nn.Linear(self.n_geo, 1)
+            self.geo_feat = nn.Linear(self.n_geo, self.geo_width)
         self.slice_mlp = nn.Sequential(
             nn.LayerNorm(hidden),
             nn.Linear(hidden, mlp_ratio * hidden),
@@ -172,7 +189,14 @@ class _SliceBlock(nn.Module):
             ### point_mix sums to one over slices), but the saved activation is
             ### (B, N, 8) instead of (B, N, S, hidden/2) -- ~0.5 GB per layer at
             ### 10k tokens, 256 slices, hidden 192 (A35b memory derivation).
-            geo_args = (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps)
+            c_s = None
+            if self.second_moment:
+                ### C_s = E_a[r r^T] - z_s z_s^T under the point->slice weights a
+                ### (which sum to one over points): no (B, N, S, .) intermediate.
+                rr = (r[:, :, :, None] * r[:, :, None, :]).reshape(r.shape[0], r.shape[1], 9)
+                c_s = torch.einsum("bns,bnk->bsk", a, rr).reshape(r.shape[0], -1, 3, 3)
+                c_s = c_s - z_pos[:, :, :, None] * z_pos[:, :, None, :]
+            geo_args = (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps, c_s)
             if self.geo_checkpoint:
                 bias, point_mix, pooled = checkpoint(_geo_region, *geo_args, use_reentrant=False)
             else:
@@ -298,6 +322,7 @@ class ISLA(Module):
         query_local_features: bool = False,
         query_local_radii: tuple[float, ...] = (0.05, 0.15, 0.5),
         query_mass: str = "geometric_mean",
+        second_moment_features: bool = False,
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -356,9 +381,13 @@ class ISLA(Module):
         self.embed = nn.Sequential(
             nn.Linear(n_seed, hidden), nn.GELU(), nn.Linear(hidden, hidden)
         )
+        ### MOM2 (audit 2026-09-08, item 3; notebook #sec-nb-mom2-prereg): the
+        ### per-slice second-moment channel. Off by default so every trained
+        ### checkpoint reproduces exactly.
+        self.second_moment_features = bool(second_moment_features)
         self.blocks = nn.ModuleList(
             _SliceBlock(hidden, n_slices, mlp_ratio, use_relational_geo=use_relational_geo,
-                        geo_checkpoint=geo_checkpoint)
+                        geo_checkpoint=geo_checkpoint, second_moment=self.second_moment_features)
             for _ in range(n_layers)
         )
         ### v5a EXPERIMENT (flag-gated, default off): encode/decode split.
