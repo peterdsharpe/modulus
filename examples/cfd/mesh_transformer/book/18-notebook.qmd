@@ -9315,3 +9315,63 @@ warranted, is the reference HiLift 35-case lane with `+model.anchor_topk=32`
 preregistered separately before launch. The output-change readout is the
 approximation error of *re-routing a model trained dense*; a model trained
 sparse may differ less or more, which is what the training arm measures.
+
+## 2026-09-09 — Verdict: SPARSE not worth a training arm — routing each point to its k nearest anchors is 8–16% *slower* than dense on a GB300 at 10,000 tokens, saves memory only where the exact recompute already does, and re-routes an untrained model's output by 21–46% {#sec-nb-sparse-routing-verdict}
+
+**Setting and bars** (@sec-nb-sparse-routing-prereg). The `anchor_topk`
+option (commit f1668bebe on branch isla-sparse-routing) restricts each
+point's relational invariants, routing bias and point→slice mix to its k
+nearest anchors; exact at k = 256, contract-tested (61 tests pass). Bars:
+worth a training arm if k = 32 gives ≥ 1.5x step-time reduction with ≤ 1%
+scalar-output change on the trained checkpoint; not worth it if < 1.2x or
+> 5%.
+
+**Readout** (one GB300, hidden 192, 12 layers, 256 slices, 10,000 tokens,
+batch 1, bf16 autocast, AdamW step; median of 10 steps;
+results/isla_sparse_routing_bench_2026-09-09.json):
+
+| routing | step, recompute off | speed-up | incremental peak memory | step, recompute on | speed-up | incremental peak memory |
+|---|---|---|---|---|---|---|
+| dense (256 anchors) | 0.230 s | 1.00 | 3.37 GiB | 0.237 s | 1.00 | 1.47 GiB |
+| k = 128 | 0.273 s | 0.84 | 2.83 GiB | 0.281 s | 0.84 | 1.40 GiB |
+| k = 64 | 0.261 s | 0.88 | 2.08 GiB | 0.268 s | 0.88 | 1.32 GiB |
+| k = 32 | 0.256 s | 0.90 | 1.71 GiB | 0.262 s | 0.91 | 1.32 GiB |
+| k = 16 | 0.253 s | 0.91 | 1.51 GiB | 0.258 s | 0.92 | 1.32 GiB |
+
+Output change with the same weights at initialization (fp32, random
+anisotropic cloud), relative L2 of the scalar channel: 21% (k = 128), 32%
+(64), 42% (32), 46% (16); of the full output 26–31%.
+
+**Verdict: not worth it, on the speed bar alone.** Sparse routing is slower
+than dense at every k: the k-nearest selection (a 10,000 × 256 distance
+matrix and top-k per layer), the gathers of anchors and logits, and the
+scatters back to the dense (points × slices) tensors cost more than the
+(points × k × 8) invariants save, because on this GPU the dense
+(points × 256 × 8) geometry is a small, fused, memory-bound term (about
+40 MB per layer in bf16) and not the bottleneck the step-time gap to
+GeoTransolver suggested. Memory does fall as intended when nothing else
+removes the geometry activations (3.37 → 1.71 GiB at k = 32, a 2.0x cut of
+the incremental peak), but the exact recompute option of @sec-nb-geo-recompute
+already brings dense routing to 1.47 GiB, and on top of it sparse routing
+saves a further 10% only. The output change is far past the 5% bar as well:
+at initialization the routing mass is spread over many anchors, so the
+premise that a point's mass concentrates on its nearest anchors does not
+hold for an untrained model, and excluding the other anchors from the
+slice-state assignment re-routes it wholesale.
+
+**What was not measured.** The trained-checkpoint re-routing test failed to
+load `MeshTransformer2.0.96.mdlus` through `Module.from_checkpoint` in the
+benchmark job (the registered class resolved from the checkpoint's name
+rejected `out_scalars`; results/isla_sparse_routing_bench_2026-09-09.json,
+key `checkpoint_output_change.error`), so the output change on a trained
+model, where routing may well be local, is unknown. It is not needed for
+the verdict: a speed-up below 1.2x fails the preregistered bar regardless of
+accuracy. Where ISLA's step time actually goes at 10,000 tokens (the two
+softmaxes over the (points × slices) logits, the slice-state and readback
+einsums, or the per-token MLPs) is the profiling question this leaves open;
+a kernel-level profile of one dense block is the right next instrument, and
+is cheaper than any routing change.
+
+**Tech-tree change.** SPARSE RUNNING → DONE (not worth it); no training arm.
+The option stays in the code, flag-gated and default-off, as the runnable
+record of the refuted design.
