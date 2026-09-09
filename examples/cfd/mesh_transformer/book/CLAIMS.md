@@ -848,3 +848,13 @@ interior control @sec-nb-udrv-int-prereg.
   not use gap information" (localization only). ISLA's own squared error: 59% (35) / 71%
   (210) in the near band, which holds ~15% of points. HiLift stored cell normals point
   INWARD (sign rule chose −1 on 360/360 cases): a data fact, not a claim about the models.
+
+- **MOM2-T (2026-09-09).** Second-moment channel on DrivAerML surface at 435 cars:
+  pressure 0.0583 vs 0.0577 (+0.9%). Write "free at 435 cars on pressure; wall shear not
+  measured". Never "improves" (it does not) and never "helps a benchmark".
+
+- **V0-SURF10K (2026-09-09).** QT+SDF with 10,000 vehicle cells: 0.0572 / 0.0848 / 0.1187
+  vs 365-cell arm 0.0567 / 0.0853 / 0.1215 — null (all within 3%). Write "the interior
+  result does not depend measurably on the surface sample size (365 vs 10,000 cells)";
+  never "ISLA ignores the surface" (a zero-surface control was not run). The 365-cell
+  numbers remain the chapter's headline numbers; the 10k numbers are the confirmation.
