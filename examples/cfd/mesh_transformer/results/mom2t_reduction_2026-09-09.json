@@ -1,0 +1,30 @@
+{
+ "reference": {
+  "iw_mt2_lr1e3_seed42": [
+   {
+    "pressure_l2": 0.05875
+   },
+   48
+  ],
+  "iw_mt2_lr1e3_seed43": [
+   {
+    "pressure_l2": 0.05672
+   },
+   48
+  ]
+ },
+ "mom2t": {
+  "mom2_mt2_lr1e3_seed42": [
+   {
+    "pressure_l2": 0.05769
+   },
+   48
+  ],
+  "mom2_mt2_lr1e3_seed43": [
+   {
+    "pressure_l2": 0.05882
+   },
+   48
+  ]
+ }
+}

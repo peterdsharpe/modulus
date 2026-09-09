@@ -8895,3 +8895,29 @@ way the eddy-viscosity gap is re-read against the new reference.
 **Scheduling.** Node UDRV-INT, RUNNING, depends on UDRV (first readout) and
 V0 (reference). GT-volume lanes run about 0.05 s per step (@sec-interior);
 two chains, no other lane touched.
+
+## 2026-09-09 — Verdict: MOM2-T — the second-moment channel is free where ISLA is trained (DrivAerML surface pressure 0.0583 against 0.0577, within 1%) {#sec-nb-mom2t-verdict}
+
+**Setting and bars** (@sec-nb-mom2t-prereg): the reference ISLA surface
+configuration on DrivAerML at 435 cars with `second_moment_features=true`,
+two seeds, frozen protocol, against the reference lanes
+`iw_mt2_lr1e3_seed{42,43}`. Free if the two-seed mean pressure relative L2
+is ≤ 0.0594 (3% above the reference 0.0577; one seed spread); falsified as
+a free ingredient if ≥ 0.0594.
+
+**Readout** (results/mom2t_reduction_2026-09-09.json; 48 validation cars):
+
+| arm | seed 42 | seed 43 | mean |
+|---|---|---|---|
+| reference (eight relational invariants) | 0.0588 | 0.0567 | 0.0577 |
+| with the second-moment channel | 0.0577 | 0.0588 | **0.0583** |
+
+**Verdict: free.** The channel costs 0.9% on pressure, a quarter of the
+seed spread, and buys nothing, as predicted (the collision family is not
+known to occur on DrivAerML). The wall-shear half of the bar could not be
+read: the surface evaluation writes only the pressure metric to
+metrics.jsonl for these lanes, so wall shear is *not measured* here and the
+verdict rests on pressure. The channel stays a candidate ingredient for the
+successor design with the qualification of @sec-nb-mom2-verdict: it removes
+a documented blind spot at no measured cost, and there is still no claim
+that it helps any benchmark. Tech-tree change: MOM2-T RUNNING → DONE (free).
