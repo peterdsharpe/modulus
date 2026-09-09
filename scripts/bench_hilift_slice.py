@@ -59,9 +59,14 @@ def worker(case_dir, n_cells):
 
 def driver(out, code_main, code_pr, recipe_src):
     cases = sorted(d for d in os.listdir(ROOT) if d.startswith("geo_LHC"))
-    picks = [cases[i] for i in range(50, 50 + 12 * 137, 137)]  # 12 well-separated cases
+    # 12 well-separated cases; BENCH_CASE_OFFSET picks a disjoint dozen for a
+    # second round, BENCH_FIRST=pr swaps which package goes first.
+    start = int(os.environ.get("BENCH_CASE_OFFSET", "50"))
+    picks = [cases[i] for i in range(start, start + 12 * 137, 137)]
     snaps = {"main": code_main, "pr": code_pr}
     order = [("main", "pr"), ("pr", "main")] * 3  # alternate first-mover
+    if os.environ.get("BENCH_FIRST") == "pr":
+        order = [(b, a) for a, b in order]
     with open(out, "a") as f:
         for n_cells in (10_000, 100_000):
             ci = 0

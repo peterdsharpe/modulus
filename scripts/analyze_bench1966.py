@@ -13,7 +13,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter, NullFormatter
+from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
 
 D = Path(sys.argv[1]); OUT = Path(sys.argv[2]); OUT.mkdir(parents=True, exist_ok=True)
 BLUE, RED, INK2, GRID = "#2a78d6", "#e34948", "#52514e", "#e1e0d9"
@@ -132,8 +132,9 @@ if p.exists():
         r["impl"] = {"main": "before", "pr": "after"}.get(r["impl"], r["impl"])
     errs = [r for r in recs if "error" in r]
     g = group(recs, ("n_cells",))
+    n_cases = min(len(v) for byimpl in g.values() for v in byimpl.values())
     md += ["### HiLiftAeroML boundaries on the AGA cluster (lustre memmaps, cold per case)", "",
-           "Real reader operation on 285M-cell / 142M-vertex surfaces: lazy memmap load, contiguous cell block, vertex compaction. Each measurement is a fresh process on a case no other measurement touched (cold page cache); the two packages alternate. Median (min–max) over 6 cases per row.", "",
+           f"Real reader operation on 285M-cell / 142M-vertex surfaces: lazy memmap load, contiguous cell block, vertex compaction. Each measurement is a fresh process on a case no other measurement touched (cold page cache); the two packages alternate. Median (min–max) over {n_cases} cases per row.", "",
            "| block cells | metric | main: lookup table | this PR: table or search, by shape | speed-up |", "|---|---|---|---|---|"]
     def stat(rs, k):
         v = [r[k] for r in rs if k in r]
@@ -141,7 +142,7 @@ if p.exists():
     for (nc,), byimpl in sorted(g.items()):
         for key, label in (("subsample_cold_s", "cold sample (load + block + compaction)"),
                            ("subsample_second_block_s", "second block, same case (partly cached)"),
-                           ("slice_points_warm_s", "slice_points alone, in-memory block"),
+                           ("slice_points_warm_s", "slice_points alone, same block (point pages just read)"),
                            ("reader_getitem_s", "recipe reader `__getitem__`"),
                            ("subsample_peak_rss_delta_mib", "peak RSS increase during the sample")):
             (mb, lb, hb), (ma, la, ha) = stat(byimpl["before"], key), stat(byimpl["after"], key)
@@ -156,7 +157,7 @@ if p.exists():
     fig, axes = plt.subplots(1, 3, figsize=(12.5, 4.8), constrained_layout=True)
     for ax, key, title, ylabel in (
             (axes[0], "subsample_cold_s", "cold sample: lazy load + cell block + vertex compaction", "wall time [s]"),
-            (axes[1], "slice_points_warm_s", "slice_points alone, block already in memory", "wall time [s]"),
+            (axes[1], "slice_points_warm_s", "slice_points alone, same block, point pages just read", "wall time [s]"),
             (axes[2], "subsample_peak_rss_delta_mib", "peak resident memory added during the sample", "peak RSS increase [MiB]")):
         for j, ((nc,), byimpl) in enumerate(sorted(g.items())):
             for i, (impl, _, c) in enumerate(IMPLS[:2]):
@@ -170,18 +171,15 @@ if p.exists():
         ax.set_xlabel("cells per sample block")
         ax.set_yscale("log"); ax.set_ylabel(ylabel)
         plain = FuncFormatter(lambda v, _: f"{v:,.0f}" if v >= 10 else f"{v:g}")
+        ax.yaxis.set_major_locator(LogLocator(subs=(1.0, 2.0, 3.0, 5.0)))
         ax.yaxis.set_major_formatter(plain)
-        allv = [r[key] for byimpl in g.values() for impl in ("before", "after") for r in byimpl[impl] if key in r]
-        if max(allv) / min(allv) < 30:  # narrow range: label the minor ticks too
-            ax.yaxis.set_minor_formatter(plain)
-        else:
-            ax.yaxis.set_minor_formatter(NullFormatter())
+        ax.yaxis.set_minor_formatter(NullFormatter())
         ax.set_title(title, fontsize=9.5, color=INK2)
         ax.grid(axis="x", visible=False)
     fig.suptitle("HiLiftAeroML boundary meshes (285M cells, 142M vertices, memory-mapped on Lustre), one fresh process per case", fontsize=10.5)
     handles = [Line2D([], [], color=c, lw=3, marker="o", ms=5, label=lab) for _, lab, c in IMPLS[:2]]
-    handles += [Line2D([], [], color=INK2, lw=0, marker="o", ms=5, label="one case (6 per group)"),
-                Line2D([], [], color=INK2, lw=3, label="median of the 6 cases")]
+    handles += [Line2D([], [], color=INK2, lw=0, marker="o", ms=5, label=f"one case ({n_cases} per group)"),
+                Line2D([], [], color=INK2, lw=3, label=f"median of the {n_cases} cases")]
     fig.legend(handles=handles, loc="outside lower center", ncol=2, fontsize=8.5)
     fig.savefig(OUT / "hilift_aga.png", bbox_inches="tight"); plt.close(fig)
 
