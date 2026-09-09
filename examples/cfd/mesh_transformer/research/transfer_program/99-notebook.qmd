@@ -374,3 +374,32 @@ previous checkpoint at epoch 11. Campaign A's launch record: 72 chains,
 pilots accepted at epoch 100 after one hour, the 210-case rule corrected
 before launch because the pool is 180 geometries × 7 angles rather than
 126 × 10 (`studies/campaign_a_draws/PREREG.md` carries the correction).
+
+## 2026-09-09 — Verdict: C3 — the identifiability floor is real and architecture-independent on an exact paired-condition problem, and a per-point condition input repairs it {#sec-nb-c3-verdict}
+
+The paired-condition control (`studies/paired_conditions/`, preregistered
+in its `PREREG.md`; reference and training on a compute node through
+`srun --overlap`, since the local host was saturated) built exterior
+potential flow on 41 bodies in free air and at 0.6 half-heights above a
+ground plane by the image method, qualified against the analytic sphere
+(4.4 × 10⁻⁵), with two instrument repairs recorded before training
+(collocation at exact surface points along facet-centroid directions with
+analytic normals, after a first pass that solved the polyhedron's flow; and
+per-case residual and refinement gates at 2 × 10⁻³ and 5 × 10⁻³, amended
+from 10⁻³ with the reason in the study notebook; 38 of 41 bodies pass) and
+a 3,000-step training length after a 600-step pass proved too weak (the
+in-distribution error exceeded the floor). Results on held-out shapes (seed
+means, relative L2 of C_p, free air / ground): current encoding trained on
+both conditions 0.075 / 0.123; with a per-point ground-proximity scalar
+0.045 / 0.058; free-air-only reference 0.040 / 0.157 out of condition;
+condition-blind multilayer perceptron 0.237 / 0.219; analytic equal-mixture
+floor 0.080 / 0.071. Repair CONFIRMED (1.14x and 1.46x the reference, bar
+1.5x; the conditioned model fits its training set at 1.49x). Floor: the
+blind model's paired error 0.099 is 1.31x the floor (≥ 0.8x met) and 2.49x
+the reference, below the 3x clause, which was miscalibrated (expected
+√(0.040² + 0.076²) / 0.040 = 2.15x); recorded as a preregistration
+calibration error, not rewritten. Architecture independence holds (the
+perceptron at 3.0x the floor). Signature: 78% of the blind model's squared
+error on ground cases in the lowest height quarter (57–88%). Chapter
+@sec-controls-paired states what this does and does not license about the
+DrivAerML → SHIFT-SUV compound shift.
