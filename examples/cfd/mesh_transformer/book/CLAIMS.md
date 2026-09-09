@@ -875,3 +875,8 @@ interior control @sec-nb-udrv-int-prereg.
   not an input-scale artifact"; the interior ratios (0.91x / 0.64x / 1.29x) may be quoted
   against either baseline version. The verdict sentence's interior clause reads "lead on
   pressure and velocity survives that control".
+
+- **UDRV-L geo40 (2026-09-09).** Unit-drive GeoTransolver 0.1888 (both seeds) vs ISLA 0.2498 at
+  4 training geometries: ratio 0.76 by the mean; per case 96/180, per geometry 9/18 (median 1.03,
+  10–90% 0.78–2.06). Write "ISLA behind by the mean, even by geometry"; the 1.8x is
+  physical-drive only. Never write that ISLA generalizes across geometries from few samples.

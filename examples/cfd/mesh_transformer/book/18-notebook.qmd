@@ -9519,3 +9519,41 @@ and chapter 12's limits and recommendation are updated accordingly; the
 interior recommendation remains conditional only on the eddy-viscosity gap
 and the query-count dependence. Tech-tree change: UDRV-INT READY → DONE
 (null); QCOUNT's gate is open.
+
+## 2026-09-09 — UDRV-L verdict, four training geometries: unit-drive GeoTransolver 0.189 against ISLA 0.250 by the mean, 9 of 18 geometries each way; the 1.8x was the input scale {#sec-nb-udrvl-geo40-verdict}
+
+**Setting and bars** (results/udrv_ladder_preregistration_2026-09-09.md,
+lanes 12–13). The `geometry_super_scarce` split: 40 training cases made of
+four geometries at all ten angles, validated on 180 cases of 18 geometries
+never seen at any angle. Reference: physical-drive GeoTransolver 0.449
+(seeds 0.407 / 0.492), ISLA 0.250 (0.248 / 0.251), the book's 1.8x. Bars:
+ISLA advantage only if unit-drive GeoTransolver ÷ ISLA ≥ 1.10 with ISLA
+lower on at least two thirds of the cases and 12 of 18 geometries; parity
+0.95–1.05; baseline ahead ≤ 0.90.
+
+**Readout** (results/udrv_reduction_2026-09-09c.json):
+
+| arm | pressure (seeds → mean) | velocity | wall shear | ÷ ISLA |
+|---|---|---|---|---|
+| ISLA | 0.248 / 0.251 → 0.250 | 0.226 | 0.353 | 1.00 |
+| GeoTransolver, physical velocity | 0.407 / 0.492 → 0.449 | 0.424 | 0.606 | 1.8x behind |
+| GeoTransolver, unit direction | 0.1888 / 0.1888 → **0.189** | **0.179** | **0.286** | **0.76 (ahead by the mean)** |
+
+Paired per case (seed means): the unit-drive GeoTransolver is lower than ISLA
+on 96 of 180 cases and on 9 of 18 geometries (median ISLA ÷ GeoTransolver
+1.03; 10–90% range 0.78–2.06; sign test p = 0.41). Against its own
+physical-drive twin it is lower on 180 of 180 cases and 18 of 18 geometries
+(median factor 2.4). Its two seeds agree to 0.02%.
+
+**Verdict: no ISLA advantage; baseline ahead by the mean, even by
+geometry.** The mean ratio 0.76 meets the "baseline ahead" bar; the
+per-geometry count is a coin toss (9 of 18) with a wide spread: on half the
+held-out geometries ISLA is the more accurate model, and on a tail it is up
+to twice as bad, which is what drives the mean. Either way the
+preregistered condition for "ISLA generalizes across wing geometries from
+few samples" (≥ 1.10 and two thirds of the cases) is not approached at four
+training geometries, and the book's 1.8x was the input scale. Three of six
+HiLift rungs are now re-measured with unit-drive baselines (35 cases, the
+fixed angle, four geometries); at all three the baselines match or beat ISLA
+by the mean. Remaining: 210 cases (GeoTransolver and Transolver), 21
+geometries, 1,260 cases, and the deflection and floor replacements.

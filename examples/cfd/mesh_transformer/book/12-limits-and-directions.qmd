@@ -296,8 +296,10 @@ unseen-geometry ladder ISLA scores 0.250 against the physical-drive
 GeoTransolver's 0.449 from four training geometries (1.8x; 172 of 180
 cases, which are 18 geometries at ten angles, so the geometry is the
 independent unit and the case count is descriptive;
-results/hilift_paired_stats_geometry_2026-09-08.json) and 0.102 against
-0.143 from 21 geometries (1.40x). The observation behind those numbers,
+results/hilift_paired_stats_geometry_2026-09-08.json) but 0.250 against
+the unit-drive GeoTransolver's 0.189 (ratio 0.76 by the mean; 9 of 18
+geometries each way; @sec-nb-udrvl-geo40-verdict), and 0.102 against the
+physical-drive 0.143 from 21 geometries (1.40x; unit-drive rerun training). The observation behind those numbers,
 that ISLA's error responds to the number of training geometries while the
 physical-drive GeoTransolver's does not (0.38 → 0.45 and 0.14 → 0.14 as the
 geometries fall from 33 to 4 and from about 126 to 21), is a fact about a

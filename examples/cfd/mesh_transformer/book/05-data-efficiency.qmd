@@ -533,6 +533,22 @@ evaluation-population caveat above); that the physical-drive
 GeoTransolver's did not is what a collapsed global-context projector
 predicts.
 
+With the unit-drive GeoTransolver in place of the physical-drive one on the
+same four-geometry split, the factor reverses by the mean and vanishes by
+the count: the unit-drive GeoTransolver scores 0.189 (seeds 0.1888 /
+0.1888) against ISLA's 0.250, a ratio of 0.76 (ISLA behind by the mean),
+while per case it is lower on 96 of 180 and per geometry on 9 of 18, with a
+median per-geometry ratio of 1.03 and a 10–90% range of 0.78–2.06
+(results/udrv_reduction_2026-09-09c.json, arm `gt_unit_geo40`;
+@sec-nb-udrvl-geo40-verdict). The mean difference comes from a tail of
+geometries where ISLA is up to twice as bad; on half of the held-out
+geometries ISLA is the more accurate model. Neither bar of the ladder
+preregistration for an ISLA advantage (≥ 1.10 and two thirds of the cases)
+is approached, so "ISLA generalizes across wing geometries from few
+samples" does not survive at four training geometries; its 1.8x was the
+input scale (the unit-drive GeoTransolver is 2.4x more accurate than its
+physical-drive twin, on 180 of 180 cases).
+
 The strata also show *what kind* of model each physical-drive baseline was
 at 35 cases, and what kind ISLA is. The physical-drive baselines' error is
 nearly flat — 0.33 to 0.47 at every angle, identical on seen and unseen
