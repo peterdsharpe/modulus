@@ -263,6 +263,74 @@ class ComputeFreestreamDirection(MeshTransform):
 
 
 @register()
+class SplitInteriorSupport(MeshTransform):
+    r"""Move a deterministic prefix of the interior points into a ``support``
+    boundary (transfer program D1, 2026-09-09).
+
+    ISLA's ``support_tokens`` mode needs an interior *support* set that is a
+    function of the case, not of the requested output points. The volume
+    reader already draws the interior sample deterministically per case
+    (``subsample_n_points`` with a per-index generator), so the first
+    ``n_support`` interior points are a reproducible per-case set. This
+    transform moves them, with the listed ``point_data`` fields (e.g. the
+    signed distance and its gradient), into ``boundaries[boundary_name]`` as
+    a points-only ``Mesh``; the remaining interior points, which keep every
+    field including the targets, are the passive queries the loss scores.
+    Run it *after* the SDF transform (so the support carries the SDF) and
+    before target injection; the ``targets:`` block then attaches to the
+    reduced interior only.
+
+    At inference the same transform yields the same support for a case, so a
+    sentinel-query study can hold the support fixed while the requested
+    query set varies (see the eval skeleton in
+    ``examples/cfd/mesh_transformer/research/transfer_program/studies/computational_support``).
+    """
+
+    def __init__(self, n_support: int, boundary_name: str = "support",
+                 point_data_fields: tuple[str, ...] = ("sdf", "sdf_normals")) -> None:
+        super().__init__()
+        if n_support <= 0:
+            raise ValueError("n_support must be positive")
+        self.n_support = int(n_support)
+        self.boundary_name = boundary_name
+        self.point_data_fields = tuple(point_data_fields)
+
+    def __call__(self, mesh: Mesh) -> Mesh:  # bare Mesh: identity (support needs a DomainMesh)
+        return mesh
+
+    def apply_to_domain(self, domain: DomainMesh) -> DomainMesh:
+        interior = domain.interior
+        n = interior.points.shape[0]
+        if n <= self.n_support:
+            raise ValueError(
+                f"SplitInteriorSupport: interior has {n} points, need more than n_support={self.n_support}"
+            )
+        idx = torch.arange(n, device=interior.points.device)
+        support = interior.slice_points(idx[: self.n_support])
+        queries = interior.slice_points(idx[self.n_support :])
+        keep = {k: support.point_data[k] for k in self.point_data_fields if k in support.point_data.keys()}
+        missing = [k for k in self.point_data_fields if k not in keep]
+        if missing:
+            raise KeyError(f"SplitInteriorSupport: interior point_data lacks {missing!r}")
+        support_mesh = Mesh(
+            points=support.points,
+            cells=support.cells,
+            point_data=TensorDict(keep, batch_size=[support.points.shape[0]]),
+            global_data=interior.global_data,
+        )
+        boundaries = dict(domain.boundaries.items()) if hasattr(domain.boundaries, "items") else {
+            name: domain.boundaries[name] for name in domain.boundary_names
+        }
+        if self.boundary_name in boundaries:
+            raise KeyError(f"SplitInteriorSupport: boundary {self.boundary_name!r} already exists")
+        boundaries[self.boundary_name] = support_mesh
+        return DomainMesh(interior=queries, boundaries=boundaries, global_data=domain.global_data)
+
+    def extra_repr(self) -> str:
+        return f"n_support={self.n_support}, boundary_name={self.boundary_name!r}, fields={self.point_data_fields!r}"
+
+
+@register()
 class BoundaryMeshToDomainMesh(MeshToDomainMesh):
     r"""``MeshToDomainMesh`` whose ``DomainMesh`` path re-targets one boundary.
 

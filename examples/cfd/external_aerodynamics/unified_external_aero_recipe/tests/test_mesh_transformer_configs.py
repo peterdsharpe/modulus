@@ -78,6 +78,7 @@ from domain_transforms import (
     ComputeFreestreamDirection,
     SetDomainGlobalField,
     TopologyAwareDomainMeshReader,
+    SplitInteriorSupport,
 )
 from hydra import compose, initialize_config_dir
 from loss import LossCalculator
@@ -1060,3 +1061,45 @@ def test_probe_boundary_contributions_partition_and_area_domination() -> None:
             after.boundaries["slip"].moment_fraction
             < before.boundaries["slip"].moment_fraction
         ), before.layer
+
+
+def test_split_interior_support_moves_prefix_with_fields_only() -> None:
+    """SplitInteriorSupport (transfer program D1): the first n_support interior
+    points become a points-only `support` boundary carrying only the listed
+    fields; the remaining interior keeps every field (including targets); the
+    split is deterministic and the original DomainMesh is untouched."""
+    torch.manual_seed(2)
+    n = 40
+    pts = torch.randn(n, 3)
+    pdata = {
+        "sdf": torch.rand(n, 1),
+        "sdf_normals": torch.nn.functional.normalize(torch.randn(n, 3), dim=-1),
+        "pressure": torch.randn(n, 1),
+    }
+    domain = DomainMesh(
+        interior=Mesh(points=pts, point_data=pdata),
+        boundaries=_boundary_meshes(("vehicle",)),
+        global_data=_global_data(post_pipeline=False),
+    )
+    t = SplitInteriorSupport(n_support=15)
+    out = t.apply_to_domain(domain)
+    assert "support" in out.boundary_names and "vehicle" in out.boundary_names
+    sup = out.boundaries["support"]
+    assert sup.points.shape == (15, 3) and torch.equal(sup.points, pts[:15])
+    assert set(sup.point_data.keys()) == {"sdf", "sdf_normals"}
+    assert torch.equal(sup.point_data["sdf"], pdata["sdf"][:15])
+    assert out.interior.points.shape == (25, 3) and torch.equal(out.interior.points, pts[15:])
+    assert torch.equal(out.interior.point_data["pressure"], pdata["pressure"][15:])
+    ### deterministic and non-mutating
+    again = t.apply_to_domain(domain)
+    assert torch.equal(again.boundaries["support"].points, sup.points)
+    assert domain.interior.points.shape == (n, 3)
+    ### errors: too few points, missing field, name clash
+    with pytest.raises(ValueError):
+        SplitInteriorSupport(n_support=40).apply_to_domain(domain)
+    with pytest.raises(KeyError):
+        SplitInteriorSupport(n_support=5, point_data_fields=("nope",)).apply_to_domain(domain)
+    with pytest.raises(KeyError):
+        SplitInteriorSupport(n_support=5, boundary_name="vehicle").apply_to_domain(domain)
+    ### bare Mesh path is the identity
+    assert t(domain.interior) is domain.interior

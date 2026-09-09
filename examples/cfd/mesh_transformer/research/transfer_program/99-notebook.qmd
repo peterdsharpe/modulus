@@ -1,0 +1,356 @@
+# Lab notebook {.unnumbered}
+
+## 2026-09-09 — Program start: from the audit's agenda to preregistered experiments {#sec-nb-start}
+
+**Setting.** The companion review of the ISLA record
+(`research/cross_dataset_generalization/`, untracked; rendered report at its `_book/index.html`)
+audited the repository, thirty-one primary papers and five analytic
+controls, and concluded that the record does not establish a cross-dataset
+accuracy advantage for ISLA; with the freestream input matched, GeoTransolver
+and Transolver are more accurate at both completed HiLiftAeroML rungs, and on
+the DrivAerML → SHIFT-SUV fastback transfer ISLA's source-only error is 0.99
+against GeoTransolver's 0.59, both falling to 0.11–0.13 when the estate family
+joins training. The review proposed four directions (rich computational
+support with independent queries; topology- and conditioning-aware boundary
+responses; local flux responses with numerical global coupling; transferred
+correction spaces), a physical-input prerequisite, and a nonlinear extension.
+
+**Decision.** This program runs in a worktree parallel to the main ISLA
+session (which owns the program book and its cluster lanes) and keeps in
+sync with it at milestones. Order of work, as the review recommended:
+controls first (C1 pressure-offset versus spatial error, eval-only on saved
+predictions; C2 source-only normalization audit; C3 a paired
+physical-condition control with exact labels), then in parallel the
+computational-support study (D1, which needs training lanes and therefore
+node budget from the main program) and the three nonlearned gates (D2
+boundary-response rank and basis transfer on 2D Laplace; D3 local-response
+composition on 2D diffusion ports; D4 solver correction-space transfer on 2D
+finite-element systems), each run by a separate agent in its own worktree
+with a preregistration written before its first run. A literature chapter
+(L) asks what classical solvers do that surrogates do not.
+
+**Heilmeier answers, compressed.** We want field and force predictions on
+geometries and families outside the training distribution without a new
+labeled dataset. Today's surrogates fit their family and fail outside it,
+and the largest reported advantages in this program turned out to be
+protocol artifacts. The new element is not an architecture but a set of
+gates: each proposed mechanism has a cheap nonlearned test that can reject
+it before training. If it works, the payoff is a surrogate whose failure
+modes are understood and whose accuracy is stated with its cost. The risks
+are that no mechanism passes its gate (a useful negative), or that a passing
+gate does not carry to turbulent 3D data. Cost: CPU studies today; one
+four-lane training study when budget allows.
+
+## 2026-09-09 — Preregistered: C1, pressure-offset versus spatial error on the fastback transfer {#sec-nb-c1-prereg}
+
+**Setting.** DrivAerML (static wheels, fixed freestream, OpenFOAM hybrid
+RANS–LES) and SHIFT-SUV (rolling floor, rotating wheels, a different
+freestream speed and a different detached-eddy formulation) are different
+label-generating conventions on smooth single-body car families. Pressure is
+nondimensionalized by each dataset's own metadata (q_∞) and not shifted, so
+a difference in the two datasets' pressure reference would appear in a
+zero-shot prediction as a per-case constant, and a constant is exactly what
+makes a relative L2 error approach 1.0 when the predicted field is otherwise
+sensible. ISLA's source-only fastback error is 0.99; GeoTransolver's 0.59.
+
+**Instrument (eval-only).** From the saved zero-shot predictions
+(`smoke_fastback/{mt2_v3c,gt_fixed,mt2_multi,gt_multi}_seed{42,43,44}`, 99
+fastback cases) and the in-family DrivAerML evaluations of the same
+checkpoints, with cell areas recomputed from the saved triangles and cell
+normals from the saved mesh: per case and arm (seed-mean predictions), the
+area-weighted mean error (the offset), the centered remainder, the share of
+area-weighted squared error carried by the offset, the relative L2 error of
+the full and of the offset-removed error against the centered true field,
+the surface closedness |Σ a n| / Σ a, and the relative error of the
+integrated pressure force with and without the offset. Script:
+`studies/controls/pressure_offset_diagnostic.py`.
+
+**Bars, in readout units.** For the two source-only fastback arms:
+*offset-dominated* if the constant carries ≥ 50% of the area-weighted
+squared error (median over cases) and the offset-removed relative L2 is at
+most 0.6 of the full one; *spatial* if the constant carries ≤ 20%; between,
+mixed. The in-family arms must show an offset share ≤ 10%, or the instrument
+is not measuring a transfer effect. Force: on surfaces with closedness
+≤ 0.05 the force error with and without the offset must agree within the
+offset's share, or the normals are inconsistent and the force reading is
+withdrawn.
+
+**What each outcome changes.** Offset-dominated: the historical transfer
+gap is a label-convention question before it is an architecture question;
+C3 (paired physical conditions) becomes the next control, and any transfer
+claim must state the pressure reference. Spatial: the gap is a genuine field
+error; the offset hypothesis is closed and D1/D2 proceed on their own
+merits. Either way the readout is descriptive: target labels are used only
+to diagnose, never to correct predictions.
+
+## 2026-09-09 — Verdict: C1 spatial — the zero-shot fastback error is a field error, not a pressure-reference offset (offset share 1.5–2.6% for ISLA, 3.0–3.2% for GeoTransolver) {#sec-nb-c1-verdict}
+
+**Readout** (@sec-nb-c1-prereg; `studies/controls/pressure_offset_2026-09-09.json`;
+99 fastback cases, 48 DrivAerML validation cars; seed-mean predictions;
+the GeoTransolver source-only and in-family arms use seeds 45 and 46 because
+the seed 42–44 predictions of the historical reduction are no longer on
+disk, the configuration being identical). Relative errors are on gauge
+pressure about the area-weighted case mean, so their scale differs from the
+program book's standardized metric; ratios between arms agree with it.
+
+| arm | seeds | rel. L2 (full error) | rel. L2 (offset removed) | offset share of area-weighted squared error | offset ÷ true RMS | force rel. error | force rel. error, offset removed |
+|---|---|---|---|---|---|---|---|
+| ISLA, DrivAerML only → fastback | 3 | 1.015 | 1.019 | 1.5% | +0.135 | 1.63 | 1.64 |
+| GeoTransolver, DrivAerML only → fastback | 2 | 0.786 | 0.785 | 3.0% | +0.134 | 1.39 | 1.39 |
+| ISLA, + estate → fastback | 3 | 0.121 | 0.121 | 0.8% | -0.014 | 0.28 | 0.28 |
+| GeoTransolver, + estate → fastback | 3 | 0.101 | 0.101 | 0.2% | -0.004 | 0.20 | 0.20 |
+| ISLA, DrivAerML in-family | 3 | 0.093 | 0.093 | 0.4% | +0.000 | 0.04 | 0.04 |
+| GeoTransolver, DrivAerML in-family | 2 | 0.085 | 0.085 | 0.2% | -0.000 | 0.04 | 0.04 |
+
+: Surface closedness |Σ a n| / Σ a is 0.024 on the fastback meshes and 0.022
+on DrivAerML, so the pressure-force integral is well defined and a constant
+offset cannot move it by more than 2.4% of its magnitude; the force columns
+agree to that accuracy.
+
+**Verdict: spatial, for both architectures.** The constant carries 1.5%
+(ISLA) and 3.0% (GeoTransolver) of the source-only squared error by the
+median over cases (2.6% and 3.2% by the mean), far below the 20% floor of the
+"spatial" band; removing it changes the relative error by under 1%. The in-family arms pass the instrument check (offset share
+under 1%). The offsets that do exist are small and of the same sign for
+both models (+0.14 of the true field's RMS), which is consistent with a
+modest difference of pressure reference between the datasets but explains
+none of the gap. The transfer failure is a spatial field error, and it is
+also a force error: 1.6x (ISLA) and 1.4x (GeoTransolver) of the true force
+magnitude against 0.04 in-family, falling to 0.28 and 0.20 when the estate
+family joins training.
+
+**What it changes.** The pressure-reference hypothesis is closed. The
+compound physical-condition mismatch between the datasets (ground and wheel
+motion, freestream speed, solver formulation) remains the leading
+explanation that is not about architecture, and C3 tests its logic on an
+exactly specified problem. Any transfer claim in this program states the
+force error alongside the field error, since a field error of 0.9 is a force
+error above 100%.
+
+## 2026-09-09 — Verdict: D4 stops — a free geometric coarse grid beats a frozen source-fitted correction space on every held-out elliptic system {#sec-nb-d4-verdict}
+
+The solver-space probe (`studies/solver_spaces/`, preregistered in its
+`PREREG.md` before the run, 47 s on one CPU) compared a frozen proper
+orthogonal decomposition of smoother-resistant source errors against
+equal-dimension classical coarse spaces on 2D finite-element diffusion
+systems with holes, under within-family, topology and coefficient shifts.
+The frozen space left 0.75–0.96 of the slow-mode error where the geometric
+coarse grid left 0.47–0.73 (ratios 0.62–0.76 against bars of 2.0 and 1.5),
+and complete solves with it cost 19–72% *more* work than with the classical
+space; the per-target oracle decomposition lost to the grid as well. The
+mechanism is that solution snapshots span the right-hand sides seen at the
+source geometries, not the operator's slow subspace, which for an elliptic
+operator under a point smoother is generic smoothness and comes free. The
+convection–diffusion variant was uninformative at mesh Péclet 0.5 and is
+recorded as not measured. Chapter @sec-solver-spaces has the tables; the
+direction's only remaining homes are operator classes where classical
+coarse spaces fail, and learned smoothers or prolongations on a classical
+hierarchy, both behind prerequisite gates (@sec-classical-solvers).
+
+## 2026-09-09 — C2, source-only normalization: audited from the configurations, one item flagged {#sec-nb-c2-verdict}
+
+Both transfer dataset configurations (`drivaer_ml_surface.yaml`,
+`shift_suv_fastback_surface.yaml`) nondimensionalize pressure and wall shear
+by each case's own metadata (dynamic pressure) with no shift, and normalize
+wall shear by a declared per-dataset constant (standard deviation 0.00313
+for DrivAerML, 0.00183 for SHIFT-SUV; zero mean). Inference denormalizes
+predictions with the statistics saved at training time (source-side), and
+the relative L2 metric is invariant to a common scale, so the differing wall
+shear constants do not bias the reported relative errors; they would bias
+any absolute or mixed-field loss. Pressure carries no normalization
+constant beyond the physical nondimensionalization, so the C1 result is not
+a normalization artifact either. Flagged: the wall-shear constant is
+target-side in the target configuration (a statistic of SHIFT-SUV chosen
+when its config was written); for a zero-shot protocol the target
+configuration should carry the source's constant, which changes nothing
+for relative metrics and is recorded here as a protocol rule. Verdict:
+normalizations are source-only in effect for the reported metrics; one
+declared-constant hygiene item.
+
+## 2026-09-09 — Verdict: D3 not worth a learner as proposed — smooth-mode local errors are amplified 4–30x by the interface solve and grids grow superlinearly; the surviving form is a hybrid with exact low modes {#sec-nb-d3-verdict}
+
+The composition gate (`studies/composition/`, preregistered in its
+`PREREG.md`, 1,064 s on one CPU) assembled 2D finite-element diffusion
+components with identical straight ports into chains and grids of 2–16
+components and perturbed every local response by a relative Frobenius error
+ε. Exact composition is exact (composition law 2 × 10⁻¹⁶, interface solve
+5 × 10⁻¹⁵). At ε = 10⁻² the median global energy error is 1.7% for two
+components, 7% for chains of eight, 33% for grids of eight and 34% for grids
+of sixteen (a 6.2x growth from four to sixteen, faster than linear), missing
+the 5% bar; errors concentrated on rough port modes are damped 20–100x while
+errors on smooth modes are amplified 4–30x and set the global error, since
+the smooth small-eigenvalue part of a response carries the load (truncating
+a response below 63 of 64 modes fails catastrophically). Transfer-optimal
+port modes transfer to new shapes but need 13–15 of 15 modes for 1%;
+proper-orthogonal modes are shape-specific; at rank 4 both leave 16–27%
+error, missing the reduction bar. The interface solve is cheaper than the
+monolithic solve only up to four components, and a partition-of-unity coarse
+space does not help the iteration count. The narrow-channel family did not
+place a barrier at a port, so the near-field claim is untested by this
+instrument. Verdict against the bars: not worth a learner as proposed. What
+survives is a hybrid solver (exact smooth low-mode response, learned rough
+remainder), with a split-response test and a port-adjacent barrier family as
+its next nonlearned gates, not launched here. Chapter @sec-composition has
+the tables; figures `studies/composition/fig_*.png`.
+
+## 2026-09-09 — D1 launched: six lanes for computational support with a depth-matched passive readout {#sec-nb-d1-launch}
+
+**What was built** (merged from the D1 track, commit 834bd779e on this
+branch). `ISLA(support_tokens=True, query_independent=True,
+n_query_scalars=1, query_mass="source_total", n_decoder_layers=K)`: the
+forward takes `support_points / support_normals / support_scalars`, which
+join the encoder as interacting tokens with the same invariant seeds, a
+token-type offset and a learned total mass equal to a learned fraction of
+the total source measure; requested `query_points / query_normals /
+query_scalars` are decoded passively through K read blocks that see the
+final slice states, the anchors and a normalized log-space kernel readout of
+all encoder tokens. Ten contract tests pass (exact query independence with
+the support fixed, at 1e-12, alone or with 500 foreign companions; SE(3)
+covariance; drive degree one; measure-scale and source-refinement
+invariance; gauge scale equivariance; geo_checkpoint exactness; every
+parameter receives gradients); the existing ISLA suites (63) pass. Recipe:
+a `SplitInteriorSupport` transform moves the first `n_support` interior
+points of the reader's deterministic per-case sample into a
+`boundaries.support` mesh carrying the signed distance and its gradient;
+dataset `drivaer_ml_volume_support.yaml` (10,000 vehicle cells by
+`boundary_subsample: cells`, 10,000 interior points split 5,000 support +
+5,000 queries); model `isla_volume_support.yaml`.
+
+**Lanes** (jobs 691276–691281, names v0sup-0..5, launcher
+v0/v0_support_aga.sbatch, code snapshot `code_support`, recipe copy
+`recipe_support` so the program's frozen recipe is untouched; frozen V0
+protocol, unit-direction drive, 500 epochs, lr 1e-3, bf16, seeds 42/43):
+SUPPORT-12 (`v0_isla_support12_seed{42,43}`), PASSIVE-12
+(`v0_isla_passive12_seed{42,43}`: no support tokens, 12 read blocks with the
+SDF scalar) and SUPPORT-4 (`v0_isla_support4_seed{42,43}`). Node budget
+confirmed by the main session (25 → 31 of 32 program nodes). Two cluster
+conventions were reconciled before submission and are recorded here: the
+frozen recipe's model configs carry `# @package _global_` (added to the
+repository yaml too) and address surface tokens as
+`boundaries.vehicle.cell_normals` / `cell_areas`, so the cluster copy of the
+model yaml uses those keys while the repository yaml keeps the nested
+`cell_data.*` keys of the upstream-merged recipe; model overrides are
+`model.<kwarg>`.
+
+**References and bars** (PREREG.md, written before launch). The support
+arms read 10,000 vehicle cells, so their primary reference is the QT+SDF arm
+at 10,000 cells (0.0572 / 0.0848 / 0.1187), with the ~365-cell arm
+(0.0567 / 0.0853 / 0.1215) reported alongside since V0-SURF10K showed the two
+differ by under 3%. Supported if SUPPORT-12 is within 3% of the reference on
+all three fields (≤ 0.0584 / 0.0879 / 0.1251 against the 365-cell numbers as
+preregistered; ≤ 0.0589 / 0.0873 / 0.1223 against the 10k-cell numbers,
+both reported) and the sentinel error is independent of the companion count
+within the bf16 floor measured on the legacy passive checkpoint; falsified
+if pressure ≥ 0.0624; between, the SUPPORT-4 and PASSIVE-12 arms decompose
+depth against interaction.
+
+## 2026-09-09 — Finding while building D1: the legacy passive kernel readout clamps the kernel mass, so far-from-surface queries scale with the absolute source weights {#sec-nb-passive-clamp}
+
+In `physicsnemo/experimental/nn/isla/model.py`, the passive decoder's local
+token readout `_kernel_readout(q_r, src_r, src_h, src_w, rho, eps)` (called
+from `_ReadBlock.forward` when `src_h` is given, with
+`rho = local_readout_rho`, default 0.02 in gauge-normalized coordinates)
+computes `k = exp(-d²/ρ²) · w` and divides by `mass = k.sum(-1).clamp_min(eps)`.
+For a query farther than a few ρ from every source point the true mass is
+below `eps = 1e-12`, the clamp replaces it, and the readout becomes
+`Σ k h / eps`, which scales with the absolute source weights instead of
+being a weighted mean: in the D1 track's test a 4.2x rescale of the source
+weights moved the legacy passive output by 0.16 in relative norm at such
+queries. With ρ = 0.02 and interior queries whose median wall distance is
+about 5 mm on a 4 m car (below ρ in gauge units) most queries are inside the
+kernel's reach, but the far tail of the interior sample is not, so the
+legacy passive arm's 2.6x pressure deficit (program book, interior chapter)
+includes a contribution from this readout regime that the arm's
+measure-scale contract test did not exercise. The legacy path is left
+bitwise unchanged so trained checkpoints reproduce; the support path uses an
+exactly normalized log-space form (softmax over sources with logits
+−d²/ρ² + log w), identical where the mass is not tiny. The PASSIVE-12 arm,
+which uses the normalized readout with 12 read blocks and the SDF scalar,
+bounds how much of the 2.6x was readout and depth rather than passivity;
+the main session has asked for this note to attach a caveat to that figure
+once the arm reports.
+
+**Launch acceptance (addendum).** SUPPORT-12 steps at 0.52 s and 10.8 GB
+per GPU and SUPPORT-4 at 0.46 s and 7.1 GB (the QT+SDF reference: 0.28 s,
+6.3 GB), both at epoch 3–4 within the first hour; the cost readout is
+therefore already known to be 1.6–1.9x the reference's step time. The two
+PASSIVE-12 chains blocked at model construction: with `support_tokens=false`
+the model rejects `query_mass=source_total` (the option needs interacting
+query or support tokens), so the override `model.query_mass=geometric_mean`
+was added to that arm (inert without interacting tokens), the block markers
+were cleared and the chains resubmitted (jobs 691370/691371). The
+preregistration is unchanged by this: the arm's definition never involved
+a query mass.
+
+## 2026-09-09 — Campaign: Peter opened the node budget (367 idle nodes); five preregistered studies launched or delegated {#sec-nb-campaign}
+
+**Decision.** The 32-node ceiling was this program's default, not a
+constraint of the cluster. With Peter's authorization the following run in
+parallel, each with its own preregistration written before launch, its own
+job-name prefix, lane table and launcher under `$T/transfer/`, and its own
+recipe copy (`$T/recipe_support`) so the main program's frozen recipe and
+lane tables are untouched. De-duplicated with the main session: the
+canonical-frame unit-drive GeoTransolver and Transolver references on
+DrivAerML are the main session's (`uw_*`) and are read, not rerun; its
+WAVE-3 (weights-off ISLA on the higher rungs, unit-drive Transolver on the
+rungs it lacked, third seeds, learning-rate steel-men) is complementary.
+
+| campaign | question | lanes | owner |
+|---|---|---|---|
+| A, draws | Data-draw variance of every HiLift comparison: unit-drive GeoTransolver, Transolver, ISLA and ISLA-without-weights at 35 and 210 cases on three independent geometry-stratified draws × three seeds (the curated split kept as a fourth draw) | 72 | agent; `studies/campaign_a_draws/` |
+| B, pose | POSE-BENCH: DrivAerML surface with a per-case random SO(3) pose for train and validation; GeoTransolver and Transolver with SO(3) augmentation at unit drive; ISLA as is | 6–8 | agent; `studies/campaign_b_pose/` |
+| C, transfer | Fastback shift: complete conditioning (dataset-condition input vs none), matched-count diversity (435 single- vs mixed-family), few-shot adaptation (fine-tune vs scratch on 20 cases), field and force error, geometry as unit | ~20 | agent; `studies/campaign_c_transfer/` |
+| D, interior carriers | ISLA QT+SDF at hidden 344 (27.6M parameters, matched to GeoTransolver-volume) and GeoTransolver-volume without its six-radius local features, unit drive, two seeds each | 4 | this session; jobs 691717–691720, names v0m-0..3 |
+| E, eval-only | Unit-drive GeoTransolver under the 10:1 density-bias probe (ISLA's remaining robustness claim against a fair baseline); pressure-from-velocity Poisson test on saved volume predictions | 0 | this session; E waits for the `uw_*` checkpoints |
+
+**D, preregistered bars** (readout: 48-car relative L2, two-seed means;
+references: unit-drive GeoTransolver-volume 0.0617 / 0.1310 / 0.0936, QT+SDF
+0.0572 / 0.0848 / 0.1187 at 10,000 cells; the D lanes read the frozen
+volume dataset `drivaer_ml_volume_mt`, i.e. about 365 surface cells for the
+ISLA arm as every existing interior ISLA arm did, which V0-SURF10K showed
+changes nothing within 3%). *Local features carry the eddy-viscosity lead*
+if GeoTransolver-volume without them scores ν_t ≥ 0.103 (10% worse); *they
+do not* if within 3% (≤ 0.0964); pressure and velocity reported alongside
+(if they also degrade ≥ 10%, the features are a general capacity carrier,
+not a ν_t-specific one). *Parameters carry ISLA's ν_t deficit* if
+QT+SDF at hidden 344 reaches ν_t ≤ 1.10x GeoTransolver-volume (≤ 0.103);
+*falsified* if ≥ 1.25x (≥ 0.117), which is where hidden 256 landed (0.118, the
+program book's width-control verdict of 2026-09-08); pressure and velocity changes
+above 5% are reported as width effects. Cost (step time, memory) is
+recorded from the logs; the hidden-344 arm runs with the exact activation
+recompute.
+
+**Scheduling.** Program total after both waves: about 130 nodes for this
+program plus about 66 for the main session's WAVE-3, within the 367 idle.
+Tech-tree nodes CAMP-A/B/C/D/E added, RUNNING (E READY).
+
+## 2026-09-09 — Verdict: D2 partial — the Laplace boundary response minus its principal part is low-rank and resolution-stable, but its basis does not transfer across topology, gaps or corners (source-fitted basis 7–80x worse than the oracle at equal rank) {#sec-nb-d2-verdict}
+
+The boundary-response gate (`studies/boundary_response/`, preregistered in
+its `PREREG.md` before any computation; 65 min of CPU under a 12 GB cap)
+assembled qualified 2D Laplace Dirichlet-to-Neumann operators by a Nyström
+discretization (unit-disk DtN exact to 10⁻¹³; 22 of 23 geometries converged
+to 10⁻⁸ under resolution doubling; one repair before the study, a kernel
+rescaling that removes the plain log kernel's singularity at unit
+logarithmic capacity). Ranks for 1% Frobenius error: full operator 184–1,467
+(essentially the node count); residual after the exact arclength-Fourier
+principal part |k| 8–58 for ellipses, stars, two-body pairs down to gap 0.02
+and rounded squares down to corner radius 0.016, and 160 of 740 for the
+thinnest annulus; removing component constants changes ranks by at most 2;
+the energy pairing lowers ranks 25–45%. Rank grows with narrowing gaps
+roughly as (g/L)^−0.4 while the residual's share of the operator grows from
+7% to 44% of the energy norm. A basis fitted on the source development set
+(single bodies and wide-gap pairs), evaluated at each held-out block's
+oracle rank, is 46x (gaps), 7x (annuli) and 34x (corners) worse than the
+oracle in the energy pairing (medians; worst 70x, 33x, 61x), against a bar
+of 2x; to reach 1% it needs ranks 30 / 78 / 50 against oracle 13 / 22 / 9.
+Verdict against the bars: part one (compressibility at ≤ 1/3 of the full
+rank) passes; part two (transfer within 2x of the oracle) fails by one to
+two orders of magnitude → partial. What survives: a learner would have to be
+a geometry-to-operator map producing a rank-r residual in component-local
+coordinates with explicit coupling blocks and the principal part built in,
+trained and graded in the energy pairing, with thin gaps and thin shells
+held out; the cheap next nonlearned test is whether a curvature-indexed
+basis transfers better than a Fourier-indexed one. Chapter
+@sec-boundary-response has the tables; figures
+`studies/boundary_response/fig_*.png`.

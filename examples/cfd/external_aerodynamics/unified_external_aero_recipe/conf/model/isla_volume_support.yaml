@@ -1,0 +1,64 @@
+# @package _global_
+# SPDX-FileCopyrightText: Copyright (c) 2023 - 2026 NVIDIA CORPORATION & AFFILIATES.
+# SPDX-FileCopyrightText: All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ISLA on the boundary->interior task with a per-case computational SUPPORT
+# (transfer program D1, 2026-09-09). Surface tokens (vehicle cells) and the
+# support points (`boundaries.support`, produced by the dataset's
+# SplitInteriorSupport transform, carrying the signed distance and its gradient)
+# interact in the 12 encoder layers; the requested interior points
+# (`interior.points`) are decoded PASSIVELY through `n_decoder_layers` read
+# blocks with the same signed-distance inputs. A prediction at a query cannot
+# depend on which other queries are requested. Use with dataset
+# drivaer_ml_volume_support. Every architecture receives the freestream as the
+# unit direction (protocol rule after UDRV).
+#
+# Deployment note: the cluster's frozen recipe copy defines the reference arm
+# as conf/model/mt2_volume.yaml (boundaries.vehicle.cell_centroids / normals /
+# areas as the surface tokens); diff the surface part of this file against it
+# before launching.
+
+input_type: tensors
+output_type: tensors
+forward_kwargs:
+  points: boundaries.vehicle.cell_centroids
+  normals: boundaries.vehicle.cell_data.normals
+  measure_weights: boundaries.vehicle.cell_data.areas
+  drive: global_data.U_inf_dir
+  support_points: boundaries.support.points
+  support_normals: boundaries.support.point_data.sdf_normals
+  support_scalars: boundaries.support.point_data.sdf
+  query_points: interior.points
+  query_normals: interior.point_data.sdf_normals
+  query_scalars: interior.point_data.sdf
+model:
+  _target_: physicsnemo.experimental.nn.ISLA
+  out_scalars: 2                 # pressure, nut (DrivAerML volume targets)
+  out_vectors: 1                 # velocity
+  hidden: 192
+  n_layers: 12
+  n_slices: 256
+  mlp_ratio: 4
+  reference_length: 8.0
+  similarity_gauge: true
+  geo_checkpoint: true
+  # Support/passive split (default off in the class; on here).
+  query_independent: true
+  support_tokens: true
+  n_decoder_layers: 12          # SUPPORT-12; set 4 for the SUPPORT-4 arm
+  n_query_scalars: 1            # signed distance at support and query points
+  query_scalar_scale: length
+  query_mass: source_total      # support mass invariant to source refinement

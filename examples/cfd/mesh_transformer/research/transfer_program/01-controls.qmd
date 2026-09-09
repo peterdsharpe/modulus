@@ -1,0 +1,91 @@
+# Controls before experiments {#sec-controls}
+
+**The DrivAerML → SHIFT-SUV zero-shot failure is a spatial field error, not a
+pressure-reference offset; the transfer configurations' normalizations are
+source-only in effect for the reported metrics; and the paired
+physical-condition control is being measured on an exactly specified
+problem.** These three controls were the audit's prerequisites for any
+architectural experiment on transfer, because each names a way a transfer
+comparison can be wrong before it says anything about a model.
+
+## C1: offset or spatial error {#sec-controls-offset}
+
+A model that predicts a sensible field about the wrong constant has a
+relative L2 error near 1.0, which is where ISLA's source-only fastback error
+sat (0.99 against GeoTransolver's 0.59, three seeds each). DrivAerML and
+SHIFT-SUV are simulated with different ground and wheel conditions,
+freestream speeds and solvers, and pressure is nondimensionalized by each
+case's dynamic pressure with no shift, so a reference difference between the
+datasets would appear as a per-case constant. The diagnostic decomposes each
+arm's error, from the saved zero-shot predictions, into the area-weighted
+mean (the offset) and the centered remainder, and checks whether the offset
+cancels from the integrated pressure force, as it must on a closed surface
+with consistent normals (@sec-nb-c1-prereg for the preregistered bars).
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/controls/pressure_offset_2026-09-09.json").read_text())
+names = {"isla_source_only_fastback": "ISLA, DrivAerML only → fastback", "gt_source_only_fastback": "GeoTransolver, DrivAerML only → fastback",
+         "isla_with_estate_fastback": "ISLA, DrivAerML + estate → fastback", "gt_with_estate_fastback": "GeoTransolver, DrivAerML + estate → fastback",
+         "isla_infamily_drivaer": "ISLA, DrivAerML in-family", "gt_infamily_drivaer": "GeoTransolver, DrivAerML in-family"}
+print("| arm | seeds | relative L2, full error | relative L2, offset removed | offset share of squared error (median) | force relative error | force relative error, offset removed |")
+print("|---|---|---|---|---|---|---|")
+for a, n in names.items():
+    s = d["arms"][a]["summary"]
+    print(f"| {n} | {d['arms'][a]['n_seeds']} | {s['rel_l2_uniform_vs_centered_true']['mean']:.3f} | {s['rel_l2_spatial_vs_centered_true']['mean']:.3f} | {100*s['frac_sq_err_offset_area']['median']:.1f}% | {s['force_rel_err']['mean']:.2f} | {s['force_rel_err_offset_removed']['mean']:.2f} |")
+print()
+print(": Pressure-offset decomposition of the saved predictions (99 fastback cases; 48 DrivAerML validation cars; seed-mean predictions; relative errors on gauge pressure about the area-weighted case mean, so the scale differs from the program book's standardized metric while the ratios agree). Surface closedness |Σ a n|/Σ a is 0.024 on the fastback meshes and 0.022 on DrivAerML. GeoTransolver's source-only and in-family arms use seeds 45 and 46 (the historical seeds' predictions are no longer on disk). Data: studies/controls/pressure_offset_2026-09-09.json. {#tbl-c1}")
+```
+
+The constant carries 1.5% (ISLA) and 3.0% (GeoTransolver) of the source-only
+squared error by the median over cases, against a 20% floor for the
+"spatial" band; removing it changes the relative error by under 1%, and the
+in-family arms pass the instrument check with offset shares under 1%. The
+offsets that do exist are small and of the same sign for both models
+(+0.14 of the true field's RMS), consistent with a modest reference
+difference that explains none of the gap. The failure is a field error, and
+it is a force error: 1.6x (ISLA) and 1.4x (GeoTransolver) of the true force
+magnitude against 0.04 in-family, falling to 0.28 and 0.20 when the estate
+family joins training. Two consequences: the pressure-reference hypothesis
+is closed, and every transfer claim in this program reports the force error
+beside the field error, since a field error of 0.9 is a force error above
+100%. What remains as the leading non-architectural explanation is the
+compound physical-condition mismatch between the datasets, which C3 tests
+in its exact form.
+
+## C2: source-only normalization {#sec-controls-normalization}
+
+Both transfer configurations nondimensionalize pressure and wall shear by
+each case's own dynamic pressure with no shift, and normalize wall shear by
+a declared per-dataset constant (standard deviation 0.00313 for DrivAerML,
+0.00183 for SHIFT-SUV, zero mean). Inference denormalizes predictions with
+the statistics saved at training time, which are the source's, and the
+relative L2 metric is invariant to a common scale, so the differing
+wall-shear constants do not bias the reported relative errors; they would
+bias an absolute or mixed-field loss, and a zero-shot protocol should carry
+the source's constant into the target configuration. Pressure carries no
+constant beyond the physical nondimensionalization, so C1 is not a
+normalization artifact. Verdict: source-only in effect for the reported
+metrics, with one declared-constant hygiene rule (@sec-nb-c2-verdict).
+
+## C3: a paired physical condition on an exact problem {#sec-controls-paired}
+
+The audit's identifiability argument says that a model which does not see a
+physical condition faces an irreducible floor when that condition varies
+across cases with identical geometry, and that the floor is a property of
+the information, not the architecture. C3 measures this on exterior
+potential flow: the same bodies in free air and at a fixed height above a
+ground plane (an image-method reference qualified against the sphere's
+analytic pressure), with a small ISLA trained with and without the ground
+condition as an input, three seeds, held-out shapes. Bars and the
+equal-mixture floor are preregistered in the study's own file
+(`studies/paired_conditions/PREREG.md`); the result is not yet measured
+(@sec-nb-start lists the schedule). What it licenses, if it behaves as
+predicted, is a statement about the DrivAerML → SHIFT-SUV shift: the ground
+and wheel motion, the speed and the solver are conditions the current
+encoding does not see, and their effect on the field is bounded below by a
+floor no architecture can cross without the information; what it does not
+license is any estimate of how large that floor is on the real datasets,
+which needs paired simulations that do not exist.

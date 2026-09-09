@@ -1,0 +1,88 @@
+# What this program tests {.unnumbered}
+
+**Thesis.** The audit of the ISLA (Invariant Slice Attention) research record
+(the companion review in `research/cross_dataset_generalization/`, an untracked directory whose rendered report is `_book/index.html` there) concluded that
+the record does not establish a cross-dataset accuracy advantage, and that the
+promising targets are a complete physical input, a stable computational
+representation, and reusable components of the physical response. This program
+turns that agenda into experiments with preregistered bars, in the order the
+audit recommended: first the controls that make any later result
+interpretable (paired physical conditions, source-only normalization, and a
+pressure-offset versus spatial-error decomposition), then, in parallel, the
+computational-support study on the existing DrivAerML volume task and the
+nonlearned gates for the three response-based directions (boundary-response
+rank and basis transfer, local-response composition, solver correction
+spaces). A separate chapter asks what classical solvers do that learned
+surrogates do not, as a source of further hypotheses.
+
+**Utility.** The quantity that matters is field and force error on
+geometries and dataset families outside the training distribution, with the
+PDE, boundary conditions, dimensionless parameters and label convention
+stated; with query and mesh consistency; and with the total cost counted
+(preprocessing, target-operator access, iterations, adaptation labels). A
+result that improves a fixed-mesh in-family score without moving that
+quantity is not progress here.
+
+**How to read this.** Every chapter states current knowledge and the
+preregistered bar that would change it; the dated record of what was tried,
+in what order, is the notebook. Numbers in chapters are computed from
+checked-in artifacts under `studies/`. Verdicts follow bars written before
+the readout; amendments to an instrument are recorded before its numbers are
+read. Architectures are named (ISLA, GeoTransolver, Transolver); ratios are
+baseline error divided by ISLA error unless a chapter says otherwise.
+
+## Research tech tree
+
+```{mermaid}
+flowchart LR
+  classDef done fill:#e8f1e8,stroke:#3a6b3a,color:#1a1a1a
+  classDef running fill:#fff8e8,stroke:#8a6d1a,color:#1a1a1a
+  classDef ready fill:#eef3fb,stroke:#2a5ba8,color:#1a1a1a
+  classDef planned fill:#f2f1ec,stroke:#898781,color:#1a1a1a,stroke-dasharray:4 3
+  AUDIT["AUDIT: cross-dataset review (companion)<br/>DONE"]:::done
+  POFF["C1 pressure-offset vs spatial-error diagnostic<br/>(DrivAerML→SHIFT-SUV fastback, eval-only)<br/>DONE - spatial: offset share 1.5-2.6% / 3.0-3.2%; force error 1.6x / 1.4x"]:::done
+  SNORM["C2 source-only normalization audit<br/>DONE - source-only in effect; wall-shear constant flagged"]:::done
+  PAIR["C3 paired physical-condition control<br/>(same geometry, one condition changed; exact potential flow)<br/>RUNNING"]:::running
+  SUPP["D1 computational support with passive readout<br/>(depth- and input-matched; DrivAerML volume)<br/>RUNNING - six lanes training (SUPPORT-12, PASSIVE-12, SUPPORT-4 x 2 seeds)"]:::running
+  RESP["D2 boundary-response rank and basis transfer<br/>(2D Laplace, nonlearned gate)<br/>DONE - partial: residual low-rank (2.5-22% of full) but basis does not transfer (7-80x)"]:::done
+  COMP["D3 local-response composition<br/>(2D diffusion ports, nonlearned gate)<br/>DONE - not worth it as proposed: smooth-mode errors amplify 4-30x; hybrid survives"]:::done
+  SOLV["D4 solver correction-space transfer<br/>(2D FEM, nonlearned probe)<br/>DONE - stops: geometric coarse grid wins everywhere"]:::done
+  CLASS["L classical-solver review → new hypotheses<br/>DONE - inventory of 13 ingredients, 7 hypotheses with falsifiers"]:::done
+  CAMPA["Campaign A: data-draw variance, HiLift 35/210 × 3 draws × 3 seeds × 4 arms<br/>RUNNING - 72 lanes"]:::running
+  CAMPB["Campaign B: POSE-BENCH, DrivAerML random SO(3) poses<br/>RUNNING - 6-8 lanes"]:::running
+  CAMPC["Campaign C: fastback transfer (conditioning, diversity, few-shot)<br/>RUNNING - ~20 lanes"]:::running
+  CAMPD["Campaign D: interior carriers (ISLA h344; GT-volume without local features)<br/>RUNNING - 4 lanes"]:::running
+  CAMPE["Campaign E: eval-only (unit-drive GT density probe; Poisson pressure)<br/>READY - waits for uw_* checkpoints"]:::ready
+  AUDIT --> POFF
+  AUDIT --> SNORM
+  AUDIT --> PAIR
+  POFF --> SUPP
+  SNORM --> SUPP
+  AUDIT --> RESP
+  AUDIT --> COMP
+  AUDIT --> SOLV
+  RESP --> COMP
+  CLASS --> SUPP
+  CLASS --> SOLV
+  POFF --> CAMPC
+  SNORM --> CAMPA
+  CLASS --> CAMPE
+  SUPP --> CAMPD
+  AUDIT --> CAMPB
+```
+
+| ID | Status | Question and why it matters | Depends on / starts if | Acceptance criterion | Evidence or result |
+|---|---|---|---|---|---|
+| C1 | DONE — spatial | Is the zero-shot fastback error (ISLA 0.99, GeoTransolver 0.59, relative L2) a pressure-reference offset or a spatial error? An offset cancels from closed-surface forces and points at label conventions, not architecture. | AUDIT; saved predictions exist | Preregistered in @sec-nb-c1-prereg: offset-dominated if the constant carries ≥ 50% of area-weighted squared error for the source-only arms; spatial if ≤ 20% | Offset share 1.5–2.6% (ISLA) and 3.0–3.2% (GeoTransolver; median–mean); force error 1.6x / 1.4x vs 0.04 in-family. @sec-nb-c1-verdict |
+| C2 | DONE | Are all training-time normalizations source-only and are metrics comparable across families? | AUDIT | Every normalization constant in the transfer configs traced to a declared source-side constant or a source-fitted statistic; metric scale differences documented | Pressure: physical nondimensionalization only; wall shear: per-dataset declared constants (relative metrics unaffected; protocol rule recorded). @sec-nb-c2-verdict |
+| C3 | RUNNING | Does the current encoding fail on identical geometry when one physical condition changes (ground plane present/absent), and does a complete encoding repair it? Exact potential-flow labels. | C1 (if the offset does not explain the gap) | A model without the condition flag is bounded below by the equal-mixture floor; with the flag it reaches the in-distribution error | pending |
+| D1 | RUNNING (lanes) | Does a problem-derived computational support with passive readout keep the interacting configuration's interior accuracy while making output batching immaterial? | C1, C2; node budget from the main program | Pressure, velocity, eddy viscosity within 3% of the interacting arm at matched depth and inputs; zero structural query dependence; bf16 drift within a measured floor | pending |
+| D2 | DONE — partial | Does the boundary response, minus its principal part and null modes, compress and transfer across topology and gaps? | AUDIT | Residual reaches 1% at ≤ 1/3 of the full rank on held-out families; source-fitted basis within 2x of the oracle | Residual rank 8–58 of 192–1,536 (annulus 160 of 740), resolution-stable; source basis 7–80x worse than oracle at equal rank. @sec-nb-d2-verdict, @sec-boundary-response |
+| D3 | DONE — not as proposed | Do local port responses compose stably into new assemblies at useful cost? | AUDIT | Global energy error ≤ 5% at 1e-2 local error from 2 to 8 components; transfer-optimal rank ≤ 1/4 of the port dimension for 1% | ε = 10⁻²: 7% (chain 8), 33–34% (grids 8–16); rank 4 leaves 16–27%; rough-mode errors damped 20–100x, smooth-mode amplified 4–30x. @sec-nb-d3-verdict, @sec-composition |
+| D4 | DONE — stops | Does a frozen source-fitted correction space beat an equal-dimension classical coarse space on held-out systems, at common accuracy and total cost? | AUDIT | ≥ 2x contraction per unit work on slow modes within family, ≥ 1.5x under topology shift; ≥ 20% fewer total matvecs with setup amortized | Classical ÷ source 0.62–0.76 (bars 2.0 / 1.5); solves 19–72% more work with the frozen space. @sec-nb-d4-verdict, @sec-solver-spaces |
+| L | DONE | What do classical solvers do that learned surrogates do not, and which of those mechanisms can be learned or transferred? | AUDIT | A ranked list of mechanisms each with a falsifiable experiment | @sec-classical-solvers: thirteen ingredients, seven hypotheses ordered by information per cost |
+| CAMP-A | RUNNING | Data-draw variance of every HiLift comparison (unit-drive GT, Transolver, ISLA, ISLA-noweights at 35 and 210 cases; 3 draws × 3 seeds). | C2; node budget | Draw-wise 90% intervals of baseline ÷ ISLA; noweights gain persists if ≤ 0.93 on all draws. | @sec-nb-campaign; studies/campaign_a_draws |
+| CAMP-B | RUNNING | POSE-BENCH: does exact equivariance earn accuracy where pose varies? | AUDIT; uw_* canonical references (main session) | Baselines +≥ 10% posed vs canonical and ISLA ≤ 3% and ISLA leads by ≥ 5% → earns; baselines within 3% → augmentation suffices. | @sec-nb-campaign; studies/campaign_b_pose |
+| CAMP-C | RUNNING | Fastback shift: conditioning, matched-count diversity, few-shot adaptation (field and force error, geometry as unit). | C1 | Conditioning matters at ≥ 15% fastback improvement; diversity helps at ≥ 30% with ≤ 10% in-family cost; adaptation credible at ≤ 0.15 with 20 labels and ≥ 2x over scratch. | @sec-nb-campaign; studies/campaign_c_transfer |
+| CAMP-D | RUNNING | Interior eddy-viscosity carrier from both sides: ISLA QT+SDF at 27.6M params; GT-volume without local features. | D1 | GT-volume ν_t ≥ 0.103 without local features → they carry the lead; ISLA h344 ν_t ≤ 0.103 → parameters carry the deficit; ≥ 0.117 falsified. | @sec-nb-campaign |
+| CAMP-E | READY | Unit-drive GeoTransolver under the 10:1 density-bias probe; pressure-from-velocity Poisson test. | uw_* checkpoints (main session); saved volume predictions | Density: GT unit degradation factor vs ISLA gauge 1.20x; Poisson: pressure from predicted velocity vs directly predicted pressure. | @sec-nb-campaign |

@@ -1,0 +1,104 @@
+# Transferring a solver correction space {#sec-solver-spaces}
+
+**A frozen correction space fitted on source geometries transfers worse than
+a free geometric coarse grid on every held-out discrete elliptic system
+tested, so the direction stops for that class.** The audit's fourth
+direction proposed learning a coarse correction space or preconditioner on
+source problems and letting the correct target operator finish the solve,
+the reasoning being that slow error modes might transfer more reliably than
+whole fields. The nonlearned probe asked whether *any* frozen source-derived
+space beats an equally cheap classical one; if not, a network trained to
+produce such a space would start behind a construction that costs nothing to
+learn. It does not.
+
+## The probe {#sec-solver-probe}
+
+Linear finite elements on the unit square with circular Neumann holes and a
+piecewise-constant coefficient inclusion; Dirichlet data lifted and
+eliminated so the diffusion operator is symmetric positive definite (about
+2,000–2,200 unknowns). Twenty source geometries; three held-out sets of eight
+each: new hole positions within the family, a topology shift (two holes, or a
+hole two to three cells from the wall), and a tenfold larger coefficient
+contrast. Correction spaces of dimension 16 and 32: a frozen proper
+orthogonal decomposition of source errors that survive three damped-Jacobi
+sweeps (ten smooth right-hand sides per source geometry, registered to a
+shared background grid), a per-target oracle decomposition of the same kind
+(an upper bound, not deployable), and three classical spaces of the same
+dimension (piecewise-constant aggregation, smoothed aggregation, a bilinear
+geometric coarse grid). Readouts: the energy-norm error left after one
+Galerkin coarse correction on random, slow (generalized eigenvectors 4–20)
+and near-null (eigenvectors 1–3) error directions; and complete two-level
+conjugate-gradient solves to a relative residual of 10⁻⁸ with setup
+amortized over ten right-hand sides. Bars, written before the run: advance
+only if the frozen source space halves the slow-mode error left by the best
+classical space within family and improves it by 1.5x under the topology
+shift, and saves at least 20% of total work; stop if a classical space
+matches or beats it on either held-out set
+(`studies/solver_spaces/PREREG.md`).
+
+## What the probe found {#sec-solver-result}
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+s = json.loads(Path("studies/solver_spaces/solver_spaces_summary.json").read_text())
+```
+
+| rank | held-out set | frozen source space | best classical space | classical ÷ source (bar ≥ 2.0 / ≥ 1.5) |
+|---|---|---|---|---|
+| 16 | within family | 0.963 | 0.701 (geometric) | 0.73 |
+| 16 | topology shift | 0.964 | 0.706 (geometric) | 0.73 |
+| 16 | coefficient shift | 0.961 | 0.732 (geometric) | 0.76 |
+| 32 | within family | 0.748 | 0.465 (geometric) | 0.62 |
+| 32 | topology shift | 0.754 | 0.470 (geometric) | 0.62 |
+| 32 | coefficient shift | 0.801 | 0.527 (geometric) | 0.66 |
+
+: Energy-norm error left on slow-mode probes after one coarse correction,
+mean over eight held-out geometries (lower is better). The rank-16
+comparison is dimension-exact; at rank 32 the geometric grid has 36
+columns. Diffusion operator. Data: `studies/solver_spaces/solver_spaces_summary.json`. {#tbl-solver-contraction}
+
+On near-null probes at rank 32 the frozen space leaves 0.53 of the error,
+the oracle 0.42, the geometric grid 0.37. In complete solves the frozen
+space needs 141–162 iterations at rank 16 against 82–99 for the best
+classical space and 84–104 against 61–72 at rank 32; counting setup, it
+saves between −19% and −72% of the work, so no break-even number of
+right-hand sides exists. Every solve converged; on the symmetric problem
+residual and energy-norm error contract together, so the residual-not-error
+failure the audit warned of does not arise here.
+
+The mechanism is visible in the source spectrum. The smoother-resistant
+source errors are low-dimensional (normalized singular values 0.10, 0.06,
+0.04, 0.02 at modes 2, 5, 9, 17), but their span is that of the smooth
+right-hand sides used to generate them around twenty particular hole
+positions, not the target operator's slow subspace. The geometric grid
+spans generic smooth functions, which is the slow space of a discrete
+elliptic operator under a point smoother, for any geometry, without seeing
+a source problem. Even the oracle decomposition fitted on the target's own
+smoothed errors leaves 0.78 of the slow-mode error against the grid's 0.47.
+Solution snapshots are the wrong object to fit a correction space from, and
+a learner trained on them inherits the mismatch.
+
+The convection–diffusion variant was run and is reported as not measured:
+at mesh Péclet 0.5 the preconditioned GMRES converges in two to three
+iterations with any space, and the one-step Galerkin correction is not a
+projection for a nonsymmetric operator (it increases the slow-mode error
+for the fitted spaces). A Petrov–Galerkin correction and a higher Péclet
+number would be needed for that case to discriminate.
+
+## What this changes {#sec-solver-consequence}
+
+The direction stops for discrete elliptic problems on a fixed
+discretization: a learned correction space must beat the geometric coarse
+grid, not the absence of one, and the object to learn would have to be
+operator-aware (near-null vectors of the *target* operator, which adaptive
+algebraic multigrid already computes without learning) rather than fitted
+to source solutions. Two homes remain for a learned solver component, and
+each needs a prerequisite gate before any training: operators whose
+classical coarse spaces demonstrably fail (strong anisotropy, indefinite or
+high-Péclet operators, state-dependent nonlinear Jacobians, where the
+audit's nonlinear extension lives), and learned smoothers or prolongation
+weights on a classical hierarchy, which are a different object from a
+frozen space. Chapter @sec-classical-solvers takes up the second as part of
+the question of what classical solvers do that surrogates do not.
