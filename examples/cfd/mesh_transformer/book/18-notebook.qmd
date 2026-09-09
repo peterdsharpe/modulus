@@ -9335,3 +9335,40 @@ uniform. If it persists, the reference configuration for accuracy runs
 becomes weights-off and every ISLA accuracy number in the book is
 restated at the next full rerun; if it fades, the 35-case gain is recorded
 as a small-data effect and the configuration is unchanged.
+
+## 2026-09-09 — Planned: POSE-BENCH (the one setting where exact equivariance can show value) and QCOUNT (query-count robustness of the interior configuration) {#sec-nb-pose-qcount-plan}
+
+Two nodes scoped while the unit-drive ladder trains; neither is launched
+(the program is at its node budget), both are written here so that their
+bars exist before any run.
+
+**POSE-BENCH.** Every benchmark in the book presents geometries in one
+canonical frame, so ISLA's exact rotation covariance has never been able to
+earn accuracy. The honest test is a pose-varying benchmark against the
+standard remedy: DrivAerML surface pressure at 435 cars with every training
+and validation case in an independent random SO(3) pose (the recipe's
+`RandomRotateMesh` already supports uniform unit-quaternion rotations; the
+validation pose must be deterministic per case, one small transform
+option), GeoTransolver and Transolver trained *with* SO(3) augmentation and
+the unit drive, ISLA without (it is invariant, so augmentation is a no-op
+up to sampling). Reference: canonical-frame errors (ISLA 0.0577,
+GeoTransolver at unit drive to be measured). Bars, in the posed setting:
+*equivariance earns accuracy* if the unit-drive GeoTransolver-with-augmentation
+error rises by ≥ 10% over its canonical-frame error while ISLA's changes by
+≤ 3%, and ISLA is more accurate than both augmented baselines by ≥ 5%;
+*augmentation suffices* if the augmented baselines stay within 3% of their
+canonical-frame errors; between, reported. Cost: four lanes (two baselines,
+two seeds), about two days.
+
+**QCOUNT.** The interior query-token configuration's error depends on how
+many queries are asked together (0.062 at 10,000, 0.077 at 2,000, 0.110 at
+1,000; @sec-nb-qmass-verdict), a deployment defect. Remedy to test: the
+measure-consistent query mass (`query_mass=source_total`) plus query-count
+augmentation in training (a random interior subsample size per step
+between 1,000 and 10,000). Readout: the error-versus-query-count curve at
+1k / 2k / 5k / 10k / 40k on fixed sentinel points. Bars: *robust* if the
+curve's spread (max ÷ min over the range) is ≤ 1.05 with the 10k error
+within 3% of the current 0.0567; *not robust* if the spread stays ≥ 1.30.
+Gated on UDRV-INT: if the interior lead does not survive the unit-drive
+GeoTransolver-volume, the remedy is still worth having for deployment but
+is no longer a competitive claim. Cost: two lanes, about eight hours each.
