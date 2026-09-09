@@ -166,3 +166,29 @@ configuration should carry the source's constant, which changes nothing
 for relative metrics and is recorded here as a protocol rule. Verdict:
 normalizations are source-only in effect for the reported metrics; one
 declared-constant hygiene item.
+
+## 2026-09-09 — Verdict: D3 not worth a learner as proposed — smooth-mode local errors are amplified 4–30x by the interface solve and grids grow superlinearly; the surviving form is a hybrid with exact low modes {#sec-nb-d3-verdict}
+
+The composition gate (`studies/composition/`, preregistered in its
+`PREREG.md`, 1,064 s on one CPU) assembled 2D finite-element diffusion
+components with identical straight ports into chains and grids of 2–16
+components and perturbed every local response by a relative Frobenius error
+ε. Exact composition is exact (composition law 2 × 10⁻¹⁶, interface solve
+5 × 10⁻¹⁵). At ε = 10⁻² the median global energy error is 1.7% for two
+components, 7% for chains of eight, 33% for grids of eight and 34% for grids
+of sixteen (a 6.2x growth from four to sixteen, faster than linear), missing
+the 5% bar; errors concentrated on rough port modes are damped 20–100x while
+errors on smooth modes are amplified 4–30x and set the global error, since
+the smooth small-eigenvalue part of a response carries the load (truncating
+a response below 63 of 64 modes fails catastrophically). Transfer-optimal
+port modes transfer to new shapes but need 13–15 of 15 modes for 1%;
+proper-orthogonal modes are shape-specific; at rank 4 both leave 16–27%
+error, missing the reduction bar. The interface solve is cheaper than the
+monolithic solve only up to four components, and a partition-of-unity coarse
+space does not help the iteration count. The narrow-channel family did not
+place a barrier at a port, so the near-field claim is untested by this
+instrument. Verdict against the bars: not worth a learner as proposed. What
+survives is a hybrid solver (exact smooth low-mode response, learned rough
+remainder), with a split-response test and a port-adjacent barrier family as
+its next nonlearned gates, not launched here. Chapter @sec-composition has
+the tables; figures `studies/composition/fig_*.png`.

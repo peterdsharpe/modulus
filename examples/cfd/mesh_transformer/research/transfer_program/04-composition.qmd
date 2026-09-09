@@ -1,3 +1,89 @@
 # Local-response composition {#sec-composition}
 
-Drafted when its study reports; see the notebook for the preregistration and running record.
+**Composing exact local port responses into new assemblies is exact, but
+errors in the smooth part of a local response are amplified 4–30x by the
+interface solve and grow superlinearly with assembly size on grids, while
+errors in the rough part are damped 20–100x; port reduction that transfers to
+new shapes compresses nothing at the 1% level.** The audit's third direction
+proposed learning local Dirichlet-to-Neumann responses in compatible port
+coordinates and enforcing global compatibility numerically, so that a new
+arrangement of familiar parts is not a new shape. The nonlearned gate asked
+how interface-solve error propagates when local responses are inexact, before
+any predictor is trained. The answer rejects the direction as proposed and
+points at a narrower hybrid.
+
+## The gate {#sec-composition-gate}
+
+Linear finite elements on unit-square components with identical straight
+ports (64 perimeter nodes, 15 interior nodes per shared edge), a library of
+five shapes (plain, coefficient contrast, hole, wide and narrow internal
+channels) and three held-out shapes (offset hole, diagonal barrier, an
+eight-cell checkerboard); assemblies in chains and grids of 2, 4, 8 and 16
+components, five random draws each, against a monolithic finite-element
+reference; a screened variant as control. The exact machinery passes every
+check: response symmetry, positive semidefiniteness, the constant null vector,
+the Schur-complement composition law against a merged-mesh Schur complement
+(2 × 10⁻¹⁶), and an exact interface solve (5 × 10⁻¹⁵ energy error). Every
+component response is then perturbed by a relative Frobenius error ε (random,
+or concentrated on smooth or on rough port modes), and reduced responses are
+built by transfer-optimal port modes and by equal-rank proper orthogonal
+decomposition. Bars, written before the run (`studies/composition/PREREG.md`):
+worth a learner if the global energy error stays below 5% at ε = 10⁻² from 2
+to 8 components with no faster than square-root growth, and if
+transfer-optimal reduction reaches 1% at a quarter of the port dimension on
+new assemblies of new shapes; not worth it if local errors amplify
+superlinearly or the interface solve costs more than the monolithic one.
+
+## What the gate found {#sec-composition-result}
+
+| layout | components | cond(S_II) | ε = 10⁻³ random | ε = 10⁻² random | ε = 10⁻² smooth modes | ε = 10⁻² rough modes | ε = 10⁻¹ random |
+|---|---|---|---|---|---|---|---|
+| chain | 2 | 15 | 0.0021 | 0.017 | 0.039 | 0.0001 | 0.15 |
+| chain | 4 | 16 | 0.0041 | 0.040 | 0.092 | 0.0002 | 0.50 |
+| chain | 8 | 88 | 0.0079 | 0.071 | 0.072 | 0.0005 | 0.85 |
+| chain | 16 | 76 | 0.0070 | 0.065 | 0.091 | 0.0002 | 1.36 |
+| grid | 4 | 220 | 0.0062 | 0.055 | 0.083 | 0.0002 | 0.97 |
+| grid | 8 | 330 | 0.0152 | 0.333 | 0.267 | 0.0006 | 1.87 |
+| grid | 16 | 6,900 | 0.0163 | 0.340 | 0.207 | 0.0004 | 3.33 |
+
+: Median global relative energy error of the assembled solution when every
+component response carries a relative Frobenius error ε, by layout and
+component count; the interface condition number is that of the assembled
+interface operator. Data: `studies/composition/results.json`. {#tbl-composition-amplification}
+
+At ε = 10⁻² the 5% bar is missed for chains of 8 or more and for every grid;
+from 4 to 16 components the grid error grows 6.2x, faster than linear. The
+mechanism is in the last two columns: errors on rough port modes are
+attenuated 20–100x by the interface solve, errors on smooth modes are
+amplified 4–30x and set the global error, because the smooth,
+small-eigenvalue part of a response is the load-bearing part (truncating the
+response itself to fewer than 63 of 64 modes gives errors of 10² to 10⁷).
+Port reduction confirms it from the other side: transfer-optimal modes built
+from a plain reference pair do transfer to new shapes, but need 13–15 of 15
+modes for 1%, while proper-orthogonal modes need all 15 on new shapes (they
+are shape-specific); at rank 4 both leave 16–27% error. The interface solve
+is cheaper than the monolithic one only up to four components, and the
+partition-of-unity coarse space does not reduce the interface iteration
+count. The narrow-channel family did not exercise a near-port singularity
+(the barrier sits inside the component), which is a limitation of this
+instrument, not a finding.
+
+## What this changes {#sec-composition-consequence}
+
+As proposed, a learned local response would need a relative error near
+10⁻³ on smooth port modes to reach 2% on a 4 × 4 assembly, at full port rank,
+with reciprocity, positive semidefiniteness and the null vector preserved
+exactly; that is a stricter target than any learned response in the
+literature reaches, and the direction stops in that form. What survives is a
+hybrid: keep the smooth low-mode response exact (a coarse local solve or an
+analytic expansion) and learn only the rough remainder, whose errors the
+interface solve damps. That is a solver with a learned component, not a
+field regressor, and it is the same shape as the audit's exterior variant
+(analytic multipole coupling, learned near-field maps) and as the wall-law
+and constraint-solve hypotheses of @sec-classical-solvers. Its next
+nonlearned test is a split response (exact low modes plus a perturbed
+remainder) and a barrier-adjacent-to-port family for the near-field claim;
+neither is launched here. The instrument is 2D scalar diffusion with shared
+straight ports; convection removes the energy-norm certificate, elasticity
+adds rigid modes per component, and exterior aerodynamics has no shared
+ports at all.
