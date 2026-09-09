@@ -9480,3 +9480,42 @@ is cheaper than any routing change.
 **Tech-tree change.** SPARSE RUNNING → DONE (not worth it); no training arm.
 The option stays in the code, flag-gated and default-off, as the runnable
 record of the refuted design.
+
+## 2026-09-09 — Verdict: UDRV-INT null — GeoTransolver-volume with the unit freestream direction changes by under 2% on every interior field; ISLA's pressure and velocity lead is not an input-scale artifact {#sec-nb-udrv-int-verdict}
+
+**Setting and bars** (@sec-nb-udrv-int-prereg): the frozen
+GeoTransolver-volume lane (27.6M parameters, 435 cars, 10,000 interior
+points) with `forward_kwargs.global_embedding=global_data.U_inf_dir` in
+place of the physical 38.9 m/s velocity, two seeds. Confound present if any
+field improves by more than 5% over 0.0620 / 0.1334 / 0.0939; null if all
+three lie within 3%.
+
+**Readout** (results/udrv_int_reduction_2026-09-09.json; 48 validation cars):
+
+| arm | pressure (seeds → mean) | velocity | eddy viscosity |
+|---|---|---|---|
+| GeoTransolver-volume, physical velocity | 0.0622 / 0.0618 → 0.0620 | 0.1335 / 0.1332 → 0.1334 | 0.0934 / 0.0944 → 0.0939 |
+| GeoTransolver-volume, unit direction | 0.0615 / 0.0618 → **0.0617** | 0.1338 / 0.1282 → **0.1310** | 0.0941 / 0.0930 → **0.0936** |
+| ISLA query tokens + SDF (~365 surface cells) | 0.0567 | 0.0853 | 0.1215 |
+| ISLA query tokens + SDF (10,000 surface cells) | 0.0572 | 0.0848 | 0.1187 |
+
+Paired per car (seed-mean errors): the unit-drive GeoTransolver-volume is
+lower than its physical-drive twin on 27 / 41 / 26 of 48 cars (pressure /
+velocity / eddy viscosity; median ratios 1.003 / 1.017 / 1.005). Against
+ISLA query tokens + SDF it is higher on pressure on 44 of 48 cars (median
+GeoTransolver-volume ÷ ISLA 1.088) and on velocity on 48 of 48 (1.56), and
+lower on eddy viscosity on 38 of 48 (0.91).
+
+**Verdict: null.** Pressure −0.5%, velocity −1.8%, eddy viscosity −0.3%,
+all inside the 3% band; the only field with a consistent per-car direction
+is velocity (41 of 48), at a size below the bar. On the interior task the
+freestream magnitude (38.9 against 2,679.5 on HiLiftAeroML, and constant
+across cars) does not handicap GeoTransolver-volume the way it handicapped
+the surface baselines, so the interior ordering of @sec-interior (ISLA
+ahead on pressure and velocity at a third of the parameters, behind on
+eddy viscosity) is not an input-scale artifact. The index's verdict
+sentence, the verdict table's interior row, chapter 8's inputs paragraph
+and chapter 12's limits and recommendation are updated accordingly; the
+interior recommendation remains conditional only on the eddy-viscosity gap
+and the query-count dependence. Tech-tree change: UDRV-INT READY → DONE
+(null); QCOUNT's gate is open.

@@ -869,3 +869,9 @@ interior control @sec-nb-udrv-int-prereg.
   12% better (ratio 1.116 vs 1.119 uniform). Write "the measure weights cost 12% at 35 cases
   under either metric; the variance reading stands (cell areas span 400x)". Never write that
   the metric explains the gap. Reference configuration unchanged until NOW-L lands.
+
+- **UDRV-INT (2026-09-09).** Unit-drive GeoTransolver-volume 0.0617 / 0.1310 / 0.0936 vs
+  physical 0.0620 / 0.1334 / 0.0939: null (all within 3%). Write "the interior ordering is
+  not an input-scale artifact"; the interior ratios (0.91x / 0.64x / 1.29x) may be quoted
+  against either baseline version. The verdict sentence's interior clause reads "lead on
+  pressure and velocity survives that control".

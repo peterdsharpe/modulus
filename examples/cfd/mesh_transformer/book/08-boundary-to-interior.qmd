@@ -143,7 +143,13 @@ input, and 2.8x the parameters with local features. The chapter's
 headline ratio bounds the price of ISLA's contracts as ISLA is built; the
 query-token arm isolates the first difference between GeoTransolver and
 ISLA, though not between ISLA's two interior configurations, which also
-differ in decoder depth (@sec-interior-results).
+differ in decoder depth (@sec-interior-results). GeoTransolver-volume's
+freestream input is the physical velocity (38.9 m/s) where ISLA's is the
+unit direction, the asymmetry that produced the baselines' HiLiftAeroML
+deficit; retrained with the unit direction it changes by under 2% on every
+field (0.0617 / 0.131 / 0.0936 against 0.0620 / 0.1334 / 0.0939;
+@sec-nb-udrv-int-verdict), so every ratio in this chapter stands against
+either version of the baseline.
 
 ### Query independence as a first-class property {#sec-interior-query-independence}
 
