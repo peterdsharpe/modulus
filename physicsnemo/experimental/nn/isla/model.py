@@ -291,7 +291,7 @@ class _ReadBlock(nn.Module):
         )
 
     def forward(self, q_h, q_r, q_n, q_d, z_states, z_pos, m_s, eps,
-                src_r=None, src_h=None, src_w=None, local_rho=None):
+                src_r=None, src_h=None, src_w=None, local_rho=None, kernel_logspace=False):
         logits_pre = self.assign(self.norm(q_h))
         geo_args = (self.geo_logit, logits_pre, q_r, q_n, q_d, z_pos, m_s, eps)
         if self.geo_checkpoint:
@@ -306,23 +306,41 @@ class _ReadBlock(nn.Module):
             ### states cannot carry. Measure-weighted Gaussian kernel over
             ### SOURCE positions attending to encoder states; queries still
             ### never write, so query-independence is preserved exactly.
-            local = _kernel_readout(q_r, src_r, src_h, src_w, local_rho, eps)
+            local = _kernel_readout(q_r, src_r, src_h, src_w, local_rho, eps, logspace=kernel_logspace)
             q_h = q_h + self.local_read(torch.cat([q_h, local], dim=-1))
         return q_h + self.mlp(self.norm_mlp(q_h))
 
 
 
-def _kernel_readout(q_r, src_r, src_h, src_w, rho, eps):
+def _kernel_readout(q_r, src_r, src_h, src_w, rho, eps, logspace: bool = False):
     """Measure-weighted Gaussian-kernel average of source states at query
-    positions, row-chunked. Passive: a pure function of the source."""
+    positions, row-chunked. Passive: a pure function of the source.
+
+    ``logspace=False`` is the legacy form (kernel mass clamped at ``eps``):
+    for a query farther than a few ``rho`` from every source the mass
+    underflows, the clamp takes over, and the readout scales with the
+    absolute source weights (measured 2026-09-09: a 4.2x weight rescale moved
+    the passive output by 0.16). Kept so trained passive checkpoints
+    reproduce. ``logspace=True`` (support-token mode) evaluates the same
+    average as a softmax over sources with logits -d^2/rho^2 + log w, which
+    is exactly invariant to rescaling the source measure and well defined
+    everywhere; where the mass is not tiny the two agree to roundoff, and
+    where it is, the log-space form attends to the nearest sources instead of
+    returning a clamp-scaled value. ``src_w`` is the log-weight when
+    ``logspace`` is set."""
     b, nq, _ = q_r.shape
     outs = []
     chunk = 4096
     for i0 in range(0, nq, chunk):
         d2 = torch.cdist(q_r[:, i0 : i0 + chunk], src_r).square()
-        k = torch.exp(-d2 / (rho * rho)) * src_w[:, None, :]
-        mass = k.sum(-1, keepdim=True).clamp_min(eps)
-        outs.append(torch.einsum("bcn,bnh->bch", k, src_h) / mass)
+        if logspace:
+            logits = -d2 / (rho * rho) + src_w[:, None, :]
+            k = torch.softmax(logits, dim=-1)
+            outs.append(torch.einsum("bcn,bnh->bch", k, src_h))
+        else:
+            k = torch.exp(-d2 / (rho * rho)) * src_w[:, None, :]
+            mass = k.sum(-1, keepdim=True).clamp_min(eps)
+            outs.append(torch.einsum("bcn,bnh->bch", k, src_h) / mass)
     return torch.cat(outs, dim=1)
 
 class ISLA(Module):
@@ -372,6 +390,7 @@ class ISLA(Module):
         query_mass: str = "geometric_mean",
         second_moment_features: bool = False,
         anchor_topk: int = 0,
+        support_tokens: bool = False,
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -555,9 +574,31 @@ class ISLA(Module):
         ### "source_total".
         if query_mass not in ("geometric_mean", "source_total"):
             raise ValueError(f"unknown query_mass {query_mass!r}")
-        if query_mass != "geometric_mean" and not self.query_tokens:
-            raise ValueError("query_mass requires query_tokens=True")
+        if query_mass != "geometric_mean" and not (self.query_tokens or support_tokens):
+            raise ValueError("query_mass requires query_tokens=True or support_tokens=True")
         self.query_mass = query_mass
+        ### SUPPORT TOKENS (transfer program D1, 2026-09-09; audit agenda
+        ### sec-direction-support): a problem-derived SUPPORT set (e.g. a fixed
+        ### per-case sample of interior points with their signed distance) joins
+        ### the encoder as interacting tokens exactly like query tokens do, while
+        ### the requested output points are decoded PASSIVELY through the read
+        ### blocks (query_independent=True). The prediction at a query therefore
+        ### cannot depend on which other queries are requested, only on the
+        ### case (surface + support), which is the deployment contract the
+        ### interacting query-token configuration lacks. The support tokens'
+        ### total routing weight follows `query_mass` over the support set
+        ### ("source_total" recommended: invariant to refinement of the source
+        ### measure).
+        self.support_tokens = bool(support_tokens)
+        if self.support_tokens:
+            if not query_independent:
+                raise ValueError("support_tokens requires query_independent=True (passive read blocks decode the queries)")
+            if self.query_tokens or self.latent_volume_tokens or self.n_anchors:
+                raise ValueError("support_tokens excludes query_tokens, latent_volume_tokens and n_anchors")
+            if use_local_features or raw_coord_channel or self.n_boundary_scalars or scale_conditioning or seed_mode != "invariant":
+                raise ValueError("support_tokens supports the plain invariant seed set only")
+            self.sp_logw = nn.Parameter(torch.zeros(1))
+            self.sp_type = nn.Parameter(torch.zeros(hidden))
         ### Optional per-query scalar inputs for the query tokens (e.g. the
         ### signed distance to the wall, which GeoTransolver's volume
         ### configuration receives at every interior point). Scalars are
@@ -568,14 +609,26 @@ class ISLA(Module):
         self.n_query_scalars = int(n_query_scalars)
         self.query_scalar_scale = query_scalar_scale
         if self.n_query_scalars:
-            if not self.query_tokens:
-                raise ValueError("n_query_scalars requires query_tokens=True")
+            if not (self.query_tokens or query_independent):
+                raise ValueError("n_query_scalars requires query_tokens=True or query_independent=True")
             if query_scalar_scale not in ("length", "none"):
                 raise ValueError(f"unknown query_scalar_scale {query_scalar_scale!r}")
             width = 2 * self.n_query_scalars if query_scalar_scale == "length" else self.n_query_scalars
-            self.qt_scalar_embed = nn.Sequential(
-                nn.Linear(width, hidden), nn.GELU(), nn.Linear(hidden, hidden)
-            )
+            if self.query_tokens:
+                self.qt_scalar_embed = nn.Sequential(
+                    nn.Linear(width, hidden), nn.GELU(), nn.Linear(hidden, hidden)
+                )
+            if query_independent:
+                ### Passive queries take the same per-query scalars (e.g. the
+                ### signed distance) through their own embedding; the read
+                ### blocks then see an input matched to the interacting arm's.
+                self.rq_scalar_embed = nn.Sequential(
+                    nn.Linear(width, hidden), nn.GELU(), nn.Linear(hidden, hidden)
+                )
+            if self.support_tokens:
+                self.sp_scalar_embed = nn.Sequential(
+                    nn.Linear(width, hidden), nn.GELU(), nn.Linear(hidden, hidden)
+                )
         ### Optional local surface-patch features on the query tokens: the
         ### same measure-weighted Gaussian patch integrals of the SURFACE
         ### sample around each query that the passive decoder can use
@@ -713,6 +766,9 @@ class ISLA(Module):
         query_points: Float[torch.Tensor, "batch queries 3"] | None = None,
         query_normals: Float[torch.Tensor, "batch queries 3"] | None = None,
         query_scalars: Float[torch.Tensor, "batch queries n_qscalars"] | None = None,
+        support_points: Float[torch.Tensor, "batch support 3"] | None = None,
+        support_normals: Float[torch.Tensor, "batch support 3"] | None = None,
+        support_scalars: Float[torch.Tensor, "batch support n_qscalars"] | None = None,
     ) -> Float[torch.Tensor, "batch tokens out_dim"]:
         if points.ndim == 2:
             points = points[None]
@@ -833,6 +889,50 @@ class ISLA(Module):
             n = n + K
 
         n_surface = n
+        if self.support_tokens and support_points is not None:
+            ### Support tokens (see __init__): interacting interior tokens that
+            ### are a function of the case, not of the requested queries.
+            if support_normals is None:
+                raise ValueError("support_tokens needs support_normals (e.g. the SDF gradient at each support point)")
+            s_pts = support_points
+            bs_, ns_, _ = s_pts.shape
+            s_r = (s_pts - center) / gauge
+            s_mag = s_r.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+            s_rhat = s_r / s_mag
+            s_nhat = support_normals / support_normals.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+            s_d = (drive / drive_mag)[:, None, :].expand(bs_, ns_, 3)
+            s_inv = torch.cat(
+                [
+                    s_mag,
+                    torch.log(s_mag),
+                    (s_rhat * s_d).sum(-1, keepdim=True),
+                    (s_rhat * s_nhat).sum(-1, keepdim=True),
+                    (s_nhat * s_d).sum(-1, keepdim=True),
+                ],
+                dim=-1,
+            )
+            h_s = self.embed(s_inv) + self.sp_type.to(h.dtype)
+            if self.n_query_scalars:
+                if support_scalars is None:
+                    raise ValueError("n_query_scalars > 0 with support_tokens needs support_scalars")
+                ss = support_scalars.reshape(bs_, ns_, self.n_query_scalars).to(s_inv.dtype)
+                if self.query_scalar_scale == "length":
+                    ss = ss / gauge
+                    ss = torch.cat([ss, torch.sign(ss) * torch.log(ss.abs() + self.eps)], dim=-1)
+                h_s = h_s + self.sp_scalar_embed(ss).to(h_s.dtype)
+            elif support_scalars is not None:
+                raise ValueError("support_scalars given but n_query_scalars == 0")
+            if self.query_mass == "source_total":
+                s_logw = (self.sp_logw.to(log_w.dtype)
+                          + torch.logsumexp(log_w[:, :n_surface], dim=1, keepdim=True) - math.log(ns_))
+            else:
+                s_logw = self.sp_logw.to(log_w.dtype) + log_w[:, :n_surface].mean(dim=1, keepdim=True)
+            h = torch.cat([h, h_s], dim=1)
+            r = torch.cat([r, s_r], dim=1)
+            n_hat = torch.cat([n_hat, s_nhat], dim=1)
+            d_hat = torch.cat([d_hat, s_d], dim=1)
+            log_w = torch.cat([log_w, s_logw.expand(b, ns_, 1)], dim=1)
+            n = n + ns_
         qt_active = self.query_tokens and query_points is not None
         if qt_active:
             ### Interior queries as interacting tokens (see __init__).
@@ -994,14 +1094,28 @@ class ISLA(Module):
             if self.scale_conditioning:
                 q_inv = torch.cat([q_inv, log_s.expand(bq, nq, 1)], dim=-1)
             q_h = self.embed(q_inv)
+            if self.n_query_scalars:
+                if query_scalars is None:
+                    raise ValueError("n_query_scalars > 0 needs query_scalars")
+                qs = query_scalars.reshape(bq, nq, self.n_query_scalars).to(q_inv.dtype)
+                if self.query_scalar_scale == "length":
+                    qs = qs / gauge
+                    qs = torch.cat([qs, torch.sign(qs) * torch.log(qs.abs() + self.eps)], dim=-1)
+                q_h = q_h + self.rq_scalar_embed(qs).to(q_h.dtype)
+            elif query_scalars is not None:
+                raise ValueError("query_scalars given but n_query_scalars == 0")
             src_logw = log_w_enc if 0 < self.n_anchors < n else log_w
             src_r, src_n = r_src, n_src
-            src_w = torch.exp(src_logw.squeeze(-1))
+            ### Support-token mode uses the exactly measure-invariant log-space
+            ### kernel (see _kernel_readout); the legacy passive path keeps the
+            ### clamped form so its trained checkpoints reproduce.
+            logspace = self.support_tokens
+            src_w = src_logw.squeeze(-1) if logspace else torch.exp(src_logw.squeeze(-1))
             for rb in self.read_blocks:
                 q_h = rb(
                     q_h, q_r, q_nhat, q_d, z_states, z_pos, m_s, self.eps,
                     src_r=r_src, src_h=h, src_w=src_w,
-                    local_rho=self.local_readout_rho,
+                    local_rho=self.local_readout_rho, kernel_logspace=logspace,
                 )
             h_out, r_hat, n_hat, d_hat, b, n = q_h, q_rhat, q_nhat, q_d, bq, nq
         else:

@@ -1,0 +1,99 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023 - 2026 NVIDIA CORPORATION & AFFILIATES.
+# SPDX-FileCopyrightText: All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# DrivAerML volume dataset with a per-case interior SUPPORT set (transfer
+# program D1, 2026-09-09). Identical to drivaer_ml_volume.yaml except that the
+# reader draws ${sampling_resolution} interior points and the
+# SplitInteriorSupport transform moves the first ${n_support} of them (with
+# their signed distance and its gradient) into `boundaries.support`; the
+# remaining interior points are the passive queries the loss scores. The
+# support is a deterministic function of the case (the reader's per-index
+# generator), never of the requested queries.
+#
+# Deployment note: the cluster's frozen recipe copy uses drivaer_ml_volume_mt.yaml
+# (boundary_subsample: cells, ~10,000 vehicle cells) as the reference arm's
+# dataset; diff this file against it before launching so that the only
+# difference is the support split.
+
+train_datadir: ${dataset_paths.drivaer_ml}
+
+# Interior points moved to the support boundary; the loss sees the rest.
+n_support: 5000
+
+pipeline:
+  reader:
+    _target_: ${dp:DomainMeshReader}
+    path: ${train_datadir}
+    pattern: "run_*/domain_*.pdmsh"
+    subsample_n_points: ${sampling_resolution}
+    subsample_n_cells: ${sampling_resolution}
+    boundary_subsample: cells
+    drop_interior_cells: true
+    drop_in_file_boundaries: false
+    extra_boundaries:
+      stl_geometry:
+        pattern: "*_single_solid.stl.pmsh"
+  augmentations:
+    - _target_: ${dp:RandomRotateMesh}
+      axes: ["z"]
+      transform_point_data: true
+      transform_global_data: true
+    - _target_: ${dp:RandomTranslateMesh}
+      distribution:
+        _target_: torch.distributions.Uniform
+        low: [-1.0, -1.0, 0.0]
+        high: [1.0, 1.0, 0.0]
+  transforms:
+    - _target_: ${dp:DropMeshFields}
+      global_data: [TimeValue]
+    - _target_: ${dp:CenterMesh}
+      use_area_weighting: false
+    - _target_: ${dp:ComputeFreestreamDirection}
+      velocity_field: U_inf
+      output_field: U_inf_dir
+    - _target_: ${dp:NonDimensionalizeByMetadata}
+      fields:
+        UMeanTrim: velocity
+        pMeanTrim: pressure
+        nutMeanTrim: identity
+      association: point_data
+    - _target_: ${dp:ComputeSDFFromBoundary}
+      boundary_name: stl_geometry
+      sdf_field: sdf
+      normals_field: sdf_normals
+      use_winding_number: false
+    - _target_: ${dp:DropBoundary}
+      names: [stl_geometry]
+    # The support split runs after the SDF is available and before the
+    # targets are injected onto the (reduced) interior.
+    - _target_: ${dp:SplitInteriorSupport}
+      n_support: ${n_support}
+      boundary_name: support
+      point_data_fields: [sdf, sdf_normals]
+    - _target_: ${dp:RenameMeshFields}
+      point_data:
+        UMeanTrim: velocity
+        pMeanTrim: pressure
+        nutMeanTrim: nut
+    - _target_: ${dp:NormalizeMeshFields}
+      association: point_data
+      fields:
+        nut: {type: scalar, mean: 4.8e-4, std: 9.4e-4}
+
+targets:
+  velocity: vector
+  pressure: scalar
+  nut: scalar
