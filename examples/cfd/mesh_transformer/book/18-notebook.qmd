@@ -9220,3 +9220,7 @@ fixed angle) and both show the baselines ahead; the prediction of
 mechanism limit and CLAIMS carry the reversal; the exact sign test on 18
 geometries gives p = 2 / 2¹⁸ = 8 × 10⁻⁶ (the reducer prints 0.0). Tech-tree
 change: UDRV fixed-angle lanes DONE.
+
+**Addendum (2026-09-09).** The fixed-angle lanes finished and freed four
+nodes; UDRV-L lanes 20–21 (GeoTransolver at 20,000 tokens, unit drive; jobs
+689091/689092) were submitted with the program at 28 nodes.
