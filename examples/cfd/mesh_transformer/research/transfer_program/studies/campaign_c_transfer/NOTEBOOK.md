@@ -46,6 +46,19 @@ cond0 ISLA, cond1 ISLA, cond1 GeoTransolver (exercises the seventh channel),
 mix435 ISLA, fine-tune-20 ISLA, scratch-20 ISLA. The remaining ten of lanes
 0–15 follow once each of these shows a first training step.
 
+**Acceptance, first pass.** The GeoTransolver conditioned lane
+(campC_cond1_gt_seed42) trains at 0.114 s per step and 4.6 GB with 307 steps
+per epoch (1,229 mixed cases over four GPUs), so the seventh functional
+channel and the mixed-manifest plumbing work. The four ISLA lanes blocked at
+step 0 with "Output channel dim 9 does not match the expected total channels
+4": the lane table had inherited the HiLift head override
+(`model.out_scalars=3 model.out_vectors=2`) from the udrv table, while
+DrivAerML/SHIFT-SUV targets are pressure plus wall shear (the mt2_surface
+defaults). The override was removed from the lane table and the build script,
+the block markers cleared, and lanes 0, 2, 8, 12, 13 resubmitted (jobs
+691853–691857). The preregistration is unaffected (the head was never part of
+any arm's definition).
+
 **Commands for whoever finishes this** (coordinator or a later session):
 - submit the rest: `cd $T && for i in 1 4 5 6 7 9 10 11 14 15; do sbatch -J camp-c-$i --array=$i --dependency=singleton transfer/campaign_c_aga.sbatch; done`
 - GT few-shot arms after `grep -q "Training completed" $T/runs/uw_gt_unit_lr1e3_seed42/train.log`: `for i in 16 17 18 19; do sbatch -J camp-c-$i --array=$i --dependency=singleton transfer/campaign_c_aga.sbatch; done`

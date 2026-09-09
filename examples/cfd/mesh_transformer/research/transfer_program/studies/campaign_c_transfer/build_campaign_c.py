@@ -111,21 +111,24 @@ print("dataset variants written")
 GTU = "forward_kwargs.global_embedding=global_data.U_inf_dir"
 GTC = GTU + " forward_kwargs.local_embedding=[interior.points,boundaries.vehicle.cell_data.normals,boundaries.vehicle.cell_data.cond] model.functional_dim=7"
 ISC = "+model.n_boundary_scalars=1 +forward_kwargs.boundary_scalars=boundaries.vehicle.cell_data.cond"
-ISLA_HEAD = "model.out_scalars=3 model.out_vectors=2"
+# NOTE: no ISLA output-head override here. The udrv lane table's "model.out_scalars=3
+# model.out_vectors=2" is HiLift's target set; DrivAerML/SHIFT-SUV targets are pressure +
+# wall shear (4 channels), which mt2_surface.yaml's defaults already produce. The first
+# acceptance submission carried the override and failed at step 0 with a 9-vs-4 channel error.
 rows = []
 def lane(arm, model, extra, dataset, lr, seed, run):
     rows.append((len(rows), arm, model, extra, dataset, lr, seed, 10000, run))
 for s_ in (42, 43):
-    lane("T1", "mt2_surface", f"{ISLA_HEAD} extra_datasets=[shift_suv_surface]", "drivaer_ml_surface", "1.0e-3", s_, f"campC_cond0_isla_seed{s_}")
+    lane("T1", "mt2_surface", f"extra_datasets=[shift_suv_surface]", "drivaer_ml_surface", "1.0e-3", s_, f"campC_cond0_isla_seed{s_}")
     lane("T1", "geotransolver_surface", f"{GTU} extra_datasets=[shift_suv_surface]", "drivaer_ml_surface", "1.0e-3", s_, f"campC_cond0_gt_seed{s_}")
-    lane("T1", "mt2_surface", f"{ISLA_HEAD} {ISC} extra_datasets=[campc_estate_cond1]", "campc_drivaer_cond0", "1.0e-3", s_, f"campC_cond1_isla_seed{s_}")
+    lane("T1", "mt2_surface", f"{ISC} extra_datasets=[campc_estate_cond1]", "campc_drivaer_cond0", "1.0e-3", s_, f"campC_cond1_isla_seed{s_}")
     lane("T1", "geotransolver_surface", f"{GTC} extra_datasets=[campc_estate_cond1]", "campc_drivaer_cond0", "1.0e-3", s_, f"campC_cond1_gt_seed{s_}")
 for s_ in (42, 43):
-    lane("T2", "mt2_surface", f"{ISLA_HEAD} extra_datasets=[campc_estate_n217]", "campc_drivaer_n218", "1.0e-3", s_, f"campC_mix435_isla_seed{s_}")
+    lane("T2", "mt2_surface", f"extra_datasets=[campc_estate_n217]", "campc_drivaer_n218", "1.0e-3", s_, f"campC_mix435_isla_seed{s_}")
     lane("T2", "geotransolver_surface", f"{GTU} extra_datasets=[campc_estate_n217]", "campc_drivaer_n218", "1.0e-3", s_, f"campC_mix435_gt_seed{s_}")
 for s_ in (42, 43):
-    lane("T3", "mt2_surface", f"{ISLA_HEAD} training.init_from={T}/runs/mt2_v3c_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-4", "campc_fastback_fewshot20", "1.0e-4", s_, f"campC_ft20_isla_seed{s_}")
-    lane("T3", "mt2_surface", f"{ISLA_HEAD} training.num_epochs=200", "campc_fastback_fewshot20", "1.0e-3", s_, f"campC_scratch20_isla_seed{s_}")
+    lane("T3", "mt2_surface", f"training.init_from={T}/runs/mt2_v3c_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-4", "campc_fastback_fewshot20", "1.0e-4", s_, f"campC_ft20_isla_seed{s_}")
+    lane("T3", "mt2_surface", f"training.num_epochs=200", "campc_fastback_fewshot20", "1.0e-3", s_, f"campC_scratch20_isla_seed{s_}")
 # GT few-shot lanes (16-19) wait for uw_gt_unit_lr1e3_seed42 to finish; listed so the launcher can run them later
 for s_ in (42, 43):
     lane("T3gt", "geotransolver_surface", f"{GTU} training.init_from={T}/runs/uw_gt_unit_lr1e3_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-4", "campc_fastback_fewshot20", "1.0e-4", s_, f"campC_ft20_gt_seed{s_}")
