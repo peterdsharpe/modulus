@@ -1,7 +1,7 @@
 # What this program tests {.unnumbered}
 
 **Thesis.** The audit of the ISLA (Invariant Slice Attention) research record
-([companion review](../cross_dataset_generalization/index.qmd)) concluded that
+(the companion review in `research/cross_dataset_generalization/`, an untracked directory whose rendered report is `_book/index.html` there) concluded that
 the record does not establish a cross-dataset accuracy advantage, and that the
 promising targets are a complete physical input, a stable computational
 representation, and reusable components of the physical response. This program

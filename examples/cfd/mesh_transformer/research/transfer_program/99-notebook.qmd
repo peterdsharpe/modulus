@@ -3,7 +3,7 @@
 ## 2026-09-09 — Program start: from the audit's agenda to preregistered experiments {#sec-nb-start}
 
 **Setting.** The companion review of the ISLA record
-([cross-dataset generalization](../cross_dataset_generalization/index.qmd))
+(`research/cross_dataset_generalization/`, untracked; rendered report at its `_book/index.html`)
 audited the repository, thirty-one primary papers and five analytic
 controls, and concluded that the record does not establish a cross-dataset
 accuracy advantage for ISLA; with the freestream input matched, GeoTransolver
