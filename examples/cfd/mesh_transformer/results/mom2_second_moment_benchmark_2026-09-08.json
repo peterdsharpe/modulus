@@ -1,0 +1,245 @@
+{
+ "n_pairs": 200,
+ "n_controls": 200,
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "arms": {
+  "base": {},
+  "base_gauge": {
+   "similarity_gauge": true
+  },
+  "local": {
+   "use_local_features": true,
+   "local_radii": [
+    0.2,
+    0.4
+   ]
+  },
+  "mom2": {
+   "second_moment_features": true
+  }
+ },
+ "model": {
+  "hidden": 64,
+  "n_layers": 4,
+  "n_slices": 32,
+  "dtype": "float64"
+ },
+ "per_arm": {
+  "base": [
+   {
+    "seed": 0,
+    "probe_accuracy_family_label_illposed": 0.47000000000000003,
+    "phi_regression_cv_r2": 0.03348743282015498,
+    "phi_ge60_probe_accuracy": 0.54,
+    "common_component_max_abs_diff": {
+     "median": 1.887379141862766e-15,
+     "max": 3.885780586188048e-15
+    },
+    "congruent_control_max_abs_diff": 2.123301534595612e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 1.887379141862766e-15,
+     "30-60": 1.970645868709653e-15,
+     "60-90": 1.7763568394002505e-15,
+     "90-120": 1.9984014443252818e-15
+    }
+   },
+   {
+    "seed": 1,
+    "probe_accuracy_family_label_illposed": 0.4699999999999999,
+    "phi_regression_cv_r2": -0.0009447604513321828,
+    "phi_ge60_probe_accuracy": 0.54,
+    "common_component_max_abs_diff": {
+     "median": 1.6167622796103842e-15,
+     "max": 3.316791286067655e-15
+    },
+    "congruent_control_max_abs_diff": 1.887379141862766e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 1.7208456881689926e-15,
+     "30-60": 1.582067810090848e-15,
+     "60-90": 1.5543122344752192e-15,
+     "90-120": 1.5890067039947553e-15
+    }
+   },
+   {
+    "seed": 2,
+    "probe_accuracy_family_label_illposed": 0.475,
+    "phi_regression_cv_r2": 0.004922719859886349,
+    "phi_ge60_probe_accuracy": 0.5399999999999999,
+    "common_component_max_abs_diff": {
+     "median": 1.4432899320127035e-15,
+     "max": 2.886579864025407e-15
+    },
+    "congruent_control_max_abs_diff": 1.1657341758564144e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 1.3322676295501878e-15,
+     "30-60": 1.4432899320127035e-15,
+     "60-90": 1.5543122344752192e-15,
+     "90-120": 1.4432899320127035e-15
+    }
+   }
+  ],
+  "base_gauge": [
+   {
+    "seed": 0,
+    "probe_accuracy_family_label_illposed": 0.47000000000000003,
+    "phi_regression_cv_r2": 0.007019229122034121,
+    "phi_ge60_probe_accuracy": 0.54,
+    "common_component_max_abs_diff": {
+     "median": 3.70536934468646e-15,
+     "max": 1.2601031329495527e-14
+    },
+    "congruent_control_max_abs_diff": 4.2049697057677804e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 3.4416913763379853e-15,
+     "30-60": 3.969047313034935e-15,
+     "60-90": 3.7192471324942744e-15,
+     "90-120": 3.3306690738754696e-15
+    }
+   },
+   {
+    "seed": 1,
+    "probe_accuracy_family_label_illposed": 0.4699999999999999,
+    "phi_regression_cv_r2": 0.012062838376945106,
+    "phi_ge60_probe_accuracy": 0.54,
+    "common_component_max_abs_diff": {
+     "median": 2.4424906541753444e-15,
+     "max": 4.773959005888173e-15
+    },
+    "congruent_control_max_abs_diff": 3.1086244689504383e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 2.4424906541753444e-15,
+     "30-60": 2.4702462297909733e-15,
+     "60-90": 2.3869795029440866e-15,
+     "90-120": 2.6367796834847468e-15
+    }
+   },
+   {
+    "seed": 2,
+    "probe_accuracy_family_label_illposed": 0.475,
+    "phi_regression_cv_r2": -0.002860216252108083,
+    "phi_ge60_probe_accuracy": 0.5399999999999999,
+    "common_component_max_abs_diff": {
+     "median": 6.6058269965196814e-15,
+     "max": 1.9206858326015208e-14
+    },
+    "congruent_control_max_abs_diff": 1.9317880628477724e-14,
+    "separation_by_dphi_bins": {
+     "10-30": 7.993605777301127e-15,
+     "30-60": 6.522560269672795e-15,
+     "60-90": 6.106226635438361e-15,
+     "90-120": 7.049916206369744e-15
+    }
+   }
+  ],
+  "local": [
+   {
+    "seed": 0,
+    "probe_accuracy_family_label_illposed": 0.47750000000000004,
+    "phi_regression_cv_r2": 0.9999987659732901,
+    "phi_ge60_probe_accuracy": 0.9974999999999999,
+    "common_component_max_abs_diff": {
+     "median": 0.11529516687448707,
+     "max": 0.304501705736238
+    },
+    "congruent_control_max_abs_diff": 2.3175905639050143e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 0.0668450402019416,
+     "30-60": 0.12834154103733308,
+     "60-90": 0.21106521015758317,
+     "90-120": 0.19797958683418138
+    }
+   },
+   {
+    "seed": 1,
+    "probe_accuracy_family_label_illposed": 0.4625,
+    "phi_regression_cv_r2": 0.9999927147225535,
+    "phi_ge60_probe_accuracy": 0.9949999999999999,
+    "common_component_max_abs_diff": {
+     "median": 0.0691905247216631,
+     "max": 0.15922016606266465
+    },
+    "congruent_control_max_abs_diff": 2.886579864025407e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 0.040087562082708805,
+     "30-60": 0.08069012533753855,
+     "60-90": 0.11111956986928412,
+     "90-120": 0.11773084734625006
+    }
+   },
+   {
+    "seed": 2,
+    "probe_accuracy_family_label_illposed": 0.48999999999999994,
+    "phi_regression_cv_r2": 0.9999970996830847,
+    "phi_ge60_probe_accuracy": 0.9924999999999999,
+    "common_component_max_abs_diff": {
+     "median": 0.05080809550651448,
+     "max": 0.15990036476895608
+    },
+    "congruent_control_max_abs_diff": 1.6653345369377348e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 0.04099709141618357,
+     "30-60": 0.04505201905473771,
+     "60-90": 0.06723927568706034,
+     "90-120": 0.06201812314741473
+    }
+   }
+  ],
+  "mom2": [
+   {
+    "seed": 0,
+    "probe_accuracy_family_label_illposed": 0.4725,
+    "phi_regression_cv_r2": 0.99823547655318,
+    "phi_ge60_probe_accuracy": 0.9949999999999999,
+    "common_component_max_abs_diff": {
+     "median": 0.004472690401208346,
+     "max": 0.010317968574347969
+    },
+    "congruent_control_max_abs_diff": 9.46465128492946e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 0.0028511800257378095,
+     "30-60": 0.004726238344323425,
+     "60-90": 0.007015025112629636,
+     "90-120": 0.0070986304724091065
+    }
+   },
+   {
+    "seed": 1,
+    "probe_accuracy_family_label_illposed": 0.4574999999999999,
+    "phi_regression_cv_r2": 0.9968223273865059,
+    "phi_ge60_probe_accuracy": 0.9949999999999999,
+    "common_component_max_abs_diff": {
+     "median": 0.003237739766958181,
+     "max": 0.007389708747194468
+    },
+    "congruent_control_max_abs_diff": 2.67841304690819e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 0.0012593571028406414,
+     "30-60": 0.003338335458633157,
+     "60-90": 0.006468300394531168,
+     "90-120": 0.006026937604341087
+    }
+   },
+   {
+    "seed": 2,
+    "probe_accuracy_family_label_illposed": 0.5025000000000001,
+    "phi_regression_cv_r2": 0.9958252630194018,
+    "phi_ge60_probe_accuracy": 0.9924999999999999,
+    "common_component_max_abs_diff": {
+     "median": 0.004166528081162857,
+     "max": 0.010385215255288904
+    },
+    "congruent_control_max_abs_diff": 3.552713678800501e-15,
+    "separation_by_dphi_bins": {
+     "10-30": 0.001954372093545209,
+     "30-60": 0.004659930029021486,
+     "60-90": 0.008266041029797555,
+     "90-120": 0.008075304488795731
+    }
+   }
+  ]
+ }
+}

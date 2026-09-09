@@ -718,3 +718,11 @@ Rules from the independent audit, verified in-session by the coordinator
   eddy-viscosity gap; capacity is not excluded". Never "parameters do not matter".
   Artifact results/a35_v0_reduction_2026-09-08c.json. Like every ISLA interior arm:
   ~365 surface cells.
+
+- **MOM2 (2026-09-08).** The first-moment collision is removable by either cheap
+  channel: second-moment (`second_moment_features`) and local-distance features both
+  recover the free azimuth (R² ≥ 0.996). Write "removable at known cost, not
+  established as a cause of any benchmark gap". The preregistered family-label probe
+  was ill-posed (exchangeable labels); the verdict uses the azimuth probes and says so.
+  Second-moment separations are ~20x smaller than local-feature separations at radii
+  (0.2, 0.4) but linearly decodable; do not write "weaker channel" without that qualifier.

@@ -8627,3 +8627,65 @@ in `boundary_subsample: cells`; every model flag equals the QT-SDF arm's.
 Evaluation via v0/v0_surf10k_eval_aga.sbatch; reduction arm
 `isla_qtsdf_surf10k`. Tech-tree changes: QT-SDF-h256 RUNNING → DONE
 (falsified); V0-SURF10K READY → RUNNING.
+
+## 2026-09-08 — Verdict: MOM2 supported — a per-slice second-moment channel (and, separately, the local-distance channel) recovers the arrangement that first-moment anchors lose; the preregistered probe was ill-posed and is replaced {#sec-nb-mom2-verdict}
+
+**Setting.** ISLA routes points to slices whose anchors are measure-weighted
+first moments (mean position, mean normal). The audit of 2026-09-08
+(@sec-nb-audit-2026-09-08, item 3) showed two non-congruent arrangements of
+five spherical components about an axial drive, each with zero transverse
+first moment, on which ISLA's outputs coincide to roundoff; the earlier
+completeness audit had wrongly argued that such collisions need a rotational
+symmetry. MOM2 (@sec-nb-mom2-prereg) asks whether a cheap invariant channel
+removes the blind spot: the per-slice second-moment tensor about the anchor,
+C_s = E_a[r rᵀ] − z_s z_sᵀ under the point-to-slice weights, read at each
+point as r̂ᵀ C_s r̂ and tr C_s and appended to the eight relational
+invariants (`second_moment_features=True`, commit cf0572453; exact SE(3)
+covariance, drive degree one, measure-scale invariance and, under the
+gauge, geometric-scale equivariance are contract-tested, 53 tests pass).
+
+**Instrument.** 200 random collision pairs (free azimuths φ, φ′ ~ U(0, 120)°,
+|φ − φ′| ≥ 10°) and 200 congruent control pairs; four arms of untrained
+ISLA (hidden 64, 4 layers, 32 slices, float64, three seeds): base, base with
+the similarity gauge, base with local features at radii (0.2, 0.4), base with
+the second-moment channel. Readouts: the common-component output difference
+per pair; and linear probes on the common component's output vector.
+
+**Amendment, stated before the numbers.** The preregistered probe, "classify
+the output as φ-family or φ′-family", is ill-posed: φ and φ′ are exchangeable
+draws, so the label is arbitrary and no arm can beat chance. The first run
+showed exactly that (0.46–0.50 for all four arms, including the two whose
+outputs differ by 10⁻³–10⁻¹). The probe is kept in the artifact for the
+record and two well-posed readouts of the same question were substituted: the
+5-fold cross-validated R² of a ridge regression of φ on the output vector, and
+the cross-validated accuracy of a logistic probe for φ ≥ 60° (chance 50%). The
+preregistered bars (≥ 95% supported, ≤ 60% falsified, base within 45–55%) are
+applied to the second readout.
+
+**Readout** (results/mom2_second_moment_benchmark_2026-09-08.json; three seeds each):
+
+| arm | common-component max diff (median over pairs) | φ ridge R² | φ ≥ 60° probe | congruent controls (max) |
+|---|---|---|---|---|
+| base | 1.4–1.9 × 10⁻¹⁵ | −0.001 – 0.033 | 0.540 | 2 × 10⁻¹⁵ |
+| base, similarity gauge | 2–7 × 10⁻¹⁵ | −0.003 – 0.012 | 0.540 | 2 × 10⁻¹⁴ |
+| local features (0.2, 0.4) | 0.05–0.12 | **1.000** | **0.992–0.997** | 3 × 10⁻¹⁵ |
+| second-moment channel | 0.003–0.004 | **0.996–0.998** | **0.992–0.995** | 1 × 10⁻¹⁴ |
+
+**Verdict: supported.** The base model is blind to the arrangement on every
+seed (differences at roundoff; probes at chance, 0.54 within the 45–55 band),
+so the family is drawn as intended, and both cheap channels make the free
+azimuth linearly readable from the common component to within a few
+degrees (R² ≥ 0.996) while remaining exactly equivariant on all 200
+congruent controls. The second-moment channel's separations are about
+twenty times smaller than the local channel's at these radii; both are far
+above roundoff and both decode to the same accuracy. The collision is
+therefore "removable at known cost", by either route; it remains *not
+established* as a cause of the DrivAerML or HiLift gaps.
+
+**What's next.** Per the preregistration, the second-moment channel is now a
+candidate ingredient for the successor design, and the deciding experiment
+is a trained control on DrivAerML surface pressure at 435 cars (two seeds,
+frozen protocol, `second_moment_features=True` against the reference
+configuration; falsifier: more than 3% in-family pressure cost; anything
+better than the reference is reported but is not the bar). It is queued
+behind V0-SURF10K and the unit-drive control, which bear on the headline.
