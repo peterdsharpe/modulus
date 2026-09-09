@@ -1,3 +1,94 @@
 # Boundary response: rank and basis transfer {#sec-boundary-response}
 
-Drafted when its study reports; see the notebook for the preregistration and running record.
+**After the exact principal part is removed, the Laplace boundary response of
+a 2D geometry is low-rank and resolution-stable, but the singular vectors of
+that residual are geometry-specific: a basis fitted on smooth bodies and
+wide-gap pairs misses narrow gaps, thin annuli and corners by one to two
+orders of magnitude at equal rank.** The audit's second direction proposed
+learning the geometry-dependent boundary response with its known singular
+structure removed, and predicted that the difficult residual modes would
+track topology and near interactions. The nonlearned gate confirms the
+compressibility half and rejects the transfer half as posed.
+
+## The gate {#sec-boundary-gate}
+
+Dirichlet-to-Neumann (DtN) operators of the interior Laplace problem on
+closed 2D curves, assembled by a Nyström boundary-integral discretization
+(Kress quadrature for the logarithmic kernel, trapezoid double layer,
+arclength resampling), qualified against the unit-disk DtN (exact to 10⁻¹³
+on every mode), the annulus (log r fluxes exact to four digits), a two-body
+flux identity (2 × 10⁻¹³) and a resolution doubling on every geometry
+(22 of 23 converged to 10⁻⁸; one star excluded). Families: ellipses and
+stars (smooth single bodies), two-body pairs with gap-to-length ratio from
+0.5 to 0.02, annuli with inner radius 0.3 to 0.85, and rounded squares
+with corner radius from 0.14 to 0.016 of the side. Principal part: the
+arclength-Fourier symbol |k| per component; component constants (the DtN
+null space) removed explicitly. Readouts: the rank needed for 1% (and 0.1%)
+relative Frobenius error by the full operator, by the residual after the
+principal part, and after constants too, in both the L2 and the energy
+pairing; and the projection error of a basis fitted on the source
+development set (single bodies plus wide-gap pairs) on each held-out family
+at that family's oracle rank. Bars, written before the run
+(`studies/boundary_response/PREREG.md`): worth a learner if the residual
+reaches 1% at no more than a third of the full rank on the held-out
+families AND the source-fitted basis is within 2x of the oracle basis at
+that rank.
+
+## What the gate found {#sec-boundary-result}
+
+| family | nodes | full operator | residual after principal part | after constants | residual share of the operator (L2 / energy) |
+|---|---|---|---|---|---|
+| ellipses (aspect 1.5 / 2 / 3) | 192 | 184 | 8 / 12 / 20 | same | 0.001–0.003 / 0.03–0.12 |
+| stars (five qualified) | 512 | 489 | 12–32 | same | ≤ 0.001 / 0.02–0.07 |
+| pairs, gap 0.5 / 0.3 (source) | 768 | 733 | 16 / 19 | 16 / 18 | 0.001 / 0.07–0.09 |
+| pairs, gap 0.2 / 0.1 / 0.05 / 0.02 | 1,024–1,536 | 977–1,467 | 22 / 29 / 38 / 58 | 21 / 28 / 37 / 56 | 0.001–0.008 / 0.11–0.44 |
+| annuli, inner radius 0.3 / 0.6 / 0.85 | 384 / 384 / 768 | 361 / 369 / 740 | 20 / 50 / 160 | 21 / 50 / 160 | 0.002–0.014 / 0.14–0.62 |
+| rounded squares, corner radius 0.14 → 0.016 | 256–1,024 | 245–977 | 16 / 24 / 32 / 39 | same | ≤ 0.002 / 0.03–0.05 |
+
+: Rank for 1% self-relative Frobenius error (L2 pairing); identical at
+double resolution for every qualified geometry. Data:
+`studies/boundary_response/results.json`. {#tbl-boundary-rank}
+
+The residual is low-rank everywhere: 2.5–7% of the full rank for narrow
+gaps and corners, with the thin annulus the worst case at 22% (11% in the
+energy pairing). The rank grows with narrowing gaps roughly as
+(g/L)^−0.4, and the residual's share of the operator grows faster (7% to
+44% of the energy norm from gap 0.5 to 0.02), so the principal part
+explains less of the operator exactly where geometry matters most. The
+energy pairing lowers the ranks by 25–45%, and about 98% of the operator's
+squared Frobenius norm lives in modes above N/4, which is the audit's
+spectrum point (wall flux is dominated by modes that interior values barely
+see) made quantitative.
+
+| pairing / object | held-out family | oracle basis error | source-fitted basis error | ratio, median / worst |
+|---|---|---|---|---|
+| energy / residual | gaps (16 blocks) | 0.007 | 0.31 | 46 / 70 |
+| energy / residual | annuli (12) | 0.009 | 0.063 | 7 / 33 |
+| energy / residual | corners (4) | 0.008 | 0.25 | 34 / 61 |
+| L2 / residual | gaps / annuli / corners | 0.009 | 0.74 / 0.23 / 0.56 | 83 / 25 / 64 |
+
+: Projection error at each held-out block's oracle 1% rank; the bar was a
+ratio of 2. Random-probe readouts agree within 0.01. {#tbl-boundary-transfer}
+
+The source-fitted basis fails by one to two orders of magnitude on every
+held-out family; to reach 1% it needs rank 30 / 78 / 50 (annuli / corners /
+gaps, medians) against oracle ranks of 13 / 22 / 9, and up to 64–96 of 97
+modes in the worst blocks, which is no compression at all.
+
+## What this changes {#sec-boundary-consequence}
+
+The preregistered outcome is partial, and the informative half is the
+failure. A compressible residual exists for each geometry, so a learner has
+something small to produce; but the residual's basis does not transfer, so
+the direction cannot be "a fixed basis with geometry-conditioned
+coefficients". If it continues, the learner must be a geometry-to-operator
+map that produces a rank-r residual in component-local coordinates with
+explicit coupling blocks, with the principal part built in exactly, trained
+and graded in the energy pairing (where the residual is a sized object,
+3–62% of the operator), with thin gaps and thin shells as the held-out
+family. The cheap next nonlearned test is a coordinate question, whether a
+curvature-indexed basis transfers better than a Fourier-indexed one, and it
+should precede any training. Two limits stand: no arclength-Fourier basis
+exists on 3D surfaces, so the principal part would have to be derived from
+the surface metric there; and nothing here touches Navier–Stokes, where the
+potential-flow prior already failed on separated cars.

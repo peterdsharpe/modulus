@@ -323,3 +323,34 @@ recompute.
 **Scheduling.** Program total after both waves: about 130 nodes for this
 program plus about 66 for the main session's WAVE-3, within the 367 idle.
 Tech-tree nodes CAMP-A/B/C/D/E added, RUNNING (E READY).
+
+## 2026-09-09 — Verdict: D2 partial — the Laplace boundary response minus its principal part is low-rank and resolution-stable, but its basis does not transfer across topology, gaps or corners (source-fitted basis 7–80x worse than the oracle at equal rank) {#sec-nb-d2-verdict}
+
+The boundary-response gate (`studies/boundary_response/`, preregistered in
+its `PREREG.md` before any computation; 65 min of CPU under a 12 GB cap)
+assembled qualified 2D Laplace Dirichlet-to-Neumann operators by a Nyström
+discretization (unit-disk DtN exact to 10⁻¹³; 22 of 23 geometries converged
+to 10⁻⁸ under resolution doubling; one repair before the study, a kernel
+rescaling that removes the plain log kernel's singularity at unit
+logarithmic capacity). Ranks for 1% Frobenius error: full operator 184–1,467
+(essentially the node count); residual after the exact arclength-Fourier
+principal part |k| 8–58 for ellipses, stars, two-body pairs down to gap 0.02
+and rounded squares down to corner radius 0.016, and 160 of 740 for the
+thinnest annulus; removing component constants changes ranks by at most 2;
+the energy pairing lowers ranks 25–45%. Rank grows with narrowing gaps
+roughly as (g/L)^−0.4 while the residual's share of the operator grows from
+7% to 44% of the energy norm. A basis fitted on the source development set
+(single bodies and wide-gap pairs), evaluated at each held-out block's
+oracle rank, is 46x (gaps), 7x (annuli) and 34x (corners) worse than the
+oracle in the energy pairing (medians; worst 70x, 33x, 61x), against a bar
+of 2x; to reach 1% it needs ranks 30 / 78 / 50 against oracle 13 / 22 / 9.
+Verdict against the bars: part one (compressibility at ≤ 1/3 of the full
+rank) passes; part two (transfer within 2x of the oracle) fails by one to
+two orders of magnitude → partial. What survives: a learner would have to be
+a geometry-to-operator map producing a rank-r residual in component-local
+coordinates with explicit coupling blocks and the principal part built in,
+trained and graded in the energy pairing, with thin gaps and thin shells
+held out; the cheap next nonlearned test is whether a curvature-indexed
+basis transfers better than a Fourier-indexed one. Chapter
+@sec-boundary-response has the tables; figures
+`studies/boundary_response/fig_*.png`.
