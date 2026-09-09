@@ -8701,10 +8701,10 @@ logit and the pooled-geometry projection gain two input columns each; about
 2 × 12 × (1 + 96) extra weights at width 192, under 3k parameters) and one
 (B, S, 3, 3) tensor per block; nothing else changes.
 
-**Instrument.** Two chains `mom2_mt2_lr1e3_seed{42,43}` (jobs 684565/684566,
+**Instrument.** Two chains `mom2_mt2_lr1e3_seed{42,43}` (jobs 684590/684591,
 launcher mom2t_aga.sbatch cloned from instwave_aga.sbatch lanes 4–5 with
-`+model.second_moment_features=true`, code snapshot `code_isla4` at
-cf0572453): DrivAerML surface, 435 cars, 10,000 sampled cells, 500 epochs,
+`+model.second_moment_features=true`, code snapshot `code_isla5` at
+52eb29ec5, which includes cf0572453; a first submission from `code_isla4`, taken before that commit, failed at construction and was resubmitted): DrivAerML surface, 435 cars, 10,000 sampled cells, 500 epochs,
 lr 1e-3, bf16, no augmentation, the reference ISLA surface configuration
 otherwise. Reference: `iw_mt2_lr1e3_seed{42,43}`, pressure 0.0588 / 0.0567
 (mean 0.0577; results/instrument_wave_reduction_2026-09-01.json), trained
