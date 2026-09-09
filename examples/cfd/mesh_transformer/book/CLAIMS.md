@@ -864,3 +864,8 @@ interior control @sec-nb-udrv-int-prereg.
   18/18 held-out geometries (median per-geometry ISLA÷GT 1.24, ISLA÷T 1.13; p = 8e-6).
   Write "ISLA behind, 0.81x / 0.89x"; the 5.0x is a physical-drive measurement only and is
   never quoted as an ISLA advantage. Artifact results/udrv_reduction_2026-09-09b.json.
+
+- **MEAS-METRIC (2026-09-09).** Under the area-weighted metric the unweighted ISLA is still
+  12% better (ratio 1.116 vs 1.119 uniform). Write "the measure weights cost 12% at 35 cases
+  under either metric; the variance reading stands (cell areas span 400x)". Never write that
+  the metric explains the gap. Reference configuration unchanged until NOW-L lands.

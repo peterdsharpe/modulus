@@ -9267,3 +9267,69 @@ where density robustness is the target, and the book's variance reading
 stands. Either way the unit-drive baselines are reported under both metrics
 alongside, since a metric change that moves ISLA must be applied to them
 too.
+
+## 2026-09-09 — Verdict: MEAS-METRIC falsified — the no-weights advantage is the same under the area-weighted metric (ratio 1.116 against 1.119), so ISLA's measure weights are a cost under either measure {#sec-nb-measure-metric-verdict}
+
+**Readout** (@sec-nb-measure-metric-prereg; 180 validation cases at 35
+training cases, seed-mean predictions, gauge pressure; cell areas
+recomputed from the saved triangles because the artifact's stored measure
+field is a constant placeholder; results/measure_metric_35_2026-09-09.json).
+Two instrument faults found and fixed before the numbers were read: the
+stored `_measure_weights` are constant, and the saved pressure is absolute,
+not gauge (a first pass returned relative errors of 0.009; subtracting the
+artifact's p_inf restores the metric's quantity). The relative errors below
+are on gauge pressure and therefore larger than the book's standardized
+metric (0.262 against 0.138 for ISLA); every ratio between arms matches the
+standardized reductions to within 1%.
+
+| arm | uniform rel-L2 | area-weighted rel-L2 | share of squared error on the finer half of the cells |
+|---|---|---|---|
+| ISLA, measure weights on (three seeds) | 0.262 | 0.183 | 86% |
+| ISLA, measure weights off (two seeds) | 0.234 | 0.163 | 86% |
+| GeoTransolver, unit drive | 0.240 | 0.169 | 85% |
+| Transolver, unit drive | 0.224 | 0.155 | 86% |
+
+Paired, weighted ISLA ÷ unweighted ISLA: uniform metric mean ratio 1.119
+(median per case 1.092; the unweighted model lower on 149 of 180), area-weighted
+metric 1.116 (median 1.064; 130 of 180). R_w = 0.896 against R_u = 0.894.
+Cell areas on a sampled HiLift surface span two orders of magnitude between
+the 10th and 90th percentiles (0.05x to 11x the median; the largest cell
+420x the median), and every model puts 85–86% of its squared error on the
+finer half of the cells.
+
+**Verdict: falsified** (R_w below the 0.91 falsifier). Adopting the model's
+own measure in the metric does not recover the weighted model: the weights
+cost 12% at 35 cases whichever way the error is scored. The variance reading
+stands, and the area statistics say why it is so large: with a 400-fold
+range of cell areas the log-area bias makes a few coarse fuselage cells
+dominate every slice's quadrature, so slice states are high-variance
+estimates from few effective points. Consequence, fixed in the
+preregistration: measure weights leave the reference configuration for
+accuracy runs, subject to the confirmation below, and are kept only where
+density robustness is the target (with the similarity gauge). The
+unit-drive baselines are reported under both metrics for completeness;
+their ordering does not change.
+
+### Preregistered: NOW-L, does the no-weights gain persist with more data and on DrivAerML? {#sec-nb-noweights-prereg}
+
+*Question.* The 12% gain from dropping the routing measure weights is
+measured once, at 35 HiLift cases. Before the reference configuration
+changes, it must hold where the variance argument predicts a smaller effect
+(more training cases average the quadrature noise) and on a mesh with a
+different area distribution (DrivAerML). Two lanes each: HiLift 210 cases
+(`a35_hl_mt2_noweights_scarce_seed{42,43}`, wave-2 rows 42–43, launched
+now, jobs 689985/689986; reference ISLA 0.065, three seeds 0.062–0.067) and
+DrivAerML 435 cars (`now_mt2_lr1e3_seed{42,43}`, launcher nowt_aga.sbatch
+from the reference lanes' own code snapshot; reference 0.0577, seeds
+0.0588/0.0567; to launch when the 510-case rung frees nodes). Everything
+else frozen.
+
+*Bars.* *Persists* if the unweighted model is ≥ 5% better at both rungs
+(HiLift 210 ≤ 0.0618; DrivAerML ≤ 0.0548); *fades* if within 3% at both
+(HiLift 0.0631–0.0670; DrivAerML 0.0560–0.0594); otherwise reported per
+rung. Prediction from the variance reading: a smaller but positive gain at
+210 (2–8%) and a smaller one on DrivAerML, whose sampled cell areas are more
+uniform. If it persists, the reference configuration for accuracy runs
+becomes weights-off and every ISLA accuracy number in the book is
+restated at the next full rerun; if it fades, the 35-case gain is recorded
+as a small-data effect and the configuration is unchanged.
