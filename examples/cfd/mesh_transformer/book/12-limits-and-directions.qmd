@@ -49,8 +49,9 @@ chapter adds only the limits.
   a third of the parameters and trails on eddy viscosity; the passive,
   query-independent decode trails it by 2.6x (@sec-interior).
   GeoTransolver-volume consumes the physical freestream velocity (38.9 m/s)
-  where ISLA consumes the unit direction, so the interior ordering stands
-  pending the unit-drive control of that arm (@sec-nb-udrv-int-prereg).
+  where ISLA consumes the unit direction; retrained with the unit direction
+  it changes by under 2% on every field, so the ordering stands
+  (@sec-nb-udrv-int-verdict).
 - Regime extrapolation: nothing tested generalizes across a flow-regime
   boundary (@sec-regime-extrapolation).
 
@@ -409,9 +410,10 @@ at 27.6M parameters against ISLA's 8.9M. Three limits. GeoTransolver-volume
 consumes the physical freestream velocity (38.9 m/s) where ISLA consumes the
 unit direction, the same asymmetry that produced the baselines' HiLiftAeroML
 deficit at a 69x larger magnitude (@sec-part-baseline); its unit-drive
-rerun is preregistered (@sec-nb-udrv-int-prereg: the confound is present if
-any field improves by more than 5%, absent if all three stay within 3%) and
-not yet measured, and every interior ratio is stated pending it. The
+rerun (@sec-nb-udrv-int-prereg) was null: pressure 0.0617, velocity 0.131,
+eddy viscosity 0.0936 against 0.0620, 0.1334, 0.0939, all within the 3%
+band (@sec-nb-udrv-int-verdict), so the interior ratios are not an
+input-scale artifact. The
 signed-distance
 arm's preregistered pressure bar landed in its inconclusive band (an 11%
 fall against 15% to count as supported), so its pressure gain is reported
@@ -521,17 +523,6 @@ anywhere once the inputs are matched.
   unseen geometries and the 5.0x at a fixed angle are physical-drive
   measurements (@sec-part-baseline); the fixed-angle unit-drive lanes are a
   separate pair, also not yet measured.
-- **Does the interior comparison inherit the input-scale confound?**
-  GeoTransolver-volume retrained with the unit direction in place of the
-  38.9 m/s velocity, two seeds, 435 cars, otherwise frozen
-  (@sec-nb-udrv-int-prereg). Confound present if any field improves by more
-  than 5% (pressure at or below 0.0589, velocity 0.1267, eddy viscosity
-  0.0892); absent if all three lie within 3% of the reference (0.0620,
-  0.1334, 0.0939). If present, the interior rows are restated against the
-  unit-drive GeoTransolver-volume and "ISLA leads on pressure and velocity"
-  is withdrawn wherever the unit-drive baseline is ahead; if absent, the
-  interior ordering stands and the confound is a magnitude effect specific
-  to the HiLiftAeroML surface lanes.
 - **If an advantage survives at some rung, where on the wing does it
   live, and is gap geometry the information that carries it?** The
   gap-distance stratification of @sec-mechanism, re-run against the
@@ -706,8 +697,8 @@ advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on pressure
 (0.91x) and velocity (0.64x) at a third of the parameters and trails on
 eddy viscosity (1.29x), at or above the training query count
-(@sec-interior); that ordering stands pending the unit-drive control of
-GeoTransolver-volume (@sec-nb-udrv-int-prereg), and GeoTransolver-volume
+(@sec-interior); that ordering survived the unit-drive control of
+GeoTransolver-volume (@sec-nb-udrv-int-verdict), and GeoTransolver-volume
 remains the choice where eddy viscosity is the target field or the
 training set is small and pressure is the target. Three outcomes would
 change this.
@@ -721,11 +712,8 @@ the unit-drive baseline, and the localization and perturbation instruments
 of @sec-open-questions would run there. The prediction is that this does
 not happen.
 
-**The interior recommendation moves to GeoTransolver-volume** if its
-unit-drive rerun improves any interior field by more than 5%
-(@sec-nb-udrv-int-prereg) by enough to pass ISLA's 0.0567 pressure or
-0.0853 velocity; it becomes unconditional for ISLA only if, with that
-control null, query-to-query local aggregation, the one
+**The interior recommendation becomes unconditional for ISLA** only if
+query-to-query local aggregation, the one
 GeoTransolver-volume ingredient not yet transplanted, closes the
 eddy-viscosity gap (within 1.10x) at the reference width without moving
 pressure or velocity by more than 5% (the width increase to 256 did not:

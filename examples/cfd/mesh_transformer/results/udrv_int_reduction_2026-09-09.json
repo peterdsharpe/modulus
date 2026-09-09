@@ -1,0 +1,113 @@
+{
+ "runs": {
+  "udrv_gt_vol_seed42": {
+   "pressure_l2": 0.06152098346501589,
+   "velocity_l2": 0.13383940514177084,
+   "nut_l2": 0.09414778044447303
+  },
+  "udrv_gt_vol_seed43": {
+   "pressure_l2": 0.06181078124791384,
+   "velocity_l2": 0.1281817404863735,
+   "nut_l2": 0.09301969649580617
+  },
+  "v0_gt_vol_seed42": {
+   "pressure_l2": 0.062180914683267474,
+   "velocity_l2": 0.1335386410355568,
+   "nut_l2": 0.09335100138559937
+  },
+  "v0_gt_vol_seed43": {
+   "pressure_l2": 0.06177387363277376,
+   "velocity_l2": 0.13323309645056725,
+   "nut_l2": 0.09442989085800946
+  },
+  "v0_isla_qtsdfval_seed42": {
+   "pressure_l2": 0.05688695625091592,
+   "velocity_l2": 0.08497529616579413,
+   "nut_l2": 0.11722011708964904
+  },
+  "v0_isla_qtsdfval_seed43": {
+   "pressure_l2": 0.05650949004727105,
+   "velocity_l2": 0.08552611386403441,
+   "nut_l2": 0.12579988478682935
+  },
+  "v0_isla_qtsdf_surf10k_seed42": {
+   "pressure_l2": 0.05696251941844821,
+   "velocity_l2": 0.08382931103308995,
+   "nut_l2": 0.11012108406672876
+  },
+  "v0_isla_qtsdf_surf10k_seed43": {
+   "pressure_l2": 0.05739042876909176,
+   "velocity_l2": 0.0858324474344651,
+   "nut_l2": 0.12729376057783762
+  }
+ },
+ "arms": {
+  "gt_vol_unit": {
+   "pressure_l2": 0.06166588235646486,
+   "velocity_l2": 0.1310105728140722,
+   "nut_l2": 0.0935837384701396
+  },
+  "gt_vol_physical": {
+   "pressure_l2": 0.061977394158020616,
+   "velocity_l2": 0.13338586874306202,
+   "nut_l2": 0.09389044612180442
+  },
+  "isla_qtsdf": {
+   "pressure_l2": 0.05669822314909349,
+   "velocity_l2": 0.08525070501491427,
+   "nut_l2": 0.12151000093823919
+  },
+  "isla_qtsdf_surf10k": {
+   "pressure_l2": 0.05717647409376998,
+   "velocity_l2": 0.08483087923377752,
+   "nut_l2": 0.11870742232228318
+  }
+ },
+ "paired": {
+  "gt_vol_physical_vs_gt_vol_unit_pressure_l2": {
+   "n": 48,
+   "second_lower": 27,
+   "median_ratio_first_over_second": 1.003009663400657
+  },
+  "gt_vol_physical_vs_gt_vol_unit_velocity_l2": {
+   "n": 48,
+   "second_lower": 41,
+   "median_ratio_first_over_second": 1.017228742003626
+  },
+  "gt_vol_physical_vs_gt_vol_unit_nut_l2": {
+   "n": 48,
+   "second_lower": 26,
+   "median_ratio_first_over_second": 1.0046741297672344
+  },
+  "gt_vol_unit_vs_isla_qtsdf_pressure_l2": {
+   "n": 48,
+   "second_lower": 44,
+   "median_ratio_first_over_second": 1.08759062563165
+  },
+  "gt_vol_unit_vs_isla_qtsdf_velocity_l2": {
+   "n": 48,
+   "second_lower": 48,
+   "median_ratio_first_over_second": 1.5563009030725878
+  },
+  "gt_vol_unit_vs_isla_qtsdf_nut_l2": {
+   "n": 48,
+   "second_lower": 10,
+   "median_ratio_first_over_second": 0.9079054876356214
+  },
+  "gt_vol_unit_vs_isla_qtsdf_surf10k_pressure_l2": {
+   "n": 48,
+   "second_lower": 44,
+   "median_ratio_first_over_second": 1.0763513647690552
+  },
+  "gt_vol_unit_vs_isla_qtsdf_surf10k_velocity_l2": {
+   "n": 48,
+   "second_lower": 48,
+   "median_ratio_first_over_second": 1.562060122419069
+  },
+  "gt_vol_unit_vs_isla_qtsdf_surf10k_nut_l2": {
+   "n": 48,
+   "second_lower": 14,
+   "median_ratio_first_over_second": 0.8923890967037201
+  }
+ }
+}
