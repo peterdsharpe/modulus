@@ -9372,3 +9372,111 @@ within 3% of the current 0.0567; *not robust* if the spread stays ≥ 1.30.
 Gated on UDRV-INT: if the interior lead does not survive the unit-drive
 GeoTransolver-volume, the remedy is still worth having for deployment but
 is no longer a competitive claim. Cost: two lanes, about eight hours each.
+
+## 2026-09-09 — Preregistered: SPARSE, sparse anchor routing for ISLA (route each point to its k nearest anchors) {#sec-nb-sparse-routing-prereg}
+
+**Setting.** Every ISLA slice block evaluates the eight relational invariants
+of every point against all 256 slice anchors in every layer: the
+(points × slices × 8) invariant tensor and its (points × slices × 3)
+intermediates are the block's dominant cost. At 10,000 tokens ISLA's
+training step is 3.7x GeoTransolver's on the same GPU (matched-instrument
+measurement, @sec-nb-audit-2026-09-08), and before the exact recompute
+option those tensors were 76% of saved activations (@sec-nb-geo-recompute).
+The anchors are spatially local: a point's routing mass concentrates on the
+anchors near it, so the invariants against distant anchors carry little.
+
+**Hypothesis.** Routing each point to only its k nearest anchors (k of 256;
+selection by Euclidean distance to the anchor position, no gradient through
+the selection; invariants, routing bias and the point→slice mix restricted
+to the selected anchors; unselected anchors excluded from the point's mix
+and from the slices' point-assignment softmax) cuts step time and memory
+roughly in proportion to k / 256 for the geometry term, at negligible
+change in what the model computes. The option `anchor_topk` (default 0,
+dense) is exact at k = 256 by construction and is contract-tested (SE(3)
+covariance, drive degree one, measure-scale invariance, gauge scale
+equivariance; test/experimental/nn/test_isla_sparse.py).
+
+**Instrument (no training).** One GPU, the reference surface configuration
+(hidden 192, 12 layers, 256 slices, 1 scalar + 1 vector output), 10,000
+random anisotropic tokens, batch 1, bf16 autocast, AdamW step: median
+forward+backward+step wall time over 10 iterations after 3 warm-ups, and
+peak allocated memory over the resident model, for k ∈ {dense, 128, 64,
+32, 16} with and without `geo_checkpoint`. Output change: the relative L2
+change of the full output and of the scalar (pressure) channel between
+dense and k-sparse routing *with the same weights*, at initialization on
+the random cloud and on the trained HiLift 35-case checkpoint
+`lad_hl_mt2_super_scarce_seed42` applied to six saved validation inputs
+(points, cell normals, measure weights, unit drive from the prediction
+artifacts). Script results/isla_sparse_routing_bench_2026-09-09.py;
+artifact results/isla_sparse_routing_bench_2026-09-09.json.
+
+**Bars, in readout units.** *Worth a training arm* if k = 32 gives a
+step-time reduction ≥ 1.5x against dense (same checkpoint setting) with a
+trained-checkpoint scalar-output change ≤ 1%. *Not worth it* if the
+reduction is < 1.2x or the change is > 5%. Between: reported, and the
+smallest k meeting the 1% change bar is named. A training arm, if
+warranted, is the reference HiLift 35-case lane with `+model.anchor_topk=32`
+(two seeds), bar: pressure within 2% of the dense reference 0.138, and is
+preregistered separately before launch. The output-change readout is the
+approximation error of *re-routing a model trained dense*; a model trained
+sparse may differ less or more, which is what the training arm measures.
+
+## 2026-09-09 — Verdict: SPARSE not worth a training arm — routing each point to its k nearest anchors is 8–16% *slower* than dense on a GB300 at 10,000 tokens, saves memory only where the exact recompute already does, and re-routes an untrained model's output by 21–46% {#sec-nb-sparse-routing-verdict}
+
+**Setting and bars** (@sec-nb-sparse-routing-prereg). The `anchor_topk`
+option (commit f1668bebe on branch isla-sparse-routing) restricts each
+point's relational invariants, routing bias and point→slice mix to its k
+nearest anchors; exact at k = 256, contract-tested (61 tests pass). Bars:
+worth a training arm if k = 32 gives ≥ 1.5x step-time reduction with ≤ 1%
+scalar-output change on the trained checkpoint; not worth it if < 1.2x or
+> 5%.
+
+**Readout** (one GB300, hidden 192, 12 layers, 256 slices, 10,000 tokens,
+batch 1, bf16 autocast, AdamW step; median of 10 steps;
+results/isla_sparse_routing_bench_2026-09-09.json):
+
+| routing | step, recompute off | speed-up | incremental peak memory | step, recompute on | speed-up | incremental peak memory |
+|---|---|---|---|---|---|---|
+| dense (256 anchors) | 0.230 s | 1.00 | 3.37 GiB | 0.237 s | 1.00 | 1.47 GiB |
+| k = 128 | 0.273 s | 0.84 | 2.83 GiB | 0.281 s | 0.84 | 1.40 GiB |
+| k = 64 | 0.261 s | 0.88 | 2.08 GiB | 0.268 s | 0.88 | 1.32 GiB |
+| k = 32 | 0.256 s | 0.90 | 1.71 GiB | 0.262 s | 0.91 | 1.32 GiB |
+| k = 16 | 0.253 s | 0.91 | 1.51 GiB | 0.258 s | 0.92 | 1.32 GiB |
+
+Output change with the same weights at initialization (fp32, random
+anisotropic cloud), relative L2 of the scalar channel: 21% (k = 128), 32%
+(64), 42% (32), 46% (16); of the full output 26–31%.
+
+**Verdict: not worth it, on the speed bar alone.** Sparse routing is slower
+than dense at every k: the k-nearest selection (a 10,000 × 256 distance
+matrix and top-k per layer), the gathers of anchors and logits, and the
+scatters back to the dense (points × slices) tensors cost more than the
+(points × k × 8) invariants save, because on this GPU the dense
+(points × 256 × 8) geometry is a small, fused, memory-bound term (about
+40 MB per layer in bf16) and not the bottleneck the step-time gap to
+GeoTransolver suggested. Memory does fall as intended when nothing else
+removes the geometry activations (3.37 → 1.71 GiB at k = 32, a 2.0x cut of
+the incremental peak), but the exact recompute option of @sec-nb-geo-recompute
+already brings dense routing to 1.47 GiB, and on top of it sparse routing
+saves a further 10% only. The output change is far past the 5% bar as well:
+at initialization the routing mass is spread over many anchors, so the
+premise that a point's mass concentrates on its nearest anchors does not
+hold for an untrained model, and excluding the other anchors from the
+slice-state assignment re-routes it wholesale.
+
+**What was not measured.** The trained-checkpoint re-routing test failed to
+load `MeshTransformer2.0.96.mdlus` through `Module.from_checkpoint` in the
+benchmark job (the registered class resolved from the checkpoint's name
+rejected `out_scalars`; results/isla_sparse_routing_bench_2026-09-09.json,
+key `checkpoint_output_change.error`), so the output change on a trained
+model, where routing may well be local, is unknown. It is not needed for
+the verdict: a speed-up below 1.2x fails the preregistered bar regardless of
+accuracy. Where ISLA's step time actually goes at 10,000 tokens (the two
+softmaxes over the (points × slices) logits, the slice-state and readback
+einsums, or the per-token MLPs) is the profiling question this leaves open;
+a kernel-level profile of one dense block is the right next instrument, and
+is cheaper than any routing change.
+
+**Tech-tree change.** SPARSE RUNNING → DONE (not worth it); no training arm.
+The option stays in the code, flag-gated and default-off, as the runnable
+record of the refuted design.

@@ -1,0 +1,133 @@
+{
+ "config": {
+  "hidden": 192,
+  "n_layers": 12,
+  "n_slices": 256,
+  "tokens": 10000,
+  "dtype": "bf16 autocast",
+  "gpu": "NVIDIA GB300"
+ },
+ "bench": {
+  "kdense_ckpt0": {
+   "step_s_median": 0.230255226000736,
+   "step_s_min": 0.23002093800459988,
+   "peak_allocated_gib": 3.3992905616760254,
+   "peak_reserved_gib": 3.740234375,
+   "resident_gib": 0.03333234786987305,
+   "incremental_allocated_gib": 3.3659582138061523,
+   "speedup_vs_dense": 1.0,
+   "incremental_memory_vs_dense": 1.0
+  },
+  "k128_ckpt0": {
+   "step_s_median": 0.27256245500029763,
+   "step_s_min": 0.27217317299800925,
+   "peak_allocated_gib": 2.927208423614502,
+   "peak_reserved_gib": 3.166015625,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 2.831376075744629,
+   "speedup_vs_dense": 0.8447796891192684,
+   "incremental_memory_vs_dense": 0.841179805539823
+  },
+  "k64_ckpt0": {
+   "step_s_median": 0.2610138160016504,
+   "step_s_min": 0.2606293819990242,
+   "peak_allocated_gib": 2.1739325523376465,
+   "peak_reserved_gib": 2.361328125,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 2.0781002044677734,
+   "speedup_vs_dense": 0.8821572341568313,
+   "incremental_memory_vs_dense": 0.6173874042595149
+  },
+  "k32_ckpt0": {
+   "step_s_median": 0.25599894750121166,
+   "step_s_min": 0.25517972800298594,
+   "peak_allocated_gib": 1.808631420135498,
+   "peak_reserved_gib": 1.9296875,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 1.712799072265625,
+   "speedup_vs_dense": 0.8994381744465813,
+   "incremental_memory_vs_dense": 0.5088592797261227
+  },
+  "k16_ckpt0": {
+   "step_s_median": 0.25313250300314394,
+   "step_s_min": 0.25221056399459485,
+   "peak_allocated_gib": 1.6074728965759277,
+   "peak_reserved_gib": 1.748046875,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 1.5116405487060547,
+   "speedup_vs_dense": 0.9096233129645789,
+   "incremental_memory_vs_dense": 0.449096647280337
+  },
+  "kdense_ckpt1": {
+   "step_s_median": 0.23723338300260366,
+   "step_s_min": 0.23700819800433237,
+   "peak_allocated_gib": 1.5668892860412598,
+   "peak_reserved_gib": 1.787109375,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 1.4710569381713867,
+   "speedup_vs_dense": 1.0,
+   "incremental_memory_vs_dense": 1.0
+  },
+  "k128_ckpt1": {
+   "step_s_median": 0.28143871550128097,
+   "step_s_min": 0.28110850600205595,
+   "peak_allocated_gib": 1.4984169006347656,
+   "peak_reserved_gib": 1.6953125,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 1.4025845527648926,
+   "speedup_vs_dense": 0.8429308760170343,
+   "incremental_memory_vs_dense": 0.9534536130929034
+  },
+  "k64_ckpt1": {
+   "step_s_median": 0.2683488855000178,
+   "step_s_min": 0.26744009899994126,
+   "peak_allocated_gib": 1.4201679229736328,
+   "peak_reserved_gib": 1.6640625,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 1.3243355751037598,
+   "speedup_vs_dense": 0.8840483259714821,
+   "incremental_memory_vs_dense": 0.9002612616408917
+  },
+  "k32_ckpt1": {
+   "step_s_median": 0.2615547144996526,
+   "step_s_min": 0.26082282299466897,
+   "peak_allocated_gib": 1.4207639694213867,
+   "peak_reserved_gib": 1.603515625,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 1.3249316215515137,
+   "speedup_vs_dense": 0.907012452275712,
+   "incremental_memory_vs_dense": 0.9006664440864433
+  },
+  "k16_ckpt1": {
+   "step_s_median": 0.2578412755028694,
+   "step_s_min": 0.2569421349980985,
+   "peak_allocated_gib": 1.4180707931518555,
+   "peak_reserved_gib": 1.62109375,
+   "resident_gib": 0.09583234786987305,
+   "incremental_allocated_gib": 1.3222384452819824,
+   "speedup_vs_dense": 0.9200752770863624,
+   "incremental_memory_vs_dense": 0.898835667724463
+  }
+ },
+ "init_output_change": {
+  "k128": {
+   "rel_l2_all": 0.2633403539657593,
+   "rel_l2_scalar": 0.20869556069374084
+  },
+  "k64": {
+   "rel_l2_all": 0.291409432888031,
+   "rel_l2_scalar": 0.3191348910331726
+  },
+  "k32": {
+   "rel_l2_all": 0.2982994019985199,
+   "rel_l2_scalar": 0.41998419165611267
+  },
+  "k16": {
+   "rel_l2_all": 0.3105267286300659,
+   "rel_l2_scalar": 0.4567432999610901
+  }
+ },
+ "checkpoint_output_change": {
+  "error": "TypeError(\"got an unexpected keyword argument 'out_scalars'\")"
+ }
+}
