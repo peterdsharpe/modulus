@@ -295,9 +295,17 @@ representation limitation is removable by a cheap channel (MOM2, done;
 MOM2-T done: the channel is free on DrivAerML surface pressure, 0.0583
 against 0.0577); independent baselines outside the Transolver family are
 queued behind UDRV-L (ABUPT).
-Still running: UDRV-L and the fixed-angle unit-drive lanes; the 510-case
-rung and the 20,000-token floor test (physical-drive GeoTransolver arms);
-the deflection split; the interior unit-drive control (UDRV-INT).
+Measured since: the fixed-angle unit-drive lanes (baselines ahead, 18 of 18
+geometries), the 4-geometry unit-drive rung (baseline ahead by the mean,
+even by geometry), the interior unit-drive control (null: the interior
+ordering stands), the width control and the 10,000-cell rerun (both null
+for the eddy-viscosity gap), and the measure-weight tests (weights cost 12%
+at 35 cases under either metric; 2.8% on DrivAerML). Still running: the
+remaining UDRV-L rungs (210, 21 geometries, 1,260, deflection, 20k tokens),
+WAVE-3 (unit-drive baselines on every rung and on DrivAerML, the ISLA
+weights-off ladder, third seeds, steel-men), the 510-case ISLA arms'
+evaluation, the interior density and neighbour channels, and the
+transfer-program companion's D1 and pose-benchmark lanes.
 
 | ID | Status | Question and why it matters | Depends on | Acceptance criterion | Evidence |
 |---|---|--------|---|------|---|
