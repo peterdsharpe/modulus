@@ -644,3 +644,42 @@ class ComputeDriveInvariants(MeshTransform):
             f"{self._output_field} = [n.d, r_hat.d, |r|/{self._reference_length}] "
             f"from {self._normals_field}, {self._direction_field}"
         )
+
+
+@register()
+class SetConstantCellField(MeshTransform):
+    r"""Write a constant per-cell scalar field (a per-case CONDITION input).
+
+    ``cell_data[field_name] = value * ones(n_cells, 1)``.  The value is a
+    property of the dataset the case comes from, so it is set per dataset
+    YAML (e.g. ``0.0`` in the DrivAerML pipeline, ``1.0`` in the SHIFT-SUV
+    pipelines) and rides along into ``boundaries.<name>.cell_data`` like
+    ``normals``.  Transfer-program campaign C (T1, complete conditioning):
+    lets ISLA read it as a boundary scalar (``n_boundary_scalars=1`` with
+    ``forward_kwargs.boundary_scalars`` pointing at the field) and
+    GeoTransolver / Transolver as an extra per-point functional channel
+    (append the field to ``forward_kwargs.local_embedding`` and raise
+    ``functional_dim`` by one).  A scalar is an invariant, so every ISLA
+    covariance contract is untouched.  Place before ``MeshToDomainMesh``.
+    """
+
+    def __init__(self, field_name: str = "cond", value: float = 0.0) -> None:
+        super().__init__()
+        self._field_name = str(field_name)
+        self._value = float(value)
+
+    def __call__(self, mesh: Mesh) -> Mesh:
+        n = mesh.n_cells
+        if n == 0:
+            raise ValueError(
+                "SetConstantCellField: the mesh has no cells; place the "
+                "transform before MeshToDomainMesh on a cell-carrying surface."
+            )
+        new_cd = mesh.cell_data.clone()
+        new_cd[self._field_name] = torch.full(
+            (n, 1), self._value, dtype=mesh.points.dtype, device=mesh.points.device
+        )
+        return mesh.with_data(cell_data=new_cd)
+
+    def extra_repr(self) -> str:
+        return f"cell_data[{self._field_name!r}] = {self._value}"
