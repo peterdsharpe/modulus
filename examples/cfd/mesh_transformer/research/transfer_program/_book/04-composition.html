@@ -166,8 +166,16 @@ ul.task-list li input[type="checkbox"] {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#sec-composition-gate" id="toc-sec-composition-gate" class="nav-link active" data-scroll-target="#sec-composition-gate"><span class="header-section-number">4.1</span> The gate</a></li>
+  <li><a href="#sec-composition-result" id="toc-sec-composition-result" class="nav-link" data-scroll-target="#sec-composition-result"><span class="header-section-number">4.2</span> What the gate found</a></li>
+  <li><a href="#sec-composition-consequence" id="toc-sec-composition-consequence" class="nav-link" data-scroll-target="#sec-composition-consequence"><span class="header-section-number">4.3</span> What this changes</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -191,9 +199,126 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Drafted when its study reports; see the notebook for the preregistration and running record.</p>
+<p><strong>Composing exact local port responses into new assemblies is exact, but errors in the smooth part of a local response are amplified 4–30x by the interface solve and grow superlinearly with assembly size on grids, while errors in the rough part are damped 20–100x; port reduction that transfers to new shapes compresses nothing at the 1% level.</strong> The audit’s third direction proposed learning local Dirichlet-to-Neumann responses in compatible port coordinates and enforcing global compatibility numerically, so that a new arrangement of familiar parts is not a new shape. The nonlearned gate asked how interface-solve error propagates when local responses are inexact, before any predictor is trained. The answer rejects the direction as proposed and points at a narrower hybrid.</p>
+<section id="sec-composition-gate" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="sec-composition-gate"><span class="header-section-number">4.1</span> The gate</h2>
+<p>Linear finite elements on unit-square components with identical straight ports (64 perimeter nodes, 15 interior nodes per shared edge), a library of five shapes (plain, coefficient contrast, hole, wide and narrow internal channels) and three held-out shapes (offset hole, diagonal barrier, an eight-cell checkerboard); assemblies in chains and grids of 2, 4, 8 and 16 components, five random draws each, against a monolithic finite-element reference; a screened variant as control. The exact machinery passes every check: response symmetry, positive semidefiniteness, the constant null vector, the Schur-complement composition law against a merged-mesh Schur complement (2 × 10⁻¹⁶), and an exact interface solve (5 × 10⁻¹⁵ energy error). Every component response is then perturbed by a relative Frobenius error ε (random, or concentrated on smooth or on rough port modes), and reduced responses are built by transfer-optimal port modes and by equal-rank proper orthogonal decomposition. Bars, written before the run (<code>studies/composition/PREREG.md</code>): worth a learner if the global energy error stays below 5% at ε = 10⁻² from 2 to 8 components with no faster than square-root growth, and if transfer-optimal reduction reaches 1% at a quarter of the port dimension on new assemblies of new shapes; not worth it if local errors amplify superlinearly or the interface solve costs more than the monolithic one.</p>
+</section>
+<section id="sec-composition-result" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="sec-composition-result"><span class="header-section-number">4.2</span> What the gate found</h2>
+<div id="tbl-composition-amplification" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-composition-amplification-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4.1: Median global relative energy error of the assembled solution when every component response carries a relative Frobenius error ε, by layout and component count; the interface condition number is that of the assembled interface operator. Data: <code>studies/composition/results.json</code>.
+</figcaption>
+<div aria-describedby="tbl-composition-amplification-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>layout</th>
+<th>components</th>
+<th>cond(S_II)</th>
+<th>ε = 10⁻³ random</th>
+<th>ε = 10⁻² random</th>
+<th>ε = 10⁻² smooth modes</th>
+<th>ε = 10⁻² rough modes</th>
+<th>ε = 10⁻¹ random</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>chain</td>
+<td>2</td>
+<td>15</td>
+<td>0.0021</td>
+<td>0.017</td>
+<td>0.039</td>
+<td>0.0001</td>
+<td>0.15</td>
+</tr>
+<tr class="even">
+<td>chain</td>
+<td>4</td>
+<td>16</td>
+<td>0.0041</td>
+<td>0.040</td>
+<td>0.092</td>
+<td>0.0002</td>
+<td>0.50</td>
+</tr>
+<tr class="odd">
+<td>chain</td>
+<td>8</td>
+<td>88</td>
+<td>0.0079</td>
+<td>0.071</td>
+<td>0.072</td>
+<td>0.0005</td>
+<td>0.85</td>
+</tr>
+<tr class="even">
+<td>chain</td>
+<td>16</td>
+<td>76</td>
+<td>0.0070</td>
+<td>0.065</td>
+<td>0.091</td>
+<td>0.0002</td>
+<td>1.36</td>
+</tr>
+<tr class="odd">
+<td>grid</td>
+<td>4</td>
+<td>220</td>
+<td>0.0062</td>
+<td>0.055</td>
+<td>0.083</td>
+<td>0.0002</td>
+<td>0.97</td>
+</tr>
+<tr class="even">
+<td>grid</td>
+<td>8</td>
+<td>330</td>
+<td>0.0152</td>
+<td>0.333</td>
+<td>0.267</td>
+<td>0.0006</td>
+<td>1.87</td>
+</tr>
+<tr class="odd">
+<td>grid</td>
+<td>16</td>
+<td>6,900</td>
+<td>0.0163</td>
+<td>0.340</td>
+<td>0.207</td>
+<td>0.0004</td>
+<td>3.33</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>At ε = 10⁻² the 5% bar is missed for chains of 8 or more and for every grid; from 4 to 16 components the grid error grows 6.2x, faster than linear. The mechanism is in the last two columns: errors on rough port modes are attenuated 20–100x by the interface solve, errors on smooth modes are amplified 4–30x and set the global error, because the smooth, small-eigenvalue part of a response is the load-bearing part (truncating the response itself to fewer than 63 of 64 modes gives errors of 10² to 10⁷). Port reduction confirms it from the other side: transfer-optimal modes built from a plain reference pair do transfer to new shapes, but need 13–15 of 15 modes for 1%, while proper-orthogonal modes need all 15 on new shapes (they are shape-specific); at rank 4 both leave 16–27% error. The interface solve is cheaper than the monolithic one only up to four components, and the partition-of-unity coarse space does not reduce the interface iteration count. The narrow-channel family did not exercise a near-port singularity (the barrier sits inside the component), which is a limitation of this instrument, not a finding.</p>
+</section>
+<section id="sec-composition-consequence" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="sec-composition-consequence"><span class="header-section-number">4.3</span> What this changes</h2>
+<p>As proposed, a learned local response would need a relative error near 10⁻³ on smooth port modes to reach 2% on a 4 × 4 assembly, at full port rank, with reciprocity, positive semidefiniteness and the null vector preserved exactly; that is a stricter target than any learned response in the literature reaches, and the direction stops in that form. What survives is a hybrid: keep the smooth low-mode response exact (a coarse local solve or an analytic expansion) and learn only the rough remainder, whose errors the interface solve damps. That is a solver with a learned component, not a field regressor, and it is the same shape as the audit’s exterior variant (analytic multipole coupling, learned near-field maps) and as the wall-law and constraint-solve hypotheses of <a href="06-classical-solvers.html" class="quarto-xref"><span>Chapter 6</span></a>. Its next nonlearned test is a split response (exact low modes plus a perturbed remainder) and a barrier-adjacent-to-port family for the near-field claim; neither is launched here. The instrument is 2D scalar diffusion with shared straight ports; convection removes the energy-norm certificate, elasticity adds rigid modes per component, and exterior aerodynamics has no shared ports at all.</p>
 
 
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

@@ -232,7 +232,7 @@ ul.task-list li input[type="checkbox"] {
   PAIR["C3 paired physical-condition control&lt;br/&gt;(same geometry, one condition changed; exact potential flow)&lt;br/&gt;RUNNING"]:::running
   SUPP["D1 computational support with passive readout&lt;br/&gt;(depth- and input-matched; DrivAerML volume)&lt;br/&gt;RUNNING - code and preregistration; lanes wait on node budget"]:::running
   RESP["D2 boundary-response rank and basis transfer&lt;br/&gt;(2D Laplace, nonlearned gate)&lt;br/&gt;RUNNING"]:::running
-  COMP["D3 local-response composition&lt;br/&gt;(2D diffusion ports, nonlearned gate)&lt;br/&gt;RUNNING"]:::running
+  COMP["D3 local-response composition&lt;br/&gt;(2D diffusion ports, nonlearned gate)&lt;br/&gt;DONE - not worth it as proposed: smooth-mode errors amplify 4-30x; hybrid survives"]:::done
   SOLV["D4 solver correction-space transfer&lt;br/&gt;(2D FEM, nonlearned probe)&lt;br/&gt;DONE - stops: geometric coarse grid wins everywhere"]:::done
   CLASS["L classical-solver review → new hypotheses&lt;br/&gt;RUNNING"]:::running
   AUDIT --&gt; POFF
@@ -314,11 +314,11 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="even">
 <td>D3</td>
-<td>RUNNING</td>
+<td>DONE — not as proposed</td>
 <td>Do local port responses compose stably into new assemblies at useful cost?</td>
 <td>AUDIT</td>
 <td>Global energy error ≤ 5% at 1e-2 local error from 2 to 8 components; transfer-optimal rank ≤ 1/4 of the port dimension for 1%</td>
-<td>pending</td>
+<td>ε = 10⁻²: 7% (chain 8), 33–34% (grids 8–16); rank 4 leaves 16–27%; rough-mode errors damped 20–100x, smooth-mode amplified 4–30x. <a href="99-notebook.html#sec-nb-d3-verdict" class="quarto-xref"><span>2026-09-09 — Verdict: D3 not worth a learner as proposed — smooth-mode local errors are amplified 4–30x by the interface solve and grids grow superlinearly; the surviving form is a hybrid with exact low modes</span></a>, <a href="04-composition.html" class="quarto-xref"><span>4&nbsp; Local-response composition</span></a></td>
 </tr>
 <tr class="odd">
 <td>D4</td>

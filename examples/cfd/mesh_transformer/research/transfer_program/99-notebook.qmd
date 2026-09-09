@@ -192,3 +192,80 @@ survives is a hybrid solver (exact smooth low-mode response, learned rough
 remainder), with a split-response test and a port-adjacent barrier family as
 its next nonlearned gates, not launched here. Chapter @sec-composition has
 the tables; figures `studies/composition/fig_*.png`.
+
+## 2026-09-09 — D1 launched: six lanes for computational support with a depth-matched passive readout {#sec-nb-d1-launch}
+
+**What was built** (merged from the D1 track, commit 834bd779e on this
+branch). `ISLA(support_tokens=True, query_independent=True,
+n_query_scalars=1, query_mass="source_total", n_decoder_layers=K)`: the
+forward takes `support_points / support_normals / support_scalars`, which
+join the encoder as interacting tokens with the same invariant seeds, a
+token-type offset and a learned total mass equal to a learned fraction of
+the total source measure; requested `query_points / query_normals /
+query_scalars` are decoded passively through K read blocks that see the
+final slice states, the anchors and a normalized log-space kernel readout of
+all encoder tokens. Ten contract tests pass (exact query independence with
+the support fixed, at 1e-12, alone or with 500 foreign companions; SE(3)
+covariance; drive degree one; measure-scale and source-refinement
+invariance; gauge scale equivariance; geo_checkpoint exactness; every
+parameter receives gradients); the existing ISLA suites (63) pass. Recipe:
+a `SplitInteriorSupport` transform moves the first `n_support` interior
+points of the reader's deterministic per-case sample into a
+`boundaries.support` mesh carrying the signed distance and its gradient;
+dataset `drivaer_ml_volume_support.yaml` (10,000 vehicle cells by
+`boundary_subsample: cells`, 10,000 interior points split 5,000 support +
+5,000 queries); model `isla_volume_support.yaml`.
+
+**Lanes** (jobs 691276–691281, names v0sup-0..5, launcher
+v0/v0_support_aga.sbatch, code snapshot `code_support`, recipe copy
+`recipe_support` so the program's frozen recipe is untouched; frozen V0
+protocol, unit-direction drive, 500 epochs, lr 1e-3, bf16, seeds 42/43):
+SUPPORT-12 (`v0_isla_support12_seed{42,43}`), PASSIVE-12
+(`v0_isla_passive12_seed{42,43}`: no support tokens, 12 read blocks with the
+SDF scalar) and SUPPORT-4 (`v0_isla_support4_seed{42,43}`). Node budget
+confirmed by the main session (25 → 31 of 32 program nodes). Two cluster
+conventions were reconciled before submission and are recorded here: the
+frozen recipe's model configs carry `# @package _global_` (added to the
+repository yaml too) and address surface tokens as
+`boundaries.vehicle.cell_normals` / `cell_areas`, so the cluster copy of the
+model yaml uses those keys while the repository yaml keeps the nested
+`cell_data.*` keys of the upstream-merged recipe; model overrides are
+`model.<kwarg>`.
+
+**References and bars** (PREREG.md, written before launch). The support
+arms read 10,000 vehicle cells, so their primary reference is the QT+SDF arm
+at 10,000 cells (0.0572 / 0.0848 / 0.1187), with the ~365-cell arm
+(0.0567 / 0.0853 / 0.1215) reported alongside since V0-SURF10K showed the two
+differ by under 3%. Supported if SUPPORT-12 is within 3% of the reference on
+all three fields (≤ 0.0584 / 0.0879 / 0.1251 against the 365-cell numbers as
+preregistered; ≤ 0.0589 / 0.0873 / 0.1223 against the 10k-cell numbers,
+both reported) and the sentinel error is independent of the companion count
+within the bf16 floor measured on the legacy passive checkpoint; falsified
+if pressure ≥ 0.0624; between, the SUPPORT-4 and PASSIVE-12 arms decompose
+depth against interaction.
+
+## 2026-09-09 — Finding while building D1: the legacy passive kernel readout clamps the kernel mass, so far-from-surface queries scale with the absolute source weights {#sec-nb-passive-clamp}
+
+In `physicsnemo/experimental/nn/isla/model.py`, the passive decoder's local
+token readout `_kernel_readout(q_r, src_r, src_h, src_w, rho, eps)` (called
+from `_ReadBlock.forward` when `src_h` is given, with
+`rho = local_readout_rho`, default 0.02 in gauge-normalized coordinates)
+computes `k = exp(-d²/ρ²) · w` and divides by `mass = k.sum(-1).clamp_min(eps)`.
+For a query farther than a few ρ from every source point the true mass is
+below `eps = 1e-12`, the clamp replaces it, and the readout becomes
+`Σ k h / eps`, which scales with the absolute source weights instead of
+being a weighted mean: in the D1 track's test a 4.2x rescale of the source
+weights moved the legacy passive output by 0.16 in relative norm at such
+queries. With ρ = 0.02 and interior queries whose median wall distance is
+about 5 mm on a 4 m car (below ρ in gauge units) most queries are inside the
+kernel's reach, but the far tail of the interior sample is not, so the
+legacy passive arm's 2.6x pressure deficit (program book, interior chapter)
+includes a contribution from this readout regime that the arm's
+measure-scale contract test did not exercise. The legacy path is left
+bitwise unchanged so trained checkpoints reproduce; the support path uses an
+exactly normalized log-space form (softmax over sources with logits
+−d²/ρ² + log w), identical where the mass is not tiny. The PASSIVE-12 arm,
+which uses the normalized readout with 12 read blocks and the SDF scalar,
+bounds how much of the 2.6x was readout and depth rather than passivity;
+the main session has asked for this note to attach a caveat to that figure
+once the arm reports.
