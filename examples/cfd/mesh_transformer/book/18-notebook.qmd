@@ -8726,3 +8726,57 @@ no claim that it helps any benchmark.
 
 **Scheduling.** Node MOM2-T added, RUNNING, depends on MOM2; it does not
 touch the surface headline lanes (UDRV, W2) or V0-SURF10K.
+
+## 2026-09-08 — HLREG instrument amended before readout: no element labels exist on HiLiftAeroML, so the gap regions are defined geometrically (facing-surface distance), and the artifact-to-mesh alignment needed a scale {#sec-nb-hlreg-amendment}
+
+**What the preregistration assumed.** @sec-nb-hlreg-prereg partitions the
+sampled surface points by connected component of the surface mesh (slat,
+main element, flap) and by distance to the nearest point of a *different*
+component. Two facts found while building the instrument make that partition
+unavailable. Each case's CFD boundary mesh (135–148M vertices, 267–291M
+triangles, a real single-layer surface: total area 24.6 chord², no
+coincident duplicates) is *one connected body*: 98% of its vertices fall in
+a single component and the rest are unreferenced singletons, because the
+slats and flaps are joined to the wing through their brackets and
+flap-track fairings. STL geometry files exist for only 5 of the 180
+geometries (41 of 1,800 cases), and they are identical across the ten
+angles of a geometry while the CFD meshes are regenerated per case.
+
+**The substitute, and why it measures the same thing.** For a sampled point
+p with unit outward normal n, the *facing-surface distance* d_face(p) is the
+distance to the nearest boundary-mesh vertex q lying in front of the
+surface, (q − p)·n ≥ ½|q − p|, within 10% of the reference chord. On an
+open convex surface it is infinite; inside the slat–main and main–flap gaps
+and coves, and at the wing–body and pylon junctions, it is the local gap
+width; near a high-curvature nose it is the nose radius. The bands are the
+preregistered ones, 0–2%, 2–10% and above 10% of chord, with the near band
+starting at 0.7% for the reason below. The per-element ratios of the
+preregistration cannot be produced and will be reported as not available.
+
+**Three defects found and fixed in three trial runs, each on the first few
+cases, before any number was read as a result.** First, the vertex
+neighbourhood search by radius returned up to 10⁵ vertices per point and
+took the eight worker processes to 95 GB each on a node shared with a
+training job; it was replaced by bounded k-nearest queries at two vertex
+strides (512 at stride 4 for the near band, 2,048 at stride 64 for the mid
+band). Second, the artifact's points are nondimensionalized by a length
+0.08% different from the stored L_ref (a similarity fit gives scale
+0.99924; rotation 0.01°), and a translation-only alignment left a median
+residual of 0.12% chord (q99 0.5%); with the scale the residual is 0.06%
+(q99 0.26%). Third, that residual produced spurious "facing" hits at
+0.2–0.35% chord for a quarter of all points (the surface itself, seen from
+points displaced off it), so the minimum facing distance was raised from
+0.2% to 0.7% chord, above the residual and below the gap widths of interest
+(CRM-HL slat and flap gaps are of order 1–2% chord). The sign convention of
+the stored cell normals is undocumented; the outward side is taken per case
+as the direction with fewer facing hits (a body is mostly convex), the
+choice is recorded, and its consistency across the 180 cases is a check on
+the stored normals. Alignment residual, scale, sign and hit fractions are
+stored per case (results/hlreg_*.json when it lands).
+
+**Grading rule, restated.** Per the audit (@sec-nb-audit-2026-09-08, item
+6) HLREG locates *output error*, not the input information that causes it:
+a slat-gap change moves pressure far from the gap. A uniform ratio across
+bands therefore does not falsify a gap-information mechanism; a concentrated
+one does not establish it. The preregistered bars are kept and the verdict
+is written as localization only.
