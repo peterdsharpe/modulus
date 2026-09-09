@@ -9673,3 +9673,35 @@ highlift/hl_scale_<arch>_aga.sbatch cloned from hl_wave2_aga.sbatch), after
 a ten-minute probe of its three heaviest configurations for memory and step
 time; verdict entries per architecture follow, and one synthesis entry.
 Job-name prefix scale-<arch>-; run ids scale_<arch>_<dataset>_<arm>_seed<s>.
+
+## 2026-09-09 — SCALE, GeoTransolver arm launched: twenty unit-drive lanes (widths 384/512, 40k/80k cells, corner) on HiLift 1,260 and DrivAerML 435; heaviest configurations accepted at 6 and 32 GB {#sec-nb-scale-gt-launch}
+
+**Lanes** (@sec-nb-scale-prereg; table highlift/scale_lanes_gt.tsv rows
+0–19, launcher highlift/hl_scale_gt_aga.sbatch cloned from the wave-2
+launcher with its 3600 s stall timeout and per-link guard, the reference
+`code` snapshot, `forward_kwargs.global_embedding=global_data.U_inf_dir` on
+every row, learning rate 1e-3, seeds 42/43): w384 (`model.n_hidden=384`),
+w512 (`model.n_hidden=512`), t40k and t80k (width 256 at 40,000 and 80,000
+sampled cells), c384x40k (384 at 40,000), on `highlift_surface` and
+`drivaer_ml_surface`. Run ids `scale_gt_{hl,dr}_<arm>_seed{42,43}`.
+
+**Launch acceptance** (first link, step 19, "Mem:" is the recipe's logged
+peak): DrivAerML w512 0.14–0.15 s per step at 5.9 GB; DrivAerML t80k 0.18 s
+at 31.9 GB; HiLift w512 0.15 s at 6.0 GB; HiLift t80k 0.19 s at 31.9 GB
+(one seed showed a transient 1.2 s step at step 19). Every heavy
+configuration fits with an order of magnitude to spare on a 288 GB device,
+and GeoTransolver's step time is nearly flat in token count and width at
+this scale, so the lanes complete in about 3 h (DrivAerML) and 7 h
+(HiLift) of wall clock per seed at 108 and 315 steps per epoch. The
+remaining twelve lanes were submitted after the heavy ones were accepted.
+
+**Reference arms** (not rerun): HiLift unit-drive GeoTransolver
+`udrv_hl_gt_full_seed{42,43}` (UDRV-L lanes 16–17, training) with the
+physical-drive `gt_hl_lr1_seed{42,43}` = 0.042 as the labelled fallback;
+DrivAerML `uw_gt_unit_lr1e3_seed{42,43,44}` (WAVE-3, training) with
+`iw_gt_lr1e3_seed{42,43}` = 0.0548 as fallback. Evaluation:
+`sbatch -q short -t 01:30:00 --array=<idx> highlift/hl_scale_gt_eval_aga.sbatch`
+(80k lanes -t 02:00:00); reduction `highlift/reduce_scale_gt.py`
+(results/scaling/reduce_scale_gt.py) writes hl_evals/scale_gt_reduction.json
+with per-run metrics, parameters, peak memory, median step time and
+GPU-hours. Verdict entry to follow as @sec-nb-scale-gt-verdict.
