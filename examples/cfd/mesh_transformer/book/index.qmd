@@ -159,13 +159,16 @@ for arch in ("gt", "t", "mt2"):
     xs, means, lo, hi = data[arch]; c, name, mk, ls, lw = style[arch]
     ax.fill_between(xs, lo, hi, color=c, alpha=0.18, lw=0)
     ax.plot(xs, means, color=c, lw=lw, ls=ls, marker=mk, ms=7, zorder=3, alpha=0.55)
+xoff = {"gt": 35 * 0.93, "t": 35 * 1.075}
 for arch in ("gt", "t"):
-    c, name, mk, ls, lw = style[arch]; v = unit[arch]; m = statistics.mean(v)
-    ax.plot([35, 35], [min(v), max(v)], color=c, lw=3, alpha=0.5, zorder=4)
-    ax.plot([35], [m], marker=mk, ms=10, mfc="white", mec=c, mew=2.2, ls="none", zorder=5)
-    ax.annotate("", (35, m), (35, data[arch][1][0]), arrowprops=dict(arrowstyle="-|>", color=c, lw=1.4, shrinkA=6, shrinkB=8))
-ax.annotate("GeoTransolver\n(physical drive)", (35, data["gt"][1][0]), xytext=(14, 4), textcoords="offset points", color=RED, fontweight="bold", va="center")
-ax.annotate("Transolver\n(physical drive)", (35, data["t"][1][0]), xytext=(14, -14), textcoords="offset points", color=GREY, fontweight="bold", va="center")
+    c, name, mk, ls, lw = style[arch]; v = unit[arch]; m = statistics.mean(v); x = xoff[arch]
+    ax.plot([x, x], [min(v), max(v)], color=c, lw=3, alpha=0.5, zorder=4)
+    ax.plot([x], [m], marker=mk, ms=10, mfc="white", mec=c, mew=2.2, ls="none", zorder=5)
+    ax.annotate("", (x, m), (35, data[arch][1][0]), arrowprops=dict(arrowstyle="-|>", color=c, lw=1.4, shrinkA=6, shrinkB=8, alpha=0.8))
+ax.annotate("GeoTransolver (physical drive)", (35, data["gt"][1][0]), xytext=(22, 16), textcoords="offset points", color=RED, fontweight="bold", va="center",
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+ax.annotate("Transolver (physical drive)", (35, data["t"][1][0]), xytext=(22, -4), textcoords="offset points", color=GREY, fontweight="bold", va="center",
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
 ax.annotate("ISLA", (210, data["mt2"][1][1]), xytext=(14, -14), textcoords="offset points", color=BLUE, fontweight="bold", va="center")
 m_gt, m_t = statistics.mean(unit["gt"]), statistics.mean(unit["t"])
 ax.annotate(f"unit freestream direction:\nGeoTransolver {m_gt/data['mt2'][1][0]:.2f}x ISLA\nTransolver {m_t/data['mt2'][1][0]:.2f}x ISLA", (35, m_t), xytext=(-8, -30), textcoords="offset points",
