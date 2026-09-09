@@ -52,3 +52,20 @@ SO(3) augmentation, seed 42; job 691774), camp-b-2 (Transolver + SO(3) augmentat
 seed 42; 691775), camp-b-4 (ISLA, no augmentation, seed 42; 691776). The remaining
 five lanes (seeds 43 of the three arms; the two controls) follow once each arm has
 written its first training step without error.
+
+## 2026-09-09 — First acceptance attempt blocked; root cause and fix
+
+All three acceptance lanes failed at training step 0 with
+`RuntimeError: Expected all tensors to be on the same device, but got mat2 is on cpu,
+different from other tensors on cuda:N (wrapper_CUDA_mm)`, one identical failure per
+architecture, so the cause was the posed dataset, not a model. Root cause:
+`FixedRandomPose` draws its rotation on a CPU `torch.Generator` (deliberately, so the
+draw is a device-independent function of the case key) and moved the matrix only to
+the mesh's dtype, not its device; the recipe runs its transform chain on the GPU, so
+`mesh.transform(R, ...)` multiplied CUDA positions by a CPU matrix. The CPU-only unit
+tests could not see it. Fix: the matrix is moved to the mesh's device and dtype
+(`_matrix(global_data, like=mesh.points)`); tests re-run (3 pass); the patched
+`domain_transforms.py` copied into `$T/recipe_support/src` (no code-snapshot change:
+the transform lives in the recipe copy). The three BLOCKED markers and the runs'
+`.last_failure` files were removed and the acceptance lanes resubmitted (jobs
+691825/691826/691827); the remaining five lanes wait for their first steps.

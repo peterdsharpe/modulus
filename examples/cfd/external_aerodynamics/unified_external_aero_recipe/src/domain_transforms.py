@@ -683,16 +683,20 @@ class FixedRandomPose(MeshTransform):
         self.salt = int(salt)
         self.key_field = key_field
 
-    def _matrix(self, global_data: TensorDict, dtype: torch.dtype) -> torch.Tensor:
+    def _matrix(self, global_data: TensorDict, like: torch.Tensor) -> torch.Tensor:
         if self.key_field not in global_data.keys():
             raise KeyError(
                 f"FixedRandomPose needs global_data[{self.key_field!r}]; enable "
                 "store_case_key on MeshReaderWithGlobalData"
             )
-        return _pose_rotation_for_key(int(global_data[self.key_field]), self.salt).to(dtype)
+        # The draw is made on a CPU generator (device-independent stream); the matrix
+        # moves to the mesh's device, since the pipeline may run its transforms on GPU.
+        return _pose_rotation_for_key(int(global_data[self.key_field]), self.salt).to(
+            device=like.device, dtype=like.dtype
+        )
 
     def __call__(self, mesh: Mesh) -> Mesh:
-        R = self._matrix(mesh.global_data, mesh.points.dtype)
+        R = self._matrix(mesh.global_data, mesh.points)
         return mesh.transform(
             R, transform_point_data=True, transform_cell_data=True,
             transform_global_data=True, assume_invertible=True,
@@ -700,7 +704,7 @@ class FixedRandomPose(MeshTransform):
 
     def apply_to_domain(self, domain: DomainMesh) -> DomainMesh:
         gd = domain.global_data if self.key_field in domain.global_data.keys() else domain.interior.global_data
-        R = self._matrix(gd, domain.interior.points.dtype)
+        R = self._matrix(gd, domain.interior.points)
         return domain.transform(
             R, transform_point_data=True, transform_cell_data=True,
             transform_global_data=True, assume_invertible=True,
