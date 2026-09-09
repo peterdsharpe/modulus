@@ -69,3 +69,19 @@ tests could not see it. Fix: the matrix is moved to the mesh's device and dtype
 the transform lives in the recipe copy). The three BLOCKED markers and the runs'
 `.last_failure` files were removed and the acceptance lanes resubmitted (jobs
 691825/691826/691827); the remaining five lanes wait for their first steps.
+
+## 2026-09-09 — Acceptance passed; all eight lanes submitted
+
+After the device fix the three acceptance lanes trained without error and reached
+epoch 72–80 within the first hour (GeoTransolver + SO(3) augmentation 0.28 s/step,
+4.6 GB; Transolver + augmentation 0.07 s, 3.2 GB; ISLA 0.25 s, 3.9 GB, on posed
+data at 10,000 cells). The remaining five lanes were then submitted: seeds 43 of the
+three arms (camp-b-1, -3, -5; jobs 692627–692629) and the two controls,
+GeoTransolver without augmentation (camp-b-6; 692630) and ISLA with augmentation
+(camp-b-7; 692631). A watcher submits each run's evaluation
+(`transfer/campaign_b_eval_aga.sbatch --array=<lane>`, every arm scored on the posed
+validation set) when its training completes; outputs land in `$T/iw_evals/campB_*`.
+Reduction: per-arm two-seed mean pressure (and wall-shear) relative L2 on the 48
+posed validation cars against the canonical references (ISLA 0.0577; unit-drive
+GeoTransolver and Transolver from the main session's `uw_*` runs when they land),
+judged against the bars in PREREG.md.
