@@ -403,3 +403,33 @@ perceptron at 3.0x the floor). Signature: 78% of the blind model's squared
 error on ground cases in the lowest height quarter (57–88%). Chapter
 @sec-controls-paired states what this does and does not license about the
 DrivAerML → SHIFT-SUV compound shift.
+
+## 2026-09-09 — Ops: the interior-lane stall is a pinned-memory hang in the reader, not I/O; D1 and campaign-D chains held, workaround staged {#sec-nb-ops-pin}
+
+The density track's instrumented probe (stack dumps every ten minutes)
+located the stall reported in @sec-nb-ops-stall: on the stuck rank the main
+thread waits without timeout in the DataLoader prefetch hand-off
+(`physicsnemo/datapipes/protocols.py:366`, via `datapipes/dataloader.py`)
+for a prefetch worker that is inside `tensordict.pin_memory()` called from
+`DomainMeshReader.__getitem__` (`readers/mesh.py:690`); the other ranks then
+spin in the recipe's step-failure barrier, which is what the collective
+timeout reports. Every DrivAerML interior lane on the cluster hung this way
+from about 12:14; HiLift and DrivAerML surface lanes were unaffected. My
+six D1 links restarted from their checkpoints after the first timeout and
+deadlocked again within minutes at the same epochs (22 / 22 / 12 / 12 / 22
+/ 22), and the four campaign-D lanes before their first checkpoint, which
+is the signature of a hang on the first samples rather than a leak. Ten
+nodes were therefore burning idle; all ten chains were held (stalled links
+cancelled, chain-ahead links on hold). Workaround identified by the main
+session: the recipe key `dataloader.pin_memory` (true in `conf/base.yaml`;
+read by `datasets.py` and passed to the reader) as the per-lane override
+`dataloader.pin_memory=false`, no code change; it is added to
+`v0/v0_support_aga.sbatch` and `v0/v0_interior_d_aga.sbatch`, along with
+a 1,200 s collective timeout, and the chains will be released when the
+probe lane has stepped normally for fifteen minutes. Two records for the
+affected lanes: the pinned-to-pageable change costs a few percent per step
+at 10,000 + 10,000 tokens (to be measured on the probe lane), so the D1 and
+campaign-D step times are not comparable with the reference arm's 0.28 s
+without that caveat; and the hand-off's missing timeout is a robustness bug
+worth an upstream fix (`Future.result(timeout)` with a named error)
+independent of the pinning cause.

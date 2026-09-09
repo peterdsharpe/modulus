@@ -229,7 +229,7 @@ ul.task-list li input[type="checkbox"] {
   AUDIT["AUDIT: cross-dataset review (companion)&lt;br/&gt;DONE"]:::done
   POFF["C1 pressure-offset vs spatial-error diagnostic&lt;br/&gt;(DrivAerML→SHIFT-SUV fastback, eval-only)&lt;br/&gt;DONE - spatial: offset share 1.5-2.6% / 3.0-3.2%; force error 1.6x / 1.4x"]:::done
   SNORM["C2 source-only normalization audit&lt;br/&gt;DONE - source-only in effect; wall-shear constant flagged"]:::done
-  PAIR["C3 paired physical-condition control&lt;br/&gt;(same geometry, one condition changed; exact potential flow)&lt;br/&gt;RUNNING"]:::running
+  PAIR["C3 paired physical-condition control&lt;br/&gt;(same geometry, one condition changed; exact potential flow)&lt;br/&gt;DONE - floor real (1.3x analytic; MLP 3.0x); per-point condition input repairs to 1.14-1.46x reference"]:::done
   SUPP["D1 computational support with passive readout&lt;br/&gt;(depth- and input-matched; DrivAerML volume)&lt;br/&gt;RUNNING - six lanes training (SUPPORT-12, PASSIVE-12, SUPPORT-4 x 2 seeds)"]:::running
   RESP["D2 boundary-response rank and basis transfer&lt;br/&gt;(2D Laplace, nonlearned gate)&lt;br/&gt;DONE - partial: residual low-rank (2.5-22% of full) but basis does not transfer (7-80x)"]:::done
   COMP["D3 local-response composition&lt;br/&gt;(2D diffusion ports, nonlearned gate)&lt;br/&gt;DONE - not worth it as proposed: smooth-mode errors amplify 4-30x; hybrid survives"]:::done
@@ -300,11 +300,11 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="odd">
 <td>C3</td>
-<td>RUNNING</td>
+<td>DONE</td>
 <td>Does the current encoding fail on identical geometry when one physical condition changes (ground plane present/absent), and does a complete encoding repair it? Exact potential-flow labels.</td>
 <td>C1 (if the offset does not explain the gap)</td>
 <td>A model without the condition flag is bounded below by the equal-mixture floor; with the flag it reaches the in-distribution error</td>
-<td>pending</td>
+<td>Blind ISLA 1.31x the floor (MLP 3.0x), 78% of its ground error in the lowest height quarter; conditioned ISLA 1.14x / 1.46x the in-distribution error (bar 1.5x). <a href="99-notebook.html#sec-nb-c3-verdict" class="quarto-xref"><span>2026-09-09 — Verdict: C3 — the identifiability floor is real and architecture-independent on an exact paired-condition problem, and a per-point condition input repairs it</span></a>, <a href="01-controls.html#sec-controls-paired" class="quarto-xref"><span>C3: a paired physical condition on an exact problem</span></a></td>
 </tr>
 <tr class="even">
 <td>D1</td>
