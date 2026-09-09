@@ -8563,3 +8563,50 @@ paths of @sec-mt2-cost are the mitigation). Either outcome corrects the
 chapter's input description; a supported outcome also reopens the passive
 decoder question with the full surface (PASSIVE2), because the passive
 arm's 2.6x deficit was measured with the same 365 tokens.
+
+## 2026-09-08 — Verdict: a width increase to hidden 256 does not close the interior eddy-viscosity gap (1.26x GeoTransolver-volume, at the 1.25 falsifier); pressure and velocity improve 2–4% {#sec-nb-qt-h256-verdict}
+
+**Setting.** ISLA's query-token configuration with the signed distance
+(QT-SDF; hidden width 192, 8.9M parameters) leads GeoTransolver's volume
+configuration (27.6M parameters, effective block width 448 with its six
+32-channel local features) on DrivAerML interior pressure and velocity and
+trails it 1.29x on eddy viscosity ν_t (@sec-nb-qt-sdf-verdict). Two
+candidate carriers of that gap remained after the surface-patch local
+features were falsified (@sec-nb-qt-lf-verdict): GeoTransolver's local
+aggregation over neighbouring interior points, and its parameters. The
+preregistered width control (@sec-nb-qt-h256-prereg) tests the second by
+running QT-SDF at hidden width 256 (about 15.7M parameters), everything else
+unchanged; bars ν_t ≤ 1.10x GeoTransolver-volume supported, ≥ 1.25x
+falsified.
+
+**Readout** (runs `v0_isla_qtsdf_h256_seed{42,43}`, 435 cars, 500 epochs,
+48 validation cars; results/a35_v0_reduction_2026-09-08c.json):
+
+| arm | pressure (42 / 43 → mean) | velocity | eddy viscosity | ν_t vs GT |
+|---|---|---|---|---|
+| GeoTransolver-volume | 0.0622 / 0.0618 → 0.0620 | 0.1334 | 0.0939 | 1.0 |
+| QT-SDF, width 192 | 0.0569 / 0.0565 → 0.0567 | 0.0853 | 0.1215 | 1.29x |
+| QT-SDF, width 256 | 0.0549 / 0.0545 → **0.0547** | **0.0835** | **0.1179** | **1.26x** |
+
+**Verdict: falsified, marginally.** The eddy-viscosity ratio moves from
+1.29x to 1.26x, at the preregistered 1.25 falsifier; pressure and velocity
+improve by 3.5% and 2.1%, below the 5% at which the preregistration would
+have reported a width effect in its own right. Widening ISLA by a third
+buys 2–4% on every field uniformly and does nothing specific to ν_t. Two
+caveats, both stated before the result. First, this is a width *increase*,
+not a matched width: the control is still narrower (256 against an
+effective 448) and smaller (15.7M against 27.6M) than GeoTransolver-volume,
+so the null excludes the step from 192 to 256 and does not exclude capacity
+as such. Second, like every ISLA interior arm, this one was trained with
+about 365 vehicle surface cells rather than the intended 10,000
+(@sec-nb-audit-2026-09-08); the comparison between the two widths is
+unaffected, since both saw the same inputs.
+
+**What it changes.** The remaining candidate for the ν_t gap is
+GeoTransolver-volume's query-to-query local aggregation, a mechanism
+ISLA does not have; the interior recommendation of @sec-limits becomes
+unconditional only if that ingredient, transplanted at the reference
+width, closes the gap. The 10,000-surface-cell rerun (V0-SURF10K,
+@sec-nb-v0surf-prereg) takes precedence over a further width ladder, since
+it tests whether the surface information ISLA was designed around was
+ever in play on this task.

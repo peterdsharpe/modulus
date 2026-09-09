@@ -700,13 +700,18 @@ does not close it: eddy viscosity 0.127 against 0.122 without the channel
 velocity unchanged within 1%
 (results/a35_v0_reduction_2026-09-08b.json). What GeoTransolver aggregates
 locally is the neighbouring interior points, not the surface; that, or its
-parameters, is where the last 1.29x lives. A width control (the same
-configuration at hidden width 256, about 15.7M parameters) is not yet
-measured (@sec-program-status); it is a width *increase*, not a matched
-width, because GeoTransolver-volume's blocks run at an effective width of
-448 once its six 32-channel local features are appended to the 256-wide
-token, so a gain would show that widening helps and a null could not rule
-capacity out. Two further qualifications on the eddy-viscosity gap. The
+parameters, is where the last 1.29x lives. A width increase does not
+close it either: the same configuration at hidden width 256 (about 15.7M
+parameters) scores 0.118 on eddy viscosity against 0.122 at width 192,
+1.26x GeoTransolver-volume and at the preregistered 1.25 falsifier, with
+pressure and velocity 2–4% better (0.055 and 0.084; 0.88x and 0.63x
+GeoTransolver-volume; results/a35_v0_reduction_2026-09-08c.json). This is a
+width *increase*, not a matched width: GeoTransolver-volume's blocks run at
+an effective width of 448 once its six 32-channel local features are
+appended to the 256-wide token, so the null leaves capacity as a candidate
+and excludes only the specific step from 192 to 256. Like every ISLA
+interior arm, this one saw about 365 surface cells (@sec-interior-task).
+Two further qualifications on the eddy-viscosity gap. The
 metric is on the standardized viscosity (@sec-interior-task), so the 1.29x
 is an ordering under that centering and not a statement about physical
 viscosity error. And DrivAerML's closure is a hybrid RANS/LES model whose

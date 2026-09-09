@@ -711,3 +711,10 @@ Rules from the independent audit, verified in-session by the coordinator
 - **Reader-facing numbers:** "146 cases on 96 geometries" (not "146
   never-seen geometries"; results/hilift_seen_vs_unseen_geometry_2026-09-07.json);
   the single-angle split trains on 126 geometries and validates on 18.
+
+- **Width control result (QT-SDF-h256, 2026-09-08).** ν_t 0.118 (1.26x GT-volume, at
+  the 1.25 falsifier), pressure 0.055 (0.88x), velocity 0.084 (0.63x); 2–4% better
+  than width 192 on all three. Write "a width increase to 256 does not close the
+  eddy-viscosity gap; capacity is not excluded". Never "parameters do not matter".
+  Artifact results/a35_v0_reduction_2026-09-08c.json. Like every ISLA interior arm:
+  ~365 surface cells.

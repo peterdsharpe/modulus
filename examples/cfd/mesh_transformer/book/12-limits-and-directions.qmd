@@ -429,10 +429,10 @@ eddy-viscosity gap (1.29x at full data on the recipe's standardized
 viscosity metric, which is not a physical percentage, flat across an
 eightfold change in
 training data with inputs matched): surface-patch local features on the
-query tokens did not close it, and whether a width increase does (hidden
-256, about 15.7M parameters, still below GeoTransolver-volume's effective
-width of 448 and 27.6M parameters, so a null cannot rule out capacity) is
-preregistered and not yet measured (@sec-program-status). Two facts bound
+query tokens did not close it, and neither did a width increase to hidden
+256 (1.26x, at the preregistered falsifier; about 15.7M parameters, still
+below GeoTransolver-volume's effective width of 448 and 27.6M parameters,
+so capacity is not ruled out, only that step in width; @sec-interior-query-tokens). Two facts bound
 the query-token configuration itself: its query weights scale with the
 geometric mean of the surface weights, so refining the surface sample or
 changing the number of queries changes its prediction (4–9% on small random
@@ -525,15 +525,6 @@ described and one that is understood.
   governs it too. The test set is held out per checkpoint; 182 of its 360
   cases were read by the regime-extrapolation tests, so it is not a
   program-level confirmation (@sec-limits-validation).
-- **Does a width increase carry the interior eddy-viscosity gap?** The
-  query-token
-  configuration with the signed distance at hidden width 256 (about 15.7M
-  parameters against GeoTransolver-volume's 27.6M and effective block width
-  448), two seeds, full
-  DrivAerML data. Supported if eddy-viscosity error is within 1.10x of
-  GeoTransolver's; falsified at 1.25x or more; pressure and velocity changes
-  above 5% are reported as width effects. A null does not rule capacity out,
-  since the control is still the narrower and smaller model.
 - **The query-token prediction depends on the query cloud, and the
   dependence is measured** (@sec-interior-companion): on the trained
   query-token model with the signed distance, the pressure error at 1,000
@@ -705,11 +696,11 @@ can be tested on a third dataset before it is trained on. If in addition the
 architectures by a similar factor, the flattening is the protocol's floor
 and the advantage is architectural throughout the measured range.
 
-**The interior recommendation becomes unconditional** if the width increase
-closes the eddy-viscosity gap (within 1.10x) without moving pressure or
-velocity by more than 5%, or if query-to-query local aggregation, the one
-GeoTransolver-volume ingredient not yet transplanted, does so at the
-reference width; it is withdrawn if the query-token configuration's
+**The interior recommendation becomes unconditional** if query-to-query
+local aggregation, the one GeoTransolver-volume ingredient not yet
+transplanted, closes the eddy-viscosity gap (within 1.10x) at the reference
+width without moving pressure or velocity by more than 5% (the width
+increase to 256 did not: 1.26x); it is withdrawn if the query-token configuration's
 dependence on the query cloud, once measured, exceeds its 0.005 pressure
 margin over GeoTransolver-volume. If none of these fires, the
 recommendation stands as
