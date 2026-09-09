@@ -9636,7 +9636,15 @@ and dataset, five arms against the existing or running reference arm
 | tokens ×8 | 192 | 256 | 256 | 80,000 |
 | corner | 384 | 384 | 384 | 40,000 |
 
-Sixty lanes (3 architectures × 2 datasets × 5 arms × 2 seeds). Learning
+Sixty lanes (3 architectures × 2 datasets × 5 arms × 2 seeds), plus four
+ISLA lanes at width 384 with the routing measure weights off (both datasets,
+two seeds) so that width is not confounded with the weights-off configuration
+that NOW-L is measuring; every other ISLA arm runs with the reference
+weights-on configuration. ISLA arms run from the code snapshot at 52eb29ec5
+(default forward bitwise the reference model) with the exact activation
+recompute enabled on the 40,000- and 80,000-cell arms; the existing
+20,000-cell lanes (floor_hl_mt2_full_20k_seed{42,43}, udrv_hl_gt_full_20k_seed{42,43})
+are the 20k rung of the token ladder. Learning
 rates are not retuned for width; a run that diverges is reported as a
 divergence at the protocol rate, not silently retuned. Each arm records
 parameters, peak memory and step time from its own training log, so every
