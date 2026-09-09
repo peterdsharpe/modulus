@@ -9267,3 +9267,51 @@ where density robustness is the target, and the book's variance reading
 stands. Either way the unit-drive baselines are reported under both metrics
 alongside, since a metric change that moves ISLA must be applied to them
 too.
+
+## 2026-09-09 — Preregistered: SPARSE, sparse anchor routing for ISLA (route each point to its k nearest anchors) {#sec-nb-sparse-routing-prereg}
+
+**Setting.** Every ISLA slice block evaluates the eight relational invariants
+of every point against all 256 slice anchors in every layer: the
+(points × slices × 8) invariant tensor and its (points × slices × 3)
+intermediates are the block's dominant cost. At 10,000 tokens ISLA's
+training step is 3.7x GeoTransolver's on the same GPU (matched-instrument
+measurement, @sec-nb-audit-2026-09-08), and before the exact recompute
+option those tensors were 76% of saved activations (@sec-nb-geo-recompute).
+The anchors are spatially local: a point's routing mass concentrates on the
+anchors near it, so the invariants against distant anchors carry little.
+
+**Hypothesis.** Routing each point to only its k nearest anchors (k of 256;
+selection by Euclidean distance to the anchor position, no gradient through
+the selection; invariants, routing bias and the point→slice mix restricted
+to the selected anchors; unselected anchors excluded from the point's mix
+and from the slices' point-assignment softmax) cuts step time and memory
+roughly in proportion to k / 256 for the geometry term, at negligible
+change in what the model computes. The option `anchor_topk` (default 0,
+dense) is exact at k = 256 by construction and is contract-tested (SE(3)
+covariance, drive degree one, measure-scale invariance, gauge scale
+equivariance; test/experimental/nn/test_isla_sparse.py).
+
+**Instrument (no training).** One GPU, the reference surface configuration
+(hidden 192, 12 layers, 256 slices, 1 scalar + 1 vector output), 10,000
+random anisotropic tokens, batch 1, bf16 autocast, AdamW step: median
+forward+backward+step wall time over 10 iterations after 3 warm-ups, and
+peak allocated memory over the resident model, for k ∈ {dense, 128, 64,
+32, 16} with and without `geo_checkpoint`. Output change: the relative L2
+change of the full output and of the scalar (pressure) channel between
+dense and k-sparse routing *with the same weights*, at initialization on
+the random cloud and on the trained HiLift 35-case checkpoint
+`lad_hl_mt2_super_scarce_seed42` applied to six saved validation inputs
+(points, cell normals, measure weights, unit drive from the prediction
+artifacts). Script results/isla_sparse_routing_bench_2026-09-09.py;
+artifact results/isla_sparse_routing_bench_2026-09-09.json.
+
+**Bars, in readout units.** *Worth a training arm* if k = 32 gives a
+step-time reduction ≥ 1.5x against dense (same checkpoint setting) with a
+trained-checkpoint scalar-output change ≤ 1%. *Not worth it* if the
+reduction is < 1.2x or the change is > 5%. Between: reported, and the
+smallest k meeting the 1% change bar is named. A training arm, if
+warranted, is the reference HiLift 35-case lane with `+model.anchor_topk=32`
+(two seeds), bar: pressure within 2% of the dense reference 0.138, and is
+preregistered separately before launch. The output-change readout is the
+approximation error of *re-routing a model trained dense*; a model trained
+sparse may differ less or more, which is what the training arm measures.

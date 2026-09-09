@@ -73,11 +73,17 @@ def _relational_invariants(
     blocks and the passive decoder blocks. With ``c_s`` (the per-slice
     second-moment tensor about the anchor; MOM2, 2026-09-08) two more
     invariants are appended: rel_hat^T C_s rel_hat and tr C_s."""
-    rel = r[:, :, None, :] - z_pos[:, None, :, :]  # (B, N, S, 3)
+    ### Anchors are either shared by all points, z_pos (B, S, 3), or gathered per
+    ### point for sparse routing (SPARSE, 2026-09-09), z_pos (B, N, k, 3); the
+    ### same arithmetic serves both (the shared case broadcasts over points).
+    per_point = z_pos.dim() == 4
+    z = z_pos if per_point else z_pos[:, None, :, :]
+    m = m_s if per_point else m_s[:, None, :, :]
+    rel = r[:, :, None, :] - z  # (B, N, S|k, 3)
     dist = rel.norm(dim=-1, keepdim=True).clamp_min(eps)
     rel_hat = rel / dist
-    z_mag = z_pos.norm(dim=-1, keepdim=True).clamp_min(eps)
-    z_hat = z_pos / z_mag
+    z_mag = z.norm(dim=-1, keepdim=True).clamp_min(eps)
+    z_hat = z / z_mag
     n_exp = n_hat[:, :, None, :]
     d_exp = d_hat[:, :, None, :]
     feats = [
@@ -85,10 +91,10 @@ def _relational_invariants(
         torch.log(dist),
         (rel_hat * d_exp).sum(-1, keepdim=True),
         (rel_hat * n_exp).sum(-1, keepdim=True),
-        (rel_hat * m_s[:, None, :, :]).sum(-1, keepdim=True),
-        (n_exp * m_s[:, None, :, :]).sum(-1, keepdim=True),
-        z_mag[:, None, :, :].expand(rel.shape[0], rel.shape[1], -1, 1),
-        (z_hat[:, None, :, :] * d_exp).sum(-1, keepdim=True),
+        (rel_hat * m).sum(-1, keepdim=True),
+        (n_exp * m).sum(-1, keepdim=True),
+        z_mag.expand(rel.shape[0], rel.shape[1], -1, 1),
+        (z_hat * d_exp).sum(-1, keepdim=True),
     ]
     if c_s is not None:
         ### Second-moment channel: the anchor's covariance seen from the point.
@@ -96,8 +102,12 @@ def _relational_invariants(
         ### about a translation-covariant anchor); they carry the transverse
         ### arrangement that first-moment anchors lose whenever the routed
         ### points' transverse first moment vanishes (audit 2026-09-08, item 3).
-        quad = torch.einsum("bnsi,bsij,bnsj->bns", rel_hat, c_s, rel_hat)[..., None]
-        trace = c_s.diagonal(dim1=-2, dim2=-1).sum(-1)[:, None, :, None]
+        if per_point:
+            quad = torch.einsum("bnki,bnkij,bnkj->bnk", rel_hat, c_s, rel_hat)[..., None]
+            trace = c_s.diagonal(dim1=-2, dim2=-1).sum(-1)[..., None]
+        else:
+            quad = torch.einsum("bnsi,bsij,bnsj->bns", rel_hat, c_s, rel_hat)[..., None]
+            trace = c_s.diagonal(dim1=-2, dim2=-1).sum(-1)[:, None, :, None]
         feats += [quad, trace.expand(rel.shape[0], rel.shape[1], -1, 1)]
     return torch.cat(feats, dim=-1)
 
@@ -114,6 +124,34 @@ def _geo_region(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: fl
     return bias, mix, torch.einsum("bns,bnsg->bng", mix, geo)
 
 
+def _geo_region_sparse(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: float, c_s, k: int):
+    """SPARSE (2026-09-09): the recompute region of _geo_region restricted to each
+    point's k nearest anchors. Invariants, routing bias and the point->slice mix
+    exist only on the (B, N, k) selected anchors; the bias is scattered back into
+    a dense (B, N, S) tensor with a large negative fill for unselected anchors, so
+    the point->slice softmax and the slice-state assignment exclude them. At
+    k = n_slices every anchor is selected and the result equals _geo_region to
+    roundoff (the pooled sum runs in a different order). Returns
+    (bias_full (B,N,S) with the fill, mix_full (B,N,S) with zeros, pooled (B,N,geo))."""
+    b, n, s = logits_pre.shape
+    with torch.no_grad():
+        d2 = torch.cdist(r.float(), z_pos.float())  # (B, N, S)
+        idx = d2.topk(k, dim=-1, largest=False).indices  # (B, N, k)
+    bidx = torch.arange(b, device=r.device)[:, None, None]
+    z_k = z_pos[bidx, idx]  # (B, N, k, 3)
+    m_k = m_s[bidx, idx]
+    c_k = c_s[bidx, idx] if c_s is not None else None  # (B, N, k, 3, 3)
+    geo = _relational_invariants(r, n_hat, d_hat, z_k, m_k, eps, c_k)  # (B, N, k, geo)
+    bias_k = lin(geo).squeeze(-1)  # (B, N, k)
+    logits_k = torch.gather(logits_pre, -1, idx) + bias_k
+    mix_k = torch.softmax(logits_k, dim=-1)
+    pooled = torch.einsum("bnk,bnkg->bng", mix_k, geo)
+    neg = -1e4 if logits_pre.dtype in (torch.float16, torch.bfloat16) else -1e9
+    bias_full = logits_pre.new_full((b, n, s), neg).scatter(-1, idx, bias_k.to(logits_pre.dtype))
+    mix_full = logits_pre.new_zeros((b, n, s)).scatter(-1, idx, mix_k.to(logits_pre.dtype))
+    return bias_full, mix_full, pooled
+
+
 class _SliceBlock(nn.Module):
     """One pre-LN layer of measure-weighted soft-slice attention + MLP."""
 
@@ -121,9 +159,15 @@ class _SliceBlock(nn.Module):
 
     def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
                  use_relational_geo: bool = True, geo_checkpoint: bool = False,
-                 second_moment: bool = False) -> None:
+                 second_moment: bool = False, anchor_topk: int = 0) -> None:
         super().__init__()
         self.use_relational_geo = use_relational_geo
+        ### SPARSE (2026-09-09): route each point to its anchor_topk nearest
+        ### anchors only (0 = dense). The (B, N, S, geo) invariants and their
+        ### (B, N, S, 3) intermediates, the dominant cost of a slice block,
+        ### shrink to (B, N, k, .); slice states are still formed from every point
+        ### that selected the slice. Exact at k = n_slices.
+        self.anchor_topk = int(anchor_topk)
         ### MOM2 (2026-09-08): per-slice second-moment tensor about the anchor,
         ### read at each point as rel_hat^T C_s rel_hat and tr C_s (two more
         ### invariants). Restores the transverse arrangement that first-moment
@@ -196,11 +240,14 @@ class _SliceBlock(nn.Module):
                 rr = (r[:, :, :, None] * r[:, :, None, :]).reshape(r.shape[0], r.shape[1], 9)
                 c_s = torch.einsum("bns,bnk->bsk", a, rr).reshape(r.shape[0], -1, 3, 3)
                 c_s = c_s - z_pos[:, :, :, None] * z_pos[:, :, None, :]
-            geo_args = (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps, c_s)
-            if self.geo_checkpoint:
-                bias, point_mix, pooled = checkpoint(_geo_region, *geo_args, use_reentrant=False)
+            if self.anchor_topk and self.anchor_topk < logits.shape[-1]:
+                region, geo_args = _geo_region_sparse, (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps, c_s, self.anchor_topk)
             else:
-                bias, point_mix, pooled = _geo_region(*geo_args)
+                region, geo_args = _geo_region, (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps, c_s)
+            if self.geo_checkpoint:
+                bias, point_mix, pooled = checkpoint(region, *geo_args, use_reentrant=False)
+            else:
+                bias, point_mix, pooled = region(*geo_args)
             logits = logits + bias
         else:
             point_mix = torch.softmax(logits, dim=-1)  # normalized over slices
@@ -323,6 +370,7 @@ class ISLA(Module):
         query_local_radii: tuple[float, ...] = (0.05, 0.15, 0.5),
         query_mass: str = "geometric_mean",
         second_moment_features: bool = False,
+        anchor_topk: int = 0,
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -385,9 +433,16 @@ class ISLA(Module):
         ### per-slice second-moment channel. Off by default so every trained
         ### checkpoint reproduces exactly.
         self.second_moment_features = bool(second_moment_features)
+        ### SPARSE (2026-09-09; notebook #sec-nb-sparse-routing-prereg): each point
+        ### evaluates relational geometry against its anchor_topk nearest anchors
+        ### only. 0 (default) is the dense model; k = n_slices reproduces it.
+        self.anchor_topk = int(anchor_topk)
+        if self.anchor_topk < 0 or self.anchor_topk > n_slices:
+            raise ValueError("anchor_topk must lie in [0, n_slices]")
         self.blocks = nn.ModuleList(
             _SliceBlock(hidden, n_slices, mlp_ratio, use_relational_geo=use_relational_geo,
-                        geo_checkpoint=geo_checkpoint, second_moment=self.second_moment_features)
+                        geo_checkpoint=geo_checkpoint, second_moment=self.second_moment_features,
+                        anchor_topk=self.anchor_topk)
             for _ in range(n_layers)
         )
         ### v5a EXPERIMENT (flag-gated, default off): encode/decode split.
