@@ -77,7 +77,16 @@ on the full split), 3e-3 for Transolver where stated.
   function-identical implementation (fp64 max difference 4e-15), so no
   result depended on the extra memory.
 
-## HiLiftAeroML data efficiency (chapter 5) — the primary result
+## HiLiftAeroML data efficiency (chapter 5) — PHYSICAL-DRIVE MEASUREMENTS (see "UDRV verdict 2026-09-09" below)
+
+**Every GeoTransolver and Transolver number in this section was produced
+with the physical freestream velocity (2,679.5 in/s) as the global input;
+ISLA received the unit direction. UDRV showed this input scale is what
+produced the baselines' deficit (unit-drive GeoTransolver 0.124, Transolver
+0.115 at 35 cases, both below ISLA's 0.138). The numbers below remain valid
+as measurements of the physical-drive protocol and are quoted only with that
+label; none is a comparison of architectures. The unit-drive reruns of the
+higher rungs are UDRV-L.**
 
 Dataset: 1,800 cases = 180 high-lift wing geometries (LHC-sampled flap/slat
 settings) × 10 angles of attack (4°–22°). Curated nested splits
@@ -332,8 +341,11 @@ stops". Present-tense, no chronology. Key current statements:
   baseline error ÷ ISLA error, so > 1 favours ISLA. HiLift full split:
   GeoTransolver/ISLA = 1.02 (0.042/0.041). DrivAerML full: GeoTransolver/ISLA
   = 0.92 (ISLA is 1.085x behind; write "ISLA 8.5% behind"). At 35 HiLift cases
-  the factor is **2.8x** (0.392/0.138 = 2.84; three-seed 2.76) — write 2.8x,
-  not 2.9x.
+  the physical-drive-protocol factor is **2.8x** (0.392/0.138 = 2.84;
+  three-seed 2.76) — write 2.8x, not 2.9x, and always with the label
+  "against physical-drive baselines"; the comparison figures at 35 cases are
+  **0.90** (unit-drive GeoTransolver ÷ ISLA) and **0.83** (unit-drive
+  Transolver ÷ ISLA).
 - **Memory — state the current model, not its history:** ISLA's peak training
   memory at 10,000 tokens is **1.5 GB** (forward+backward, bf16, RTX 4090,
   recipe default with activation recompute), against GeoTransolver's 4.6 GB;
@@ -466,9 +478,21 @@ stops". Present-tense, no chronology. Key current statements:
   (the exact-kernel decoder does).
 - Locality as the carrier of cross-family transfer (refuted).
 - Any "provisional" tag on the data-efficiency result (controls are in).
-- "2.9x" (write 2.8x); "2.7–3.9x" (write 3.0–3.7x); "360 pairs"; "trains in
-  less memory" without the as-trained figure; "most density-robust" without
-  naming the gauge configuration.
+- "2.9x" (write 2.8x, physical-drive label attached); "2.7–3.9x" (write
+  3.0–3.7x); "360 pairs"; "trains in less memory" without the as-trained
+  figure; "most density-robust" without naming the gauge configuration.
+- Any of 2.8x / 2.2x / 5.0x / 1.8x / 1.4x / "180 of 180" / "6x data
+  multiplier" / "3% vs 8–17% forces" / "a large improvement in one regime"
+  as an ISLA advantage; each is a physical-drive-protocol measurement and is
+  written only with that label (see "UDRV verdict 2026-09-09").
+- "ISLA is more accurate than GeoTransolver (or Transolver) on HiLiftAeroML"
+  in any tense without "physical-drive" attached; "ISLA's data-efficiency
+  advantage"; "ISLA turns training geometries into accuracy where
+  GeoTransolver does not" as a comparison (the GeoTransolver half is
+  physical-drive; ISLA's response to geometry count stands as a fact about
+  ISLA).
+- "The mechanism is located at the level of the dataset" (superseded: the
+  carrier at 35 cases is the baselines' input scale).
 - Any statement that the interior gap is closable by latent volume tokens
   along anchor normals (falsified).
 - Any project code names, dates, "retired", "reframed", "critic".
@@ -489,35 +513,37 @@ where the interior chapter needs it.
 ## Program review 2026-09-08: the verdict and how to state it
 
 - **One verdict sentence, stated once in the index (@sec-verdict) and
-  referenced everywhere else:** "ISLA is a large improvement over
-  GeoTransolver in one regime, scarce training data on a family of
-  multi-element wing geometries; elsewhere it ranges from parity to 1.3x
-  behind, and it is not a new capability." (Superseded wording, never
-  reuse: "and its equal everywhere else".) Chapters support or bound clauses
-  of it; no chapter offers a competing verdict paragraph.
-- **Calibration words:** "a large improvement" (not "groundbreaking", not
-  "a little better") for the HiLift small-data regime; "parity" at full
-  data on HiLift; "behind" on DrivAerML (surface 1.2–1.3x below full data,
-  8.5% at full data; interior eddy viscosity 1.29x); "no new capability" because regime
-  extrapolation and cross-family transfer fail for every architecture and
-  the advantage vanishes with data.
-- **Data multiplier (the horizontal reading; state alongside every ratio
-  headline):** GeoTransolver needs about 6x as many training cases as ISLA
-  to reach ISLA's 35-case accuracy (0.141 at 210 vs 0.138 at 35, both
-  measured); plain Transolver about 2x at the 0.09 error level (ISLA's case
-  count interpolated on its own 35→210 power-law segment, slope 0.42:
-  about 106 cases); 1x at 1,260. Table `tbl-data-multiplier` in chapter 5
-  computes these live. Never write the Transolver multiplier as measured.
-- **Both margins, always:** every statement of the small-data advantage
-  names the GeoTransolver margin and the Transolver margin at the same rung
-  (2.8x/2.8x at 35; 2.2x/1.3x at 210). Never headline 2.8x at 210.
-- **Mechanism status wording:** "located at the level of the dataset
-  (parametric multi-element geometry variation), not at the level of the
-  surface or of an architectural ingredient". The small-feature hypothesis
-  (slat and flap gaps) is STATED AND NOT YET MEASURED; preregistered in
-  @sec-nb-hlreg-prereg with bars: supported if near-gap-band GT/ISLA ratio
-  ≥ 1.5x the rest-of-surface ratio at 35 cases; falsified if uniform within
-  1.15x. Never write it as a finding until the verdict entry exists.
+  referenced everywhere else** — see "UDRV verdict 2026-09-09" below for
+  the current wording. (Superseded wordings, never reuse: "ISLA is a large
+  improvement over GeoTransolver in one regime, scarce training data on a
+  family of multi-element wing geometries; elsewhere it ranges from parity
+  to 1.3x behind, and it is not a new capability"; "and its equal everywhere
+  else".) Chapters support or bound clauses of it; no chapter offers a
+  competing verdict paragraph.
+- **Calibration words:** SUPERSEDED for the HiLift small-data regime ("a
+  large improvement" is never written again: the physical-drive advantage
+  was a protocol artifact). Still valid: "parity" at full data on HiLift
+  (against the physical-drive GeoTransolver, rerun pending); "behind" on
+  DrivAerML (surface 1.2–1.3x below full data, 8.5% at full data, lower
+  bounds on GeoTransolver's lead; interior eddy viscosity 1.29x); "no new
+  capability" because regime extrapolation and cross-family transfer fail
+  for every architecture.
+- **Data multiplier:** SUPERSEDED. The "GeoTransolver needs about 6x as
+  many training cases as ISLA" reading compared ISLA at 35 cases with the
+  physical-drive GeoTransolver at 210; the unit-drive GeoTransolver at 35
+  cases (0.124) is already below ISLA (0.138), so the multiplier is ≤ 1 and
+  is never written as an ISLA advantage. `tbl-data-multiplier`, if kept,
+  is labelled a physical-drive-protocol table.
+- **Both margins, always:** the rule survives with the new content: every
+  statement about the 35-case rung names both unit-drive baselines
+  (GeoTransolver 0.90, Transolver 0.83, baseline ÷ ISLA). Never headline
+  2.8x anywhere as a comparison.
+- **Mechanism status wording:** SUPERSEDED. The carrier of the
+  physical-drive gap at 35 cases is identified: the baselines' input scale.
+  Write "answered at 35 cases (input scale), open above it pending UDRV-L".
+  HLREG is DONE and read as localization against the physical-drive
+  GeoTransolver (near ÷ rest 0.72); it is never written as a finding about
+  an ISLA advantage, since none remains at 35 cases.
 - **Chapter structure:** regime extrapolation is a section of chapter 6
   (`#sec-regime-extrapolation`, `#sec-ood-mechanism`), not a chapter; the
   boundary-condition-content paragraph that belonged to the exact-kernel
@@ -531,8 +557,9 @@ where the interior chapter needs it.
   control running; query-to-query local aggregation untested).
 - **Status chapter:** two architectures plus the Transolver control; the
   exact-kernel MeshTransformer appears only as tree history; the organizing
-  open question is the mechanism of the HiLift advantage, not the
-  cross-family transfer gap.
+  open question is "does ISLA have any accuracy advantage once inputs are
+  matched, and what are its contracts worth" (UDRV-L, UDRV-INT), not the
+  mechanism of a HiLift advantage and not the cross-family transfer gap.
 - **Do not state:** density robustness in the verdict paragraph (it belongs
   to the similarity-gauge configuration; one sentence in chapter 6 and the
   "does not claim" list); SHIFT-SUV in the thesis sentence (it stays defined
@@ -596,10 +623,8 @@ Rules from the independent audit, verified in-session by the coordinator
   variance; the data-multiplier reading (GeoTransolver at 210 ≈ ISLA at 35)
   is a measured horizontal comparison, not a minimum CFD-run count under
   optimized sampling.
-- **Verdict wording:** "ISLA is a large improvement over GeoTransolver in one
-  regime, scarce training data on a family of multi-element wing geometries;
-  elsewhere it ranges from parity to 1.3x behind, and it is not a new
-  capability." One sentence, one place (@sec-verdict).
+- **Verdict wording:** see "UDRV verdict 2026-09-09" below. One sentence,
+  one place (@sec-verdict).
 - **Baseline input scale.** ISLA's recipe consumes the unit freestream
   direction (isla_surface.yaml:32); GeoTransolver (geotransolver_surface.yaml:41)
   and Transolver (transolver_surface.yaml:34) consume the physical freestream
@@ -608,9 +633,12 @@ Rules from the independent audit, verified in-session by the coordinator
   untrained, at production dimensions, collapses from 191–232 effective
   occupied slices per head at drive magnitude 1 to 1.0–3.8 at 38.9 and
   1.00–1.02 at 2679.5 (max context magnitude 0.66 → 22.7 → 1530;
-  results/geotransolver_drive_conditioning_2026-09-08.json). Write this as a
-  conditioning difference, never as an explanation of the trained gap, until
-  the training control (node UDRV, @sec-nb-udrv-prereg) reads out.
+  results/geotransolver_drive_conditioning_2026-09-08.json); Transolver
+  concatenates the raw vector into every token's features. The training
+  control (UDRV) has read out: the input scale IS the carrier of the
+  baselines' 35-case deficit (see below). The conditioning numbers are the
+  mechanism's initialization signature; the trained result is what the
+  chapters state.
 - **Query-token measure convention.** In the query-token configuration the
   query weight is exp(qt_logw) × geometric mean of source weights
   (model.py ~756); duplicating every source token at half weight leaves the
@@ -726,6 +754,92 @@ Rules from the independent audit, verified in-session by the coordinator
   was ill-posed (exchangeable labels); the verdict uses the azimuth probes and says so.
   Second-moment separations are ~20x smaller than local-feature separations at radii
   (0.2, 0.4) but linearly decodable; do not write "weaker channel" without that qualifier.
+
+## UDRV verdict 2026-09-09: the headline is overturned; how to state everything now
+
+Artifact results/udrv_reduction_2026-09-09.json; preregistration
+results/udrv_unit_drive_preregistration_2026-09-08.md (@sec-nb-udrv-prereg);
+verdict @sec-nb-udrv-verdict; ladder preregistration
+results/udrv_ladder_preregistration_2026-09-09.md (@sec-nb-udrvl-prereg);
+interior control @sec-nb-udrv-int-prereg.
+
+- **The verdict sentence (one place, @sec-verdict):** "ISLA has no measured
+  accuracy advantage over GeoTransolver or plain Transolver once every model
+  receives the freestream at unit scale: at 35 HiLiftAeroML cases the
+  unit-drive baselines are 1.1–1.2x more accurate than ISLA, the DrivAerML
+  surface ordering favours GeoTransolver, and the higher HiLift rungs are
+  being re-measured (UDRV-L). Its contribution is contracts (exact
+  covariance, query-independent passive decode) and the interior
+  configuration's lead pending UDRV-INT."
+- **The result.** Surface-pressure rel-L2, 180 validation cases (118
+  geometries), two-seed means, seeds in parentheses. GeoTransolver unit
+  drive **0.124** (0.124, 0.125) vs physical 0.381 (three seeds 0.374,
+  0.409, 0.359) vs ISLA 0.138 (0.135, 0.141, 0.138); velocity 0.145 vs ISLA
+  0.168; wall shear 0.229 vs 0.256. Transolver unit drive **0.115** (0.117,
+  0.113) vs physical 0.404 vs ISLA 0.138; velocity 0.140, wall shear 0.216.
+  Ratios baseline ÷ ISLA: **0.90** (GeoTransolver), **0.83** (Transolver).
+  Paired per case (seed-mean errors): GeoTransolver lower than ISLA on
+  130/180 cases (84/118 geometries; median ISLA ÷ GeoTransolver 1.09, 10–90%
+  0.90–1.43; sign test p = 2e-9); Transolver lower on 152/180 (102/118;
+  median 1.17, 0.98–1.58; p = 8e-22). Unit vs physical drive: lower on
+  180/180 for both (median 3.4x GeoTransolver, 3.8x Transolver).
+  Preregistered bars: supported if GeoTransolver ≤ 0.27 / Transolver ≤ 0.29;
+  both far past. Learning rates unchanged (GeoTransolver 1e-3, Transolver
+  3e-3); hydra override only; same cases, seeds, budget.
+- **What it is called.** "The baselines' small-data deficit on HiLiftAeroML
+  was an input-scaling artifact of the comparison protocol." Never "ISLA's
+  advantage shrank" (there is none at 35 cases); never "the baselines were
+  broken" (they were fed a mis-scaled input by the protocol); never
+  "conditioning explains the trained gap" as speculation (it is measured).
+- **"Unit-drive" is the reference baseline.** Every comparison names the
+  baseline's drive: "unit-drive GeoTransolver" (the valid comparison) or
+  "physical-drive GeoTransolver" (a protocol measurement). A bare
+  "GeoTransolver" on HiLift means unit-drive.
+- **Physical-drive measurements, labelled so and never quoted as an ISLA
+  advantage:** 2.8x (35), 2.2x (210), 1.3x Transolver (210), parity 1.02
+  (1,260), 1.8x (4 geometries), 1.4x (21 geometries), 5.0x and 2.55x (fixed
+  angle), 180/180 and 118/118 wins, 172/180 and 18/18, the 6x data
+  multiplier, the force margin (ISLA 3% vs GeoTransolver 17%/11%, Transolver
+  12%/8%), every CTRL/T1/INV steel-man, the HLREG ratios (2.0x/3.0x), the
+  regime-extrapolation ordering (1.29/1.06) and the HiLift learning-rate
+  instability of GeoTransolver at 3e-3.
+- **Fixed-angle 5.0x:** "measured against physical-drive baselines;
+  unit-drive rerun pending" (four lanes at about epoch 200 of 500). Never
+  "the advantage is largest at a fixed angle".
+- **UDRV-L (running; lanes 8–15 launched, 16–17 at 1,260 cases queued):**
+  GeoTransolver and Transolver at 210 cases; GeoTransolver at 4 and 21
+  training geometries; GeoTransolver at 1,260 cases. Bars per rung: ISLA
+  advantage only if baseline ÷ ISLA ≥ 1.10 AND ISLA lower on ≥ 2/3 of cases
+  (≥ 12/18 geometries on the geometry rungs); parity 0.95–1.05; baseline
+  ahead ≤ 0.90; between, "a small difference in the stated direction".
+  Prediction: baselines match or beat ISLA at every rung. Until it lands,
+  every HiLift comparison above 35 cases is "against physical-drive
+  baselines; not a valid comparison until the unit-drive rerun".
+- **UDRV-INT (GeoTransolver-volume with U_inf_dir; running):** the interior
+  comparison inherits the confound at 38.9 m/s, 69x smaller in magnitude.
+  Bars: confound present if pressure ≤ 0.0589 or velocity ≤ 0.1267 or ν_t
+  ≤ 0.0892 (5% better than 0.0620/0.1334/0.0939); null if all within 3%.
+  Every interior ratio is stated "pending UDRV-INT". DrivAerML surface:
+  GeoTransolver consumed physical U_inf and still beat ISLA, so its 1.2–1.3x
+  and 8.5% leads are LOWER BOUNDS; write "can only move further in
+  GeoTransolver's favour".
+- **Mechanism sentence (chapter 4 only):** GeoTransolver's global-context
+  projector collapses from ~200 effective slices per head at unit magnitude
+  to one slice at 2,679.5 (context max 1,530); Transolver concatenates the
+  raw vector into every token's features; both still learn slowly from that
+  input at small data, and at 1,260 cases the physical-drive GeoTransolver
+  reached parity anyway.
+- **What stands unchanged:** every ISLA-internal number (ablations, gauge
+  cost, memory, step time, contracts, query-independence price, geometry
+  response, gap-region error concentration); every DrivAerML number (as
+  lower bounds on GeoTransolver's lead); the ~10x regime degradation for
+  both architectures; the interior numbers pending UDRV-INT.
+- **Protocol rule (chapter 4, item 4):** every architecture receives the
+  freestream as the unit direction and, where speed varies, a separately
+  normalized speed channel.
+- **Steel-man controls (CTRL, T1 third seed, INV):** "could not find the
+  artifact because every one of them kept the physical velocity as an
+  input". Never "the result was steel-manned from every side".
 
 - **HLREG result (2026-09-08).** Facing-surface-distance bands (not connected components:
   HiLift boundary meshes are single bodies). GeoTransolver/ISLA ratio near gaps 2.01 (35) /

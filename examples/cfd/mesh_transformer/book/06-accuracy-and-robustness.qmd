@@ -23,9 +23,13 @@ boundary, from attached to separated flow or from low to high angle of
 attack, neither architecture generalizes: both lose about a factor of ten
 (@sec-regime-extrapolation).
 
-This chapter is the full-data counterpart of the data-efficiency result
-in @sec-data-efficiency, where the two architectures separate by 2.2--2.8x
-at 35--210 training cases. Here they do not separate, and the chapter's
+This chapter is the full-data counterpart of the small-data ladder in
+@sec-data-efficiency. On that ladder ISLA's 2.8x and 2.2x leads at 35 and
+210 training cases are measurements against GeoTransolver and Transolver
+fed the physical freestream velocity; with the input matched at unit scale
+the two baselines are 1.1--1.2x more accurate than ISLA at 35 cases, and
+the higher rungs are not yet re-measured (@sec-part-baseline). Here, at
+full data, the architectures do not separate either way, and the chapter's
 job is to say precisely how they do not, what else is true of each at
 that operating point, and where both stop.
 
@@ -69,7 +73,11 @@ GeoTransolver on HiLift and 3e-3 for GeoTransolver on DrivAerML. The
 DrivAerML gap does not depend on that choice: at ISLA's own rate of 1e-3
 GeoTransolver scores 0.0548 (0.0546/0.0550) against ISLA's 0.0577, 1.05x
 ahead, and best-vs-best it is 1.085x ahead (0.0532 at 3e-3 against
-0.0577).
+0.0577). GeoTransolver's DrivAerML lanes received the physical freestream
+velocity (38.9 m/s), the input scale that cost the baselines a factor of
+three at 35 HiLiftAeroML cases (@sec-part-baseline), so its lead on
+DrivAerML is a lower bound: matching the input can only move the ordering
+further in GeoTransolver's favour.
 
 The HiLift parity holds case by case, not only on average. Scoring each
 of the 180 validation cases by each architecture's two-seed mean error
@@ -77,10 +85,15 @@ gives 180 case-level pairs; ISLA has the lower pressure error in 130 of
 them, and in 103 it is lower on both seeds separately. The median
 GeoTransolver/ISLA ratio is 1.06 with an interdecile range of 0.92--1.18,
 and the exact sign test on n = 180 rejects equality (p = 2e-9), so ISLA
-is nominally ahead, but the per-case advantage is a few percent, far
-smaller than the roughly threefold median ratio at 35 training cases
-(@sec-de-paired).^[`results/hilift_paired_stats_case_2026-09-07.json`,
-key `1260`.] In force coefficients on the
+is nominally ahead by a few percent per
+case.^[`results/hilift_paired_stats_case_2026-09-07.json`,
+key `1260`.] The GeoTransolver lane at 1,260 cases is a physical-drive
+lane (@sec-part-baseline): GeoTransolver reached parity with ISLA while
+consuming the 2,679.5 in/s vector that cost it a factor of three at 35
+cases, and its unit-drive rerun at this rung is not yet measured
+(@sec-program-status). At 35 cases, where both inputs have been run, the
+unit-drive GeoTransolver is lower than ISLA on 130 of 180 cases with a
+median ISLA/GeoTransolver ratio of 1.09. In force coefficients on the
 same 180 cases (mean absolute error relative to the mean absolute
 coefficient), ISLA predicts drag to 1.4% and lift to 0.9%, GeoTransolver
 to 1.2% and 0.8%. Both are at the level where the two are
@@ -121,7 +134,13 @@ and 0.148 (9.4x and 3.5x its best of 0.042) where ISLA scores 0.045 and
 HiLift grid ISLA's four results lie in 0.040--0.049 while GeoTransolver's
 lie in 0.041--0.397. The robust architecture is the one whose worst grid
 point is within a factor of two of its best; only ISLA satisfies that on
-either dataset.
+either dataset. Every GeoTransolver point on both grids was trained with
+the physical freestream velocity as its global input (@sec-part-baseline),
+and that input's magnitude is what collapses GeoTransolver's global-context
+routing at initialization; whether its learning-rate sensitivity is a
+property of the architecture or of that input is not yet measured
+(@sec-program-status), so the GeoTransolver figures here are
+physical-drive measurements.
 
 ```{python}
 #| label: fig-lr-robustness
@@ -566,8 +585,8 @@ of the protocol (the token count, the sampled-point supervision, the
 labels) and not of either architecture, and the flattening of ISLA's
 data-efficiency curve toward 1,260 cases (@fig-hilift-data-efficiency)
 would then be the floor asserting itself rather than a property of ISLA.
-GeoTransolver's steeper approach to the same point cannot continue
-below it either.
+The physical-drive GeoTransolver's steeper approach to the same point
+cannot continue below it either.
 
 The direct test is to train both architectures on the 1,260-case split
 at 20,000 tokens per case and ask whether the parity point moves down
@@ -580,26 +599,26 @@ This is also the right place to state what the parity result is and is
 not. It is a two-seed, one-split measurement per dataset that ISLA and
 GeoTransolver reach the same accuracy at 1,260 HiLift cases and differ
 by 8.5% at 435 DrivAerML cars under a fixed protocol. It does not say
-that the two architectures are equivalent, which the 2.2--2.8x gap at
-35--210 cases (@sec-data-efficiency), the robustness columns of
-@tbl-frontier, and the 2.6x interior gap of ISLA's passive decode
-(@sec-interior) each contradict in a different direction. The
-architectures agree at full data because full data lets a flexible model
-learn what a structured one was built to know, and because both then
-run into the same limit; where the data is scarce or the protocol is
-perturbed, they come apart, and @sec-limits collects where each one
-stops.
+that the two architectures are equivalent: at 35 HiLift cases with the
+freestream at unit scale for every model the baselines are 1.1--1.2x more
+accurate than ISLA (@sec-part-baseline), the robustness columns of
+@tbl-frontier separate them, and ISLA's passive decode trails by 2.6x on
+the interior (@sec-interior), each in a different direction. Nor does it
+say what the small-data ordering is above 35 cases: the 2.2x at 210 cases
+of @sec-data-efficiency was measured against physical-drive baselines and
+its unit-drive rerun is not yet measured (@sec-program-status). Where the
+protocol is perturbed the architectures come apart, and @sec-limits
+collects where each one stops.
 
 ## Regime extrapolation: angle of attack and stall {#sec-regime-extrapolation}
 
 **Trained on one flow regime, neither ISLA nor GeoTransolver predicts the
 other.** Crossing from low to high angle of attack, or from attached to
 separated flow, multiplies surface-pressure error by roughly ten for both
-architectures, to a level worse than ISLA reaches from only 35 training
-cases inside the regime. The data-efficiency advantage of
-@sec-data-efficiency does not carry across a regime boundary, and no
-architectural choice tested here substitutes for training data that covers
-the regime.
+architectures, to a level worse than either architecture reaches from only
+35 training cases inside the regime (ISLA 0.138; unit-drive GeoTransolver
+0.124, @sec-part-baseline). No architectural choice tested here substitutes
+for training data that covers the regime.
 
 HiLiftAeroML (@sec-problem, @sec-splits) ships two curated partitions along
 that axis. The **aoa split** trains on 788 cases at angles of attack of 12°
@@ -753,15 +772,20 @@ other than pressure, and it is a two-seed, one-shot measurement.
 Three readings follow, in order of importance. **Neither architecture
 generalizes across a flow-regime boundary:** both lose a factor of about
 ten, from 0.021–0.030 in regime to 0.24–0.33 on the sealed test, and those
-test errors are worse than ISLA reaches from 35 in-regime training cases
-(0.138; @sec-data-efficiency). A model that has seen 788 or 942 cases of
+test errors are worse than either architecture reaches from 35 in-regime
+training cases (ISLA 0.138, unit-drive GeoTransolver 0.124;
+@sec-part-baseline). A model that has seen 788 or 942 cases of
 the wrong regime is less useful than one that has seen 35 cases spanning
 both; coverage of the regime, not architecture, governs this axis, and the
 other fields degrade the same way (sealed-test velocity rel-L2 0.19–0.26
 and wall shear 0.32–0.39 for all eight checkpoints, against 0.04–0.06 and
-0.07–0.10 in regime). **ISLA keeps the lower absolute error on both axes:**
-0.244 against 0.315 on the aoa test and 0.260 against 0.276 on the stall
-test, a GeoTransolver/ISLA advantage of 1.29 and 1.06 that does not invert.
+0.07–0.10 in regime). **ISLA keeps the lower absolute error on both axes
+against the physical-drive GeoTransolver:** 0.244 against 0.315 on the aoa
+test and 0.260 against 0.276 on the stall test, a GeoTransolver/ISLA ratio
+of 1.29 and 1.06 that does not invert. The GeoTransolver regime lanes
+consumed the physical freestream velocity (@sec-part-baseline), so these
+ratios, and the in-regime 0.030 against 0.021, are physical-drive
+measurements; no unit-drive rerun of the regime splits is preregistered.
 **GeoTransolver has the smaller degradation ratio because its in-regime
 floor is higher:** the two converge to similar sealed-test error from
 different starting points (0.030 against 0.021), and a ratio criterion

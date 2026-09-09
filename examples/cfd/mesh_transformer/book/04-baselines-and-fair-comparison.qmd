@@ -10,11 +10,19 @@ parameters as ISLA (9.0M against 8.9M) and receives raw coordinates that ISLA
 never sees. On one GPU and one instrument ISLA's current code peaks at
 1.6 GiB of training memory at 10,000 tokens against GeoTransolver's 4.1 GiB,
 while the ISLA code that trained the checkpoints peaked at 9.3 GiB, and
-ISLA's step is 3.7x slower (@sec-resource-matching). One asymmetry of the protocol is disclosed and
-not yet resolved: the baselines receive the freestream as a physical
-velocity, ISLA as a unit direction (@sec-part-baseline).
-Two questions are settled here so that the results chapters need not carry
-them: ISLA's exact equivariance is *not* an accuracy advantage over a
+ISLA's step is 3.7x slower (@sec-resource-matching). One item of the
+protocol decides more than any architectural choice in this book: the scale
+at which each model receives the freestream. The reference HiLiftAeroML
+lanes fed GeoTransolver and Transolver the physical freestream velocity and
+ISLA a unit direction; retrained with the unit direction, with nothing else
+changed, both baselines are 1.1–1.2x *more* accurate than ISLA at 35
+training cases, where against the physical-velocity lanes they had been 2.8x
+less accurate (@sec-part-baseline). The protocol therefore requires the
+freestream at unit scale for every architecture, and every HiLiftAeroML
+comparison against a physical-velocity baseline is reported as a measurement
+of that protocol, not as a comparison of architectures.
+Two further questions are settled here so that the results chapters need not
+carry them: ISLA's exact equivariance is *not* an accuracy advantage over a
 canonicalized GeoTransolver (exactly pose-invariant at 1.01x cost), and
 learning-rate choice belongs to the protocol because a shared rate would
 have decided the comparison by tuning.
@@ -55,35 +63,74 @@ freestream direction as its only global input, consumed through invariants
 and equivariant anchors only (@sec-mt2): 12 layers, hidden 192, 256 slices,
 8.9M parameters.
 
-**The global input is not delivered at the same numerical scale.** ISLA's
-recipe configuration consumes the unit freestream direction; GeoTransolver's
-and Transolver's consume the physical freestream velocity, which the dataset
-pipelines pass through without normalizing: 2,679.5 in/s on HiLiftAeroML
-(the dataset is in inches and seconds) and 38.9 m/s on DrivAerML. Coordinates
-and fields are nondimensionalized; this one global vector is not.
-GeoTransolver's global-context projector applies linear maps and a slice
-softmax to it directly, and its conditioning depends on the magnitude: with
-the production projector dimensions and untrained weights, the
-entropy-equivalent number of occupied slices per head is 191–232 at drive
-magnitude 1, 1.0–3.8 at 38.9 and 1.00–1.02 at 2,679.5, while the maximum
-context magnitude rises from 0.66 to 22.7 to 1,530
-(results/geotransolver_drive_conditioning_2026-09-08.json). That is a
-verified difference in how the two baselines are conditioned at
-initialization; it is *not* evidence that it explains any trained accuracy
-gap, since training can rescale the projection. The discriminating
-control, GeoTransolver and Transolver trained with the unit direction in
-place of the velocity at 35 cases and on the fixed-angle split with
-everything else frozen, is preregistered (@sec-nb-udrv-prereg) and not yet
-measured (@sec-program-status). Until it reads out, the small-data and
-fixed-angle margins of @sec-data-efficiency are margins over baselines
-conditioned as their recipes ship them. The transplant test of
-@sec-mechanism, which appended invariant features while keeping the raw
-velocity, does not answer this question.
+**The reference lanes did not deliver the global input at the same
+numerical scale, and on HiLiftAeroML that difference, not the architecture,
+produced the baselines' small-data deficit.** ISLA's recipe configuration
+consumes the unit freestream direction; GeoTransolver's and Transolver's
+consume the physical freestream velocity, which the dataset pipelines pass
+through without normalizing: 2,679.5 in/s on HiLiftAeroML (the dataset is
+in inches and seconds) and 38.9 m/s on DrivAerML. Coordinates and fields are
+nondimensionalized; this one global vector is not. GeoTransolver's
+global-context projector applies linear maps and a slice softmax to it
+directly, and its conditioning depends on the magnitude: with the production
+projector dimensions and untrained weights, the entropy-equivalent number of
+occupied slices per head is 191–232 at drive magnitude 1, 1.0–3.8 at 38.9
+and 1.00–1.02 at 2,679.5, while the maximum context magnitude rises from
+0.66 to 22.7 to 1,530 (results/geotransolver_drive_conditioning_2026-09-08.json);
+Transolver concatenates the raw vector into every point's features. Training
+can in principle rescale either path, so the conditioning difference alone
+proves nothing about a trained model; the trained control settles it.
+
+The control (preregistered at @sec-nb-udrv-prereg, verdict at
+@sec-nb-udrv-verdict) retrained both baselines at 35 HiLiftAeroML training
+cases with the unit direction in place of the velocity, a one-line
+configuration override with the same cases, seeds, budget and learning rates
+as the reference lanes (GeoTransolver 1e-3, Transolver 3e-3).
+Surface-pressure relative L2 on the 180 shared validation cases, two-seed
+means: GeoTransolver 0.124 (0.124, 0.125), against 0.381 with the physical
+velocity (three seeds 0.374, 0.409, 0.359) and ISLA's 0.138 (0.135, 0.141,
+0.138); Transolver 0.115 (0.117, 0.113), against 0.404 and the same 0.138.
+The preregistered bars for "the input scale carries a material part of the
+deficit" were 0.27 and 0.29; both arms passed far beyond them, and both
+unit-drive baselines are more accurate than ISLA: GeoTransolver ÷ ISLA
+0.90, Transolver ÷ ISLA 0.83. Paired per case, with each case scored by
+each model's seed-mean error, GeoTransolver is lower than ISLA on 130 of
+180 cases (84 of the 118 geometries; median ISLA ÷ GeoTransolver 1.09,
+10–90% range 0.90–1.43; exact sign test p = 2e-9) and Transolver on 152 of
+180 (102 of 118 geometries; median 1.17, 0.98–1.58; p = 8e-22). Against its
+own physical-velocity lane each unit-drive baseline is lower on 180 of 180
+cases (median factor 3.4 for GeoTransolver, 3.8 for Transolver). Velocity
+and wall shear move the same way: GeoTransolver 0.145 and 0.229, Transolver
+0.140 and 0.216, ISLA 0.168 and 0.256
+(results/udrv_reduction_2026-09-09.json).
+
+Three consequences are fixed by this result. First, the baselines'
+small-data deficit on HiLiftAeroML was an input-scaling artifact of the
+comparison protocol; the physical-velocity lanes remain valid measurements
+of what GeoTransolver and Transolver do when fed a vector of magnitude
+2,679.5, and nothing else. Second, the unit-drive baseline is the reference
+baseline, and every HiLiftAeroML comparison in this book that has not yet
+been re-measured against it, the 210- and 1,260-case rungs, the 4- and
+21-geometry rungs and the fixed-angle split (@sec-data-efficiency), is
+stated as a comparison against physical-velocity baselines that is not yet
+a comparison of architectures; the reruns are preregistered
+(@sec-nb-udrvl-prereg) and not yet measured (@sec-program-status). Third,
+the controls that had been run in the baselines' favour could not have
+found this: the learning-rate and training-length controls of
+@sec-data-efficiency varied the optimizer and the transplant test of
+@sec-mechanism appended invariant features, and all of them kept the
+physical velocity as an input. On DrivAerML the asymmetry runs the other
+way. GeoTransolver's surface lanes consumed the physical velocity (38.9 m/s,
+where the projector's collapse at initialization is partial) and lead ISLA
+anyway (@sec-full-data), so its lead there is a lower bound;
+GeoTransolver's volume configuration on the interior task consumes the same
+vector, and the interior comparison's control (@sec-nb-udrv-int-prereg) is
+not yet measured.
 
 | architecture | per-point inputs | global input | layers | hidden | slices | parameters | peak memory at 10k tokens |
 |---|---|---|--:|--:|--:|--:|--:|
-| GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream velocity vector (physical units) | 12 | 256 | 256 | 9.0M | 4.1 GiB |
-| Transolver | centered coordinates, unit normal | freestream velocity vector (physical units), broadcast per point | 8 | 256 | 256 | 6.0M | not measured |
+| GeoTransolver | centered coordinates, unit normal; coordinates again through the geometry encoder | freestream vector: physical velocity in the reference HiLiftAeroML and DrivAerML lanes; unit direction in the unit-drive lanes, which are the valid comparison | 12 | 256 | 256 | 9.0M | 4.1 GiB |
+| Transolver | centered coordinates, unit normal | freestream vector, broadcast per point: physical velocity in the reference HiLiftAeroML lanes; unit direction in the unit-drive lanes, which are the valid comparison | 8 | 256 | 256 | 6.0M | not measured |
 | ISLA | position, unit normal, cell area (via invariants and anchors only) | unit freestream direction | 12 | 192 | 256 | 8.9M | 1.6 GiB current code; 9.3 GiB as trained |
 
 : The three architectures compared on the aerodynamic datasets. *Per-point
@@ -128,17 +175,27 @@ Datasets and splits are defined in @sec-problem, the metric in @sec-metrics.
    210-case rungs and is reported at the better of the two per rung (3e-3 at
    both), a choice that favours the baseline (@sec-data-efficiency). Choosing after seeing
    ladder results would let the tuning budget set the gap (@sec-lr-protocol).
-4. **Two or more seeds per cell, reported individually.** Seed spread is
+4. **Every architecture receives the freestream as the unit direction**,
+   and, on a dataset whose speed varies between cases, a separately
+   normalized speed channel alongside it. Global inputs are not
+   nondimensionalized by the dataset pipelines, and a raw physical velocity
+   of 2,679.5 in/s costs GeoTransolver and Transolver a factor of about
+   three at 35 HiLiftAeroML cases (@sec-part-baseline). The reference
+   HiLiftAeroML lanes were run before this rule existed, with the physical
+   velocity; the comparisons they support are labelled physical-drive and
+   are re-measured against unit-drive baselines rung by rung
+   (@sec-program-status).
+5. **Two or more seeds per cell, reported individually.** Seed spread is
    the only noise estimate at 48 or 180 validation cases; every ratio is
    quoted with both seeds so the reader can see whether it exceeds the
    spread.
-5. **Shared validation cases.** All architectures are scored on the same
+6. **Shared validation cases.** All architectures are scored on the same
    180 HiLiftAeroML cases or 48 DrivAerML cars, sampled with the same seed.
-6. **Paired per-case statistics where a ratio is claimed.** A ratio of
+7. **Paired per-case statistics where a ratio is claimed.** A ratio of
    means can be carried by a few cases, so the count of validation cases on
    which one architecture is more accurate, with median and worst-decile
    per-case ratios, is reported alongside (@sec-data-efficiency).
-7. **Sealed test splits evaluated once.** The 360-case HiLiftAeroML test
+8. **Sealed test splits evaluated once.** The 360-case HiLiftAeroML test
    set and the regime-extrapolation test lists (@sec-regime-extrapolation)
    are taken verbatim from the dataset manifest and evaluated a single time.
    "Sealed" is a per-checkpoint property (no model is scored on a case it
@@ -146,7 +203,7 @@ Datasets and splits are defined in @sec-problem, the metric in @sec-metrics.
    (@sec-splits) and the regime-extrapolation tests already read every
    geometry, so no later HiLiftAeroML test evaluation is an independent
    confirmation of the program's choices (@sec-limits-validation).
-8. **Preregistered bars.** Each experiment states, in readout units and
+9. **Preregistered bars.** Each experiment states, in readout units and
    before it runs, the value that confirms and the value that refutes.
 
 ### One instrument per dataset {#sec-review-instrument}
@@ -344,7 +401,12 @@ both are best at 1e-3, where they are at parity (@sec-full-data); at 3e-3
 GeoTransolver destabilizes to 0.148 and 0.397, a 6.5x degradation of the
 seed mean, while ISLA moves from 0.040/0.043 to 0.045/0.049, a 1.14x
 degradation, so its four grid points across both rates and both seeds span
-0.040–0.049^[`results/highlift_wave_reduction.json`].
+0.040–0.049^[`results/highlift_wave_reduction.json`]. Both grids were run
+with the baselines' physical-velocity input (@sec-part-baseline); whether
+GeoTransolver's instability at the higher rate persists when it receives the
+unit direction is not yet measured (@sec-program-status), so the
+learning-rate sensitivity figures for GeoTransolver are physical-drive
+measurements.
 
 Two consequences are built into the protocol. First, because GeoTransolver's
 best rate differs between datasets (3e-3 on DrivAerML, 1e-3 on HiLiftAeroML),
@@ -356,7 +418,10 @@ read 1.19x (ISLA 0.0633), and at a common 1e-3 on DrivAerML GeoTransolver
 0.0548 is 1.05x ahead of ISLA's 0.0577 (@sec-full-data). Second, the rate is
 chosen once and frozen for every
 smaller split: retuning at 35 or 210 training cases would hand the baseline
-search that ISLA did not get, and the steel-man controls in
+search that ISLA did not get. The steel-man controls in
 @sec-data-efficiency (GeoTransolver at 3e-3 and at 1,000 epochs on the small
-splits) confirm that the frozen rate does not produce the data-efficiency
-gap.
+splits, and a third seed) showed that neither the frozen rate nor the
+training length produced the physical-drive gap at 35 cases; they could not
+find what did, because every one of them kept the physical velocity as an
+input, and a control that holds the decisive variable fixed cannot detect
+it (@sec-part-baseline).
