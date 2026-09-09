@@ -9317,8 +9317,10 @@ measured once, at 35 HiLift cases. Before the reference configuration
 changes, it must hold where the variance argument predicts a smaller effect
 (more training cases average the quadrature noise) and on a mesh with a
 different area distribution (DrivAerML). Two lanes each: HiLift 210 cases
-(`a35_hl_mt2_noweights_scarce_seed{42,43}`, wave-2 rows 42–43, launched
-now, jobs 689985/689986; reference ISLA 0.065, three seeds 0.062–0.067) and
+(`a35_hl_mt2_noweights_scarce_seed{42,43}`, wave-2 rows 42–43, jobs
+689985/689986, submitted and held until the 510-case rung frees nodes, the
+program being at its 32-node budget with the interior track's lanes;
+reference ISLA 0.065, three seeds 0.062–0.067) and
 DrivAerML 435 cars (`now_mt2_lr1e3_seed{42,43}`, launcher nowt_aga.sbatch
 from the reference lanes' own code snapshot; reference 0.0577, seeds
 0.0588/0.0567; to launch when the 510-case rung frees nodes). Everything
