@@ -9557,3 +9557,52 @@ HiLift rungs are now re-measured with unit-drive baselines (35 cases, the
 fixed angle, four geometries); at all three the baselines match or beat ISLA
 by the mean. Remaining: 210 cases (GeoTransolver and Transolver), 21
 geometries, 1,260 cases, and the deflection and floor replacements.
+
+## 2026-09-09 — Preregistered and launched: WAVE-3, completing the fair-comparison picture in one pass (unit-drive baselines on every rung and dataset, ISLA weights-off on every rung, third seeds, steel-men for the new baselines) {#sec-nb-wave3-prereg}
+
+**Why one wave.** The cluster has idle capacity and the program's open
+comparisons are all cheap, well-defined lanes whose bars are already
+written. Running them serially would take weeks for no scientific reason.
+Every lane below is the frozen ladder protocol (10,000 sampled points, 500
+epochs, bf16, no augmentation, final checkpoint, each split's own
+validation set) with the drive at unit scale for every architecture, and
+differs from an existing lane in exactly one declared way. Launch
+increases the program to about 66 GPU nodes.
+
+**Arms and bars.**
+
+1. *ISLA weights off on every rung* (`now_hl_mt2_<split>_seed{42,43}` for
+   the 1,260-case, 4-geometry, 21-geometry, fixed-angle and deflection
+   splits; plus a third seed 44 at 35 cases). Bars per rung as in
+   @sec-nb-noweights-prereg: persists if ≥ 5% better than weighted ISLA,
+   fades if within 3%. If weights-off persists at ≥ 4 of 6 rungs, it becomes
+   ISLA's reference configuration for accuracy and every ISLA-versus-baseline
+   statement is made with it.
+2. *Unit-drive Transolver on the rungs it lacks* (4 geometries, 21
+   geometries, 1,260 cases; lr 3e-3; seeds 42/43). Bars: the UDRV-L bars
+   (ISLA advantage only if baseline ÷ ISLA ≥ 1.10 with two thirds of cases;
+   parity 0.95–1.05; baseline ahead ≤ 0.90).
+3. *Third seeds (44) for the unit-drive GeoTransolver and Transolver at 35
+   and 210 cases*: no bar; the seed spread is reported and every two-seed
+   statement at those rungs becomes three-seed.
+4. *Steel-men for the new baselines at 35 cases*: unit-drive GeoTransolver
+   at lr 3e-3 and unit-drive Transolver at lr 1e-3, seeds 42/43. Per the
+   protocol's best-learning-rate rule, a rung's baseline number moves to the
+   better rate if it improves by ≥ 5% (GeoTransolver ≤ 0.118, Transolver
+   ≤ 0.109); the comparison is then restated at that rate.
+5. *DrivAerML unit-drive baselines at 435 cars* (`uw_gt_unit_lr1e3_seed{42,43,44}`;
+   `uw_transolver_unit_lr{1e3,3e3}_seed{42,43}`, Transolver's first DrivAerML
+   lanes, both rates because it has no prior on this dataset; plus ISLA's
+   third seed `iw_mt2_lr1e3_seed44`). Bars: the GeoTransolver confound is
+   present if the unit-drive lane beats the physical-drive 0.0548 by ≥ 5%
+   (≤ 0.0521), null within 3%; Transolver is reported at its better rate
+   against ISLA (0.0577) with the UDRV-L bands.
+6. *Interior third seeds*: ISLA query tokens + SDF seed 44 and unit-drive
+   GeoTransolver-volume seed 44 (interior bars unchanged; spread reported).
+
+The pose-varying benchmark (POSE-BENCH, @sec-nb-pose-qcount-plan) launches
+in parallel from a separate worktree with its own preregistration entry.
+Launchers: HiLift lanes as rows 44–68 of highlift/wave2_lanes.tsv
+(hl_wave2_aga.sbatch); DrivAerML lanes uw_aga.sbatch (cloned from
+instwave_aga.sbatch); interior seeds through v0/v0_qt2_aga.sbatch lane 2 and
+v0/v0_udrvint_aga.sbatch lane 2.
