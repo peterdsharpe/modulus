@@ -82,3 +82,87 @@ claim must state the pressure reference. Spatial: the gap is a genuine field
 error; the offset hypothesis is closed and D1/D2 proceed on their own
 merits. Either way the readout is descriptive: target labels are used only
 to diagnose, never to correct predictions.
+
+## 2026-09-09 — Verdict: C1 spatial — the zero-shot fastback error is a field error, not a pressure-reference offset (offset share 1.5–2.6% for ISLA, 3.0–3.2% for GeoTransolver) {#sec-nb-c1-verdict}
+
+**Readout** (@sec-nb-c1-prereg; `studies/controls/pressure_offset_2026-09-09.json`;
+99 fastback cases, 48 DrivAerML validation cars; seed-mean predictions;
+the GeoTransolver source-only and in-family arms use seeds 45 and 46 because
+the seed 42–44 predictions of the historical reduction are no longer on
+disk, the configuration being identical). Relative errors are on gauge
+pressure about the area-weighted case mean, so their scale differs from the
+program book's standardized metric; ratios between arms agree with it.
+
+| arm | seeds | rel. L2 (full error) | rel. L2 (offset removed) | offset share of area-weighted squared error | offset ÷ true RMS | force rel. error | force rel. error, offset removed |
+|---|---|---|---|---|---|---|---|
+| ISLA, DrivAerML only → fastback | 3 | 1.015 | 1.019 | 1.5% | +0.135 | 1.63 | 1.64 |
+| GeoTransolver, DrivAerML only → fastback | 2 | 0.786 | 0.785 | 3.0% | +0.134 | 1.39 | 1.39 |
+| ISLA, + estate → fastback | 3 | 0.121 | 0.121 | 0.8% | -0.014 | 0.28 | 0.28 |
+| GeoTransolver, + estate → fastback | 3 | 0.101 | 0.101 | 0.2% | -0.004 | 0.20 | 0.20 |
+| ISLA, DrivAerML in-family | 3 | 0.093 | 0.093 | 0.4% | +0.000 | 0.04 | 0.04 |
+| GeoTransolver, DrivAerML in-family | 2 | 0.085 | 0.085 | 0.2% | -0.000 | 0.04 | 0.04 |
+
+: Surface closedness |Σ a n| / Σ a is 0.024 on the fastback meshes and 0.022
+on DrivAerML, so the pressure-force integral is well defined and a constant
+offset cannot move it by more than 2.4% of its magnitude; the force columns
+agree to that accuracy.
+
+**Verdict: spatial, for both architectures.** The constant carries 1.5%
+(ISLA) and 3.0% (GeoTransolver) of the source-only squared error by the
+median over cases (2.6% and 3.2% by the mean), far below the 20% floor of the
+"spatial" band; removing it changes the relative error by under 1%. The in-family arms pass the instrument check (offset share
+under 1%). The offsets that do exist are small and of the same sign for
+both models (+0.14 of the true field's RMS), which is consistent with a
+modest difference of pressure reference between the datasets but explains
+none of the gap. The transfer failure is a spatial field error, and it is
+also a force error: 1.6x (ISLA) and 1.4x (GeoTransolver) of the true force
+magnitude against 0.04 in-family, falling to 0.28 and 0.20 when the estate
+family joins training.
+
+**What it changes.** The pressure-reference hypothesis is closed. The
+compound physical-condition mismatch between the datasets (ground and wheel
+motion, freestream speed, solver formulation) remains the leading
+explanation that is not about architecture, and C3 tests its logic on an
+exactly specified problem. Any transfer claim in this program states the
+force error alongside the field error, since a field error of 0.9 is a force
+error above 100%.
+
+## 2026-09-09 — Verdict: D4 stops — a free geometric coarse grid beats a frozen source-fitted correction space on every held-out elliptic system {#sec-nb-d4-verdict}
+
+The solver-space probe (`studies/solver_spaces/`, preregistered in its
+`PREREG.md` before the run, 47 s on one CPU) compared a frozen proper
+orthogonal decomposition of smoother-resistant source errors against
+equal-dimension classical coarse spaces on 2D finite-element diffusion
+systems with holes, under within-family, topology and coefficient shifts.
+The frozen space left 0.75–0.96 of the slow-mode error where the geometric
+coarse grid left 0.47–0.73 (ratios 0.62–0.76 against bars of 2.0 and 1.5),
+and complete solves with it cost 19–72% *more* work than with the classical
+space; the per-target oracle decomposition lost to the grid as well. The
+mechanism is that solution snapshots span the right-hand sides seen at the
+source geometries, not the operator's slow subspace, which for an elliptic
+operator under a point smoother is generic smoothness and comes free. The
+convection–diffusion variant was uninformative at mesh Péclet 0.5 and is
+recorded as not measured. Chapter @sec-solver-spaces has the tables; the
+direction's only remaining homes are operator classes where classical
+coarse spaces fail, and learned smoothers or prolongations on a classical
+hierarchy, both behind prerequisite gates (@sec-classical-solvers).
+
+## 2026-09-09 — C2, source-only normalization: audited from the configurations, one item flagged {#sec-nb-c2-verdict}
+
+Both transfer dataset configurations (`drivaer_ml_surface.yaml`,
+`shift_suv_fastback_surface.yaml`) nondimensionalize pressure and wall shear
+by each case's own metadata (dynamic pressure) with no shift, and normalize
+wall shear by a declared per-dataset constant (standard deviation 0.00313
+for DrivAerML, 0.00183 for SHIFT-SUV; zero mean). Inference denormalizes
+predictions with the statistics saved at training time (source-side), and
+the relative L2 metric is invariant to a common scale, so the differing wall
+shear constants do not bias the reported relative errors; they would bias
+any absolute or mixed-field loss. Pressure carries no normalization
+constant beyond the physical nondimensionalization, so the C1 result is not
+a normalization artifact either. Flagged: the wall-shear constant is
+target-side in the target configuration (a statistic of SHIFT-SUV chosen
+when its config was written); for a zero-shot protocol the target
+configuration should carry the source's constant, which changes nothing
+for relative metrics and is recorded here as a protocol rule. Verdict:
+normalizations are source-only in effect for the reported metrics; one
+declared-constant hygiene item.
