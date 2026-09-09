@@ -9640,3 +9640,118 @@ reference that matters and is training. The NOW-L decision (reference
 configuration change) waits for the 210-case HiLift rung
 (`a35_hl_mt2_noweights_scarce_seed{42,43}`, epoch ~110) and the WAVE-3
 weights-off ladder; the rule stays "persists at ≥ 4 of 6 rungs".
+
+## 2026-09-09 — Preregistered: SCALE, width and token-count scaling of ISLA, GeoTransolver and Transolver at full data on both datasets {#sec-nb-scale-prereg}
+
+**Why now.** Every lane in the program runs under 20 GB on a 288 GB
+device: the frozen protocol's operating point (about 9M parameters, 10,000
+sampled cells per case) was chosen for an earlier cluster, and the accuracy
+ordering the book reports has only ever been measured there. Whether the
+ordering, the absolute errors and the cost frontier change when the models
+are given the memory they have is an open question with an idle cluster
+able to answer it in days.
+
+**Design.** Full-data splits only, where capacity can matter (HiLiftAeroML
+1,260 cases; DrivAerML 435 cars), every architecture with the freestream at
+unit scale, the frozen protocol otherwise (500 epochs, bf16, no
+augmentation, final checkpoint, the reference learning rates 1e-3 for
+ISLA and GeoTransolver, 3e-3 for Transolver, two seeds). Per architecture
+and dataset, five arms against the existing or running reference arm
+(reference width, 10,000 cells):
+
+| arm | ISLA (`model.hidden`) | GeoTransolver (`model.n_hidden`) | Transolver (`model.n_hidden`) | cells per case |
+|---|---|---|---|---|
+| reference | 192 (8.9M) | 256 (9.0M) | 256 (6.0M) | 10,000 |
+| width ×2 | 384 | 384 | 384 | 10,000 |
+| width ×2.7 | 512 | 512 | 512 | 10,000 |
+| tokens ×4 | 192 | 256 | 256 | 40,000 |
+| tokens ×8 | 192 | 256 | 256 | 80,000 |
+| corner | 384 | 384 | 384 | 40,000 |
+
+Sixty lanes (3 architectures × 2 datasets × 5 arms × 2 seeds), plus four
+ISLA lanes at width 384 with the routing measure weights off (both datasets,
+two seeds) so that width is not confounded with the weights-off configuration
+that NOW-L is measuring; every other ISLA arm runs with the reference
+weights-on configuration. ISLA arms run from the code snapshot at 52eb29ec5
+(default forward bitwise the reference model) with the exact activation
+recompute enabled on the 40,000- and 80,000-cell arms; the existing
+20,000-cell lanes (floor_hl_mt2_full_20k_seed{42,43}, udrv_hl_gt_full_20k_seed{42,43})
+are the 20k rung of the token ladder. Learning
+rates are not retuned for width; a run that diverges is reported as a
+divergence at the protocol rate, not silently retuned. Each arm records
+parameters, peak memory and step time from its own training log, so every
+accuracy point carries its cost.
+
+**Readouts and bars, in the validation pressure relative L2 of each
+dataset.** Let e_ref be the reference arm's two-seed mean for an
+architecture on a dataset (HiLift: ISLA 0.041, unit-drive GeoTransolver and
+Transolver from UDRV-L lanes 16–17 and wave-3 rows 58–59; DrivAerML: ISLA
+0.0577, unit-drive GeoTransolver and Transolver from the uw lanes).
+
+1. *Width scales* for an architecture on a dataset if the 512-wide arm is
+   ≥ 5% better than e_ref; *saturated* if within 3%; between, reported.
+2. *Resolution-limited* if the 80,000-cell arm is ≥ 5% better than e_ref at
+   the reference width; *sample-limited* if within 3%.
+3. *Scale changes the ordering*: with r = (baseline ÷ ISLA) at matched arm,
+   scale *favours ISLA* if r at the corner arm exceeds r at the reference by
+   ≥ 0.05; *favours the baselines* if it falls by ≥ 0.05; otherwise the
+   ordering is scale-independent over this range.
+4. *Cost frontier*: for each architecture the (GPU-hours, error) points of
+   its six configurations; the useful statement is which architecture
+   reaches a given error cheapest, read off the frontier, not the endpoint.
+
+**Consequences.** If width or tokens move errors by more than 5% for the
+baselines but not ISLA (or the reverse), the book's accuracy ordering is
+labelled as an ordering at 9M parameters and 10,000 cells and the
+recommendation section gains a scale clause. If everything saturates within
+3%, the protocol's operating point is vindicated as data-limited and the
+program's next data investment, not its next model, is the lever.
+
+**Ownership.** One agent per architecture runs its twenty lanes from its
+own lane table and launcher (highlift/scale_lanes_<arch>.tsv,
+highlift/hl_scale_<arch>_aga.sbatch cloned from hl_wave2_aga.sbatch), after
+a ten-minute probe of its three heaviest configurations for memory and step
+time; verdict entries per architecture follow, and one synthesis entry.
+Job-name prefix scale-<arch>-; run ids scale_<arch>_<dataset>_<arm>_seed<s>.
+
+## 2026-09-09 — SCALE launched: 64 lanes accepted; the cost half of the study is already measured, and it is step time, not memory, that scales {#sec-nb-scale-launch}
+
+**State.** Every lane of @sec-nb-scale-prereg is training (ISLA 24, including
+the weights-off pair; GeoTransolver 20; Transolver 20), each after a first-link
+acceptance check of steps advancing, memory recorded and no fault. The
+per-architecture agents' own launch entries carry the per-lane detail
+(@sec-nb-scale-isla-launch, @sec-nb-scale-gt-launch).
+
+**What the first links measured** (four GPUs per lane, bf16, peak memory
+per GPU from the training log; reference operating point 10,000 cells):
+
+| architecture | arm | parameters | peak memory | step time | projected wall time (HiLift 1,260) |
+|---|---|---|---|---|---|
+| ISLA | width 512 | 60.2M | 6.1 GB | 1.28 s | ~2.3 days |
+| ISLA | 80,000 cells (exact recompute) | 8.9M | 13.0 GB | 3.44 s | ~6.3 days |
+| GeoTransolver | width 512 | — | 6.0 GB | 0.15 s | hours |
+| GeoTransolver | 80,000 cells | — | 31.9 GB | 0.19 s | ~7 hours |
+| Transolver | width 512 | — | 4.2 GB | 0.08 s | hours |
+| Transolver | 80,000 cells | — | 22 GB | 0.10 s | hours |
+
+No configuration in the grid exceeds 32 GB of the 288 GB available, so the
+study is bounded by step time, not memory. The two baselines' step times are
+nearly flat in both width and token count at this scale (their attention is
+over 256 slices, so the token dimension enters only through linear
+projections); ISLA's grows about 5.6x from width 192 to 512 and about 15x
+from 10,000 to 80,000 cells, because its per-slice relational geometry
+(points × slices × 8 invariants per layer) scales with tokens and the
+per-token MLP with width. Whatever the accuracy half of the study returns,
+the cost frontier (bar 4) will be read against this: at 80,000 cells the
+baselines complete an epoch in the time ISLA completes a fraction of one,
+and the sparse-routing route to closing that gap was already measured as
+not worth it (@sec-nb-sparse-routing-verdict). The remaining speed lever is
+kernel-level (a fused slice-block kernel), which is an engineering item, not
+a research node.
+
+**Next.** Each agent evaluates its lanes as they train, reduces, and writes
+its verdict on bars 1–2; the coordinator writes the cross-architecture
+synthesis on bars 3–4 when all three are in. The heaviest ISLA arm sets the
+study's horizon (about six days); the GeoTransolver and Transolver grids and
+the ISLA width arms land within a day, so a partial synthesis at that point
+covers width scaling fully and the token ladder up to 40,000 cells.
