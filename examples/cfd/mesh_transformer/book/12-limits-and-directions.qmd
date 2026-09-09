@@ -287,9 +287,10 @@ measurement of that protocol until its unit-drive rerun is measured
 (@sec-program-status). On the fixed-angle split (126 geometries at 12°,
 validated on 18 geometries never seen at any angle) ISLA scores 0.036
 against 0.179 for the physical-drive GeoTransolver (5.0x, 18 of 18
-geometries) and 0.091 for the physical-drive Transolver (2.55x), with
-GeoTransolver at learning rate 3e-3 worse still (0.280); the unit-drive
-reruns of both baselines on this split are not yet measured. On the
+geometries) and 0.091 for the physical-drive Transolver (2.55x); the
+unit-drive reruns of both baselines reverse the ordering, 0.029 and 0.032,
+each ahead of ISLA on 18 of 18 geometries (@sec-nb-udrv-single-verdict), so
+the fixed-angle rung is measured and ISLA is behind. On the
 unseen-geometry ladder ISLA scores 0.250 against the physical-drive
 GeoTransolver's 0.449 from four training geometries (1.8x; 172 of 180
 cases, which are 18 geometries at ten angles, so the geometry is the

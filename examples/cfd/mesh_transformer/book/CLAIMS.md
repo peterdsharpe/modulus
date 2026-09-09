@@ -858,3 +858,9 @@ interior control @sec-nb-udrv-int-prereg.
   result does not depend measurably on the surface sample size (365 vs 10,000 cells)";
   never "ISLA ignores the surface" (a zero-surface control was not run). The 365-cell
   numbers remain the chapter's headline numbers; the 10k numbers are the confirmation.
+
+- **UDRV fixed angle (2026-09-09).** Unit-drive GeoTransolver 0.0291 (0.0294/0.0289) and
+  Transolver 0.0317 (0.0318/0.0316) vs ISLA 0.0358 at 126 geometries, 12°; each ahead on
+  18/18 held-out geometries (median per-geometry ISLA÷GT 1.24, ISLA÷T 1.13; p = 8e-6).
+  Write "ISLA behind, 0.81x / 0.89x"; the 5.0x is a physical-drive measurement only and is
+  never quoted as an ISLA advantage. Artifact results/udrv_reduction_2026-09-09b.json.

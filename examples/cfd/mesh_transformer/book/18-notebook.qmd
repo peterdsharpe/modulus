@@ -9181,3 +9181,42 @@ frees nodes.
 (@sec-nb-w2-prereg, arm H) keeps its bars with the unit-drive GeoTransolver
 as the reference arm; the floor test (arm C) likewise. Neither is evaluated
 against the stopped physical-drive arms.
+
+## 2026-09-09 — UDRV verdict, fixed angle: unit-drive GeoTransolver (0.029) and Transolver (0.032) beat ISLA (0.036) on 18 of 18 never-seen geometries; the 5.0x was the input scale {#sec-nb-udrv-single-verdict}
+
+**Setting and bars** (@sec-nb-udrv-prereg, lanes 4–7). The `single_aoa_12`
+split: 126 geometries at 12°, validated on 18 geometries never seen at any
+angle. Against the physical-drive GeoTransolver (0.175 / 0.183) ISLA's
+0.035 / 0.036 had been the program's largest factor, 5.0x on 18 of 18
+geometries. Bars for the unit-drive reruns: GeoTransolver *supported*
+(input scale carried the gap) if ≤ 0.105, *null* if ≥ 0.165; Transolver
+≤ 0.067 / ≥ 0.082.
+
+**Readout** (results/udrv_reduction_2026-09-09b.json; two seeds each; 18
+validation geometries, one case each):
+
+| arm | pressure (seeds → mean) | velocity | wall shear | ÷ ISLA | geometries where the arm is lower than ISLA |
+|---|---|---|---|---|---|
+| ISLA | 0.0354 / 0.0363 → 0.0358 | 0.0653 | 0.1062 | 1.00 | — |
+| GeoTransolver, physical velocity | 0.1749 / 0.1829 → 0.1789 | 0.1899 | 0.3113 | 5.0x behind | 0 of 18 |
+| GeoTransolver, unit direction | 0.0294 / 0.0289 → **0.0291** | **0.0532** | **0.0865** | **0.81x (ahead)** | **18 of 18** (median ISLA ÷ GT 1.24, 10–90% 1.06–1.36) |
+| Transolver, physical velocity (lr 3e-3) | 0.0872 / 0.0955 → 0.0913 | 0.1166 | 0.1939 | 2.55x behind | 0 of 18 |
+| Transolver, unit direction (lr 3e-3) | 0.0318 / 0.0316 → **0.0317** | **0.0585** | **0.0970** | **0.89x (ahead)** | **18 of 18** (median 1.13, 1.06–1.21) |
+
+The unit-drive GeoTransolver is 6.2x more accurate than its physical-drive
+twin on every one of the 18 geometries (median per-geometry factor 6.2,
+range 5.0–7.5). Seeds agree to 2% (GeoTransolver) and 1% (Transolver).
+
+**Verdict: supported for both arms, far past the bars, and the ordering
+reverses.** With the drive at unit scale both baselines are more accurate
+than ISLA on every held-out geometry, on all three fields. The
+geometry-generalization reading of the fixed-angle result is falsified: a
+GeoTransolver with a usable drive input generalizes across 126 high-lift
+geometries better than ISLA does from the same data. Of the six HiLift
+rungs, two are now measured with unit-drive baselines (35 cases and the
+fixed angle) and both show the baselines ahead; the prediction of
+@sec-nb-udrvl-prereg stands for the remaining four. Book changes: chapter
+5's fixed-angle passage, the index text and verdict table, chapter 12's
+mechanism limit and CLAIMS carry the reversal; the exact sign test on 18
+geometries gives p = 2 / 2¹⁸ = 8 × 10⁻⁶ (the reducer prints 0.0). Tech-tree
+change: UDRV fixed-angle lanes DONE.

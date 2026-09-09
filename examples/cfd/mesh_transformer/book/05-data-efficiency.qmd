@@ -9,7 +9,7 @@ are retrained with the unit direction and nothing else changed they are
 the second reports the control that found the artifact
 (@sec-de-unit-drive), and the remaining sections report the physical-drive
 ladder as the measurement it is: the 2.8x, the 2.2x at 210 cases, the
-paired per-case counts, the unseen-geometry factors, the fixed-angle 5.0x
+paired per-case counts, the unseen-geometry factors, the fixed-angle figure
 and the force-coefficient errors are all against physical-drive baselines,
 and their unit-drive counterparts above 35 cases are training
 (@sec-program-status; prediction written before the rerun: the baselines
@@ -697,55 +697,47 @@ the physical velocity as the global input, so both baselines carried the
 artefact through the test; the one baseline-side change that closes the
 gap is the drive scale (@sec-de-unit-drive).
 
-The single-angle split locates the physical-drive gap. The dataset's
-`single_aoa_12` split holds 126 geometries at one angle of attack (12°) and
-validates on 18 geometries never seen at any angle. If ISLA's margin came
-from representing the freestream-direction dependence, it should vanish
-here; the preregistered bar was GeoTransolver/ISLA ≤ 1.25, with ≥ 1.67 as
-the falsifier. Measured: ISLA 0.035 / 0.036 against the physical-drive
-GeoTransolver's 0.175 / 0.183 — **5.0x**, on 18 of 18 held-out geometries
-(per-geometry ratios 4.0–6.4; the geometry is the unit here, and 18 of 18
-is the strongest ordering the design allows), with lift to 0.6% and drag to
-1.6% against 2.0% and 3.9%, all against the sampled-cell label integral
-(@sec-de-forces).^[`results/w2_reduction_2026-09-07.json`, arm
-`D_single_aoa_12`.] Fixing the angle makes the physical-drive gap *larger*,
-not smaller: the matched-size mixed-angle control (126 cases at all angles,
-the shared 180-case validation set) gives ISLA 0.077 and the physical-drive
-GeoTransolver 0.226 (3.0x), so fixing the angle halves ISLA's error at
-equal training-set size and leaves that GeoTransolver's nearly unchanged.
-That ISLA reaches 0.035 from 126 single-angle cases is a statement about
-ISLA and stands. The reading it invites — that ISLA generalizes across
-high-lift *geometries*, flap and slat settings and the gaps between
-elements, where GeoTransolver from 126 distinct geometries at one operating
-point has not begun to — does not stand: a GeoTransolver whose
-global-context projector is collapsed by the input magnitude cannot use the
-126 geometries it is shown, and its 0.18 here, where it also sits at 35
-mixed cases, is what such a model produces (@sec-de-unit-drive). The
-unit-drive GeoTransolver on this split decides the rung
-(@sec-nb-udrvl-prereg). Plain Transolver on the same split, also fed the
-physical velocity, scores 0.087 and 0.096 (mean 0.091): 1.96x ahead of
-GeoTransolver and 2.55x behind ISLA, so about two fifths of GeoTransolver's
-fixed-angle deficit (in log-error) is the difference between the two
-baselines and the remaining 2.5x is common to both
-(results/w2_reduction_2026-09-08b.json, arm `D_single_aoa_12_transolver`;
-preregistered bands at 2.0x and 3.5x, so the split between the two is
-measured, not decided). That two-fifths is a numerical decomposition of the
-gap, not a causal attribution to the geometry encoder: Transolver differs
-from GeoTransolver in depth (8 against 12 layers), parameters (6.0M against
-9.0M), how the freestream is injected, and learning rate, and a
-baseline-side ablation that removes the encoder alone has not been run. The
-2.5x common to both baselines is the part a shared mis-scaled input would
-account for; the unit-drive rerun on this split measures it. The DrivAerML
-contrast — GeoTransolver 1.2–1.3x ahead on smooth single-body morphs of one
-car — needs no geometry-variation mechanism once the HiLift gap is the
-input scale; GeoTransolver's DrivAerML lanes also received the physical
-velocity, so its lead there is a lower bound (@sec-de-drivaerml). The
-remaining physical-drive figures on held-out geometries are in
-@sec-de-strata (1.8x from four training geometries, 1.40x from 21); a
+The single-angle split, rerun with unit-drive baselines, reverses the
+fixed-angle figure. The dataset's `single_aoa_12` split holds 126 geometries
+at one angle of attack (12°) and validates on 18 geometries never seen at
+any angle. Against the physical-drive GeoTransolver (0.175 / 0.183) ISLA's
+0.035 / 0.036 had read as a 5.0x advantage on 18 of 18 held-out geometries;
+against the same GeoTransolver fed the unit freestream direction, and
+nothing else changed, the figure is **0.81x**: the unit-drive
+GeoTransolver scores 0.029 / 0.029 (mean 0.0291) and is more accurate than
+ISLA on 18 of 18 geometries (median per-geometry ISLA ÷ GeoTransolver 1.24,
+10–90% range 1.06–1.36; exact sign test on 18 geometries p = 8 × 10⁻⁶), and
+the unit-drive Transolver 0.032 / 0.032 (mean 0.0317), also 18 of 18
+(median 1.13, range 1.06–1.21). Both unit-drive baselines lead ISLA on
+velocity (0.053 and 0.059 against 0.065) and wall shear (0.087 and 0.097
+against 0.106) as well. The physical-drive GeoTransolver is 6.2x worse than
+its unit-drive twin on every geometry
+(results/udrv_reduction_2026-09-09b.json, arms `gt_unit_single12`,
+`transolver_unit_single12`; preregistered bars in @sec-nb-udrv-prereg,
+verdict @sec-nb-udrv-single-verdict). That ISLA reaches 0.036 from 126
+single-angle cases, with lift to 0.6% and drag to 1.6% against the
+sampled-cell label integral (@sec-de-forces), is a statement about ISLA and
+stands; the reading it once invited, that ISLA generalizes across high-lift
+geometries where GeoTransolver from 126 geometries at one operating point
+has not begun to, is falsified: GeoTransolver with a usable drive input
+generalizes across the same geometries better than ISLA does. The
+mixed-angle control (126 cases at all angles: ISLA 0.077, physical-drive
+GeoTransolver 0.226) and the Transolver decomposition of the fixed-angle
+gap (physical-drive Transolver 0.091, 1.96x ahead of physical-drive
+GeoTransolver and 2.55x behind ISLA) are measurements of the physical-drive
+protocol and no longer bear on the architectures
+(results/w2_reduction_2026-09-08b.json); the part of the old gap common to
+both baselines, 2.5x, was the input scale, as the unit-drive rerun shows. The
+DrivAerML contrast — GeoTransolver 1.2–1.3x ahead on smooth single-body
+morphs of one car — needs no geometry-variation mechanism; GeoTransolver's
+DrivAerML lanes also received the physical velocity, so its lead there is a
+lower bound (@sec-de-drivaerml). The remaining physical-drive figures on
+held-out geometries are in @sec-de-strata (1.8x from four training
+geometries, 1.40x from 21), with their unit-drive reruns training; a
 GeoTransolver learning-rate steel-man at the single angle, which kept the
 physical velocity, made GeoTransolver worse (0.280 at 3e-3 against 0.179 at
-1e-3, so the 5.0x is stated at its better rate;
-results/w2_reduction_2026-09-08.json).
+1e-3; results/w2_reduction_2026-09-08.json), which is what a steel-man that
+holds the decisive variable fixed produces.
 
 **The alternative on the baseline side of the protocol is the one that
 holds.** GeoTransolver and Transolver receive the freestream as a physical
