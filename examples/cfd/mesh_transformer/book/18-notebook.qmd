@@ -9673,3 +9673,42 @@ highlift/hl_scale_<arch>_aga.sbatch cloned from hl_wave2_aga.sbatch), after
 a ten-minute probe of its three heaviest configurations for memory and step
 time; verdict entries per architecture follow, and one synthesis entry.
 Job-name prefix scale-<arch>-; run ids scale_<arch>_<dataset>_<arm>_seed<s>.
+
+## 2026-09-09 — SCALE, ISLA arm launched: 24 lanes; the heaviest configurations fit with room to spare (width 512 at 6.1 GB, 80,000 tokens at 13 GB) {#sec-nb-scale-isla-launch}
+
+**What runs.** The ISLA rows of @sec-nb-scale-prereg, from lane table
+highlift/scale_lanes_isla.tsv through highlift/hl_scale_isla_aga.sbatch
+(cloned from the wave-2 launcher: 3600 s distributed timeout, per-link
+failure fingerprint, chain-ahead singleton). Three amendments from the
+coordinating session, applied before launch: the code snapshot is
+`code_isla5` (52eb29ec5), whose default-flag forward is bitwise the reference
+model and which exposes the exact activation recompute; the token arms
+(40,000, 80,000 and the 384 × 40,000 corner) run with
+`+model.geo_checkpoint=true` (forward bitwise unchanged; without it the
+80,000-token lanes would not fit at width 512); and one de-confounding pair
+per dataset was added, `w384nw` = width 384 with the routing measure
+weights off (rows 20–23), because the weights-off ladder (@sec-nb-noweights-prereg,
+@sec-nb-wave3-prereg) may move ISLA's reference by about 12% and the two
+knobs must not be confused. Every other ISLA arm here runs with measure
+weights *on*, the reference configuration. The existing 20,000-token ISLA
+lanes `floor_hl_mt2_full_20k_seed{42,43}` (physical-drive era; ISLA's drive
+input is the unit direction regardless) serve as the 20k rung of the HiLift
+token ladder when they land.
+
+**Acceptance of the heaviest arms** (first link, four B300 GPUs per lane;
+from each lane's train.log):
+
+| arm | parameters | peak memory per GPU | step time | steps per epoch | projected training time |
+|---|---|---|---|---|---|
+| HiLift width 512, 10k | 60.2M | 6.1 GB | 1.28 s | 315 | ~2.3 days |
+| HiLift width 192, 80k (recompute) | 8.9M | 13.0 GB | 3.44 s | 315 | ~6.3 days |
+| DrivAerML width 512, 10k | 60.2M | 6.1 GB | 0.30 s | 108 | ~4.5 hours |
+| DrivAerML width 192, 80k (recompute) | 8.9M | 12.6 GB | 3.40 s | 108 | ~2.1 days |
+
+No lane exceeded 13 GB of the 288 GB available; the study is bounded by
+step time, not memory. HiLift's step is four times DrivAerML's at equal
+width and token count (five target fields and a heavier data pipeline), so
+the HiLift 80,000-token arm is the long pole. Remaining sixteen lanes
+(width 384, 40,000 tokens, the corner, the weights-off pair; both datasets)
+launched after acceptance. Evaluation: highlift/hl_scale_isla_eval_aga.sbatch
+per lane; reduction results/scaling/reduce_scale_isla.py.
