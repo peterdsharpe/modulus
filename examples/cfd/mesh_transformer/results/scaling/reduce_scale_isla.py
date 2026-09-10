@@ -162,7 +162,22 @@ for arm, dirs in PROBE.items():
                                      "biased_over_uniform": st.mean(x["biased_over_uniform"] for x in per), "per_seed": per}
         if arm in out["arms"]:
             out["arms"][arm]["density_biased_over_uniform"] = out["density_probe"][arm]["biased_over_uniform"]
+# Convergence curves (coordinator addition): for the 10k-trained reference and the 80k-trained models, the float32
+# uniform-sampling error and the biased/uniform ratio at 10,000 and 80,000 evaluation cells. Error falling with count is
+# fine; a sampling-distribution dependence that does not vanish with refinement is the failure the redirect names.
+out["convergence"] = {}
+for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@80k")), ("c512x80k_80k_trained", ("dr_c512x80k", "dr_c512x80k@80k")),
+                    ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", "dr_g512x80k@80k"))):
+    curve = {}
+    for cells, key in zip((10000, 80000), keys):
+        pr = out["density_probe"].get(key)
+        if pr:
+            curve[str(cells)] = {"uniform": pr["uniform"], "biased": pr["biased"], "biased_over_uniform": pr["biased_over_uniform"]}
+    if curve:
+        out["convergence"][model] = curve
 json.dump(out, open(sys.argv[1], "w"), indent=1)
+for k, v in out["convergence"].items():
+    print("convergence", k, {c: {kk: round(x, 4) for kk, x in d.items()} for c, d in v.items()})
 for k, v in out["density_probe"].items():
     print("probe", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk != "per_seed"})
 for k, v in out["arms"].items():
