@@ -9901,3 +9901,16 @@ scale tried loses an order of magnitude under a 10:1 sampling bias once the
 frame is the sample's own. Under the program's redirect, no GeoTransolver
 configuration in this study passes the invariance test, and the width and
 token gains are reported as capacity, not as adoptable configurations.
+
+**HiLift probe plan.** Every HiLift density probe runs in the sample frame
+on the datasets the ISLA track derived from `highlift_surface.yaml`
+(`highlift_probe_{unif2,biased3}_sf`, 40,000-cell pool for 10,000-cell
+probes; `_sf_80k`, 320,000-cell pool for 80,000-cell probes; CenterMesh
+after the sampler, everything else unchanged, smoke-tested on the ISLA
+HiLift reference under `code_eval`). The launcher
+highlift/hl_scale_gt_probe_hl_sf_fp32_aga.sbatch (eight units: w512 seeds
+42/43 and c384x40k seeds 42/43 at 10,000 cells, t80k seeds 42/43 at 80,000,
+and the unit-drive reference `udrv_hl_gt_full_seed{42,43}` at 10,000;
+kernel-assigned ports; outputs under the track-private
+`hl_evals_probe_fp32/gt_hl_sf/`) is prepared and is submitted when those
+HiLift lanes have trained.
