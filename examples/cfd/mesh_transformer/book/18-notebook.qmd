@@ -9608,3 +9608,225 @@ Launchers: HiLift lanes as rows 44–68 of highlift/wave2_lanes.tsv
 (hl_wave2_aga.sbatch); DrivAerML lanes uw_aga.sbatch (cloned from
 instwave_aga.sbatch); interior seeds through v0/v0_qt2_aga.sbatch lane 2 and
 v0/v0_udrvint_aga.sbatch lane 2.
+
+## 2026-09-09 — NOW-L, DrivAerML rung: measure weights off scores 0.0561 against 0.0577 (2.8% better, 41 of 48 cars), inside the preregistered "fades" band; the 210-case HiLift rung is pending {#sec-nb-noweights-drivaer-verdict}
+
+**Setting and bars** (@sec-nb-noweights-prereg). ISLA's reference DrivAerML
+surface configuration at 435 cars with `use_measure_weights=false`
+(`now_mt2_lr1e3_seed{42,43}`, the reference lanes' own code snapshot) against
+the weighted reference `iw_mt2_lr1e3_seed{42,43}` (0.0588 / 0.0567 →
+0.0577). Bars: persists if ≥ 5% better (≤ 0.0548); fades if within 3%
+(0.0560–0.0594).
+
+**Readout** (results/nowt_reduction_2026-09-09.json; 48 validation cars):
+
+| arm | seed 42 | seed 43 | mean | vs weighted |
+|---|---|---|---|---|
+| ISLA, measure weights on | 0.0588 | 0.0567 | 0.0577 | 1.00 |
+| ISLA, measure weights off | 0.0569 | 0.0553 | **0.0561** | **0.972** (2.8% better) |
+| GeoTransolver, physical velocity (reference) | 0.0546 | 0.0550 | 0.0548 | 0.950 |
+
+Paired per car: the unweighted model is lower on 41 of 48 (median weighted ÷
+unweighted 1.025, 10–90% range 0.99–1.09).
+
+**Verdict for this rung: fades, narrowly.** The gain is 2.8%, inside the 3%
+band by 0.2 percentage points, but it is consistent (41 of 48 cars, both
+seeds) and in the predicted direction: the variance reading predicted a
+smaller gain on DrivAerML, whose sampled cell areas are more uniform than
+HiLift's, and 12% → 2.8% is that. On DrivAerML the unweighted ISLA sits 2.4%
+behind the physical-drive GeoTransolver (0.0561 against 0.0548) instead of
+5.3%; the unit-drive GeoTransolver (WAVE-3, `uw_gt_unit_lr1e3_*`) is the
+reference that matters and is training. The NOW-L decision (reference
+configuration change) waits for the 210-case HiLift rung
+(`a35_hl_mt2_noweights_scarce_seed{42,43}`, epoch ~110) and the WAVE-3
+weights-off ladder; the rule stays "persists at ≥ 4 of 6 rungs".
+
+## 2026-09-09 — Preregistered: SCALE, width and token-count scaling of ISLA, GeoTransolver and Transolver at full data on both datasets {#sec-nb-scale-prereg}
+
+**Why now.** Every lane in the program runs under 20 GB on a 288 GB
+device: the frozen protocol's operating point (about 9M parameters, 10,000
+sampled cells per case) was chosen for an earlier cluster, and the accuracy
+ordering the book reports has only ever been measured there. Whether the
+ordering, the absolute errors and the cost frontier change when the models
+are given the memory they have is an open question with an idle cluster
+able to answer it in days.
+
+**Design.** Full-data splits only, where capacity can matter (HiLiftAeroML
+1,260 cases; DrivAerML 435 cars), every architecture with the freestream at
+unit scale, the frozen protocol otherwise (500 epochs, bf16, no
+augmentation, final checkpoint, the reference learning rates 1e-3 for
+ISLA and GeoTransolver, 3e-3 for Transolver, two seeds). Per architecture
+and dataset, five arms against the existing or running reference arm
+(reference width, 10,000 cells):
+
+| arm | ISLA (`model.hidden`) | GeoTransolver (`model.n_hidden`) | Transolver (`model.n_hidden`) | cells per case |
+|---|---|---|---|---|
+| reference | 192 (8.9M) | 256 (9.0M) | 256 (6.0M) | 10,000 |
+| width ×2 | 384 | 384 | 384 | 10,000 |
+| width ×2.7 | 512 | 512 | 512 | 10,000 |
+| tokens ×4 | 192 | 256 | 256 | 40,000 |
+| tokens ×8 | 192 | 256 | 256 | 80,000 |
+| corner | 384 | 384 | 384 | 40,000 |
+
+Sixty lanes (3 architectures × 2 datasets × 5 arms × 2 seeds), plus four
+ISLA lanes at width 384 with the routing measure weights off (both datasets,
+two seeds) so that width is not confounded with the weights-off configuration
+that NOW-L is measuring; every other ISLA arm runs with the reference
+weights-on configuration. ISLA arms run from the code snapshot at 52eb29ec5
+(default forward bitwise the reference model) with the exact activation
+recompute enabled on the 40,000- and 80,000-cell arms; the existing
+20,000-cell lanes (floor_hl_mt2_full_20k_seed{42,43}, udrv_hl_gt_full_20k_seed{42,43})
+are the 20k rung of the token ladder. Learning
+rates are not retuned for width; a run that diverges is reported as a
+divergence at the protocol rate, not silently retuned. Each arm records
+parameters, peak memory and step time from its own training log, so every
+accuracy point carries its cost.
+
+**Readouts and bars, in the validation pressure relative L2 of each
+dataset.** Let e_ref be the reference arm's two-seed mean for an
+architecture on a dataset (HiLift: ISLA 0.041, unit-drive GeoTransolver and
+Transolver from UDRV-L lanes 16–17 and wave-3 rows 58–59; DrivAerML: ISLA
+0.0577, unit-drive GeoTransolver and Transolver from the uw lanes).
+
+1. *Width scales* for an architecture on a dataset if the 512-wide arm is
+   ≥ 5% better than e_ref; *saturated* if within 3%; between, reported.
+2. *Resolution-limited* if the 80,000-cell arm is ≥ 5% better than e_ref at
+   the reference width; *sample-limited* if within 3%.
+3. *Scale changes the ordering*: with r = (baseline ÷ ISLA) at matched arm,
+   scale *favours ISLA* if r at the corner arm exceeds r at the reference by
+   ≥ 0.05; *favours the baselines* if it falls by ≥ 0.05; otherwise the
+   ordering is scale-independent over this range.
+4. *Cost frontier*: for each architecture the (GPU-hours, error) points of
+   its six configurations; the useful statement is which architecture
+   reaches a given error cheapest, read off the frontier, not the endpoint.
+
+**Consequences.** If width or tokens move errors by more than 5% for the
+baselines but not ISLA (or the reverse), the book's accuracy ordering is
+labelled as an ordering at 9M parameters and 10,000 cells and the
+recommendation section gains a scale clause. If everything saturates within
+3%, the protocol's operating point is vindicated as data-limited and the
+program's next data investment, not its next model, is the lever.
+
+**Ownership.** One agent per architecture runs its twenty lanes from its
+own lane table and launcher (highlift/scale_lanes_<arch>.tsv,
+highlift/hl_scale_<arch>_aga.sbatch cloned from hl_wave2_aga.sbatch), after
+a ten-minute probe of its three heaviest configurations for memory and step
+time; verdict entries per architecture follow, and one synthesis entry.
+Job-name prefix scale-<arch>-; run ids scale_<arch>_<dataset>_<arm>_seed<s>.
+
+## 2026-09-09 — SCALE launched: 64 lanes accepted; the cost half of the study is already measured, and it is step time, not memory, that scales {#sec-nb-scale-launch}
+
+**State.** Every lane of @sec-nb-scale-prereg is training (ISLA 24, including
+the weights-off pair; GeoTransolver 20; Transolver 20), each after a first-link
+acceptance check of steps advancing, memory recorded and no fault. The
+per-architecture agents' own launch entries carry the per-lane detail
+(@sec-nb-scale-isla-launch, @sec-nb-scale-gt-launch).
+
+**What the first links measured** (four GPUs per lane, bf16, peak memory
+per GPU from the training log; reference operating point 10,000 cells):
+
+| architecture | arm | parameters | peak memory | step time | projected wall time (HiLift 1,260) |
+|---|---|---|---|---|---|
+| ISLA | width 512 | 60.2M | 6.1 GB | 1.28 s | ~2.3 days |
+| ISLA | 80,000 cells (exact recompute) | 8.9M | 13.0 GB | 3.44 s | ~6.3 days |
+| GeoTransolver | width 512 | — | 6.0 GB | 0.15 s | hours |
+| GeoTransolver | 80,000 cells | — | 31.9 GB | 0.19 s | ~7 hours |
+| Transolver | width 512 | — | 4.2 GB | 0.08 s | hours |
+| Transolver | 80,000 cells | — | 22 GB | 0.10 s | hours |
+
+No configuration in the grid exceeds 32 GB of the 288 GB available, so the
+study is bounded by step time, not memory. The two baselines' step times are
+nearly flat in both width and token count at this scale (their attention is
+over 256 slices, so the token dimension enters only through linear
+projections); ISLA's grows about 5.6x from width 192 to 512 and about 15x
+from 10,000 to 80,000 cells, because its per-slice relational geometry
+(points × slices × 8 invariants per layer) scales with tokens and the
+per-token MLP with width. Whatever the accuracy half of the study returns,
+the cost frontier (bar 4) will be read against this: at 80,000 cells the
+baselines complete an epoch in the time ISLA completes a fraction of one,
+and the sparse-routing route to closing that gap was already measured as
+not worth it (@sec-nb-sparse-routing-verdict). The remaining speed lever is
+kernel-level (a fused slice-block kernel), which is an engineering item, not
+a research node.
+
+**Next.** Each agent evaluates its lanes as they train, reduces, and writes
+its verdict on bars 1–2; the coordinator writes the cross-architecture
+synthesis on bars 3–4 when all three are in. The heaviest ISLA arm sets the
+study's horizon (about six days); the GeoTransolver and Transolver grids and
+the ISLA width arms land within a day, so a partial synthesis at that point
+covers width scaling fully and the token ladder up to 40,000 cells.
+
+## 2026-09-09 — 510-case rung measured: ISLA 0.0495; the ISLA ladder flattens (slopes 0.42 → 0.31 → 0.21); physical-drive baselines recorded as measurements, unit-drive baselines added {#sec-nb-w2-medium-verdict}
+
+**Setting.** Wave-2 arm B (@sec-nb-w2-prereg): the `medium` split (510
+training cases), the shared 180-case validation set, frozen ladder protocol,
+two seeds. The GeoTransolver and Transolver arms were launched with the
+physical freestream velocity and are, since the UDRV verdict, measurements
+of that protocol rather than comparisons; unit-drive GeoTransolver and
+Transolver at 510 cases were not in WAVE-3 and were added now as wave-2 rows
+69–72 (`udrv_hl_gt_medium_seed{42,43}`, `udrv_hl_transolver_medium_lr3e3_seed{42,43}`).
+
+**Readout** (results/w2_medium_reduction_2026-09-09.json; 180 cases):
+
+| arm | pressure (seeds → mean) | velocity | wall shear | ÷ ISLA | cases ISLA lower |
+|---|---|---|---|---|---|
+| ISLA (weights on) | 0.0486 / 0.0504 → **0.0495** | 0.0709 | 0.111 | 1.00 | — |
+| GeoTransolver, physical velocity | 0.0610 / 0.0526 → 0.0568 | 0.0844 | 0.1346 | 1.15x | 156 of 180 (median 1.24) |
+| Transolver, physical velocity, lr 1e-3 | 0.0657 / 0.0656 → 0.0656 | 0.0931 | 0.1544 | 1.33x | 170 of 180 (median 1.51) |
+| Transolver, physical velocity, lr 3e-3 | 0.0675 / 0.0656 → 0.0666 | 0.0933 | 0.1555 | 1.35x | 168 of 180 (median 1.52) |
+
+**What it adds.** ISLA's own curve now has four rungs: 0.138, 0.065,
+0.0495, 0.041 at 35, 210, 510 and 1,260 cases, with log-log slopes 0.42,
+0.31 and 0.21 over the successive segments, so the flattening seen between
+210 and 1,260 is progressive rather than a single kink. The physical-drive
+GeoTransolver's seed spread at this rung (0.053 / 0.061) is the same
+seed-fragility seen at 210 cases and is expected to vanish with the unit
+drive, as it did at 35 cases (two seeds within 1%). No comparison is drawn
+from the physical-drive arms; the rung's fair comparison waits for rows
+69–72 (about two days). Chapter 5's ladder text and the W2 ledger row are
+updated.
+
+## 2026-09-09 — Ops: every DrivAerML interior lane hung from about 12:14; root cause a hang inside host-memory pinning in the reader's prefetch thread, not Lustre; workaround `dataloader.pin_memory=false` at +35% step time {#sec-nb-interior-pin-stall}
+
+**Symptom.** From about 12:14 every training lane on the DrivAerML volume
+dataset, across three sessions (the density and neighbour arms, the
+interior third seeds, the transfer companion's D1 and campaign-D lanes),
+stopped advancing within minutes of starting or resuming, with fresh lanes
+hanging before their first checkpoint and resumed lanes at the same epochs
+on every attempt; HiLift and DrivAerML *surface* lanes were unaffected. Each
+hung link idled until the 3,600 s distributed timeout, restarted from its
+checkpoint and hung again.
+
+**Diagnosis** (density track; tools `highlift/qtdens_thread_dump.sh`,
+`highlift/qtdens_probe_stripes.sh`, a faulthandler `sitecustomize` that
+dumps every thread's stack every ten minutes). Not a hung read: on a
+stalled link no thread on any rank was in D state, no dataset file was
+open, and every training file and every stripe of every interior memmap
+read cleanly from a healthy allocation. The stack dump of the stuck rank
+shows its main thread waiting without timeout in the DataLoader prefetch
+hand-off (`physicsnemo/datapipes/protocols.py:366` ←
+`datapipes/dataloader.py:459/499/306` ← `train.py:548`), and the prefetch
+worker it waits for inside `TensorDict.pin_memory` called from
+`physicsnemo/datapipes/readers/mesh.py:690` (`dm = dm.pin_memory()` in
+`DomainMeshReader.__getitem__`). The other three ranks spin in the recipe's
+step-failure barrier all-reduce, which is what the NCCL watchdog then names.
+Why host pinning hangs on these lanes is not established (driver or
+pinned-memory level; it began at a fixed time and affects only the volume
+pipeline).
+
+**Workaround and cost.** The hydra override `dataloader.pin_memory=false`
+(recipe/conf/base.yaml sets it true) on the train.py command line. A probe
+lane resumed from epoch 310 stepped normally for fifteen minutes past the
+point where four pinned attempts hung, at **0.388 s per step against 0.287 s
+pinned (+35%)** for the 10,000-query ISLA configuration on GB300. Every
+interior lane launched or resumed from 2026-09-09 onward runs with the
+override, and every interior step time from then on is a pageable-copy
+number, stated as such wherever it is quoted. Held chains (mine, the
+density track's, the transfer companion's ten) were released with the
+override after the probe's acceptance.
+
+**What it says about the tooling.** A prefetch hand-off with no timeout
+turns any producer fault into an hour of idle GPUs per link; a bounded wait
+that raises a named error (and the recipe's step-failure barrier reporting
+the *cause* rather than the collective) is a datapipe fix worth making
+independent of the pinning cause. Recorded as an upstream candidate.

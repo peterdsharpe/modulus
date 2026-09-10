@@ -1,0 +1,91 @@
+{
+ "runs": {
+  "lad_hl_mt2_medium_seed42": {
+   "pressure_l2": 0.048641331897427635,
+   "velocity_l2": 0.06967495750221941,
+   "tau_wall_l2": 0.10929485567741924,
+   "n": 180
+  },
+  "lad_hl_mt2_medium_seed43": {
+   "pressure_l2": 0.0504455931381219,
+   "velocity_l2": 0.0720385486467017,
+   "tau_wall_l2": 0.11276798927121692,
+   "n": 180
+  },
+  "lad_hl_gt_medium_seed42": {
+   "pressure_l2": 0.06101360679086712,
+   "velocity_l2": 0.09023136275096072,
+   "tau_wall_l2": 0.14325983011060292,
+   "n": 180
+  },
+  "lad_hl_gt_medium_seed43": {
+   "pressure_l2": 0.05255597705642382,
+   "velocity_l2": 0.07859725273317761,
+   "tau_wall_l2": 0.12598916677137215,
+   "n": 180
+  },
+  "t1_hl_transolver_medium_lr1e3_seed42": {
+   "pressure_l2": 0.06571372631523344,
+   "velocity_l2": 0.09311421488722166,
+   "tau_wall_l2": 0.15450914779471026,
+   "n": 180
+  },
+  "t1_hl_transolver_medium_lr1e3_seed43": {
+   "pressure_l2": 0.06556886753274335,
+   "velocity_l2": 0.09302625358104706,
+   "tau_wall_l2": 0.1542222961783409,
+   "n": 180
+  },
+  "t1_hl_transolver_medium_lr3e3_seed42": {
+   "pressure_l2": 0.06753219132208162,
+   "velocity_l2": 0.09380531737373934,
+   "tau_wall_l2": 0.15654114795227844,
+   "n": 180
+  },
+  "t1_hl_transolver_medium_lr3e3_seed43": {
+   "pressure_l2": 0.06563867293298245,
+   "velocity_l2": 0.09277674237059222,
+   "tau_wall_l2": 0.1544148108197583,
+   "n": 180
+  }
+ },
+ "arms": {
+  "isla_510": {
+   "pressure_l2": 0.049543462517774764,
+   "velocity_l2": 0.07085675307446056,
+   "tau_wall_l2": 0.11103142247431808
+  },
+  "gt_physical_510": {
+   "pressure_l2": 0.05678479192364547,
+   "velocity_l2": 0.08441430774206916,
+   "tau_wall_l2": 0.13462449844098753
+  },
+  "transolver_physical_510_lr1e3": {
+   "pressure_l2": 0.0656412969239884,
+   "velocity_l2": 0.09307023423413435,
+   "tau_wall_l2": 0.1543657219865256
+  },
+  "transolver_physical_510_lr3e3": {
+   "pressure_l2": 0.06658543212753204,
+   "velocity_l2": 0.09329102987216578,
+   "tau_wall_l2": 0.15547797938601837
+  }
+ },
+ "paired": {
+  "gt_physical_510_over_isla": {
+   "n": 180,
+   "isla_lower": 156,
+   "median_ratio": 1.2377860386207336
+  },
+  "transolver_physical_510_lr1e3_over_isla": {
+   "n": 180,
+   "isla_lower": 170,
+   "median_ratio": 1.506672011060588
+  },
+  "transolver_physical_510_lr3e3_over_isla": {
+   "n": 180,
+   "isla_lower": 168,
+   "median_ratio": 1.519212290572126
+  }
+ }
+}
