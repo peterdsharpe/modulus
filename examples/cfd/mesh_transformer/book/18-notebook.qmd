@@ -11882,3 +11882,170 @@ host-copy stalls) finished and was evaluated in both precisions
 @sec-nb-fp32-interior-regrade, unchanged). The interior reference numbers
 used by the campaign D grading (0.0513 / 0.1070 / 0.0879) stand to the third
 decimal; nothing in chapter 8 changes.
+
+## 2026-09-10 — Preregistered: BENCH, the consistency benchmark (evaluation only): three samplers × five counts on every reference checkpoint {#sec-nb-bench-prereg}
+
+The principle of @sec-principle asks that a surrogate converge to a single
+field under refinement of the sampling and to the same field under two
+samplings of the same surface. No number in the book measures that
+directly; the density-robustness column (10:1 front/back bias at 10,000
+cells, @sec-robustness-density) measures one distribution shift at one
+count. This benchmark measures the property itself, for all three
+architectures, at no training cost.
+
+**Instrument.** Every validation surface (48 DrivAerML cars; the 180
+35-case and 18 fixed-angle HiLiftAeroML validation cases) is sampled from a
+320,000-cell pool by three samplers, at n ∈ {2,500, 5,000, 10,000, 20,000,
+40,000} cells: `unif`, uniform over cells (the training convention, which
+inherits the mesher's refinement pattern); `area`, independent inclusion
+with probability proportional to cell area (what a uniform point-cloud
+generator would produce; a new `weight_mode="area"` of the recipe's Poisson
+sampler); `biased`, the existing 10:1 front/back Poisson bias. All three
+fold exact Horvitz–Thompson weights into the measure, so a measure-consistent
+model sees the same integral under each. Float32 inference, each
+checkpoint under its own training snapshot (legacy ISLA checkpoints load
+only under `code`; an identical error from two checkpoints is a load
+failure, never a value). Arms: ISLA constant gauge (iw_mt2_lr1e3,
+lad_hl_mt2_super_scarce, mech_hl_mt2_single_aoa_12), ISLA similarity gauge
+(iw_mt2_gauge; a35_hl_mt2_gauge), the weights-off ablation (now_*),
+unit-drive GeoTransolver (uw_gt_unit_lr1e3, udrv_hl_gt_*) and unit-drive
+Transolver (uw_transolver_unit_lr3e3, udrv_hl_transolver_*), two seeds each.
+
+**Readouts and bars (pressure rel-L2, seed means).** D_area(n) =
+err(area, n) ÷ err(unif, n) − 1 and D_biased(n) likewise, headline at n =
+40,000: |D| ≤ 3% is *consistent across sampling distributions*, |D| ≥ 10%
+*reads the sampling distribution*, between inconclusive. Convergence:
+err(unif, n) and err(area, n) against n, the ratio err(2,500) ÷ err(40,000),
+monotonicity within the two-seed spread, and the fine-mesh gap |err(area,
+40k) − err(unif, 40k)|. Paired per-case counts with sign tests.
+
+**Predictions.** ISLA with measure weights, either gauge: |D_area| ≤ 3% at
+every count on both datasets; the similarity gauge has D_biased ≤ 30% at
+every count; the constant gauge fails D_biased (12x at 10,000 is known).
+Whether the constant gauge is also count-dependent is open: a 28x reading of
+the reference at 40,000 cells reported during the scaling study carries the
+signature of an unloaded checkpoint (1.567, the seeded-init error) and is
+being rerun under the training snapshot, so this benchmark's same-snapshot
+refinement curve is the deciding measurement; the prediction is that the
+constant gauge passes refinement (its measure weights are exact) and fails
+only the distribution shift. GeoTransolver and Transolver: |D_area| ≥ 10% on
+HiLiftAeroML, whose multi-element meshes are strongly refined in the gaps,
+and smaller on DrivAerML; D_biased ≥ 200% (9.5x and 3.9x known at 10,000).
+The weights-off ablation fails D_area on HiLiftAeroML. A result where the
+baselines pass D_area on both datasets would mean the mesher's refinement
+pattern is not what they read, and the density-bias failure is a different
+mechanism (extrapolation in local point density rather than a learned
+prior); that reading would be recorded as such.
+
+Artifact: results/consistency_bench/consistency_bench_2026-09-10.json;
+reducer results/consistency_bench/reduce_consistency_bench.py; cluster
+$T/bench/, $T/bench_evals/, recipe copy $T/recipe_bench.
+
+## 2026-09-10 — Preregistered: MW, measure-weighted slice pooling for GeoTransolver and Transolver (the principled steel-man) {#sec-nb-mw-prereg}
+
+Both baselines pool points into slices with a token-count-normalized
+softmax (physics_attention.py: slice weights summed over tokens and
+divided out), so every sampled point counts equally and the slice
+aggregate is a mean over the mesher's sample rather than an integral over
+the surface. On the surface recipe GeoTransolver's radius ball queries are
+off (`include_local_features=false`), so this pooling is its only point
+aggregation; the same routine serves Transolver and GeoTransolver's GALE
+blocks. The principled repair is the one ISLA carries: weight each point's
+contribution by its quadrature measure, slice_s = Σ_i m_i a_is f_i ÷ Σ_i
+m_i a_is, with m_i the cell area times the Horvitz–Thompson weight,
+normalized per sample to mean one so the existing floor keeps its meaning.
+Flag `measure_weighted_slices` (default off, bitwise-unchanged), forward
+argument `measure_weights` fed from the same tensor ISLA consumes. Contract
+tests: uniform weights reproduce the unweighted model; duplicating every
+token at half measure leaves the output unchanged in float64 (the test the
+unweighted model must fail).
+
+**Question.** Is the baselines' accuracy lead over ISLA carried by reading
+the sampling distribution, and does giving them measure semantics remove
+their density-bias failure? **Lanes** (unit drive, frozen protocol,
+snapshot code_mw): HiLift 35 cases, GeoTransolver 3e-3 and Transolver 3e-3,
+seeds 42/43/44; DrivAerML 435 cars, GeoTransolver 1e-3 and Transolver
+3e-3, seeds 42/43. Float32 evaluation on the arm's own split plus the
+10:1 density probe and the BENCH samplers.
+
+**Bars (float32 pressure rel-L2).** HiLift 35: references GeoTransolver
+0.1102, Transolver 0.1142, ISLA 0.1377. *Lead survives* if the weighted
+baseline is ≤ 0.131 (5% ahead of ISLA); *lead was the density read* if ≥
+0.1336 (within 3% of ISLA or behind); between inconclusive. DrivAerML:
+references 0.0503 / 0.0517 / 0.0558; *survives* ≤ 0.0530; *was the read* ≥
+0.0541. Density: biased ÷ uniform ≤ 1.5 *measure-consistent* (the
+similarity-gauge ISLA is 1.21); ≥ 3 *fails*. **Predictions.** The lead
+survives on DrivAerML (near-uniform meshes; the read has little to carry)
+and shrinks on HiLift; the density factor falls below 1.5 for both. If the
+lead survives on both datasets with the factor below 1.5, the baselines'
+advantage is inductive bias and the book says so.
+
+## 2026-09-10 — Preregistered: WAVE-4, the similarity-gauge ISLA on every HiLiftAeroML rung, toward moving the reference configuration {#sec-nb-wave4-prereg}
+
+ISLA's reference configuration behind every accuracy number is the constant
+gauge (a fixed reference length of 8.0 in nondimensional coordinates), which
+degrades 12x under the 10:1 density bias. The similarity gauge (centroid and
+reference length from the measure-weighted point set) degrades 1.21x under
+the bias at an 8% in-distribution cost at 35 cases and a 10% cost on
+DrivAerML (0.0616 against 0.0558). Under @sec-principle the configuration
+that passes the consistency tests is the one the program should stand on.
+It exists at 35 HiLift cases and on DrivAerML; this wave trains it on the
+six other rungs (210 cases, 1,260 cases, 4 and 21 training geometries,
+fixed angle, deflection; two seeds) plus a third seed at 35 cases, thirteen
+lanes, snapshot code (reference kernel, same as the constant-gauge lanes),
+`+model.similarity_gauge=true` the only change. Launcher
+highlift/hl_wave4_aga.sbatch, lane table wave4_lanes.tsv, run ids
+w4_hl_mt2_gauge_<split>_seed<seed>.
+
+**Readouts.** Float32 pressure rel-L2 per rung against the constant-gauge
+ISLA lanes and the unit-drive baselines; the BENCH samplers at 40,000 cells
+on the 35-case and fixed-angle checkpoints. **Bars.** The gauge's
+in-distribution cost per rung: ≤ 5% "cheap", 5–15% "the known price",
+> 15% "expensive at this rung" (stated per rung; the 35-case value is 8%).
+**Decision rule.** The reference configuration moves to the similarity
+gauge if it passes the BENCH consistency bars where the constant gauge
+fails them, regardless of the in-distribution price; the price is then
+stated beside every number, and the constant-gauge results are kept as the
+prior configuration's record. If the similarity gauge fails the BENCH bars
+too, the switch is not made and the failure becomes the next mechanism
+question.
+
+## 2026-09-10 — Preregistered: XFAM, why ISLA's DrivAerML representation transfers to a new vehicle family worse than GeoTransolver's {#sec-nb-xfam-prereg}
+
+Zero-shot on the SHIFT-SUV fastback family (99 cases, float32, under
+snapshot code) the reference ISLA scores 0.788 against the unit-drive
+GeoTransolver's 0.612; fine-tuned on 20 fastback cases both start 1.6–2.5x
+better than random and end 6% (ISLA) and 31% (GeoTransolver) better than
+training from scratch (#sec-nb-campc-t3-verdict and its addendum). The
+question is which ISLA ingredient carries the deficit. Rival hypotheses,
+each with a discriminating arm evaluated zero-shot on the fastback in
+float32:
+
+- **H1, absolute scale (constant gauge).** The similarity-gauge reference
+  (iw_mt2_gauge_seed{42,43}); the transfer session is evaluating it.
+- **H2, the slice bottleneck.** 256 anchors learned on one family's shape
+  distribution. Arms: n_slices 128 and 512 at fixed everything else, two
+  seeds each, DrivAerML 435, unit drive, snapshot code (run ids
+  xf_dr_mt2_s128_seed{42,43}, xf_dr_mt2_s512_seed{42,43}); the existing
+  v5a4 (2,560 query-independent anchors) is a two-factor variant and is
+  reported but not used to decide.
+- **H3, drive-relative invariants coupling geometry to the freestream.**
+  Arm: seed_mode=raw (raw [r, n, d] seeds, GeoTransolver-style inputs) on
+  DrivAerML, two seeds (xf_dr_mt2_rawseed_seed{42,43}).
+- **H4, measure weights.** The weights-off ablation (now_mt2_lr1e3); being
+  evaluated by the transfer session.
+- **H5, optimization rather than representation.** Decided by the existing
+  first-batch decomposition: both models start well and diverge during
+  adaptation, so H5 predicts no single-ingredient arm moves the zero-shot
+  number.
+
+**Bars (zero-shot fastback pressure rel-L2; reference ISLA 0.788, unit
+GeoTransolver 0.612).** An arm *carries the deficit* if it scores ≤ 0.70
+(halfway to GeoTransolver); *contributes* if 0.70–0.76; *does not* if ≥
+0.76 (within seed spread; the two reference seeds are 0.782 and 0.794).
+In-family DrivAerML error is reported beside each arm so a transfer gain
+bought with in-family loss is visible. **Prediction.** H1 contributes (the
+fastback cars differ in size from DrivAerML) but does not carry; H2 and H3
+do not; the deficit is distributed, consistent with H5, in which case the
+follow-up is a training-diversity study rather than an architecture change,
+matching @sec-principle. Artifact: results/xfam_zeroshot_2026-09-10.json.
