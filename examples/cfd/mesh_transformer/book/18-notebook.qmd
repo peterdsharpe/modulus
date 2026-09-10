@@ -10767,3 +10767,39 @@ track), nothing about HiLift (pending), and nothing about learning-rate
 retuning (all arms at the protocol's 1e-3; none diverged). Bars 3 and 4 of
 the preregistration (cross-architecture ordering, frontier comparison) are
 the coordinator's, once the ISLA and Transolver arms land under fp32.
+
+## 2026-09-10 — Float32 re-grade of the interior headline: bfloat16 inflated GeoTransolver-volume's errors by 20–23%, so its pressure lead over ISLA's query-token configuration was hidden; in float32 ISLA leads on velocity only {#sec-nb-fp32-interior-regrade}
+
+**Source.** The transfer session's same-snapshot float32 re-evaluation of the
+two reference arms (`code_support` + `recipe_support`, which reproduce the
+bf16 references bit-for-bit; identical sampled points; job 696540,
+$T/v0_evals_support_fp32/; research/transfer_program #sec-nb-fp32-interior,
+studies/computational_support/ref_reeval_fp32_2026-09-10.json). FP32-EVAL
+group 4 will reproduce it for the remaining interior arms.
+
+| arm (435 cars, 48 validation cars, two seeds) | pressure bf16 → fp32 | velocity bf16 → fp32 | eddy viscosity bf16 → fp32 |
+|---|---|---|---|
+| ISLA query tokens + SDF (~365 cells) | 0.0567 → **0.0547** (−4%) | 0.0853 → **0.0796** (−7%) | 0.1215 → **0.1116** (−8%) |
+| GeoTransolver-volume, physical velocity | 0.0620 → **0.0515** (−17%; bf16 20% high) | 0.1334 → **0.1088** (−18%; 23% high) | 0.0939 → **0.0879** (−6%) |
+| ISLA ÷ GeoTransolver-volume | 0.91 → **1.06** | 0.64 → **0.73** | 1.29 → **1.27** |
+
+Seeds: ISLA 0.0547 / 0.0547; GeoTransolver-volume 0.0517 / 0.0512.
+
+**Re-grade.** The interior pressure ordering reverses: in float32
+GeoTransolver-volume leads ISLA's query-token configuration by 6% on pressure
+(the bf16 pressure "lead" of 0.91x was a bf16 artifact), ISLA keeps a 27%
+lead on velocity, and GeoTransolver-volume keeps eddy viscosity (27%). The
+book's interior headline, the index verdict sentence and row, chapter 8's
+opening and closing paragraphs, and chapter 12's limits and recommendation
+are rewritten: ISLA leads on one interior field of three. What does not
+change: the QT-SDF preregistration's bars were written in bf16 units and the
+mechanism story (interaction closes the pressure gap relative to the passive
+decode; the signed distance flips velocity) rests on within-ISLA comparisons
+whose bf16 offsets are similar (4–8%), so it stands qualitatively; every
+interior ratio not yet re-evaluated (query tokens without SDF, h256,
+surf10k, the density and neighbour arms, the 54/109-car ladder, the passive
+2.6x) is labelled bf16 until FP32-EVAL group 4 lands, and the unit-drive
+GeoTransolver-volume (UDRV-INT) needs the same float32 pass before the
+interior column is final. The interior recommendation is now
+GeoTransolver-volume where pressure or eddy viscosity is the target and
+ISLA where velocity is.

@@ -987,3 +987,11 @@ interior control @sec-nb-udrv-int-prereg.
   "ISLA 10% behind GeoTransolver and 8% behind Transolver at full DrivAerML data (float32); 7%
   and 5% with weights off". RETIRE "parity within 4%" and "within 1% with weights off" (bf16
   artifacts). Per-case bf16 error up to 17–21% for baselines here: quote per-case counts from fp32.
+
+- **INTERIOR, float32 re-grade (2026-09-10; transfer session same-snapshot fp32 re-eval,
+  research/transfer_program/studies/computational_support/ref_reeval_fp32_2026-09-10.json; FP32-EVAL
+  group 4 to confirm).** ISLA QT+SDF 0.0547 / 0.0796 / 0.1116; GT-volume (physical drive) 0.0515 /
+  0.1088 / 0.0879 → ISLA ÷ GT 1.06 / 0.73 / 1.27. bf16 inflated GT-volume 20–23% and ISLA 4–7%.
+  Write "ISLA leads on interior velocity (27%) and trails on pressure (6%) and eddy viscosity
+  (27%)"; RETIRE "leads on pressure and velocity" and the 0.91x pressure figure except as a labelled
+  bf16 number. Interior ladder, h256, surf10k, density ratios stay bf16-labelled until group 4.

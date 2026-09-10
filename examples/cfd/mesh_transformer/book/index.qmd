@@ -20,8 +20,9 @@ checked-in artifact.
 Transolver once every model receives the freestream at the same unit
 scale; the 2.8x small-data advantage this program reported on HiLiftAeroML
 was an artifact of the comparison protocol, and what ISLA contributes is a
-set of exact contracts and an interior configuration whose lead on pressure
-and velocity survives that control.** That sentence is the whole book, and every chapter
+set of exact contracts and an interior configuration that leads on interior
+velocity and trails on pressure and eddy viscosity once the evaluation is
+scored in float32.** That sentence is the whole book, and every chapter
 either supports one clause of it or bounds it.
 
 The artifact, and how it was found. Every surface comparison fed ISLA the
@@ -68,10 +69,13 @@ covariance are exact by algebraic construction (the finite-precision residual
 of the bf16 training path is a measured quantity, @sec-mt2-contracts), and
 training is stable across a decade of learning rate where GeoTransolver
 degrades 4–14x. On the interior task, with its queries admitted as
-interacting tokens and given the signed distance to the wall, ISLA is more
-accurate than GeoTransolver's 27.6M-parameter volume configuration on
-interior pressure (0.057 against 0.062) and velocity (0.085 against 0.133) at
-8.9M parameters and less accurate on eddy viscosity (0.122 against 0.094);
+interacting tokens and given the signed distance to the wall, ISLA at 8.9M
+parameters is 27% more accurate than GeoTransolver's 27.6M-parameter volume
+configuration on interior velocity (0.080 against 0.109 in float32), 6% less
+accurate on interior pressure (0.055 against 0.052) and 27% less accurate on
+eddy viscosity (0.112 against 0.088); the bfloat16 evaluation had inflated
+GeoTransolver-volume's errors by 20–23% and ISLA's by 4–7%, which is what
+made pressure look like an ISLA lead;
 that lead holds only when at least the training count of 10,000 points is
 queried together (@sec-interior-companion); it was obtained with about 365
 surface tokens rather than the intended 10,000, and a rerun with 10,000
@@ -93,7 +97,7 @@ peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
 | HiLift surface, 210 and 1,260 cases; 21 training geometries | Not yet compared | 2.2x, parity and 1.4x against physical-drive baselines only; unit-drive reruns training |
 | DrivAerML surface, 435 cars | ISLA behind | float32: unit-drive GeoTransolver 0.90x and Transolver 0.93x of ISLA (0.0503, 0.0517 vs 0.0558); 0.93x and 0.95x of ISLA with measure weights off (0.0542) |
 | DrivAerML surface, 27–218 cars | ISLA behind | GeoTransolver 1.2–1.3x ahead (physical drive, which is not a handicap on this dataset) |
-| DrivAerML interior, 435 cars | ISLA ahead on pressure, velocity; behind on eddy viscosity | 0.91x / 0.64x / 1.29x at a third of the parameters; only at ≥10,000 queries together; 365 or 10,000 surface tokens alike; unit-drive GeoTransolver-volume within 2% of the physical-drive one |
+| DrivAerML interior, 435 cars | ISLA ahead on velocity; behind on pressure and eddy viscosity | float32: 1.06x / 0.73x / 1.27x of GeoTransolver-volume at a third of the parameters (pressure / velocity / eddy viscosity); only at ≥10,000 queries together; 365 or 10,000 surface tokens alike |
 | DrivAerML interior, 54–109 cars | Mixed, same conditions | pressure 1.06–1.11x behind, velocity ahead, eddy viscosity 1.45x behind |
 | Regime extrapolation | Nobody wins | both lose about 10x |
 | Contracts and cost | Mixed | SE(3) covariance by construction; learning-rate robust; one instrument at 10k cells: step 1.09x GeoTransolver's and 2.2x Transolver's at 0.83x GeoTransolver's incremental memory (1.5x step at 0.36x memory with exact recompute), with the fast softmax kernel; the earlier 3.7x was the reference kernel |
