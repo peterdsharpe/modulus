@@ -281,7 +281,37 @@ for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@20k", "dr_ref@4
                 curve[str(cells)]["note"] = "40,000 cells drawn from the 320,000-cell pool variant (dataset-variant control for the 40k point)"
     if curve:
         out["convergence"][model] = curve
+# Sample-frame density probe (coordinator task, 2026-09-10): the canonical sample-frame datasets
+# drivaer_probe_{biased3,unif2}_sf(_80k).yaml move CenterMesh to directly after the sampler, so a model that consumes
+# absolute centred coordinates sees the drawn sample's mean rather than the pool's. ISLA centres internally, so its ratio is
+# expected to equal the pool-frame ratio; each entry reports "sample frame (pool frame)". Launcher:
+# highlift/hl_scale_isla_probe_sf_fp32_aga.sbatch (code_eval, float32, sidecars). Keys: <arm>@<cells>_sf -> pool-frame key.
+PROBE_SF = {"dr_c512x80k@80k_sf": ([f"{T}/scale_probe_fp32_sf_80k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)], "dr_c512x80k@80k"),
+            "dr_g512x80k@80k_sf": ([f"{T}/scale_probe_fp32_sf_80k/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)], "dr_g512x80k@80k"),
+            "dr_c512x80k@10k_sf": ([f"{T}/scale_probe_fp32_sf/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)], "dr_c512x80k"),
+            "dr_g512x80k@10k_sf": ([f"{T}/scale_probe_fp32_sf/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)], "dr_g512x80k"),
+            "dr_ref@10k_sf": ([f"{T}/scale_probe_fp32_sf/iw_mt2_lr1e3_seed{s}" for s in (42, 43)], "dr_ref"),
+            "dr_gauge_ref@10k_sf": ([f"{T}/scale_probe_fp32_sf/iw_mt2_gauge_seed{s}" for s in (42, 43)], "dr_gauge_ref")}
+out["density_probe_sample_frame"] = {}
+for key, (dirs, pool_key) in PROBE_SF.items():
+    per = []
+    for d in dirs:
+        u, b = _probe_metric(f"{d}/unif"), _probe_metric(f"{d}/biased")
+        if u and b:
+            per.append({"uniform": u, "biased": b, "biased_over_uniform": b / u, "snapshot": _probe_metric.last_snapshot})
+    if per:
+        pool = out["density_probe"].get(pool_key)
+        e = {"n_seeds": len(per), "uniform": st.mean(x["uniform"] for x in per), "biased": st.mean(x["biased"] for x in per),
+             "biased_over_uniform": st.mean(x["biased_over_uniform"] for x in per), "per_seed": per,
+             "snapshot": sorted({x["snapshot"] for x in per}), "pool_frame_key": pool_key}
+        if pool:
+            e["pool_frame"] = {k: pool[k] for k in ("uniform", "biased", "biased_over_uniform")}
+            e["sample_frame_over_pool_frame_ratio"] = e["biased_over_uniform"] / pool["biased_over_uniform"]
+            e["report"] = f"{e['biased_over_uniform']:.2f}x ({pool['biased_over_uniform']:.2f}x)"
+        out["density_probe_sample_frame"][key] = e
 json.dump(out, open(sys.argv[1], "w"), indent=1)
+for k, v in out["density_probe_sample_frame"].items():
+    print("probe_sf", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk not in ("per_seed", "pool_frame")})
 for k, v in out["convergence"].items():
     print("convergence", k, {c: {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in d.items()} for c, d in v.items()})
 for k, v in out["density_probe"].items():

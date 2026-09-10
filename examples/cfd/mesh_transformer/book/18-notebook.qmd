@@ -12052,6 +12052,130 @@ with this entry: the bf16 side's snapshot name was named and checked by the
 guard but dropped from the per-arm `snapshot` field (shown as `?`); it is
 now carried, so every arm row names both instruments' snapshots.
 
+## 2026-09-10 — Verdict SCALE (ISLA), DrivAerML half complete: width scales (512-wide 0.91x) and the protocol is resolution-limited (80,000 cells 0.84x); both corners reach 0.77x, and only the similarity-gauge corner is adoptable; HiLift half training, input-bound, weeks {#sec-nb-scale-isla-verdict}
+
+**Instrument.** Every number below is float32 evaluation on the 48
+validation cars (bf16 alongside; the two artifacts sampled bit-identical
+points on all 48 cars for every arm), two seeds, final checkpoint, frozen
+protocol (500 epochs, learning rate 1e-3, no augmentation). Every
+evaluation names its snapshot (sidecar or manifest), every log is free of
+skipped checkpoint loads, and no evaluation tripped the recipe's
+summary-range guard. Costs are read from each lane's own training log:
+parameters, peak memory, median step time, and GPU-hours as the sum of
+logged step times over four GPUs. Reduction:
+results/scaling/isla_scale_reduction_2026-09-09.json.
+
+**DrivAerML, all configurations (ISLA, 435 cars).**
+
+| arm | hidden | cells | params | pressure L2 fp32 (seeds) | ÷ ref | bf16 | peak mem GB | step s | GPU-h | biased ÷ uniform 10k / 80k | training numerics | eval snapshot |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| reference | 192 | 10,000 | 8.87M | **0.0557** (0.0568 / 0.0547) | 1.00 | 0.0577 | 9.81 | 0.273 | 21.3 | 12.1x / 12.7x | reference kernel (`code`) | `code` |
+| width ×2 | 384 | 10,000 | 34.2M | **0.0516** (0.0519 / 0.0513) | 0.93 | 0.0544 | 5.17 | 0.274 | 22.3 | — | reference kernel (`code_isla5`) | `code_isla5` |
+| width ×2.7 | 512 | 10,000 | 60.2M | **0.0508** (0.0511 / 0.0506) | 0.91 | 0.0536 | 6.10 | 0.278 | 22.7 | 14.5x / — | reference kernel (`code_isla5`) | `code_isla5` |
+| tokens ×4 | 192 | 40,000 | 8.87M | **0.0492** (0.0496 / 0.0488) | 0.88 | 0.0511 | 6.72 | 1.28 | 86.4 | — | reference kernel + exact recompute (`code_isla5`) | `code_eval` |
+| tokens ×8 | 192 | 80,000 | 8.87M | **0.0468** (0.0472 / 0.0464) | 0.84 | 0.0484 | 12.9 | 0.272 | 21.7 | — | fast point-softmax + exact recompute (`code_perf`) | `code_perf` |
+| corner | 384 | 40,000 | 34.2M | **0.0452** (0.0453 / 0.0451) | 0.81 | 0.0469 | 10.0 | 1.29 | 86.4 | — | reference kernel + exact recompute (`code_isla5`) | `code_eval` |
+| corner, pilot | 512 | 80,000 | 60.2M | **0.0428** (0.0427 / 0.0429) | 0.77 | 0.0441 | 22.8 | 0.285 | 22.5 | 10.9x / 16.7x | fast point-softmax + exact recompute (`code_perf`) | `code_perf` |
+| corner, similarity gauge | 512 | 80,000 | 60.2M | **0.0431** (0.0426 / 0.0437) | 0.77 | 0.0441 | 22.9 | 0.281 | 20.2 | **1.53x / 1.08x** | fast point-softmax + exact recompute (`code_perf`) | `code_eval` |
+| kernel control | 192 | 10,000 | 8.87M | 0.0567 (0.0567 / 0.0567) | 1.02 | 0.0596 | 3.89 | 0.161 | 19.0 | — | fast point-softmax (`code_perf`) | `code_perf` |
+| ablation: weights off (never a reference configuration) | 384 | 10,000 | 34.2M | 0.0505 (0.0514 / 0.0496) | 0.91 | 0.0537 | 5.17 | 0.275 | 23.1 | — | reference kernel (`code_isla5`) | `code_isla5` |
+
+Two cost columns need their provenance stated. Peak memory is not
+comparable across snapshots: the reference lanes trained under the legacy
+`code` snapshot (9.81 GB at width 192) while the kernel control, the same
+configuration under `code_perf`, peaks at 3.89 GB, so the 5–6 GB of the
+wide arms reflects the newer snapshots' allocator behaviour, not a memory
+saving from width; within a snapshot the ordering is as expected (width 512
+above 384; 80,000 cells with exact recompute 12.9 GB at width 192 and 22.9
+GB at width 512). GPU-hours follow the kernel: the two 40,000-cell arms
+trained on the reference point-softmax kernel at 1.28 s per step (86
+GPU-hours) because the fast kernel was adopted after they launched, while
+the 80,000-cell arms on the fast kernel ran at 0.28 s (21–23 GPU-hours),
+the same step time as the 10,000-cell arms. The cost frontier below
+therefore reads the 40,000-cell points as measured and notes that on the
+fast kernel they would sit near the reference's cost.
+
+**Bars (preregistered in @sec-nb-scale-prereg; e_ref = 0.0557 in the
+float32 instrument, 0.0577 in bf16; both instruments give the same
+verdicts).**
+
+1. *Width scales.* The 512-wide arm is 8.8% better than the reference
+   (0.0508; bf16 7.1%), past the 5% bar. The gain is front-loaded: 384 takes
+   7.4% and the step from 384 to 512 adds 1.6%, inside the seed spread, so
+   width is scaling but flattening by 512 at 10,000 cells. Cost of width at
+   this count: 6.8x the parameters for 2% more step time (attention over
+   10,000 points, not the width, sets the step).
+2. *Resolution-limited.* The 80,000-cell arm at the reference width is 16.0%
+   better (0.0468; bf16 16.1%), past the 5% bar by a wide margin; 40,000
+   cells takes 11.7%. The frozen protocol's 10,000 cells per car is the
+   binding limit on DrivAerML, not the parameter count: the count lever
+   (16%) is twice the width lever (9%) at equal GPU-hours on the fast
+   kernel.
+3. *Ordering* (bar 3) and the *cross-architecture frontier* (bar 4) belong
+   to the synthesis entry; ISLA's own frontier, GPU-hours against error, is
+   (21.3, 0.0557) → (22.7, 0.0508) → (21.7, 0.0468) → (22.5, 0.0428): at
+   equal cost on the fast kernel, every configuration on the frontier is a
+   token-count step, and width pays only at the corner.
+4. *Corners.* Width and count compose: 384 × 40,000 reaches 0.0452 (0.81x)
+   and 512 × 80,000 reaches 0.0428 (0.77x), against 0.91x and 0.84x for the
+   two levers alone, so the levers are close to independent (the product of
+   the single-lever ratios, 0.77, equals the measured corner).
+5. *Kernel control.* The fast point-softmax kernel at the reference
+   configuration scores 0.0567 against 0.0557 (+1.8%, seeds 0.0567 / 0.0567
+   against 0.0568 / 0.0547): training-neutral within the seed spread, so the
+   fast-kernel arms are comparable with the reference-kernel arms.
+
+**Density sensitivity and what is adoptable.** The 10:1 density-bias
+probe (float32; the ratio of the error under the biased sampler to the
+uniform control) is 11–17x for every constant-gauge configuration at every
+width and count measured (reference 12.1x at 10k and 12.7x at 80k; width 512
+14.5x; the 512 × 80,000 corner 10.9x at 10k and 16.7x at its native 80k), so
+neither lever moves the constant gauge's dependence on the sampling
+distribution. The similarity-gauge corner holds 1.08x at its native count
+and 1.53x at 10,000 cells while matching the constant-gauge corner's
+accuracy (0.0431 against 0.0428) at equal parameters, memory and step time.
+Under the 2026-09-10 redirect (principled generalization over accuracy) the
+constant-gauge gains are recorded as measurements of the levers, and the
+similarity-gauge corner is the one scaled configuration the program may
+adopt. The count asymmetry recorded earlier stands for both corners: the
+80k-trained models lose accuracy at an eighth of their count (0.0663 and
+0.0727 at 10,000 cells) while the 10k-trained references improve
+monotonically to 80,000 (0.0528 and 0.0574).
+
+**Consequence for the book.** ISLA's DrivAerML pressure error of 0.0557
+(0.0577 bf16) is a number at 8.9M parameters and 10,000 cells per car; at
+60M parameters and 80,000 cells it is 0.0431 with the density invariance
+kept. The accuracy ordering the chapters report is an ordering at the
+frozen operating point until the synthesis entry places the baselines'
+scaling beside this one; the recommendation section gains a scale clause
+either way.
+
+**HiLift half: training, input-bound, weeks.** Fourteen HiLiftAeroML lanes
+(1,260 cases) are running under the fleet's reader contention; measured at
+2026-09-10 13:46 PDT, about 23 hours after launch:
+
+| HiLift arm | lanes | epoch of 500 | recent median step | epochs per day | remaining |
+|---|---|---|---|---|---|
+| width 384, width 512, width 384 weights-off | 6 | 58–62 | 1.2–2.0 s | 60–64 | about 7 days |
+| 40,000 cells (192 and 384 wide) | 4 | 27–31 | 1.8–2.1 s | 28–32 | about 16 days |
+| 80,000 cells (192 and 512 wide, fast kernel) | 4 | 26–31 | 3.0–3.5 s | 27–32 | about 16 days |
+
+The coordinating session's decision stands: full protocol, no hold, no
+epoch cut (stall threshold 45 minutes, chain-ahead restarts). The HiLift
+reference is 0.0405 in float32 (0.0413 bf16; 262 GPU-hours at 0.57 s per
+step). The HiLift half of this entry is written when the lanes land,
+evaluated in both precisions the same way; the bars are the same with
+e_ref = 0.0405.
+
+**Open item appended when reduced:** the coordinating session's sample-frame
+density probe (canonical `drivaer_probe_{biased3,unif2}_sf{,_80k}.yaml`,
+CenterMesh moved to directly after the sampler; ISLA centres internally, so
+its ratios are expected to equal the pool-frame values) on the two corners
+at 80,000 and 10,000 cells and the two references at 10,000 cells, twelve
+units under `code_eval` in float32 (job 704888, output
+`scale_probe_fp32_sf{,_80k}/`, reducer key `density_probe_sample_frame`,
+reported as "sample frame (pool frame)").
+
 ## 2026-09-09 — Preregistered: QTDENS, does GeoTransolver-volume's eddy-viscosity lead come from reading the interior sample's density, and does an ISLA-native query-neighbour channel close the gap? {#sec-nb-qt-density-prereg}
 
 **Setting.** On the DrivAerML interior task ISLA's query-token
