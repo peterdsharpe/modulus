@@ -12090,3 +12090,78 @@ architectures × 2 seeds = 12 new DrivAerML lanes (the unif-only condition
 exists), snapshot `code` for the baselines and ISLA, recipe copy
 recipe_bench; run ids mix_dr_<arch>_<area|mixed>_seed<seed>. Artifact:
 results/mix_conventions_2026-09-10.json.
+
+## 2026-09-10 — Verdict, centering probe: the constant gauge's density collapse is the unweighted centroid (12.1x → 1.12x with measure-weighted centering, no retraining) {#sec-nb-center-probe-verdict}
+
+The main session derived from the model code that the only
+sampling-distribution-dependent quantity in the reference ISLA's forward
+pass is the plain mean used to center the point cloud in the constant-gauge
+branch (#sec-nb-centroid-derivation): the routing softmax carries exact
+log-weights, the slice moments are attention-normalized, and the reference
+configuration has no local features, so under a 10:1 sampling bias toward
+one half of the car the unweighted centroid moves by a large fraction of
+the body length and every relational invariant leaves its trained range.
+The prediction was that centering by the measure-weighted mean, the
+similarity gauge's own centroid formula, would recover most of the 12x
+collapse on the *trained* reference checkpoints without retraining, with a
+falsifier at a residual ratio of 6x or more.
+
+**Instrument.** A flag-gated `center_mode="measure"` in the constant-gauge
+branch (default `"plain"`, bitwise unchanged; contracts: uniform weights
+reproduce the plain mean to 10⁻¹², translation invariance in both modes, and
+a 10:1 Horvitz–Thompson biased subsample of a 100,000-point cloud moves the
+plain centroid by more than 0.3 cloud radii while the weighted centroid
+stays within 0.15). The reference checkpoints iw_mt2_lr1e3_seed{42,43} and
+the weights-off control now_mt2_lr1e3_seed42 were evaluated in float32 on
+the 48 DrivAerML validation cars under the uniform and 10:1-biased probe
+samplers in both centering modes (snapshot code_center, the training
+snapshot plus the patch; every log shows the checkpoint loaded and the
+plain cells reproduce campaign E to four digits).
+
+| checkpoint | plain: uniform / biased / ratio | measure: uniform / biased / ratio | frame cost (measure ÷ plain, uniform) |
+|---|---|---|---|
+| ISLA reference, seed 42 | 0.0566 / 0.7053 / 12.5x | 0.0950 / 0.1093 / **1.15x** | 1.68 |
+| ISLA reference, seed 43 | 0.0550 / 0.6439 / 11.7x | 0.3295 / 0.3609 / **1.10x** | 5.99 |
+| weights-off ablation, seed 42 | 0.0549 / 1.2670 / 23.1x | 0.0864 / 0.2784 / 3.22x | 1.57 |
+
+**The centering is the collapse.** The reference's biased-over-uniform
+ratio falls from 12.1x to 1.12x, inside the 1.5x recovery bar and far from
+the 6x falsifier, on both seeds. The weights-off control falls from 23x to
+3.2x: centering explains most of its collapse and the residual is the loss
+of the Horvitz–Thompson weighting in the attention, the second prediction
+of the derivation. What the probe does not establish is accuracy: on these
+plain-trained checkpoints the frame swap is not neutral on the uniform draw
+either (1.7x and 6.0x), because the area-weighted centroid differs from the
+plain mean even under uniform-over-cells sampling, so a network trained in
+one frame is being read in another. The four trained lanes with measure
+centering (cg_dr_mt2_mcenter_seed{42,43} on DrivAerML,
+cg_hl_mt2_mcenter_super_scarce_seed{42,43} at 35 HiLift cases; bars: density
+ratio ≤ 1.5x and within 3% of the constant gauge's accuracy) decide whether
+the reference configuration becomes "constant length with measure
+centering" rather than the similarity gauge, which buys the same robustness
+at an 8–10% price that may sit in its scale normalization rather than its
+centering.
+
+**The frame-swap cost is a finding in its own right.** A network trained in
+the plain-mean frame loses 1.7x (seed 42) and 6.0x (seed 43) of its accuracy
+on the *uniform* draw when read in the area-weighted frame, so the constant
+gauge's accuracy rides on an exact frame to a degree that a centroid shift
+of the size the area weighting produces on an ordinary sample is enough to
+break it, and the two seeds differ fourfold in that sensitivity. The
+displacement between the two centroids on the uniform draw, in body
+lengths, is being computed from the same probe and will be added beside
+these ratios.
+
+**Preregistered bars for the four trained lanes** (before they read out):
+joint pass if the density ratio is ≤ 1.5x *and* the float32 pressure
+error is within 3% of the constant gauge's (0.0557 on DrivAerML; 0.138 at
+35 HiLift cases), in which case "constant length + measure centering"
+becomes the candidate reference configuration. Failure readings: invariant
+but costly (ratio ≤ 1.5x, error > 3% worse) means the price of robustness
+is the centering itself and the similarity gauge stands; accurate but not
+invariant (within 3%, ratio > 1.5x) means a second sampling-dependent path
+exists that the probe's frozen weights did not expose. Either way the mechanism question of @sec-nb-principle-audit
+(why does the reference fail the density test) is answered: an unweighted
+sample statistic in the frame construction, not the measure semantics of the
+routing. Artifact: results/center_probe_2026-09-10.json (cluster
+$T/center/probe_fp32, reducer center/reduce_center_probe.py).

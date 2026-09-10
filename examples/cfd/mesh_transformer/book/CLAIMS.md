@@ -1153,3 +1153,11 @@ interior control @sec-nb-udrv-int-prereg.
   architecture) and is never written as a defect. The failure is a sampling-distribution dependence
   that does not vanish with refinement (the biased-resampling collapse). Write "consistent in the
   fine-mesh limit" / "converges to the same field"; never "the error must not change with count".
+- **Centering probe (2026-09-10, float32, DrivAerML 48 cars; results/center_probe_2026-09-10.json).** The
+  constant-gauge ISLA's 12.1x density-bias collapse is the PLAIN-MEAN centroid in the constant-gauge
+  branch: with measure-weighted centering (center_mode="measure", no retraining) biased ÷ uniform is
+  1.15x / 1.10x (mean 1.12x) on iw_mt2_lr1e3_seed{42,43}; weights-off control 23.1x → 3.22x (residual =
+  attention weighting). Frame swap is NOT neutral on uniform for plain-trained checkpoints (1.7x / 6.0x),
+  so write "the collapse is the centering" and NOT "measure centering recovers the reference's accuracy";
+  accuracy is decided by the cg_*_mcenter trained lanes (bars ≤ 1.5x and within 3% of constant-gauge
+  accuracy). Do not call the constant gauge "density-dependent by its measure semantics" anywhere.
