@@ -1167,3 +1167,16 @@ interior control @sec-nb-udrv-int-prereg.
   model). Write "biased inclusion with exact measure weights", never "biased quadrature". Mechanism
   derivation for the constant gauge's collapse (unweighted centroid): #sec-nb-centroid-derivation,
   test owned by the generalization-plan session.
+- **Loader hazard: structural fix merged (2026-09-10; scaling 0e41b9ee1 + transfer c50b87e0a).**
+  `load_checkpoint` raises when a training checkpoint exists but the model's weights file is
+  missing, and searches a model's declared `_legacy_class_names` first (ISLA declares
+  "MeshTransformer2", so legacy MeshTransformer2.*.mdlus load with a warning naming both files);
+  undeclared renames are refused, never skipped. Tests: test_load_checkpoint_refuses_uninitialized_model,
+  test_load_checkpoint_finds_legacy_class_name, test_isla_declares_its_legacy_name. Hazard confirmed
+  on the cluster: both 40k mirror logs of iw_mt2_lr1e3 contain "skipping load", both seeds 1.566679
+  (seeded init) → the "28x density collapse" is STRUCK with cause; all other SCALE evaluations verified
+  loaded. RULES: an evaluation log containing "skipping load" VOIDS the run; the frozen snapshots
+  `code`, `code_isla2–5`, `code_perf`, `code_support` predate the guards, so every evaluation from them
+  must be grepped for "skipping load" before its number is used; a program-wide guarded evaluation
+  snapshot built from the merged head is the pending fix (identity check against `code` on one legacy
+  checkpoint in float32 before adoption).

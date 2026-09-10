@@ -11929,3 +11929,22 @@ still costs about 8%, the price is the centering itself and the similarity
 gauge stands as the reference. (a) is evaluation-only; (b) is two lanes per
 dataset. Owner: the generalization-plan session (item 4), which holds the
 model file for this work; this entry is the derivation it cites.
+
+**Additions (same day, transfer session, checked against the snapshot that
+trained the reference, `code/.../mt2/model.py`).** The plain-mean centroid
+enters through the per-point seed features (r̂·d̂, r̂·n̂, |r|) and the anchor
+directions; the relational terms r − z are translation-invariant and
+unaffected. A residual second path remains even with weighted centering:
+the attention is an unbiased Horvitz–Thompson weighting, but its effective
+sample size in the sparse half falls about 10x under the bias, so a
+variance term stays and is most of what the similarity-gauge arm's 1.21x
+is; the falsifier (≥ 6x) sits safely above it. Test-design caveat: with
+per-cell area weights the weighted centroid differs from the plain mean on
+the *uniform* draw too, so the clean comparison is uniform-with-weighted
+centering against biased-with-weighted centering, both under the new flag,
+with the uniform-plain number reported beside as the cost of the frame
+change. Second prediction, with a sign: the weights-off configuration's 19x
+combines the same centroid shift with the loss of the Horvitz–Thompson
+weighting in the attention (log-weights zero), so weighted centering alone
+must *not* recover it; if it does, the derivation is wrong about where the
+weights matter.
