@@ -206,7 +206,7 @@ for ds in ("hl", "dr"):
             rec["gpu_hours_500_epochs"] = 500 * STEPS_PER_EPOCH[ds] * rec["median_step_s"] * 4 / 3600
         out["arms"][f"{ds}_{arm}"] = rec
 out["provenance"] = {"eval_logs_checked_for_skipped_load": LOG_CHECK["checked"], "eval_logs_with_skipped_load": LOG_CHECK["hits"],
-                     "evaluation_snapshot": "code (same snapshot that trained the runs); switch to the guarded program-wide evaluation snapshot when confirmed"}
+                     "evaluation_snapshot": "the ten DrivAerML lanes and the references were evaluated under the training snapshot code; from 2026-09-10 the eval, fp32 and probe launchers import the program-wide evaluation snapshot code_eval, identity-checked by the main session (uw_gt_unit_lr1e3_seed42 under code vs code_eval: bitwise identical in float32, zero skipped loads), so both sets are the same function"}
 json.dump(out, open(f"{T}/hl_evals/scale_gt_reduction.json", "w"), indent=1)
 print("PROVENANCE", out["provenance"])
 for k, v in out["references"].items():
