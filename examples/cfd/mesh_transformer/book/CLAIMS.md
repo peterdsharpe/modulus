@@ -1262,7 +1262,7 @@ interior control @sec-nb-udrv-int-prereg.
   drive) — NOTE the option currently requires query_independent=True (model.py ~596), so the QT+SDF
   configuration needs a flag-gated relaxation first.
 - **SCALE DrivAerML synthesis (2026-09-10, scaling session; #sec-nb-scale-drivaer-synthesis; fp32, 48 cars,
-  two seeds, 512 wide × 80,000 cells).** GeoTransolver 0.0419 (0.22 s/step, 41 GB, ~13 GPU-h), ISLA
+  two seeds, 512 wide × 80,000 cells).** GeoTransolver 0.0419 (0.211 s/step, 41.5 GB, 12.7 GPU-h; reduced values, 52 logs, zero skips), ISLA
   constant gauge + weights on + fast kernel 0.0428 (0.285 s, 22.8 GB, 22.5 GPU-h), Transolver 0.0431
   (0.111 s, 27.6 GB, 6.6 GPU-h). Baseline ÷ ISLA 0.903 / 0.928 → 0.979 / 1.007 (shift +0.076 / +0.079 >
   0.05 bar): the reference-size DrivAerML ordering does NOT persist at scale; mechanism = the cell-count
@@ -1272,7 +1272,7 @@ interior control @sec-nb-udrv-int-prereg.
   gauge corner g512x80k (bars ≤ 0.0449, ratio ≤ 1.5) is decisive. Write the frontier as accuracy ×
   invariance × GPU-hours; "within 3% at 512×80k"; never "ISLA wins at scale". bf16 = additive floor per
   architecture (GT +0.004–0.005, T +0.004, ISLA +0.0013–0.002) that INVERTS the corner ordering — never
-  quote bf16 corner numbers. GT corner step/memory are launch-record values pending its reduction.
+  quote bf16 corner numbers. GT corner cost reduced 2026-09-10 (replaces launch-record 0.22 s / 41 GB / ~13 GPU-h).
 - **Count convergence of the 10k-trained ISLA references (2026-09-10, scaling session, fp32, code_eval).**
   Queried at 80,000 cells the 10k-trained constant-gauge reference goes 0.0558 → 0.0528 and the
   similarity-gauge reference 0.0616 → 0.0574: error falls under refinement (consistency in the
