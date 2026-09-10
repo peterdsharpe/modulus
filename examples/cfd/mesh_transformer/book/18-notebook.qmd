@@ -13139,8 +13139,12 @@ sizes (10,000 already: 0.0547 / 0.0796 / 0.1116 deduplicated two-seed means;
 at the training count:* pressure at 10,000 within 3% of the reference
 (≤ 0.0563), otherwise "augmentation costs accuracy". (2) *Count dependence
 removed:* pressure at 2,000 requests within 10% of the arm's own 10,000
-value (the reference's 2,000-request penalty is about 45% on four cars; the
-48-car control number is written into this entry when job 702010 lands);
+value (the reference's 2,000-request penalty on all 48 cars, float32,
+deduplicated two-seed means, is +38% on pressure, 0.0753 against 0.0547,
++59% on velocity, 0.1266 against 0.0796, and +49% on eddy viscosity, 0.1663
+against 0.1116; at 20,000 requests the reference improves to 0.0531 / 0.0771
+/ 0.1097, so it converges upward and fails only downward; control jobs
+702010 / 702011, zero skipped loads);
 "supported" if the 2,000-to-10,000 ratio is ≤ 1.10 for pressure and ≤ 1.15
 for eddy viscosity, "falsified" if pressure ≥ 1.25 (no better than half the
 reference's penalty), between otherwise. (3) *Consistency upward:* the
