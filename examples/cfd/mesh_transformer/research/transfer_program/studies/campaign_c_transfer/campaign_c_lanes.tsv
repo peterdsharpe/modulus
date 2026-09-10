@@ -1,0 +1,29 @@
+idx	arm	model	extra	dataset	lr	seed	tokens	run_id
+0	T1	mt2_surface	extra_datasets=[shift_suv_surface]	drivaer_ml_surface	1.0e-3	42	10000	campC_cond0_isla_seed42
+1	T1	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir extra_datasets=[shift_suv_surface]	drivaer_ml_surface	1.0e-3	42	10000	campC_cond0_gt_seed42
+2	T1	mt2_surface	+model.n_boundary_scalars=1 +forward_kwargs.boundary_scalars=boundaries.vehicle.cell_data.cond extra_datasets=[campc_estate_cond1]	campc_drivaer_cond0	1.0e-3	42	10000	campC_cond1_isla_seed42
+3	T1	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir forward_kwargs.local_embedding=[interior.points,boundaries.vehicle.cell_data.normals,boundaries.vehicle.cell_data.cond] model.functional_dim=7 extra_datasets=[campc_estate_cond1]	campc_drivaer_cond0	1.0e-3	42	10000	campC_cond1_gt_seed42
+4	T1	mt2_surface	extra_datasets=[shift_suv_surface]	drivaer_ml_surface	1.0e-3	43	10000	campC_cond0_isla_seed43
+5	T1	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir extra_datasets=[shift_suv_surface]	drivaer_ml_surface	1.0e-3	43	10000	campC_cond0_gt_seed43
+6	T1	mt2_surface	+model.n_boundary_scalars=1 +forward_kwargs.boundary_scalars=boundaries.vehicle.cell_data.cond extra_datasets=[campc_estate_cond1]	campc_drivaer_cond0	1.0e-3	43	10000	campC_cond1_isla_seed43
+7	T1	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir forward_kwargs.local_embedding=[interior.points,boundaries.vehicle.cell_data.normals,boundaries.vehicle.cell_data.cond] model.functional_dim=7 extra_datasets=[campc_estate_cond1]	campc_drivaer_cond0	1.0e-3	43	10000	campC_cond1_gt_seed43
+8	T2	mt2_surface	extra_datasets=[campc_estate_n217]	campc_drivaer_n218	1.0e-3	42	10000	campC_mix435_isla_seed42
+9	T2	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir extra_datasets=[campc_estate_n217]	campc_drivaer_n218	1.0e-3	42	10000	campC_mix435_gt_seed42
+10	T2	mt2_surface	extra_datasets=[campc_estate_n217]	campc_drivaer_n218	1.0e-3	43	10000	campC_mix435_isla_seed43
+11	T2	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir extra_datasets=[campc_estate_n217]	campc_drivaer_n218	1.0e-3	43	10000	campC_mix435_gt_seed43
+12	T3	mt2_surface	training.init_from=/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/runs/mt2_v3c_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-4	campc_fastback_fewshot20	1.0e-4	42	10000	campC_ft20_isla_seed42
+13	T3	mt2_surface	training.num_epochs=200	campc_fastback_fewshot20	1.0e-3	42	10000	campC_scratch20_isla_seed42
+14	T3	mt2_surface	training.init_from=/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/runs/mt2_v3c_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-4	campc_fastback_fewshot20	1.0e-4	43	10000	campC_ft20_isla_seed43
+15	T3	mt2_surface	training.num_epochs=200	campc_fastback_fewshot20	1.0e-3	43	10000	campC_scratch20_isla_seed43
+16	T3gt	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir training.init_from=/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/runs/uw_gt_unit_lr1e3_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-4	campc_fastback_fewshot20	1.0e-4	42	10000	campC_ft20_gt_seed42
+17	T3gt	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir training.num_epochs=200	campc_fastback_fewshot20	1.0e-3	42	10000	campC_scratch20_gt_seed42
+18	T3gt	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir training.init_from=/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/runs/uw_gt_unit_lr1e3_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-4	campc_fastback_fewshot20	1.0e-4	43	10000	campC_ft20_gt_seed43
+19	T3gt	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir training.num_epochs=200	campc_fastback_fewshot20	1.0e-3	43	10000	campC_scratch20_gt_seed43
+20	T3lr	mt2_surface	training.init_from=/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/runs/mt2_v3c_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-3	campc_fastback_fewshot20	1.0e-3	42	10000	campC_ft20lr3_isla_seed42
+21	T3lr	mt2_surface	training.init_from=/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/runs/mt2_v3c_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-3	campc_fastback_fewshot20	1.0e-3	43	10000	campC_ft20lr3_isla_seed43
+22	T3lr	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir training.init_from=/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/runs/uw_gt_unit_lr1e3_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-3	campc_fastback_fewshot20	1.0e-3	42	10000	campC_ft20lr3_gt_seed42
+23	T3lr	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir training.init_from=/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/runs/uw_gt_unit_lr1e3_seed42/checkpoints training.num_epochs=200 training.optimizer.lr=1.0e-3	campc_fastback_fewshot20	1.0e-3	43	10000	campC_ft20lr3_gt_seed43
+24	T2	mt2_surface	-	drivaer_ml_surface	1.0e-3	42	10000	iw_mt2_lr1e3_seed42
+25	T2	mt2_surface	-	drivaer_ml_surface	1.0e-3	43	10000	iw_mt2_lr1e3_seed43
+26	T2	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	drivaer_ml_surface	1.0e-3	42	10000	uw_gt_unit_lr1e3_seed42
+27	T2	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	drivaer_ml_surface	1.0e-3	43	10000	uw_gt_unit_lr1e3_seed43
