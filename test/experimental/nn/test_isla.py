@@ -545,6 +545,93 @@ def test_latent_volume_tokens_contracts():
     assert not torch.allclose(base, plain, atol=1e-6)
 
 
+def _qt_case(n=400, nq=150, seed=0):
+    torch.manual_seed(seed)
+    pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n, dtype=torch.float64) + 0.5
+    qpts = torch.randn(1, nq, 3, dtype=torch.float64) * 4.0
+    qnrm = torch.nn.functional.normalize(torch.randn(1, nq, 3, dtype=torch.float64), dim=-1)
+    q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
+    if torch.det(q) < 0:
+        q[:, 0] = -q[:, 0]
+    shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
+    return pts, nrm, drv, w, qpts, qnrm, q, shift
+
+
+@pytest.mark.parametrize("flag", ["wake_tokens", "latent_volume_tokens"])
+def test_context_tokens_with_query_tokens_contracts(flag):
+    """Wake tokens (2026-09-10) and latent volume tokens in the interacting
+    query-token mode: exact SE(3) covariance, correct output count (only the
+    queries are read), invariance to a uniform rescale of the measure weights
+    and to splitting every surface token into two half-weight copies
+    (Horvitz-Thompson refinement), liveness, gradients everywhere, and the
+    constructor contract (some interior query path is required)."""
+    pts, nrm, drv, w, qpts, qnrm, q, shift = _qt_case()
+    # query_mass="source_total" is the refinement-invariant convention (the one D1 uses); the
+    # default per-token mean is not invariant to splitting tokens, independently of this flag.
+    kw = dict(hidden=64, n_layers=2, n_slices=16, query_tokens=True, similarity_gauge=True,
+              query_mass="source_total", out_scalars=1, out_vectors=1)
+    torch.manual_seed(1)
+    m = ISLA(**{flag: True}, **kw).double().eval()
+    torch.manual_seed(1)
+    m0 = ISLA(**kw).double().eval()
+    with torch.no_grad():
+        base = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+        rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w, query_points=qpts @ q.T + shift, query_normals=qnrm @ q.T)
+        scaled_w = m(pts, nrm, drv, w * 7.3, query_points=qpts, query_normals=qnrm)
+        split = m(torch.cat([pts, pts], 1), torch.cat([nrm, nrm], 1), drv, torch.cat([w, w], 1) / 2,
+                  query_points=qpts, query_normals=qnrm)
+        plain = m0(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+    assert base.shape == (1, qpts.shape[1], 4) and torch.isfinite(base).all()
+    p0, v0 = _split(base)
+    p1, v1 = _split(rot)
+    assert torch.allclose(p1, p0, atol=1e-10) and torch.allclose(v1, v0 @ q.T, atol=1e-10)
+    assert torch.allclose(scaled_w, base, atol=1e-10)
+    assert torch.allclose(split, base, atol=1e-8)
+    assert not torch.allclose(base, plain, atol=1e-6)
+    m.train()
+    out = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+    out.square().mean().backward()
+    missing = [k for k, p in m.named_parameters() if p.grad is None]
+    assert not missing, missing
+    with pytest.raises(ValueError):
+        ISLA(hidden=32, n_layers=1, n_slices=8, **{flag: True})
+
+
+def test_wake_tokens_extent_is_sampling_invariant():
+    """The wake tokens' positions depend on the surface only through its
+    measure-weighted drive-aligned extent and centre. A 10:1 biased resample
+    of the surface with exact inverse-inclusion weights reproduces that
+    extent (checked directly on the weighted statistic) and yields a finite
+    prediction at fixed downstream queries."""
+    torch.manual_seed(3)
+    n = 4000
+    pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(pts, dim=-1)
+    drv = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float64)
+    w = torch.ones(1, n, dtype=torch.float64)
+    qpts = torch.randn(1, 60, 3, dtype=torch.float64) * 4.0 + torch.tensor([6.0, 0.0, 0.0], dtype=torch.float64)
+    qnrm = torch.nn.functional.normalize(torch.randn(1, 60, 3, dtype=torch.float64), dim=-1)
+    torch.manual_seed(1)
+    m = ISLA(hidden=64, n_layers=2, n_slices=16, query_tokens=True, similarity_gauge=True, wake_tokens=True,
+             query_mass="source_total", out_scalars=1, out_vectors=1).double().eval()
+    front = pts[0, :, 0] < pts[0, :, 0].median()
+    pi = torch.where(front, torch.full((n,), 0.5, dtype=torch.float64), torch.full((n,), 0.05, dtype=torch.float64))
+    keep = torch.rand(n, dtype=torch.float64) < pi
+    with torch.no_grad():
+        full = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+        biased = m(pts[:, keep], nrm[:, keep], drv, w[:, keep] / pi[keep], query_points=qpts, query_normals=qnrm)
+    s = pts[0, :, 0]
+    s_b, wb = s[keep], 1.0 / pi[keep]
+    ell_full = s.std(unbiased=False)
+    mean_b = (wb * s_b).sum() / wb.sum()
+    ell_b = torch.sqrt((wb * (s_b - mean_b) ** 2).sum() / wb.sum())
+    assert torch.isfinite(full).all() and torch.isfinite(biased).all()
+    assert abs(ell_b - ell_full) / ell_full < 0.05
+
+
 def test_a35b_ablation_flags_run_and_differ():
     """A35b: raw seeds break equivariance by design; no-relational-geo stays
     exactly equivariant; both run, are finite, and change the output."""
