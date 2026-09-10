@@ -1220,3 +1220,8 @@ interior control @sec-nb-udrv-int-prereg.
   checkpoint loaded (evaluation snapshots matched the training snapshots by construction). The only
   skipped loads in the program were the transfer session's two T2 reference passes and the 4-way probe
   under code_support, all discarded and redone, and the scaling session's 40k mirror (struck).
+- **Duplicate rows in interior metrics.jsonl (2026-09-10).** v0_evals_fp32/{v0_isla_qtsdfval,udrv_gt_vol}_seed{42,43}
+  metrics files hold 50–52 infer_step rows for 48 cars (re-run appends). Raw means (used so far) vs
+  deduplicated by sample_id (last wins): ISLA 0.0548/0.0801/0.1122 → 0.0547/0.0796/0.1116; GT-volume
+  0.0513/0.1070/0.0876 → 0.0513/0.1071/0.0879; every ratio moves < 1%, no verdict affected. RULE: reducers
+  deduplicate by sample_id before averaging; state "48 cars" not the row count.
