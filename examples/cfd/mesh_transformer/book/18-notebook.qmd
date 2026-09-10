@@ -9315,7 +9315,17 @@ float32 ν_t ≤ 1.10x that reference, fails if ≥ 1.25x; pressure and velocity
 changes above 5% relative to the float32 ISLA query-token + SDF reference
 are reported as channel effects. Both passes are run (bf16 into the usual
 directory, float32 into `v0_evals_fp32/`); the verdict is graded on float32
-and states the precision in every table.
+and states the precision in every table. The float32 references landed
+(same checkpoints, identical points, `v0_evals_fp32/`): GeoTransolver-volume
+0.0515 / 0.1088 / 0.0879 and ISLA query tokens + SDF 0.0547 / 0.0796 / 0.1116
+(pressure / velocity / ν_t), so bf16 had inflated GeoTransolver-volume by
+20–23% and ISLA by 4–8%, and in float32 GeoTransolver-volume leads on
+pressure (ISLA ÷ GT 1.06) while ISLA leads on velocity (0.73). In readout
+units the ν_t bars are: **closes the gap if ν_t ≤ 0.0967**, **fails if
+ν_t ≥ 0.1099**; the reference arm sits at 0.1116 (1.27x). Pressure effects
+are reported against 0.0547 (ISLA) and 0.0515 (GeoTransolver-volume), with
+the 5% channel-effect band on pressure 0.0520–0.0574 and on velocity
+0.0756–0.0836.
 
 ## 2026-09-09 — Ops: the DrivAerML interior stall is a hang inside `pin_memory` in the reader's prefetch thread, not a Lustre read; diagnosed from in-process stack dumps {#sec-nb-interior-stall-diagnosis}
 
