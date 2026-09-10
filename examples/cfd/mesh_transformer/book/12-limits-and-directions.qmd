@@ -411,7 +411,10 @@ there is no transfer advantage to explain and the thread is closed.
 **On the boundary → interior task, ISLA with query tokens and the signed
 distance as an input is more accurate than GeoTransolver's volume
 configuration on interior velocity (0.75x in float32, three seeds) and less
-accurate on interior pressure (1.08x) and eddy viscosity (1.27x); in bfloat16, which
+accurate on interior pressure (1.08x) and eddy viscosity (1.27x) at a third
+of the parameters; at matched parameters (hidden 344, 27.6M) it leads on
+pressure (0.97x) and velocity (0.68x) and trails on eddy viscosity (1.18x,
+companion #sec-campaigns-interior); in bfloat16, which
 inflates GeoTransolver-volume's errors by 20–23% and ISLA's by 4–7%, the
 pressure ratio read 0.91x (@sec-nb-fp32-interior-regrade); without the
 signed distance it trails on every field (1.19x, 1.28x, 1.61x in
@@ -770,7 +773,9 @@ measured against a physical-drive GeoTransolver and is not claimed as an
 advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on velocity
 (0.75x in float32, three seeds) at a third of the parameters and trails on
-pressure (1.08x) and eddy viscosity (1.27x), at or above the training query count
+pressure (1.08x) and eddy viscosity (1.27x), while at matched parameters it
+leads on pressure as well (0.97x) and trails only on eddy viscosity (1.18x),
+at or above the training query count
 (@sec-interior); the unit-drive control of GeoTransolver-volume changed
 nothing (@sec-nb-udrv-int-verdict), and GeoTransolver-volume is the choice
 where pressure or eddy viscosity is the target field or the

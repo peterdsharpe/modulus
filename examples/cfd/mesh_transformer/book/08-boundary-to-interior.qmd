@@ -701,7 +701,17 @@ distance as an input is 25% more accurate than GeoTransolver's volume
 configuration on interior velocity (0.75x in float32, three seeds) at 8.9M parameters and
 6.0 GB against 27.6M and 8.8 GB, with the two models' inputs matched, keeps
 exact SE(3) covariance, and trails on pressure (1.08x) and eddy viscosity
-(1.27x); ISLA's passive decode is the configuration to use when
+(1.27x). At matched parameter count the ordering changes: the same ISLA
+configuration at hidden width 344 (27.6M parameters, GeoTransolver-volume's
+budget; exact recompute, two seeds, float32) scores 0.0497 / 0.0729 / 0.1033,
+leading GeoTransolver-volume on pressure by 3% (0.97x) and on velocity by
+32% (0.68x) and trailing on eddy viscosity by 18% (1.18x, inside the
+preregistered inconclusive band 1.10–1.25). The float32 interior-pressure
+ordering is therefore a parameter-budget statement, behind at 15M and ahead
+at 27.6M, and width buys 9% / 8% / 7% for 1.8x parameters at about 1.3x step
+time; the eddy-viscosity gap that remains is carried neither by width nor by
+GeoTransolver-volume's local features (`research/transfer_program/studies/computational_support/campaign_d_verdict_2026-09-10.json`,
+companion chapter 7 #sec-campaigns-interior). ISLA's passive decode is the configuration to use when
 interior query independence is contractual, at 9.9M parameters, 4.9 GB
 and a 3.1x price in interior pressure error on DrivAerML (float32).** The parity is
 mostly a full-data statement. Without the signed distance, trained on 54 or

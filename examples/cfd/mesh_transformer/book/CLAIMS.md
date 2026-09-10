@@ -1225,3 +1225,14 @@ interior control @sec-nb-udrv-int-prereg.
   deduplicated by sample_id (last wins): ISLA 0.0548/0.0801/0.1122 → 0.0547/0.0796/0.1116; GT-volume
   0.0513/0.1070/0.0876 → 0.0513/0.1071/0.0879; every ratio moves < 1%, no verdict affected. RULE: reducers
   deduplicate by sample_id before averaging; state "48 cars" not the row count.
+- **Campaign D verdict (2026-09-10, fp32, code_eval, 48 cars, two seeds; `research/transfer_program/studies/computational_support/campaign_d_verdict_2026-09-10.json`).**
+  ISLA QT+SDF hidden 344 (27.6M, exact recompute): 0.0497 (0.0497/0.0498) / 0.0729 (0.0736/0.0721) /
+  0.1033 (0.1058/0.1008) vs hidden-256 reference 0.0547/0.0796/0.1116 (deduped two-seed) and unit-drive
+  GT-volume 0.0513/0.1070/0.0879. Ratios vs GT-volume 0.97x / 0.68x / 1.18x → ν_t BETWEEN (bars ≤1.10
+  closes, ≥1.25 fails). Write "at matched parameters ISLA leads GeoTransolver-volume on pressure by 3%
+  and velocity by 32% and trails on eddy viscosity by 18%; the float32 interior-pressure ordering is a
+  parameter-budget statement (behind at 15M, ahead at 27.6M)". Width buys 9%/8%/7% for 1.8x parameters
+  at ~1.3x step time (matched pinning), less activation memory (recompute). GT-volume without local
+  features 0.0551/0.1111/0.0924 (ν_t 1.05x → features are a 4–7% general carrier, not the lead; bf16
+  inflation unchanged). Next candidate under the principle: per-point SDF-gradient channel for ISLA's
+  interior queries, not more width.
