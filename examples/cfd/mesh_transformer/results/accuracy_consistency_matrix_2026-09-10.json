@@ -126,8 +126,20 @@
     "in_family": 0.0431,
     "density_factor": 4.6,
     "gpu_hours": 6.6
+   },
+   "isla_similarity_gauge_512x80k": {
+    "label": "ISLA, similarity gauge, 512 \u00d7 80k (fast kernel)",
+    "in_family": 0.0431,
+    "in_family_seeds": [
+     0.0425,
+     0.0437
+    ],
+    "density_factor": 1.08,
+    "gpu_hours": 20.2,
+    "step_s": 0.281,
+    "peak_memory_gb": 22.9,
+    "note": "the only scaled configuration whose accuracy survives the density bias; adopted at scale under the principle (scaling synthesis, psharpe/mesh-transformer 15ee3df40)"
    }
-  },
-  "pending": "ISLA similarity gauge at 512 \u00d7 80k (scale_isla_dr_g512x80k_seed{42,43}) \u2014 decisive for whether any corner configuration is density-invariant"
+  }
  }
 }

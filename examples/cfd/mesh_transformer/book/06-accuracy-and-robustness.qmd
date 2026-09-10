@@ -484,7 +484,7 @@ for key in ("geotransolver_unit", "transolver_unit", "isla_reference_constant_ga
             f"| {f(r['zero_shot_fastback'], '{:.2f}')} | {f(r['few_shot_gain'], '{:.0%}')} |\n")
 sc = M["scale_corner"]["rows"]
 out += "| *scale corner, 512 wide × 80,000 cells* | | | | | |\n"
-for key in ("geotransolver_unit_512x80k", "isla_constant_gauge_512x80k", "transolver_unit_512x80k"):
+for key in ("geotransolver_unit_512x80k", "isla_constant_gauge_512x80k", "isla_similarity_gauge_512x80k", "transolver_unit_512x80k"):
     r = sc[key]
     out += (f"| {r['label']} | {r['in_family']:.4f} | {r['density_factor']:.1f} | not measured "
             f"| not measured | {r['gpu_hours']:.1f} GPU-h |\n")
@@ -501,9 +501,9 @@ print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-dr
       "rate. A configuration that reads the sampling distribution shows it in the "
       "density column; the weights-off ablation is the extreme case and is not adopted. "
       "The scale-corner rows (width 512, 80,000 cells, evaluated at 80,000 cells) show the three "
-      "architectures within 3% of one another in-family with no density-invariant configuration "
-      "among them; their last column is training cost in GPU-hours, and the similarity-gauge corner "
-      "is pending. "
+      "architectures within 3% of one another in-family; only the similarity-gauge ISLA corner "
+      "(0.0431, 1.08x under the bias at 80,000 cells) keeps its accuracy when the sampling changes, "
+      "and it is the configuration the program adopts at scale; the last column is training cost in GPU-hours. "
       "Learning rates are stated per row: the similarity-gauge checkpoints were trained at 3e-3, "
       "so their in-family error is not a price of the gauge (the rate-matched constant gauge scores 0.0620). "
       "Data: results/accuracy_consistency_matrix_2026-09-10.json (provenance per cell "
