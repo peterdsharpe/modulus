@@ -433,3 +433,18 @@ campaign-D step times are not comparable with the reference arm's 0.28 s
 without that caveat; and the hand-off's missing timeout is a robustness bug
 worth an upstream fix (`Future.result(timeout)` with a named error)
 independent of the pinning cause.
+
+**Released (addendum to @sec-nb-ops-pin).** The density track's probe lane
+(ISLA query tokens + SDF, density arm, seed 42) resumed from epoch 310 with
+`dataloader.pin_memory=false` and stepped normally for more than fifteen
+minutes past the point where four consecutive pinned attempts had hung
+(epochs 311–312), so the ten held chains were released; eight started at
+once, two wait on priority. Measured cost of the workaround on GB300 at
+10,000 surface plus 10,000 query tokens: 0.388 s per step against 0.287 s
+pinned, a 35% penalty, expected to be similar for GeoTransolver-volume.
+From this date every interior step time in this program is quoted as a
+pin_memory=false number, and the D1 and campaign-D cost readouts are
+compared with the reference arm's step time only after the same penalty is
+applied to it (or the reference is re-measured under the same setting); the
+root cause of the hang inside `TensorDict.pin_memory` in the reader's
+prefetch thread stays open.
