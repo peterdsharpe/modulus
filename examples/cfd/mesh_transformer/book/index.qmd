@@ -54,8 +54,10 @@ stands. At 512 width and 80,000 cells the three are within 3% (0.0419 /
 0.0428 / 0.0431 in float32), so the full-data deficit is a statement about
 the reference size and resolution; there the similarity-gauge ISLA reaches
 the same 0.0431 at the same cost while degrading 1.08x under a 10:1
-sampling-density bias against 4–17x for every other scaled configuration,
-and is the configuration the program adopts at scale (@sec-full-data). The fixed-angle
+sampling-density bias against 4–17x for every other scaled configuration;
+the frame class, not this instance, is what that demonstrates, and the
+single reference configuration is decided by the relative-position frame
+(@sec-full-data). The fixed-angle
 split has been re-measured: the unit-drive GeoTransolver and Transolver
 beat ISLA there too (0.029 and 0.032 against 0.036, on 18 of 18 held-out
 geometries), so the 5.0x figure is gone as a comparison. The HiLift rungs

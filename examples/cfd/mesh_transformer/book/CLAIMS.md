@@ -1326,3 +1326,13 @@ interior control @sec-nb-udrv-int-prereg.
   sampling-consistent frame is the variance of the frame estimate, not the length scale"; never "measure
   centering is free" without "on DrivAerML". Next prereg: FRAME-FULL (frame from the full geometry as
   global data). HiLift density of the cg_hl checkpoints: pending BENCH samplers.
+- **Peter's rulings on the frame (2026-09-10).** (1) ONE flagship configuration across datasets; never a
+  per-dataset reference (the DrivAerML-adopts / HiLift-stays proposal is withdrawn). (2) Sample-statistic
+  frames (mean / weighted-mean centering, RMS-radius scaling) inject the point distribution; the reference
+  frame is to be relative-position translation invariance (drop the six centroid-dependent scalars: seeds
+  r_mag, log r_mag, r̂·d̂, r̂·n̂ and relational z_mag, ẑ·d̂) with an integral length scale (√ of the total
+  surface measure Σw, or a stated physical reference length) — the RELFRAME arm, run by the generalization
+  session at 35 HiLift / DrivAerML and by the scaling session at 512×80k. (3) Gauge corner (0.0431, 1.08x)
+  demonstrates the FRAME CLASS (density-blind frame costs nothing at scale), not an adopted configuration;
+  write "the frame class" and "under decision", never "adopted at scale". (4) Area-proportional / shortcut
+  study greenlit (fork). (5) HiLift reader slowdown accepted, no read fix now.
