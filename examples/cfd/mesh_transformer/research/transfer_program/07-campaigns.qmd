@@ -163,9 +163,19 @@ skew (@sec-campaigns-density), and now a transfer value of zero for its
 DrivAerML pretraining. What ISLA learns on DrivAerML is specific to
 DrivAerML's conventions in a way GeoTransolver's representation is not,
 and that is the concrete target for the architectural directions of this
-program. Caveats: one source checkpoint per architecture and a two-point
+program. The first training batch makes the same point from the other
+end: the pretrained ISLA starts at a loss of 0.194 against 0.477 for a
+random initialization (2.5x better) and the pretrained GeoTransolver at
+0.176 against 0.278 (1.6x), so both carry DrivAerML knowledge worth about
+the same at step 0; after 1,000 matched-rate steps ISLA's head start has
+shrunk to 6% and GeoTransolver's has grown to 31%. Caveats: one source
+checkpoint per architecture (the ISLA source is the lr 3e-3 reference, the
+GeoTransolver source the unit-drive lr 1e-3 run) and a two-point
 learning-rate grid; a different rate or a warm-up could move either number
-but not the sign of the difference at matched rate.
+but not the sign of the difference at matched rate. The initialization
+itself was verified: a frozen copy of the ISLA source loaded through the
+fine-tuning hook reproduces the source's zero-shot fastback error to four
+digits (@sec-nb-snapshot-resolved).
 
 ## Density robustness against fair baselines (campaign E) {#sec-campaigns-density}
 
