@@ -1234,5 +1234,11 @@ interior control @sec-nb-udrv-int-prereg.
   parameter-budget statement (behind at 15M, ahead at 27.6M)". Width buys 9%/8%/7% for 1.8x parameters
   at ~1.3x step time (matched pinning), less activation memory (recompute). GT-volume without local
   features 0.0551/0.1111/0.0924 (ν_t 1.05x → features are a 4–7% general carrier, not the lead; bf16
-  inflation unchanged). Next candidate under the principle: per-point SDF-gradient channel for ISLA's
-  interior queries, not more width.
+  inflation unchanged). CORRECTION (same day): the SDF gradient is ALREADY an ISLA interior input
+  (query_normals = sdf_normals, query_scalars = sdf), and GT-volume's local embedding is coords + sdf +
+  sdf_normals + six radii, so at matched parameters both models receive the same per-point geometry;
+  the 18% ν_t gap is a difference in how the query consumes it (raw channels through a per-point MLP vs
+  invariant products with anchors and drive), not an input difference. Never write "give ISLA the SDF
+  gradient". Next principled step (transfer session): wall-distance band decomposition of the saved
+  float32 predictions (sdf < 0.01 L / 0.01–0.05 L / ≥ 0.05 L); if near-wall, candidate arm = local
+  readout with kernel radius ∝ query SDF (wall-distance scaling of the closure), discretization-invariant.
