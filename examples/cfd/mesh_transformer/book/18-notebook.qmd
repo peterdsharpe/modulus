@@ -13371,3 +13371,51 @@ which is a second reason to let FRAME-FULL decide. The HiLift density ratio
 of the measure-centered checkpoints is being measured under the BENCH
 samplers and will complete their row (the density column above is empty for
 that reason, not because the test was skipped).
+
+## 2026-09-10 — Preregistered: FRAME-FULL, the frame from the full geometry as global data (sampling-independent by construction) {#sec-nb-frame-full-prereg}
+
+The centering results (@sec-nb-center-probe-verdict,
+@sec-nb-center-lanes-verdict) leave one mechanism standing for why the
+sampling-consistent frames cost 7–10% at 35 HiLift cases and nothing on
+DrivAerML: on a multi-element wing the cell areas span orders of magnitude,
+so a centroid or an RMS extent estimated from 10,000 area-weighted samples
+is a high-variance statistic, and a frame that jitters between draws of
+the same surface handicaps training; the plain mean of a uniform-over-cells
+draw is low-variance and reads the mesher. The frame of a surface is a
+property of the geometry, not of the sample. FRAME-FULL computes the
+area-weighted centroid and RMS radius once per case from the full surface
+mesh, at data-preparation time, and passes them as global data (as the
+freestream direction is), so the frame is sampling-independent by
+construction, has no estimator variance, and costs nothing at inference. It
+is well posed under @sec-principle: the quantities are available for any
+geometry at inference and depend on no sampling.
+
+**Arms** (ISLA, unit drive, learning rate 1e-3, 500 epochs, snapshot
+code_frame): A, "center only": constant reference length 8.0 with the
+full-geometry centroid (`center_mode="global"`); B, "center and scale": the
+full-geometry centroid and RMS radius (the similarity gauge's statistics,
+computed exactly). Datasets: DrivAerML 435 cars and HiLift 35 cases, two
+seeds each, eight lanes (ff_dr_mt2_{center,frame}_seed{42,43},
+ff_hl_mt2_{center,frame}_super_scarce_seed{42,43}). Frame table:
+$T/frame/frame_table_{drivaer,hilift}.json, verified on two cars against an
+independent full-mesh computation to 10⁻⁶.
+
+**Bars (float32 pressure rel-L2; joint pass).** Accuracy within 3% of the
+constant gauge's plain-centred reference (0.1377 at 35 HiLift cases, three
+seeds; 0.0557 on DrivAerML) *and* density biased ÷ uniform ≤ 1.2x on
+DrivAerML (the measure-centred lanes' 1.17x is the sample-estimate floor
+this should undercut; the BENCH samplers supply the HiLift consistency
+readout). **Predictions.** Arm A passes jointly on both datasets, recovering
+the 10% lost by sample-based measure centering at 35 HiLift cases; arm B
+passes as well, and if B is within seed spread of A the similarity gauge's
+7.6% price is confirmed as frame-estimate variance rather than scale
+normalization. **Falsifier.** If arm A still pays ≥ 7% at 35 HiLift cases,
+the variance hypothesis is wrong and the price of a sampling-consistent
+frame lies in the centring itself (a plain-mean frame carries information
+about the mesher that helps in distribution), which would be recorded as a
+genuine in-distribution advantage of a non-physical input and would not
+change the decision against it. **Decision.** If A passes jointly on both
+datasets it becomes the reference configuration on both, ending the
+dataset-dependent reference; if only DrivAerML passes, the HiLift reference
+stays under decision with the FRAME-FULL numbers stated. Artifact:
+results/frame_full_2026-09-10.json.
