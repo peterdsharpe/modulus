@@ -9933,3 +9933,27 @@ suffix `_fp32`, array task 3, job 696023): if the bf16-trained floors sit
 above their float32-trained twins by more than the seed-level 2%, the bf16
 floor is numerical, not representational, and the bars are applied to the
 float32-trained arms.
+
+**Fourth amendment (2026-09-10): the schedule, not the model, set the
+attempt-4 floors.** The frozen protocol's scheduler is StepLR with a step
+size of 100 *epochs* and gamma 0.1, advanced once per epoch. With one sample
+per epoch that is one step per epoch, so the learning rate had fallen to
+1e-6 by step 300 and every lane's loss was flat from there to step 20,000
+(0.036 for ISLA on DrivAerML at step 319 and at step 19,999 alike). The
+evaluation confirmed that those checkpoints had not fitted even their own
+training sample: relative L2 0.59 on the training sampler's draw and 0.61
+on a fresh draw (float32), against 0.13 for models trained on 35 cases.
+Attempt 4 is archived (`runs_ovf_attempt4/`, `ovf_evals_attempt4/`) and is
+not a result. The relaunch scales the schedule to the step count
+(`training.scheduler.step_size=4000`, the same one-decade-per-fifth
+structure as 100 of 500 epochs) and runs both forms side by side from the
+same launcher: *fixed sample* (one cached 10k-cell sample, run ids `_v1`)
+and *64 views* (`cache_host_views=64`: 64 distinct subsamples of the case
+read once and cycled, run ids `_v64`), ten architecture arms each plus two
+float32-training arms (ISLA weights on, unit-drive Transolver) on the HiLift
+case; 20,000 steps; jobs 697144–697149. The fixed-sample form measures
+memorization capacity and the 64-view form the field-fit capacity; the
+preregistered bars apply to the 64-view float32 readouts, with the
+fixed-sample numbers reported alongside. A general note for the recipe: any
+run whose epoch count is not about 500 needs the scheduler rescaled, which
+the per-epoch StepLR makes easy to forget.
