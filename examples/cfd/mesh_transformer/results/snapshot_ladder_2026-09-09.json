@@ -1,0 +1,282 @@
+{
+ "ladder": {
+  "code": {
+   "pressure_l2": 0.05874508301106592,
+   "wss_x_l2": 0.06485921532536547,
+   "wss_y_l2": 0.14834025145197907,
+   "wss_z_l2": 0.12633162830024958,
+   "wss_l2": 0.0858033187687397,
+   "n_cases": 48,
+   "max_per_case_rel_change_vs_code": {
+    "pressure_l2": 0.0,
+    "wss_x_l2": 0.0,
+    "wss_y_l2": 0.0,
+    "wss_z_l2": 0.0,
+    "wss_l2": 0.0
+   },
+   "max_per_case_rel_change_vs_training_time": {
+    "pressure_l2": 0.0,
+    "wss_x_l2": 0.0,
+    "wss_y_l2": 0.0,
+    "wss_z_l2": 0.0,
+    "wss_l2": 0.0
+   }
+  },
+  "code_isla2": {
+   "pressure_l2": 0.06235182712165018,
+   "wss_x_l2": 0.06837192658955853,
+   "wss_y_l2": 0.16191204326848188,
+   "wss_z_l2": 0.13072783841441074,
+   "wss_l2": 0.09099928755313158,
+   "n_cases": 48,
+   "max_per_case_rel_change_vs_code": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   },
+   "max_per_case_rel_change_vs_training_time": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   }
+  },
+  "code_isla3": {
+   "pressure_l2": 0.06235182712165018,
+   "wss_x_l2": 0.06837192658955853,
+   "wss_y_l2": 0.16191204326848188,
+   "wss_z_l2": 0.13072783841441074,
+   "wss_l2": 0.09099928755313158,
+   "n_cases": 48,
+   "max_per_case_rel_change_vs_code": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   },
+   "max_per_case_rel_change_vs_training_time": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   }
+  },
+  "code_isla4": {
+   "pressure_l2": 0.06235182712165018,
+   "wss_x_l2": 0.06837192658955853,
+   "wss_y_l2": 0.16191204326848188,
+   "wss_z_l2": 0.13072783841441074,
+   "wss_l2": 0.09099928755313158,
+   "n_cases": 48,
+   "max_per_case_rel_change_vs_code": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   },
+   "max_per_case_rel_change_vs_training_time": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   }
+  },
+  "code_isla5": {
+   "pressure_l2": 0.06235182712165018,
+   "wss_x_l2": 0.06837192658955853,
+   "wss_y_l2": 0.16191204326848188,
+   "wss_z_l2": 0.13072783841441074,
+   "wss_l2": 0.09099928755313158,
+   "n_cases": 48,
+   "max_per_case_rel_change_vs_code": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   },
+   "max_per_case_rel_change_vs_training_time": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   }
+  },
+  "code_perf": {
+   "pressure_l2": 0.06235182712165018,
+   "wss_x_l2": 0.06837192658955853,
+   "wss_y_l2": 0.16191204326848188,
+   "wss_z_l2": 0.13072783841441074,
+   "wss_l2": 0.09099928755313158,
+   "n_cases": 48,
+   "max_per_case_rel_change_vs_code": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   },
+   "max_per_case_rel_change_vs_training_time": {
+    "pressure_l2": 0.3057759714508296,
+    "wss_x_l2": 0.19210258799045404,
+    "wss_y_l2": 0.5072677594871035,
+    "wss_z_l2": 0.12647758062132367,
+    "wss_l2": 0.18299556963135266
+   }
+  },
+  "code_recipe_support": {
+   "pressure_l2": 0.05874508301106592,
+   "wss_x_l2": 0.06485921532536547,
+   "wss_y_l2": 0.14834025145197907,
+   "wss_z_l2": 0.12633162830024958,
+   "wss_l2": 0.0858033187687397,
+   "n_cases": 48,
+   "max_per_case_rel_change_vs_code": {
+    "pressure_l2": 0.0,
+    "wss_x_l2": 0.0,
+    "wss_y_l2": 0.0,
+    "wss_z_l2": 0.0,
+    "wss_l2": 0.0
+   },
+   "max_per_case_rel_change_vs_training_time": {
+    "pressure_l2": 0.0,
+    "wss_x_l2": 0.0,
+    "wss_y_l2": 0.0,
+    "wss_z_l2": 0.0,
+    "wss_l2": 0.0
+   }
+  }
+ },
+ "point_identity_ladder": {
+  "00015_run_112_domain_run_112.pdmsh": {
+   "code": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_isla2": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_isla3": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_isla4": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_isla5": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_perf": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_recipe_support": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "training_time": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   }
+  },
+  "00018_run_115_domain_run_115.pdmsh": {
+   "code": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_isla2": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_isla3": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_isla4": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_isla5": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_perf": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "code_recipe_support": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   },
+   "training_time": {
+    "interior_vs_code": "identical",
+    "boundary_vs_code": "identical"
+   }
+  }
+ },
+ "pair_matrix": {
+  "v0_gt_vol_seed42 (v0_evals, code)  vs  v0_isla_qtsdfval_seed42 (v0_evals, code_isla2)": {
+   "case": "00015_run_112_domain_run_112.pdmsh",
+   "interior": "identical",
+   "boundary": "identical"
+  },
+  "v0_gt_vol_seed42 (v0_evals, code)  vs  v0_isla_qtsdf_h256_seed42 (v0_evals, code_isla3)": {
+   "case": "00015_run_112_domain_run_112.pdmsh",
+   "interior": "identical",
+   "boundary": "identical"
+  },
+  "v0_gt_vol_seed42 (v0_evals, code)  vs  udrv_gt_vol_seed42 (v0_evals, code)": {
+   "case": "00015_run_112_domain_run_112.pdmsh",
+   "interior": "identical",
+   "boundary": "identical"
+  },
+  "v0_isla_qtsdfval_seed42 (code_isla2)  vs  v0_isla_qtsdf_surf10k_seed42 (code_isla4)": {
+   "case": "00015_run_112_domain_run_112.pdmsh",
+   "interior": "identical",
+   "boundary": "different_shape (10000, 3) vs (29953, 3)"
+  },
+  "iw_mt2_lr1e3_seed42 (iw_evals, code)  vs  iw_gt_lr1e3_seed42 (iw_evals, code)": {
+   "case": "00015_run_112_domain_run_112.pdmsh",
+   "interior": "identical",
+   "boundary": "identical"
+  },
+  "iw_mt2_lr1e3_seed42 (iw_evals, code)  vs  uw_gt_unit_lr1e3_seed42 (iw_evals, code)": {
+   "case": "00015_run_112_domain_run_112.pdmsh",
+   "interior": "identical",
+   "boundary": "identical"
+  },
+  "iw_mt2_lr1e3_seed42 (iw_evals, code)  vs  mom2_mt2_lr1e3_seed42 (iw_evals, code_isla5)": {
+   "case": "00015_run_112_domain_run_112.pdmsh",
+   "interior": "identical",
+   "boundary": "identical"
+  },
+  "iw_mt2_lr1e3_seed42 (iw_evals, code)  vs  now_mt2_lr1e3_seed42 (iw_evals, code)": {
+   "case": "00015_run_112_domain_run_112.pdmsh",
+   "interior": "identical",
+   "boundary": "identical"
+  },
+  "lad_hl_mt2_super_scarce_seed42 (hl_evals, code)  vs  udrv_hl_gt_super_scarce_seed42 (hl_evals, code)": {
+   "case": "00003_geo_LHC001_AoA_16_domain_LHC001_AoA_16.pdmsh",
+   "interior": "identical",
+   "boundary": "identical"
+  }
+ },
+ "training_time_eval": {
+  "pressure_l2": 0.05874508301106592,
+  "wss_x_l2": 0.06485921532536547,
+  "wss_y_l2": 0.14834025145197907,
+  "wss_z_l2": 0.12633162830024958,
+  "wss_l2": 0.0858033187687397
+ }
+}
