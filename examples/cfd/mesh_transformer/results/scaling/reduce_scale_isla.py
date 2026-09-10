@@ -161,6 +161,13 @@ PROBE = {"dr_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_lr1e3_seed{s}" for s i
          "dr_gauge_ref@20k": [f"{T}/scale_probe_fp32_20k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
          "dr_gauge_ref@40kv80": [f"{T}/scale_probe_fp32_40kv80/iw_mt2_gauge_seed{s}" for s in (42, 43)],
          "dr_gauge_ref@60k": [f"{T}/scale_probe_fp32_60k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         # bracket of the 80k cliff (65,536 hypothesis) and the kernel swap at 80k
+         "dr_ref@65k": [f"{T}/scale_probe_fp32_65k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_ref@70k": [f"{T}/scale_probe_fp32_70k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@65k": [f"{T}/scale_probe_fp32_65k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@70k": [f"{T}/scale_probe_fp32_70k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_ref@80k_fastkernel": [f"{T}/scale_probe_fp32_80kx/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_c512x80k@80k_refkernel": [f"{T}/scale_probe_fp32_80kx/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
          "dr_g512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)],
          "dr_g512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)]}
 
@@ -194,11 +201,11 @@ for arm, dirs in PROBE.items():
 # uniform-sampling error and the biased/uniform ratio at 10,000 and 80,000 evaluation cells. Error falling with count is
 # fine; a sampling-distribution dependence that does not vanish with refinement is the failure the redirect names.
 out["convergence"] = {}
-CELLS = (10000, 20000, 40000, "40000v80", 60000, 80000)
-for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@20k", "dr_ref@40k", "dr_ref@40kv80", "dr_ref@60k", "dr_ref@80k")),
-                    ("c512x80k_80k_trained", ("dr_c512x80k", None, "dr_c512x80k@40k", None, None, "dr_c512x80k@80k")),
-                    ("gauge_reference_10k_trained", ("dr_gauge_ref", "dr_gauge_ref@20k", "dr_gauge_ref@40k", "dr_gauge_ref@40kv80", "dr_gauge_ref@60k", "dr_gauge_ref@80k")),
-                    ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", None, None, None, None, "dr_g512x80k@80k"))):
+CELLS = (10000, 20000, 40000, "40000v80", 60000, 65000, 70000, 80000, "80000_kernelswap")
+for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@20k", "dr_ref@40k", "dr_ref@40kv80", "dr_ref@60k", "dr_ref@65k", "dr_ref@70k", "dr_ref@80k", "dr_ref@80k_fastkernel")),
+                    ("c512x80k_80k_trained", ("dr_c512x80k", None, "dr_c512x80k@40k", None, None, None, None, "dr_c512x80k@80k", "dr_c512x80k@80k_refkernel")),
+                    ("gauge_reference_10k_trained", ("dr_gauge_ref", "dr_gauge_ref@20k", "dr_gauge_ref@40k", "dr_gauge_ref@40kv80", "dr_gauge_ref@60k", "dr_gauge_ref@65k", "dr_gauge_ref@70k", "dr_gauge_ref@80k", None)),
+                    ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", None, None, None, None, None, None, "dr_g512x80k@80k", None))):
     curve = {}
     for cells, key in zip(CELLS, keys):
         if key is None:
