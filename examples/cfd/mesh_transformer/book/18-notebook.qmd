@@ -9305,6 +9305,18 @@ than 5% in either (pressure outside 0.0539–0.0595, velocity outside
 V0-SURF10K. Four GPU nodes at most; the density arm launches first, the
 neighbour arm when the program is at or below 30 nodes.
 
+**Amendment before readout (float32 instrument).** The program's reporting
+instrument changed to float32 inference while these lanes trained
+(@sec-nb-fp32-instrument): the same weights score differently under
+different bf16 evaluation graphs by amounts comparable to the bars above.
+The bars are therefore restated as ratios to the *float32* GeoTransolver-volume
+reference, evaluated with the same launcher: an arm closes the gap if its
+float32 ν_t ≤ 1.10x that reference, fails if ≥ 1.25x; pressure and velocity
+changes above 5% relative to the float32 ISLA query-token + SDF reference
+are reported as channel effects. Both passes are run (bf16 into the usual
+directory, float32 into `v0_evals_fp32/`); the verdict is graded on float32
+and states the precision in every table.
+
 ## 2026-09-09 — Ops: the DrivAerML interior stall is a hang inside `pin_memory` in the reader's prefetch thread, not a Lustre read; diagnosed from in-process stack dumps {#sec-nb-interior-stall-diagnosis}
 
 **Symptom.** From about 12:14 on 2026-09-09 every interior (DrivAerML
