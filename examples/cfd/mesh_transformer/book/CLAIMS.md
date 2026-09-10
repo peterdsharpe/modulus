@@ -1200,3 +1200,9 @@ interior control @sec-nb-udrv-int-prereg.
   on DrivAerML. Never quote a DrivAerML gauge price; label every gauge row with its rate. The 35-case
   1.08x gauge cost is rate-matched and stands; chapter 6 §density already states DrivAerML neutrality
   (same seeds, same rate). Rate-matched 1e-3 pair w4_dr_mt2_gauge_lr1e3_seed{42,43} in WAVE-4.
+- **Skipped-load audit of the main program's evaluation logs (2026-09-10).** hl_evals 154, hl_evals_fp32
+  177, iw_evals 53, iw_evals_fp32 44, v0_evals 51, v0_evals_fp32 44, iw_evals_fp32_codeeval 3 logs:
+  ZERO contain "skipping load". Every number in the main book from these roots was produced with the
+  checkpoint loaded (evaluation snapshots matched the training snapshots by construction). The only
+  skipped loads in the program were the transfer session's two T2 reference passes and the 4-way probe
+  under code_support, all discarded and redone, and the scaling session's 40k mirror (struck).
