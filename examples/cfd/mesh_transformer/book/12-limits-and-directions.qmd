@@ -547,9 +547,9 @@ DrivAerML knowledge is worth about the same at step zero; after 1,000
 matched-rate steps ISLA's head start has shrunk to 6% while GeoTransolver's
 has grown to 31%. No single ISLA ingredient carries that deficit: retraining
 with 128 or 512 anchors, with raw seeds in place of the drive-relative
-invariants, with the similarity gauge or with the measure weights off moves
-the zero-shot fastback error nowhere near GeoTransolver's (best arm 0.767
-against 0.788 and 0.612; three seeds each, spreads up to 0.26;
+invariants, with the similarity gauge at either rate or with the measure weights off
+moves the zero-shot fastback error nowhere near GeoTransolver's (best arm
+0.767 against 0.788 and 0.612; three seeds each, spreads up to 0.30;
 @sec-nb-xfam-verdict), so the cross-family question is a data question,
 which is where campaign C's diversity results place it. Diversity at a fixed label budget is a trade, not a free
 lunch: with 435 training cases split 218 DrivAerML and 217 estate instead of

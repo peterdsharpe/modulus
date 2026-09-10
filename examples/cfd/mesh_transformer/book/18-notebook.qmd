@@ -13944,7 +13944,7 @@ geometries, both rate-matched). Under Peter's ruling the gauge's
 sample-statistic frame is still not the flagship's; these numbers are the
 gauge row of the matrix.
 
-## 2026-09-10 — Verdict, XFAM (interim, one arm pending): no single ISLA ingredient carries the cross-family deficit; anchors and seeds are null, the gauge points the wrong way, the deficit is distributed {#sec-nb-xfam-verdict}
+## 2026-09-10 — Verdict, XFAM: no single ISLA ingredient carries the cross-family deficit; anchors and seeds are null, the gauge points the wrong way at both rates, the deficit is distributed {#sec-nb-xfam-verdict}
 
 The XFAM study (@sec-nb-xfam-prereg) trained the rival-hypothesis arms on
 DrivAerML (435 cars, unit drive, lr 1e-3, three seeds each, snapshot code)
@@ -13960,7 +13960,8 @@ under the same snapshot (no loader warnings). Reference ISLA 0.788 (0.782 /
 | H2 slice bottleneck | n_slices 128 | 0.827 / 1.084 / 1.034 → 0.98 | 0.0553 | worse; does not carry |
 | H2 slice bottleneck | n_slices 512 | 0.829 / 0.779 / 1.001 → 0.87 | 0.0545 | worse; does not carry |
 | H3 drive-relative invariants | raw seeds (seed_mode=raw) | 0.822 / 0.825 / 0.654 → 0.767 | 0.0534 | ≥ 0.76: does not carry (one seed at 0.65, spread 0.17) |
-| H1 absolute scale | similarity gauge (lr 3e-3) | 1.038 / 0.851 → 0.945 | 0.0616 | wrong way; lr 1e-3 pair being evaluated |
+| H1 absolute scale | similarity gauge (lr 3e-3) | 1.038 / 0.851 → 0.945 | 0.0616 | wrong way |
+| H1 absolute scale | similarity gauge (lr 1e-3, rate-matched) | 1.068 / 0.768 → 0.918 | 0.0543 | wrong way; seed spread 0.30, the widest measured |
 | H4 measure weights | weights off | 0.802 / 0.811 → 0.806 | 0.0544 | null |
 | (partial H2) | 2,560 query-independent anchors | 0.800 / 0.900 → 0.850 | — | worse; two-factor variant |
 
@@ -13978,8 +13979,8 @@ transfers worse than GeoTransolver's for no single architectural reason
 that these arms can name, and the campaign C closure (mixing cost grows
 with foreign share for ISLA only; coverage of the sibling family, not a
 family flag, is what transfers) points to training diversity as the lever.
-The H1 row is finalized when the rate-matched gauge pair's zero-shot numbers
-land; a result at or below 0.70 there would reopen the scale hypothesis.
+The rate-matched gauge pair closes H1: 1.068 / 0.768 (mean 0.918), the
+widest seed spread of any arm, so absolute scale is not the carrier either.
 Follow-up under @sec-principle: no architecture change is proposed from
 this study; the cross-family question moves to data (which families, how
 many, mixed how) and to RELFRAME's zero-shot numbers once trained, since a

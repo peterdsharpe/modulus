@@ -1415,3 +1415,4 @@ interior control @sec-nb-udrv-int-prereg.
   levels agree between frames to 0.0002; ISLA rows move ≤ 1% (internal centring). SUPERSEDED: "Transolver degrades more
   gracefully" (3.9x) was a frame artifact. Quote 12.1x / 11.6x / 12.0x / 1.21x / 19.2x as the reference-size density
   sensitivities.
+- **XFAM H1 closed (2026-09-10).** Rate-matched gauge (lr 1e-3) zero-shot fastback 1.068 / 0.768 → 0.918 (spread 0.30). No arm ≤ 0.70; XFAM final: distributed. Ops: AGA `sacct --starttime` parses cluster-local time (UTC−7); a future local time makes it fail silently.
