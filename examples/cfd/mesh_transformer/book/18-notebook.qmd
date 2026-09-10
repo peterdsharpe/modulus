@@ -13046,3 +13046,44 @@ not say ISLA leads there (it does not, by 2% against GeoTransolver in
 float32), and under the redirect the constant-gauge corner that produced
 ISLA's row is a measurement of capacity, not a configuration the program
 adopts.
+
+## 2026-09-10 — Verdict: 210-case rung with the unit drive — GeoTransolver 0.83x of ISLA (lower on 162 of 180), Transolver 0.91x; the 2.2x was the input scale; prediction held at five of six rungs {#sec-nb-udrvl-210-verdict}
+
+The unit-drive ladder (@sec-nb-udrvl-prereg) reran GeoTransolver and
+Transolver on the 210-case HiLiftAeroML rung (a random 210 of the 1,260
+cases, about 126 geometries) with the freestream as a unit direction and
+nothing else changed. Against the physical-drive GeoTransolver this rung had
+read as a 2.2x ISLA advantage on 177 of 180 cases, the ladder's second
+headline after the 2.8x at 35 cases. Two seeds of each unit-drive baseline
+were evaluated in float32 (training and evaluation snapshots matched, zero
+skipped loads) with the bfloat16 pass alongside; the ISLA reference is the
+three-seed float32 mean. Artifact: `results/udrvl_210_reduction_2026-09-10.json`.
+
+**GeoTransolver fed the unit direction scores 0.0533 (seeds 0.0532 /
+0.0535) against ISLA's 0.0643 (0.0617 / 0.0661 / 0.0652): 0.83x, lower on
+162 of 180 validation cases (median GeoTransolver ÷ ISLA 0.775), inside the
+preregistered "baseline ahead" band (0.0579 or below).** Transolver at its
+better rate scores 0.0582 on both seeds (the seed means coincide to four
+digits; the per-case values differ by up to 115%, and the checkpoints and
+seeds were verified distinct), 0.91x of ISLA and lower on 145 of 180 cases,
+between parity and "baseline ahead" on the baseline's side. Velocity and
+wall shear follow (GeoTransolver 0.080 / 0.123, Transolver 0.085 / 0.130,
+ISLA 0.094 / 0.144). The physical-drive GeoTransolver on the same cases
+scores 0.141 on three seeds (0.159 / 0.157 / 0.107; 2.2x behind ISLA by the
+mean, 2.7x by the median case) and is 3.4x worse than its unit-drive self on
+178 of 180 cases; the physical-drive Transolver, 0.077, is 1.5x worse than
+its unit-drive self on 170 of 180. Bfloat16 gives the same ordering (0.0542,
+0.0588, 0.0648).
+
+The prediction written before any rerun, that the unit-drive baselines match
+or beat ISLA at every rung, has now held at five of six: 35 cases (0.80–0.90x
+by the best rates), 210 cases (0.83x / 0.91x), 4 geometries (0.76x / 0.77x),
+21 geometries (0.92x, between) and the fixed angle (0.78x / 0.86x). The
+1,260-case rerun (epochs 80–90 of 500, I/O-throttled) is the last; the
+physical-drive result there was parity, so the prediction is that it lands
+at parity or on the baselines' side. The 2.2x at 210 cases is retired as an
+ISLA advantage; chapter 5, chapter 12, the index and the status chapter are
+updated. What the ladder now says about ISLA is unchanged in kind from the
+35-case verdict: the small-data advantage on HiLiftAeroML was the baselines'
+input scale, and with it removed ISLA is 1.1–1.3x behind at every small-data
+rung on this dataset.

@@ -119,11 +119,19 @@ are 1.1x and 1.2x more accurate than ISLA at 35 cases on every field, and
 plain Transolver, the smaller and simpler model, is the most accurate of the
 three. The ratios that follow in this chapter are therefore not comparisons
 between architectures; they are the record of a protocol and of how it was
-corrected. The unit-drive baselines at 210 and 1,260 cases, at 4 and 21
-training geometries and at the fixed angle are training under the same
-control (@sec-nb-udrvl-prereg), with the prediction that they match or beat
-ISLA at every rung; the fair-comparison protocol now requires every
-architecture to receive the freestream at unit scale (@sec-protocol).
+corrected. The unit-drive baselines were then run at 210 cases, at 4 and 21
+training geometries and at the fixed angle under the same control
+(@sec-nb-udrvl-prereg), with the prediction, written first, that they match
+or beat ISLA at every rung. They do. At 210 cases GeoTransolver fed the unit
+direction scores 0.0533 in float32 (seeds 0.0532 / 0.0535) against ISLA's
+0.0643 on three seeds, 0.83x and lower on 162 of 180 validation cases, and
+Transolver at its better rate 0.0582, 0.91x and lower on 145 of 180; the
+physical-drive GeoTransolver's 0.141 on the same cases, the 2.2x of the
+ladder, is 3.4x worse than its unit-drive self on 178 of 180 cases
+(`results/udrvl_210_reduction_2026-09-10.json`, @sec-nb-udrvl-210-verdict). The other rungs are
+reported in their sections below; only the 1,260-case rerun is still
+training. The fair-comparison protocol now requires every architecture to
+receive the freestream at unit scale (@sec-protocol).
 
 How much of this ordering belongs to the particular 35 cases? The 35-case
 split is one random draw from the 1,260-case pool, and every number above is

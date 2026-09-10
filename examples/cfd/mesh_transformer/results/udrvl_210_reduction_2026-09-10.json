@@ -1,0 +1,141 @@
+{
+ "date": "2026-09-10",
+ "rung": "highlift_surface_scarce (210 random training cases, ~126 geometries; 180 shared validation cases)",
+ "instrument": "float32 (hl_evals_fp32; training/evaluation snapshots matched; zero skipped loads) with bf16 alongside; seed means; paired per-case on seed-mean pressure",
+ "arms_fp32": {
+  "gt_unit_lr1e3": {
+   "runs": [
+    "udrv_hl_gt_scarce_seed42",
+    "udrv_hl_gt_scarce_seed43"
+   ],
+   "pressure_l2": 0.0533,
+   "velocity_l2": 0.0801,
+   "tau_wall_l2": 0.1225,
+   "seed_pressure": [
+    0.0532,
+    0.0535
+   ]
+  },
+  "transolver_unit_lr3e3": {
+   "runs": [
+    "udrv_hl_transolver_scarce_lr3e3_seed42",
+    "udrv_hl_transolver_scarce_lr3e3_seed43"
+   ],
+   "pressure_l2": 0.0582,
+   "velocity_l2": 0.0845,
+   "tau_wall_l2": 0.1304,
+   "seed_pressure": [
+    0.0582,
+    0.0582
+   ],
+   "note": "means coincide to 4 digits; per-case values differ up to 115%, distinct checkpoints"
+  },
+  "isla": {
+   "runs": [
+    "lad_hl_mt2_scarce_seed42",
+    "lad_hl_mt2_scarce_seed43",
+    "lad_hl_mt2_scarce_seed44"
+   ],
+   "pressure_l2": 0.0643,
+   "velocity_l2": 0.0937,
+   "tau_wall_l2": 0.1441,
+   "seed_pressure": [
+    0.0617,
+    0.0661,
+    0.0652
+   ]
+  },
+  "gt_physical_lr1e3": {
+   "runs": [
+    "lad_hl_gt_scarce_seed42",
+    "lad_hl_gt_scarce_seed43",
+    "lad_hl_gt_scarce_seed44"
+   ],
+   "pressure_l2": 0.141,
+   "velocity_l2": 0.163,
+   "tau_wall_l2": 0.2609,
+   "seed_pressure": [
+    0.1593,
+    0.1572,
+    0.1066
+   ]
+  },
+  "transolver_physical_lr3e3": {
+   "runs": [
+    "t1_hl_transolver_scarce_lr3e3_seed42",
+    "t1_hl_transolver_scarce_lr3e3_seed43",
+    "t1_hl_transolver_scarce_lr3e3_seed44"
+   ],
+   "pressure_l2": 0.0771,
+   "velocity_l2": 0.1116,
+   "tau_wall_l2": 0.177,
+   "seed_pressure": [
+    0.0782,
+    0.0757,
+    0.0773
+   ]
+  }
+ },
+ "arms_bf16": {
+  "gt_unit_lr1e3": {
+   "pressure_l2": 0.0542
+  },
+  "transolver_unit_lr3e3": {
+   "pressure_l2": 0.0588
+  },
+  "isla": {
+   "pressure_l2": 0.0648
+  },
+  "gt_physical_lr1e3": {
+   "pressure_l2": 0.1414
+  },
+  "transolver_physical_lr3e3": {
+   "pressure_l2": 0.0866
+  }
+ },
+ "paired_fp32_vs_isla": {
+  "gt_unit": {
+   "lower_on": 162,
+   "n": 180,
+   "median_ratio": 0.775
+  },
+  "transolver_unit": {
+   "lower_on": 145,
+   "n": 180,
+   "median_ratio": 0.849
+  },
+  "gt_physical": {
+   "lower_on": 4,
+   "n": 180,
+   "median_ratio": 2.669
+  },
+  "transolver_physical": {
+   "lower_on": 24,
+   "n": 180,
+   "median_ratio": 1.327
+  }
+ },
+ "paired_fp32_unit_vs_physical": {
+  "gt": {
+   "unit_lower_on": 178,
+   "n": 180,
+   "median_physical_over_unit": 3.443
+  },
+  "transolver": {
+   "unit_lower_on": 170,
+   "n": 180,
+   "median_physical_over_unit": 1.517
+  }
+ },
+ "bars": {
+  "reference_isla_fp32": 0.0643,
+  "isla_advantage_if_baseline_at_least": 0.0708,
+  "parity": [
+   0.0611,
+   0.0675
+  ],
+  "baseline_ahead_if_at_most": 0.0579,
+  "source": "#sec-nb-udrvl-prereg"
+ },
+ "verdict": "GeoTransolver BASELINE AHEAD (0.829x, lower on 162/180); Transolver BETWEEN, baseline direction (0.905x, 145/180). The physical-drive 2.2x at 210 cases was the input scale: unit vs physical GT 3.4x (178/180), Transolver 1.5x (170/180)."
+}

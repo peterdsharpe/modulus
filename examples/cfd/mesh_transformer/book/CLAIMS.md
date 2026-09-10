@@ -1281,3 +1281,12 @@ interior control @sec-nb-udrv-int-prereg.
   legacy `code` readings of the references at 80k (0.814 / 0.892, job 700105) were a metric-aggregation
   artifact of that snapshot and are STRUCK; never quote them. Write "converges up in count; does not
   generalize down", never "collapse".
+- **210-case rung, unit drive (2026-09-10, fp32; results/udrvl_210_reduction_2026-09-10.json).** Unit GT 1e-3 0.0533 (0.0532/0.0535) vs
+  ISLA 0.0643 (three seeds 0.0617/0.0661/0.0652) → 0.829x, GT lower on 162/180 (median 0.775): BASELINE
+  AHEAD (bar ≤ 0.0579). Unit Transolver 3e-3 0.0582 (0.0582/0.0582; per-case distinct) → 0.905x, lower on
+  145/180: BETWEEN, baseline direction. Physical GT 0.141 (3-seed; 2.19x behind ISLA by the mean, 2.67x by
+  the median case) = the ladder's 2.2x; unit GT is 3.4x better than physical GT on 178/180 cases; physical
+  Transolver 3e-3 0.0771 (1.20x behind ISLA), unit 1.5x better on 170/180. RETIRE "2.2x at 210 cases" as an
+  ISLA advantage. UDRV-L prediction (baselines match or beat ISLA at every rung) held at 5 of 6 rungs (35,
+  210, geo4, geo21, fixed angle); 1,260 pending (epochs 80–90, I/O-throttled). Write "unit-drive
+  GeoTransolver 0.83x of ISLA at 210 cases, lower on 162 of 180 cases".
