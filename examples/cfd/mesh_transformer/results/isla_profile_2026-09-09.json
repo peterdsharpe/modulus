@@ -1,0 +1,1664 @@
+{
+ "gpu": "NVIDIA GB300",
+ "torch": "2.12.0+cu130",
+ "runs": [
+  {
+   "hidden": 192,
+   "tokens": 10000,
+   "geo_checkpoint": false,
+   "params": 8868221,
+   "step_s_median": 0.23776427200937178,
+   "step_s_min": 0.2375189760059584,
+   "tokens_per_s": 42058.46368543478,
+   "peak_allocated_gib": 3.399503707885742,
+   "peak_reserved_gib": 3.73828125,
+   "incremental_allocated_gib": 3.204434394836426,
+   "profile_ms_per_step_by_bucket": {
+    "invariants_or_elementwise": 34.84304133333259,
+    "other": 12.2105813333352,
+    "einsum_bmm": 5.214410666666545,
+    "linear_mlp": 2.033706666666702,
+    "norm_act": 3.249418666666958,
+    "softmax_slc": 203.48309666666722,
+    "softmax_pts": 203.27985400000017,
+    "optimizer": 3.6426666666667638
+   },
+   "profile_total_cuda_ms_per_step": 467.95677600000215,
+   "top_kernels_ms_per_step": [
+    {
+     "kernel": "aten::_softmax",
+     "ms": 149.87752800000024
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxForward<float, float, float, int, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, ",
+     "ms": 149.81945866666675
+    },
+    {
+     "kernel": "aten::_softmax_backward_data",
+     "ms": 53.50394733333347
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxBackward<float, float, float, at::native::(anonymous namespace)::SoftMaxBackwardEpilogue>(float*, flo",
+     "ms": 53.46039533333343
+    },
+    {
+     "kernel": "aten::sum",
+     "ms": 4.884619000000391
+    },
+    {
+     "kernel": "aten::copy_",
+     "ms": 4.338719999999023
+    },
+    {
+     "kernel": "aten::mul",
+     "ms": 3.679147000000264
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+     "ms": 3.438656333333593
+    },
+    {
+     "kernel": "Optimizer.step#AdamW.step",
+     "ms": 3.4282133333333475
+    },
+    {
+     "kernel": "aten::bmm",
+     "ms": 2.8758826666664996
+    },
+    {
+     "kernel": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+     "ms": 2.645823999999511
+    },
+    {
+     "kernel": "aten::mm",
+     "ms": 2.6454720000007366
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 2.3644693333333096
+    },
+    {
+     "kernel": "aten::div",
+     "ms": 1.9444266666669525
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFu",
+     "ms": 1.604768000000198
+    },
+    {
+     "kernel": "aten::native_layer_norm_backward",
+     "ms": 1.4772480000000698
+    },
+    {
+     "kernel": "aten::cat",
+     "ms": 1.4146026666666878
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+     "ms": 1.3955733333328189
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::CatArrayBatchedCopy<at::native::(anonymous namespace)::OpaqueType<4u>, unsigned int, 4, 64, 64>(at::native::(anonymous n",
+     "ms": 1.349802666666698
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::BFloat16, at::native::func_wrapper_t<c10::BFloat16, at::native::sum_functor<c10::BFloat16, floa",
+     "ms": 1.3396053333334565
+    },
+    {
+     "kernel": "aten::add_",
+     "ms": 1.3025386666665435
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::GammaBetaBackwardCUDAKernelTemplate<float, float, 32u, 32u, 256u, false, false, false>(long, long, float const*, float c",
+     "ms": 1.1649600000000015
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+     "ms": 0.9976319999997407
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 0.95984033333353
+    },
+    {
+     "kernel": "aten::addmm",
+     "ms": 0.9435306666669191
+    },
+    {
+     "kernel": "void gemmk1_kernel<int, float, 256, 5, false, false, false, false, cublasGemvTensorStridedBatched<__nv_bfloat16 const>, cublasGemvTensorStridedBatched<__nv_bflo",
+     "ms": 0.9239253333333569
+    },
+    {
+     "kernel": "nvjet_sm103_tst_32x128_64x10_1x2_2cta_h_bz_NTN",
+     "ms": 0.7450346666667319
+    },
+    {
+     "kernel": "aten::add",
+     "ms": 0.670506666666765
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x8_64x12_2x1_v_bz_TNT",
+     "ms": 0.6565653333333127
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_ad",
+     "ms": 0.5906879999999559
+    },
+    {
+     "kernel": "nvjet_sm103_tst_512x8_64x3_2x1_v_badd_TNT",
+     "ms": 0.48054400000002834
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+     "ms": 0.47116800000022824
+    },
+    {
+     "kernel": "aten::native_layer_norm",
+     "ms": 0.42119466666677063
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, false>(int, float, float const*, float const*, float const*, float*, float*, ",
+     "ms": 0.42119466666677063
+    },
+    {
+     "kernel": "void cublasLt::splitKreduce_kernel<32, 16, int, float, __nv_bfloat16, float, __nv_bfloat16, false, float, __nv_bfloat16, __nv_bfloat16, true, false, false, fals",
+     "ms": 0.4198933333332158
+    },
+    {
+     "kernel": "aten::linalg_vector_norm",
+     "ms": 0.4186239999999528
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_splitK_NNT",
+     "ms": 0.39763200000003174
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_NNT",
+     "ms": 0.38594133333329106
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::NormTwoOps<float, float, float, true>, unsigned int, float, 4, 4> >(at::native::R",
+     "ms": 0.36119466666665934
+    },
+    {
+     "kernel": "aten::sub",
+     "ms": 0.3430719999999589
+    }
+   ]
+  },
+  {
+   "hidden": 192,
+   "tokens": 20000,
+   "geo_checkpoint": false,
+   "params": 8868221,
+   "step_s_median": 0.569650208009989,
+   "step_s_min": 0.5680304319830611,
+   "tokens_per_s": 35109.264806323554,
+   "peak_allocated_gib": 6.532695770263672,
+   "peak_reserved_gib": 7.060546875,
+   "incremental_allocated_gib": 6.337366104125977
+  },
+  {
+   "hidden": 192,
+   "tokens": 40000,
+   "geo_checkpoint": false,
+   "params": 8868221,
+   "step_s_median": 1.232728032002342,
+   "step_s_min": 1.231283999979496,
+   "tokens_per_s": 32448.35759516825,
+   "peak_allocated_gib": 12.837884902954102,
+   "peak_reserved_gib": 13.73046875,
+   "incremental_allocated_gib": 12.642033576965332
+  },
+  {
+   "hidden": 192,
+   "tokens": 80000,
+   "geo_checkpoint": false,
+   "params": 8868221,
+   "step_s_median": 3.5072323519998463,
+   "step_s_min": 3.5035571199841797,
+   "tokens_per_s": 22810.00856826138,
+   "peak_allocated_gib": 25.380855083465576,
+   "peak_reserved_gib": 27.15234375,
+   "incremental_allocated_gib": 25.183961391448975,
+   "profile_ms_per_step_by_bucket": {
+    "invariants_or_elementwise": 220.19868799999452,
+    "other": 173.5773760000016,
+    "einsum_bmm": 44.434581333338045,
+    "linear_mlp": 7.55732266666811,
+    "norm_act": 13.467306666663013,
+    "softmax_slc": 3322.1787356666678,
+    "softmax_pts": 3320.616581000001,
+    "optimizer": 0.40867199999947723
+   },
+   "profile_total_cuda_ms_per_step": 7102.439263333334,
+   "top_kernels_ms_per_step": [
+    {
+     "kernel": "aten::_softmax",
+     "ms": 2235.0345746666662
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxForward<float, float, float, int, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, ",
+     "ms": 2234.7032039999995
+    },
+    {
+     "kernel": "aten::_softmax_backward_data",
+     "ms": 1086.3630836666682
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxBackward<float, float, float, at::native::(anonymous namespace)::SoftMaxBackwardEpilogue>(float*, flo",
+     "ms": 1085.9133770000014
+    },
+    {
+     "kernel": "Command Buffer Full",
+     "ms": 98.2477440000015
+    },
+    {
+     "kernel": "aten::sum",
+     "ms": 29.421888000001452
+    },
+    {
+     "kernel": "aten::mul",
+     "ms": 28.040917000006317
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+     "ms": 26.328757000005893
+    },
+    {
+     "kernel": "aten::copy_",
+     "ms": 23.51494433333485
+    },
+    {
+     "kernel": "aten::cat",
+     "ms": 18.671839999998117
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::CatArrayBatchedCopy<at::native::(anonymous namespace)::OpaqueType<4u>, unsigned int, 4, 64, 64>(at::native::(anonymous n",
+     "ms": 18.347562666665777
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 17.957472000000006
+    },
+    {
+     "kernel": "aten::bmm",
+     "ms": 17.18571733333584
+    },
+    {
+     "kernel": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+     "ms": 15.330496333329473
+    },
+    {
+     "kernel": "aten::mm",
+     "ms": 14.405898666674426
+    },
+    {
+     "kernel": "aten::div",
+     "ms": 12.44829866666229
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFu",
+     "ms": 12.100789333328818
+    },
+    {
+     "kernel": "aten::add_",
+     "ms": 9.421877333334647
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+     "ms": 8.139850666669663
+    },
+    {
+     "kernel": "void gemmk1_kernel<int, float, 256, 5, false, false, false, false, cublasGemvTensorStridedBatched<__nv_bfloat16 const>, cublasGemvTensorStridedBatched<__nv_bflo",
+     "ms": 8.105888000004615
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::BFloat16, at::native::func_wrapper_t<c10::BFloat16, at::native::sum_functor<c10::BFloat16, floa",
+     "ms": 6.546453333334842
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+     "ms": 6.07061333333632
+    },
+    {
+     "kernel": "nvjet_sm103_tst_32x128_64x10_1x2_2cta_h_bz_NTN",
+     "ms": 5.769408000001063
+    },
+    {
+     "kernel": "aten::addmm",
+     "ms": 5.291626666666392
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x8_64x12_2x1_v_bz_TNT",
+     "ms": 5.061471999998204
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 4.571669333331908
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_ad",
+     "ms": 4.1260266666652
+    },
+    {
+     "kernel": "aten::add",
+     "ms": 3.9440959999974563
+    },
+    {
+     "kernel": "nvjet_sm103_tst_384x8_64x4_2x1_v_badd_TNT",
+     "ms": 3.6663359999996463
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_NNT",
+     "ms": 2.992842666666164
+    },
+    {
+     "kernel": "aten::linalg_vector_norm",
+     "ms": 2.929354666666726
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::NormTwoOps<float, float, float, true>, unsigned int, float, 4, 4> >(at::native::R",
+     "ms": 2.8678506666663464
+    },
+    {
+     "kernel": "aten::native_layer_norm",
+     "ms": 2.798645333333135
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, false>(int, float, float const*, float const*, float const*, float*, float*, ",
+     "ms": 2.798645333333135
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_splitK_NNT",
+     "ms": 2.7061546666671834
+    },
+    {
+     "kernel": "aten::sub",
+     "ms": 2.4883839999988417
+    },
+    {
+     "kernel": "aten::native_layer_norm_backward",
+     "ms": 2.3009386666629776
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::opera",
+     "ms": 2.1016853333351513
+    },
+    {
+     "kernel": "aten::masked_fill_",
+     "ms": 2.0083626666663523
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::(anonymous namespace)::masked_fill_kernel(at::TensorIterator&, c10::S",
+     "ms": 2.0083626666663523
+    }
+   ]
+  },
+  {
+   "hidden": 256,
+   "tokens": 10000,
+   "geo_checkpoint": false,
+   "params": 15476861,
+   "step_s_median": 0.23977526400994975,
+   "step_s_min": 0.23966931202448905,
+   "tokens_per_s": 41705.71990105301,
+   "peak_allocated_gib": 3.7679028511047363,
+   "peak_reserved_gib": 4.015625,
+   "incremental_allocated_gib": 3.4744715690612793
+  },
+  {
+   "hidden": 384,
+   "tokens": 10000,
+   "geo_checkpoint": false,
+   "params": 34174589,
+   "step_s_median": 0.24195799998415168,
+   "step_s_min": 0.24137619201792404,
+   "tokens_per_s": 41329.48693845627,
+   "peak_allocated_gib": 4.587463855743408,
+   "peak_reserved_gib": 4.873046875,
+   "incremental_allocated_gib": 3.9885573387145996
+  },
+  {
+   "hidden": 512,
+   "tokens": 10000,
+   "geo_checkpoint": false,
+   "params": 60179581,
+   "step_s_median": 0.24302188800356817,
+   "step_s_min": 0.24259584001265466,
+   "tokens_per_s": 41148.556955714106,
+   "peak_allocated_gib": 5.488203525543213,
+   "peak_reserved_gib": 5.810546875,
+   "incremental_allocated_gib": 4.508950710296631,
+   "profile_ms_per_step_by_bucket": {
+    "invariants_or_elementwise": 36.739989333333554,
+    "other": 14.586005333332324,
+    "einsum_bmm": 5.392693333333025,
+    "linear_mlp": 2.352928000000033,
+    "norm_act": 4.391061333333286,
+    "softmax_slc": 203.66589866666683,
+    "softmax_pts": 203.4615893333334,
+    "optimizer": 1.6748479999998913
+   },
+   "profile_total_cuda_ms_per_step": 472.2650133333324,
+   "top_kernels_ms_per_step": [
+    {
+     "kernel": "aten::_softmax",
+     "ms": 150.01905066666674
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxForward<float, float, float, int, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, ",
+     "ms": 149.96100266666667
+    },
+    {
+     "kernel": "aten::_softmax_backward_data",
+     "ms": 53.544693333333385
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxBackward<float, float, float, at::native::(anonymous namespace)::SoftMaxBackwardEpilogue>(float*, flo",
+     "ms": 53.500586666666734
+    },
+    {
+     "kernel": "aten::sum",
+     "ms": 5.019882666666102
+    },
+    {
+     "kernel": "aten::copy_",
+     "ms": 4.817728000000562
+    },
+    {
+     "kernel": "aten::mul",
+     "ms": 3.679434999999832
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+     "ms": 3.441312333333382
+    },
+    {
+     "kernel": "aten::mm",
+     "ms": 3.3908906666668575
+    },
+    {
+     "kernel": "aten::bmm",
+     "ms": 2.9991146666665767
+    },
+    {
+     "kernel": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+     "ms": 2.9947840000000236
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 2.363072000000046
+    },
+    {
+     "kernel": "aten::div",
+     "ms": 1.9457813333336755
+    },
+    {
+     "kernel": "aten::native_layer_norm_backward",
+     "ms": 1.6047893333331642
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFu",
+     "ms": 1.6040106666668414
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+     "ms": 1.5254933333337801
+    },
+    {
+     "kernel": "aten::cat",
+     "ms": 1.4698133333331236
+    },
+    {
+     "kernel": "aten::add_",
+     "ms": 1.4557866666663322
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::BFloat16, at::native::func_wrapper_t<c10::BFloat16, at::native::sum_functor<c10::BFloat16, floa",
+     "ms": 1.4342826666665593
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::CatArrayBatchedCopy<at::native::(anonymous namespace)::OpaqueType<4u>, unsigned int, 4, 64, 64>(at::native::(anonymous n",
+     "ms": 1.3499199999998517
+    },
+    {
+     "kernel": "aten::addmm",
+     "ms": 1.2922453333330763
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::GammaBetaBackwardCUDAKernelTemplate<float, float, 32u, 32u, 256u, false, false, false>(long, long, float const*, float c",
+     "ms": 1.2373546666667001
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+     "ms": 0.9977279999998088
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 0.9581440000000196
+    },
+    {
+     "kernel": "void gemmk1_kernel<int, float, 256, 5, false, false, false, false, cublasGemvTensorStridedBatched<__nv_bfloat16 const>, cublasGemvTensorStridedBatched<__nv_bflo",
+     "ms": 0.9237653333333243
+    },
+    {
+     "kernel": "Optimizer.step#AdamW.step",
+     "ms": 0.790111999999984
+    },
+    {
+     "kernel": "nvjet_sm103_tst_32x128_64x10_1x2_2cta_h_bz_NTN",
+     "ms": 0.7450666666665929
+    },
+    {
+     "kernel": "aten::add",
+     "ms": 0.7312960000001522
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x8_64x12_2x1_v_bz_TNT",
+     "ms": 0.655861333333441
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x64_64x10_2x2_2cta_h_bz_NTT",
+     "ms": 0.6434773333333045
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+     "ms": 0.613621333333232
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_ad",
+     "ms": 0.5934399999999481
+    },
+    {
+     "kernel": "aten::native_layer_norm",
+     "ms": 0.5079146666667357
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, false>(int, float, float const*, float const*, float const*, float*, float*, ",
+     "ms": 0.5079146666667357
+    },
+    {
+     "kernel": "nvjet_sm103_tst_512x8_64x3_2x1_v_badd_TNT",
+     "ms": 0.4812479999999808
+    },
+    {
+     "kernel": "aten::gelu_backward",
+     "ms": 0.4255680000000866
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator(",
+     "ms": 0.4255680000000866
+    },
+    {
+     "kernel": "aten::linalg_vector_norm",
+     "ms": 0.4186026666665569
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x272_64x4_2x1_v_bz_NNT",
+     "ms": 0.39716266666674593
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_splitK_NNT",
+     "ms": 0.3971199999999856
+    }
+   ]
+  },
+  {
+   "hidden": 512,
+   "tokens": 40000,
+   "geo_checkpoint": false,
+   "params": 60179581,
+   "step_s_median": 1.2454024000035133,
+   "step_s_min": 1.2432697599870153,
+   "tokens_per_s": 32118.133062765224,
+   "peak_allocated_gib": 18.80661392211914,
+   "peak_reserved_gib": 19.205078125,
+   "incremental_allocated_gib": 17.840052604675293,
+   "profile_ms_per_step_by_bucket": {
+    "invariants_or_elementwise": 120.59711000000077,
+    "other": 54.758815666671744,
+    "einsum_bmm": 22.710644999999744,
+    "linear_mlp": 6.520063999998975,
+    "norm_act": 18.884320000002187,
+    "softmax_slc": 1127.9639383333329,
+    "softmax_pts": 1127.205133,
+    "optimizer": 1.6722453333328011
+   },
+   "profile_total_cuda_ms_per_step": 2480.312271333339,
+   "top_kernels_ms_per_step": [
+    {
+     "kernel": "aten::_softmax",
+     "ms": 647.3578586666669
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxForward<float, float, float, int, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, ",
+     "ms": 647.196418666667
+    },
+    {
+     "kernel": "aten::_softmax_backward_data",
+     "ms": 480.2266769999995
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxBackward<float, float, float, at::native::(anonymous namespace)::SoftMaxBackwardEpilogue>(float*, flo",
+     "ms": 480.0087143333329
+    },
+    {
+     "kernel": "aten::sum",
+     "ms": 15.578282666667548
+    },
+    {
+     "kernel": "aten::copy_",
+     "ms": 14.594805666665824
+    },
+    {
+     "kernel": "aten::mul",
+     "ms": 14.24445833333365
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+     "ms": 13.410634666667555
+    },
+    {
+     "kernel": "aten::mm",
+     "ms": 10.319040000002715
+    },
+    {
+     "kernel": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+     "ms": 9.656032333334037
+    },
+    {
+     "kernel": "aten::bmm",
+     "ms": 9.576756999998745
+    },
+    {
+     "kernel": "aten::cat",
+     "ms": 9.287178666667039
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 9.218111999999373
+    },
+    {
+     "kernel": "aten::native_layer_norm_backward",
+     "ms": 8.946101333334227
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::CatArrayBatchedCopy<at::native::(anonymous namespace)::OpaqueType<4u>, unsigned int, 4, 64, 64>(at::native::(anonymous n",
+     "ms": 8.87173333333356
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::GammaBetaBackwardCUDAKernelTemplate<float, float, 32u, 32u, 256u, false, false, false>(long, long, float const*, float c",
+     "ms": 7.763125333333776
+    },
+    {
+     "kernel": "aten::div",
+     "ms": 6.6052160000004365
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFu",
+     "ms": 6.258549333333951
+    },
+    {
+     "kernel": "aten::add_",
+     "ms": 5.343967999999179
+    },
+    {
+     "kernel": "aten::addmm",
+     "ms": 4.105887999999485
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+     "ms": 3.951733333333046
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+     "ms": 3.861045333331746
+    },
+    {
+     "kernel": "void gemmk1_kernel<int, float, 256, 5, false, false, false, false, cublasGemvTensorStridedBatched<__nv_bfloat16 const>, cublasGemvTensorStridedBatched<__nv_bflo",
+     "ms": 3.8467093333339633
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::BFloat16, at::native::func_wrapper_t<c10::BFloat16, at::native::sum_functor<c10::BFloat16, floa",
+     "ms": 3.465045333334206
+    },
+    {
+     "kernel": "nvjet_sm103_tst_32x128_64x10_1x2_2cta_h_bz_NTN",
+     "ms": 2.8856743333333092
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 2.604277333333157
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x8_64x12_2x1_v_bz_TNT",
+     "ms": 2.5436266666665905
+    },
+    {
+     "kernel": "aten::add",
+     "ms": 2.264032000001451
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_ad",
+     "ms": 2.049034666666872
+    },
+    {
+     "kernel": "aten::native_layer_norm",
+     "ms": 1.8084373333340655
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, false>(int, float, float const*, float const*, float const*, float*, float*, ",
+     "ms": 1.8084373333340655
+    },
+    {
+     "kernel": "nvjet_sm103_tst_512x8_64x3_2x1_v_badd_TNT",
+     "ms": 1.8068799999998688
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+     "ms": 1.6165333333338374
+    },
+    {
+     "kernel": "aten::linalg_vector_norm",
+     "ms": 1.5230509999999025
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_NNT",
+     "ms": 1.5091413333334396
+    },
+    {
+     "kernel": "aten::gelu_backward",
+     "ms": 1.4812799999997952
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator(",
+     "ms": 1.4812799999997952
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::NormTwoOps<float, float, float, true>, unsigned int, float, 4, 4> >(at::native::R",
+     "ms": 1.4614936666665246
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_splitK_NNT",
+     "ms": 1.4198293333334926
+    },
+    {
+     "kernel": "aten::sub",
+     "ms": 1.2625386666661986
+    }
+   ]
+  },
+  {
+   "hidden": 192,
+   "tokens": 10000,
+   "geo_checkpoint": true,
+   "params": 8868221,
+   "step_s_median": 0.27422001599916257,
+   "step_s_min": 0.26526995201129466,
+   "tokens_per_s": 36467.06810793323,
+   "peak_allocated_gib": 1.5671024322509766,
+   "peak_reserved_gib": 1.787109375,
+   "incremental_allocated_gib": 1.3720331192016602,
+   "profile_ms_per_step_by_bucket": {
+    "invariants_or_elementwise": 43.71245766666943,
+    "other": 13.98661266666833,
+    "einsum_bmm": 6.529930666666747,
+    "linear_mlp": 2.5451413333333184,
+    "norm_act": 3.2536956666676145,
+    "softmax_slc": 203.72960433333347,
+    "softmax_pts": 203.41054300000013,
+    "optimizer": 5.225173333333456
+   },
+   "profile_total_cuda_ms_per_step": 482.3931586666725,
+   "top_kernels_ms_per_step": [
+    {
+     "kernel": "aten::_softmax",
+     "ms": 149.92930533333336
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxForward<float, float, float, int, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, ",
+     "ms": 149.8134866666667
+    },
+    {
+     "kernel": "aten::_softmax_backward_data",
+     "ms": 53.64076833333342
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxBackward<float, float, float, at::native::(anonymous namespace)::SoftMaxBackwardEpilogue>(float*, flo",
+     "ms": 53.59705633333343
+    },
+    {
+     "kernel": "aten::sum",
+     "ms": 6.5300800000005585
+    },
+    {
+     "kernel": "Optimizer.step#AdamW.step",
+     "ms": 5.011904000000058
+    },
+    {
+     "kernel": "aten::copy_",
+     "ms": 4.890613000000161
+    },
+    {
+     "kernel": "aten::mul",
+     "ms": 4.763818333333755
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+     "ms": 4.5237863333336525
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 4.068213333333502
+    },
+    {
+     "kernel": "aten::bmm",
+     "ms": 2.84424533333339
+    },
+    {
+     "kernel": "aten::cat",
+     "ms": 2.7624320000001656
+    },
+    {
+     "kernel": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+     "ms": 2.72384000000036
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::CatArrayBatchedCopy<at::native::(anonymous namespace)::OpaqueType<4u>, unsigned int, 4, 64, 64>(at::native::(anonymous n",
+     "ms": 2.6975893333334424
+    },
+    {
+     "kernel": "aten::mm",
+     "ms": 2.6086400000003245
+    },
+    {
+     "kernel": "aten::div",
+     "ms": 2.217621333333739
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+     "ms": 1.8689916666665032
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFu",
+     "ms": 1.8176000000003412
+    },
+    {
+     "kernel": "aten::native_layer_norm_backward",
+     "ms": 1.4819623333335428
+    },
+    {
+     "kernel": "aten::addmm",
+     "ms": 1.4793706666667332
+    },
+    {
+     "kernel": "aten::add_",
+     "ms": 1.3003839999998843
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::BFloat16, at::native::func_wrapper_t<c10::BFloat16, at::native::sum_functor<c10::BFloat16, floa",
+     "ms": 1.300234666666598
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::GammaBetaBackwardCUDAKernelTemplate<float, float, 32u, 32u, 256u, false, false, false>(long, long, float const*, float c",
+     "ms": 1.1701970000001214
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+     "ms": 0.997130666666771
+    },
+    {
+     "kernel": "nvjet_sm103_tst_512x8_64x3_2x1_v_badd_TNT",
+     "ms": 0.962656000000025
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 0.9569706666666606
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_ad",
+     "ms": 0.9264423333331421
+    },
+    {
+     "kernel": "void gemmk1_kernel<int, float, 256, 5, false, false, false, false, cublasGemvTensorStridedBatched<__nv_bfloat16 const>, cublasGemvTensorStridedBatched<__nv_bflo",
+     "ms": 0.9232533333331909
+    },
+    {
+     "kernel": "aten::linalg_vector_norm",
+     "ms": 0.8037016666666377
+    },
+    {
+     "kernel": "nvjet_sm103_tst_32x128_64x10_1x2_2cta_h_bz_NTN",
+     "ms": 0.7459840000000355
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::NormTwoOps<float, float, float, true>, unsigned int, float, 4, 4> >(at::native::R",
+     "ms": 0.7143256666667642
+    },
+    {
+     "kernel": "aten::add",
+     "ms": 0.7098876666668579
+    },
+    {
+     "kernel": "aten::sub",
+     "ms": 0.6786453333332692
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x8_64x12_2x1_v_bz_TNT",
+     "ms": 0.6453119999999666
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+     "ms": 0.510442666666715
+    },
+    {
+     "kernel": "aten::native_layer_norm",
+     "ms": 0.4206186666667736
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, false>(int, float, float const*, float const*, float const*, float*, float*, ",
+     "ms": 0.4206186666667736
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_splitK_NNT",
+     "ms": 0.39987199999995454
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFunctor<f",
+     "ms": 0.39656533333338784
+    },
+    {
+     "kernel": "void cublasLt::splitKreduce_kernel<32, 16, int, float, __nv_bfloat16, float, __nv_bfloat16, false, float, __nv_bfloat16, __nv_bfloat16, true, false, false, fals",
+     "ms": 0.39449600000023083
+    }
+   ]
+  },
+  {
+   "hidden": 192,
+   "tokens": 20000,
+   "geo_checkpoint": true,
+   "params": 8868221,
+   "step_s_median": 0.5853460159996757,
+   "step_s_min": 0.5831797440187074,
+   "tokens_per_s": 34167.82459148245,
+   "peak_allocated_gib": 2.937173843383789,
+   "peak_reserved_gib": 3.330078125,
+   "incremental_allocated_gib": 2.7418441772460938
+  },
+  {
+   "hidden": 192,
+   "tokens": 40000,
+   "geo_checkpoint": true,
+   "params": 8868221,
+   "step_s_median": 1.2621084639977198,
+   "step_s_min": 1.2607007359911222,
+   "tokens_per_s": 31692.99718765872,
+   "peak_allocated_gib": 5.68342924118042,
+   "peak_reserved_gib": 6.427734375,
+   "incremental_allocated_gib": 5.48757791519165
+  },
+  {
+   "hidden": 192,
+   "tokens": 80000,
+   "geo_checkpoint": true,
+   "params": 8868221,
+   "step_s_median": 3.5677958879969083,
+   "step_s_min": 3.5647873599955346,
+   "tokens_per_s": 22422.807389050202,
+   "peak_allocated_gib": 11.15207815170288,
+   "peak_reserved_gib": 12.4375,
+   "incremental_allocated_gib": 10.95518445968628,
+   "profile_ms_per_step_by_bucket": {
+    "invariants_or_elementwise": 290.7162413333115,
+    "other": 194.5014180000087,
+    "einsum_bmm": 62.84455400000394,
+    "linear_mlp": 11.49458066666327,
+    "norm_act": 13.462474666675922,
+    "softmax_slc": 3326.313578333337,
+    "softmax_pts": 3324.0958716666655,
+    "optimizer": 0.4036586666659762
+   },
+   "profile_total_cuda_ms_per_step": 7223.832377333331,
+   "top_kernels_ms_per_step": [
+    {
+     "kernel": "aten::_softmax",
+     "ms": 2237.915924333336
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxForward<float, float, float, int, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, ",
+     "ms": 2237.2541750000005
+    },
+    {
+     "kernel": "aten::_softmax_backward_data",
+     "ms": 1087.2888006666649
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxBackward<float, float, float, at::native::(anonymous namespace)::SoftMaxBackwardEpilogue>(float*, flo",
+     "ms": 1086.8416966666648
+    },
+    {
+     "kernel": "Command Buffer Full",
+     "ms": 96.9149653333323
+    },
+    {
+     "kernel": "aten::sum",
+     "ms": 43.338345999999255
+    },
+    {
+     "kernel": "aten::cat",
+     "ms": 37.08716733333218
+    },
+    {
+     "kernel": "aten::mul",
+     "ms": 36.87971200000199
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::CatArrayBatchedCopy<at::native::(anonymous namespace)::OpaqueType<4u>, unsigned int, 4, 64, 64>(at::native::(anonymous n",
+     "ms": 36.76412733333382
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+     "ms": 35.17233066667057
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 31.863252666669098
+    },
+    {
+     "kernel": "aten::copy_",
+     "ms": 27.69278966665934
+    },
+    {
+     "kernel": "aten::bmm",
+     "ms": 17.179104000007804
+    },
+    {
+     "kernel": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+     "ms": 15.955616333328123
+    },
+    {
+     "kernel": "aten::div",
+     "ms": 14.613450000001327
+    },
+    {
+     "kernel": "aten::mm",
+     "ms": 14.392330666670421
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFu",
+     "ms": 14.212351333334155
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+     "ms": 9.624053333332034
+    },
+    {
+     "kernel": "aten::add_",
+     "ms": 9.421898666657352
+    },
+    {
+     "kernel": "aten::addmm",
+     "ms": 9.22447966666038
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+     "ms": 8.145311999998986
+    },
+    {
+     "kernel": "void gemmk1_kernel<int, float, 256, 5, false, false, false, false, cublasGemvTensorStridedBatched<__nv_bfloat16 const>, cublasGemvTensorStridedBatched<__nv_bflo",
+     "ms": 8.10702933333069
+    },
+    {
+     "kernel": "nvjet_sm103_tst_384x8_64x4_2x1_v_badd_TNT",
+     "ms": 7.337055999999575
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_ad",
+     "ms": 6.606677333330998
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::BFloat16, at::native::func_wrapper_t<c10::BFloat16, at::native::sum_functor<c10::BFloat16, floa",
+     "ms": 6.539605333331506
+    },
+    {
+     "kernel": "aten::linalg_vector_norm",
+     "ms": 5.821972666667024
+    },
+    {
+     "kernel": "nvjet_sm103_tst_32x128_64x10_1x2_2cta_h_bz_NTN",
+     "ms": 5.766474666669189
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::NormTwoOps<float, float, float, true>, unsigned int, float, 4, 4> >(at::native::R",
+     "ms": 5.727679333332234
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x8_64x12_2x1_v_bz_TNT",
+     "ms": 5.0591786666677026
+    },
+    {
+     "kernel": "aten::sub",
+     "ms": 4.971295999999106
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 4.57924266666624
+    },
+    {
+     "kernel": "aten::add",
+     "ms": 4.150186666670513
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_NNT",
+     "ms": 2.9907626666656673
+    },
+    {
+     "kernel": "aten::native_layer_norm",
+     "ms": 2.798367999999611
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, false>(int, float, float const*, float const*, float const*, float*, float*, ",
+     "ms": 2.798367999999611
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_splitK_NNT",
+     "ms": 2.7070080000006906
+    },
+    {
+     "kernel": "aten::native_layer_norm_backward",
+     "ms": 2.3023253333374547
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::opera",
+     "ms": 2.101002666665707
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+     "ms": 2.024245333329042
+    },
+    {
+     "kernel": "aten::masked_fill_",
+     "ms": 2.0087143333326094
+    }
+   ]
+  },
+  {
+   "hidden": 256,
+   "tokens": 10000,
+   "geo_checkpoint": true,
+   "params": 15476861,
+   "step_s_median": 0.24746718401729595,
+   "step_s_min": 0.2472684800159186,
+   "tokens_per_s": 40409.39827925258,
+   "peak_allocated_gib": 1.9007525444030762,
+   "peak_reserved_gib": 2.162109375,
+   "incremental_allocated_gib": 1.6073212623596191
+  },
+  {
+   "hidden": 384,
+   "tokens": 10000,
+   "geo_checkpoint": true,
+   "params": 34174589,
+   "step_s_median": 0.24929537599382456,
+   "step_s_min": 0.24906195199582726,
+   "tokens_per_s": 40113.05849590935,
+   "peak_allocated_gib": 2.6581411361694336,
+   "peak_reserved_gib": 2.798828125,
+   "incremental_allocated_gib": 2.0601348876953125
+  },
+  {
+   "hidden": 512,
+   "tokens": 10000,
+   "geo_checkpoint": true,
+   "params": 60179581,
+   "step_s_median": 0.25120017600420397,
+   "step_s_min": 0.25052716801292263,
+   "tokens_per_s": 39808.889305207515,
+   "peak_allocated_gib": 3.493558883666992,
+   "peak_reserved_gib": 3.740234375,
+   "incremental_allocated_gib": 2.5043115615844727,
+   "profile_ms_per_step_by_bucket": {
+    "invariants_or_elementwise": 45.7045013333318,
+    "other": 16.387221333333315,
+    "einsum_bmm": 6.718218666666664,
+    "linear_mlp": 2.8885119999997073,
+    "norm_act": 4.393973333333156,
+    "softmax_slc": 204.11891200000008,
+    "softmax_pts": 203.79940266666685,
+    "optimizer": 6.7259093333332
+   },
+   "profile_total_cuda_ms_per_step": 490.7366506666648,
+   "top_kernels_ms_per_step": [
+    {
+     "kernel": "aten::_softmax",
+     "ms": 150.10368000000008
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxForward<float, float, float, int, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, ",
+     "ms": 149.98759466666672
+    },
+    {
+     "kernel": "aten::_softmax_backward_data",
+     "ms": 53.855477333333404
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxBackward<float, float, float, at::native::(anonymous namespace)::SoftMaxBackwardEpilogue>(float*, flo",
+     "ms": 53.811808000000134
+    },
+    {
+     "kernel": "aten::sum",
+     "ms": 6.697162666666049
+    },
+    {
+     "kernel": "Optimizer.step#AdamW.step",
+     "ms": 5.838933333333291
+    },
+    {
+     "kernel": "aten::copy_",
+     "ms": 5.392170666666235
+    },
+    {
+     "kernel": "aten::mul",
+     "ms": 4.746079999999962
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+     "ms": 4.509152000000108
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 4.066506666666557
+    },
+    {
+     "kernel": "aten::mm",
+     "ms": 3.380991999999756
+    },
+    {
+     "kernel": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+     "ms": 3.086826666666469
+    },
+    {
+     "kernel": "aten::bmm",
+     "ms": 2.9775573333334493
+    },
+    {
+     "kernel": "aten::cat",
+     "ms": 2.8180693333333258
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::CatArrayBatchedCopy<at::native::(anonymous namespace)::OpaqueType<4u>, unsigned int, 4, 64, 64>(at::native::(anonymous n",
+     "ms": 2.697685333333274
+    },
+    {
+     "kernel": "aten::div",
+     "ms": 2.218271999999996
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+     "ms": 2.0078079999997445
+    },
+    {
+     "kernel": "aten::addmm",
+     "ms": 1.8285119999998178
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFu",
+     "ms": 1.821845333333281
+    },
+    {
+     "kernel": "aten::native_layer_norm_backward",
+     "ms": 1.6048213333333843
+    },
+    {
+     "kernel": "aten::add_",
+     "ms": 1.450826666667029
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::BFloat16, at::native::func_wrapper_t<c10::BFloat16, at::native::sum_functor<c10::BFloat16, floa",
+     "ms": 1.4326933333330865
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::GammaBetaBackwardCUDAKernelTemplate<float, float, 32u, 32u, 256u, false, false, false>(long, long, float const*, float c",
+     "ms": 1.2376319999999348
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+     "ms": 0.9964586666669929
+    },
+    {
+     "kernel": "nvjet_sm103_tst_512x8_64x3_2x1_v_badd_TNT",
+     "ms": 0.9629013333331646
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 0.959882666666536
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_ad",
+     "ms": 0.9303786666666484
+    },
+    {
+     "kernel": "void gemmk1_kernel<int, float, 256, 5, false, false, false, false, cublasGemvTensorStridedBatched<__nv_bfloat16 const>, cublasGemvTensorStridedBatched<__nv_bflo",
+     "ms": 0.9225919999998877
+    },
+    {
+     "kernel": "aten::linalg_vector_norm",
+     "ms": 0.8030720000000336
+    },
+    {
+     "kernel": "aten::add",
+     "ms": 0.7710186666667145
+    },
+    {
+     "kernel": "nvjet_sm103_tst_32x128_64x10_1x2_2cta_h_bz_NTN",
+     "ms": 0.7456213333333921
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::NormTwoOps<float, float, float, true>, unsigned int, float, 4, 4> >(at::native::R",
+     "ms": 0.7145279999998579
+    },
+    {
+     "kernel": "aten::sub",
+     "ms": 0.6806186666667212
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+     "ms": 0.6501866666668557
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x8_64x12_2x1_v_bz_TNT",
+     "ms": 0.6418133333334021
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x64_64x10_2x2_2cta_h_bz_NTT",
+     "ms": 0.6338453333334668
+    },
+    {
+     "kernel": "aten::native_layer_norm",
+     "ms": 0.5079786666666196
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, false>(int, float, float const*, float const*, float const*, float*, float*, ",
+     "ms": 0.5079786666666196
+    },
+    {
+     "kernel": "aten::gelu_backward",
+     "ms": 0.4259733333332406
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator(",
+     "ms": 0.4259733333332406
+    }
+   ]
+  },
+  {
+   "hidden": 512,
+   "tokens": 40000,
+   "geo_checkpoint": true,
+   "params": 60179581,
+   "step_s_median": 1.2749220479890937,
+   "step_s_min": 1.2730238079966512,
+   "tokens_per_s": 31374.467217890782,
+   "peak_allocated_gib": 11.154956340789795,
+   "peak_reserved_gib": 11.69921875,
+   "incremental_allocated_gib": 10.188028812408447,
+   "profile_ms_per_step_by_bucket": {
+    "invariants_or_elementwise": 156.38165333333836,
+    "other": 102.01325999999989,
+    "einsum_bmm": 31.548458999999383,
+    "linear_mlp": 8.489173333333097,
+    "norm_act": 18.882507000000945,
+    "softmax_slc": 1128.5066250000018,
+    "softmax_pts": 1127.425686333333,
+    "optimizer": 1.6677333333331625
+   },
+   "profile_total_cuda_ms_per_step": 2574.91509733334,
+   "top_kernels_ms_per_step": [
+    {
+     "kernel": "aten::_softmax",
+     "ms": 647.3320706666676
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxForward<float, float, float, int, at::native::(anonymous namespace)::SoftMaxForwardEpilogue>(float*, ",
+     "ms": 647.0089346666668
+    },
+    {
+     "kernel": "aten::_softmax_backward_data",
+     "ms": 480.6340849999998
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::cunn_SpatialSoftMaxBackward<float, float, float, at::native::(anonymous namespace)::SoftMaxBackwardEpilogue>(float*, flo",
+     "ms": 480.4167516666663
+    },
+    {
+     "kernel": "Command Buffer Full",
+     "ms": 37.265184666667054
+    },
+    {
+     "kernel": "aten::sum",
+     "ms": 22.621685333338263
+    },
+    {
+     "kernel": "aten::mul",
+     "ms": 18.724426666669086
+    },
+    {
+     "kernel": "aten::cat",
+     "ms": 18.130591999998785
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::MulFu",
+     "ms": 17.892960000002994
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::CatArrayBatchedCopy<at::native::(anonymous namespace)::OpaqueType<4u>, unsigned int, 4, 64, 64>(at::native::(anonymous n",
+     "ms": 17.715647999998986
+    },
+    {
+     "kernel": "aten::copy_",
+     "ms": 16.662015999993862
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 16.274741333335335
+    },
+    {
+     "kernel": "aten::mm",
+     "ms": 10.324213333331864
+    },
+    {
+     "kernel": "void at::native::unrolled_elementwise_kernel<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#7}::opera",
+     "ms": 9.89251199999721
+    },
+    {
+     "kernel": "aten::bmm",
+     "ms": 9.569877666667306
+    },
+    {
+     "kernel": "aten::native_layer_norm_backward",
+     "ms": 8.939157666666471
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::GammaBetaBackwardCUDAKernelTemplate<float, float, 32u, 32u, 256u, false, false, false>(long, long, float const*, float c",
+     "ms": 7.7539843333324345
+    },
+    {
+     "kernel": "aten::div",
+     "ms": 7.7201066666676486
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 2, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<float, float, float, at::native::binary_internal::DivFu",
+     "ms": 7.321717333335079
+    },
+    {
+     "kernel": "aten::addmm",
+     "ms": 6.072874666667628
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::bfloat16_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda(float)#1}, std::array<char*, 2ul> >(in",
+     "ms": 5.69178666666332
+    },
+    {
+     "kernel": "aten::add_",
+     "ms": 5.33855999999765
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<float>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<float>, std::arr",
+     "ms": 3.9452053333319106
+    },
+    {
+     "kernel": "void gemmk1_kernel<int, float, 256, 5, false, false, false, false, cublasGemvTensorStridedBatched<__nv_bfloat16 const>, cublasGemvTensorStridedBatched<__nv_bflo",
+     "ms": 3.8479893333332926
+    },
+    {
+     "kernel": "nvjet_sm103_tst_512x8_64x3_2x1_v_badd_TNT",
+     "ms": 3.614261333334032
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::BFloat16, at::native::func_wrapper_t<c10::BFloat16, at::native::sum_functor<c10::BFloat16, floa",
+     "ms": 3.472661333333934
+    },
+    {
+     "kernel": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl<at::native::CUDAFunctor_add<float> >(at::TensorIteratorBase&, at::native::CUDAFunctor_ad",
+     "ms": 3.309397333333262
+    },
+    {
+     "kernel": "aten::linalg_vector_norm",
+     "ms": 3.011957333333189
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<float, at::native::NormTwoOps<float, float, float, true>, unsigned int, float, 4, 4> >(at::native::R",
+     "ms": 2.9175786666667975
+    },
+    {
+     "kernel": "nvjet_sm103_tst_32x128_64x10_1x2_2cta_h_bz_NTN",
+     "ms": 2.883808333333543
+    },
+    {
+     "kernel": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<float, at::native::func_wrapper_t<float, at::native::sum_functor<float, float, float>::operator()(at",
+     "ms": 2.618048000000999
+    },
+    {
+     "kernel": "nvjet_sm103_tst_128x8_64x12_2x1_v_bz_TNT",
+     "ms": 2.5406826666663402
+    },
+    {
+     "kernel": "aten::sub",
+     "ms": 2.5220266666671827
+    },
+    {
+     "kernel": "aten::add",
+     "ms": 2.3712960000000587
+    },
+    {
+     "kernel": "aten::native_layer_norm",
+     "ms": 1.808501333333138
+    },
+    {
+     "kernel": "void at::native::(anonymous namespace)::vectorized_layer_norm_kernel<float, float, false>(int, float, float const*, float const*, float const*, float*, float*, ",
+     "ms": 1.808501333333138
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::CUDAFunctor_add<c10::BFloat16>, std::array<char*, 3ul> >(int, at::native::CUDAFunctor_add<c10::BFl",
+     "ms": 1.7229439999998237
+    },
+    {
+     "kernel": "nvjet_sm103_tst_64x8_64x16_1x1_h_bz_NNT",
+     "ms": 1.5080853333340518
+    },
+    {
+     "kernel": "aten::gelu_backward",
+     "ms": 1.4813333333334886
+    },
+    {
+     "kernel": "void at::native::vectorized_elementwise_kernel<8, at::native::GeluBackwardCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator(",
+     "ms": 1.4813333333334886
+    }
+   ]
+  }
+ ],
+ "exponents": {
+  "ckpt0": {
+   "tokens_at_h192": 1.2761893820351387,
+   "hidden_at_10k": 0.02230665482674619,
+   "points_tokens": [
+    [
+     10000,
+     0.23776427200937178
+    ],
+    [
+     20000,
+     0.569650208009989
+    ],
+    [
+     40000,
+     1.232728032002342
+    ],
+    [
+     80000,
+     3.5072323519998463
+    ]
+   ],
+   "points_hidden": [
+    [
+     192,
+     0.23776427200937178
+    ],
+    [
+     256,
+     0.23977526400994975
+    ],
+    [
+     384,
+     0.24195799998415168
+    ],
+    [
+     512,
+     0.24302188800356817
+    ]
+   ]
+  },
+  "ckpt1": {
+   "tokens_at_h192": 1.221335618288564,
+   "hidden_at_10k": -0.07369784510161405,
+   "points_tokens": [
+    [
+     10000,
+     0.27422001599916257
+    ],
+    [
+     20000,
+     0.5853460159996757
+    ],
+    [
+     40000,
+     1.2621084639977198
+    ],
+    [
+     80000,
+     3.5677958879969083
+    ]
+   ],
+   "points_hidden": [
+    [
+     192,
+     0.27422001599916257
+    ],
+    [
+     256,
+     0.24746718401729595
+    ],
+    [
+     384,
+     0.24929537599382456
+    ],
+    [
+     512,
+     0.25120017600420397
+    ]
+   ]
+  }
+ }
+}
