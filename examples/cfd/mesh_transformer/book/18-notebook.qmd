@@ -9875,3 +9875,29 @@ like-for-like with the reference) and for the unit-drive reference at 10,000
 track-private `hl_evals_probe_fp32/gt_sf/`. Readout: biased ÷ uniform as
 "sample frame (pool frame)" per arm and seed, reducer key
 `density_probe_sf`; results appended below when they land.
+
+**Sample-frame probe readout** (float32, `code_eval`; 14 unit logs, zero
+failures, zero skipped loads, guard silent; 74 logs checked in total;
+results/scaling/gt_scale_reduction_2026-09-09.json, key `density_probe_sf`):
+
+| arm | cells at evaluation | seed | uniform pressure | biased pressure | biased ÷ uniform, sample frame (pool frame) |
+|---|---|---|---|---|---|
+| reference uw_gt_unit (256 wide, trained at 10,000) | 10,000 | 42 / 43 / 44 | 0.0502 / 0.0506 / 0.0503 | 0.603 / 0.604 / 0.628 | **12.0 / 11.9 / 12.5** (11.8 / 7.9 / 8.8) |
+| corner c512x80k (512 wide, trained at 80,000) | 80,000 | 42 / 43 | 0.0421 / 0.0420 | 0.391 / 0.485 | **9.3 / 11.6** (6.5 / 1.9) |
+| corner c512x80k | 10,000 (design point) | 42 / 43 | 0.0457 / 0.0451 | 0.421 / 0.503 | **9.2 / 11.1** (—) |
+
+The control reproduces the generalization session's figure (about 12x for
+the unit-drive reference in the sample frame; 12.0–12.5 here, tight across
+seeds where the pool frame gave 7.9–11.8), which validates the launcher.
+With the pool-mean artifact removed, the corner is as density-sensitive as
+the reference: 9–12x at its own 80,000 cells and 9–11x at the 10,000-cell
+design point, against 12x for the reference. The apparent improvement in the
+pool-frame probe (6.5 / 1.9) was the centring artifact, not a property of
+the larger model; the seed asymmetry disappears with it. Two further facts
+from the same runs: evaluating the 80,000-cell-trained corner at 10,000
+cells costs 8% on the uniform draw (0.0454 against 0.0421), so the corner's
+accuracy is tied to its training resolution; and GeoTransolver at every
+scale tried loses an order of magnitude under a 10:1 sampling bias once the
+frame is the sample's own. Under the program's redirect, no GeoTransolver
+configuration in this study passes the invariance test, and the width and
+token gains are reported as capacity, not as adoptable configurations.
