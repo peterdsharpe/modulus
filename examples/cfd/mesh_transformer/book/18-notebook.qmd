@@ -9809,3 +9809,16 @@ reference lanes' 0.0557 (+1.8%, inside the 3% bar; bf16 0.0596 against
 (the reference lanes ran older code). The fast-kernel arms (80,000 tokens
 and the 512 × 80,000 pilot) are therefore pooled with the reference-kernel
 arms in the verdict, each still labelled with its kernel.
+
+**DrivAerML token arms and the 512 × 80,000 pilot (float32; fast kernel,
+labelled).** At the reference width, 80,000 cells per car give 0.0468
+against the reference's 0.0557 (0.84x; bf16 0.0484): the
+resolution-limited bar (≥ 5%) is met by a wide margin. The largest
+configuration, width 512 with 80,000 cells, gives **0.0428** (0.77x; bf16
+0.0441), at 22.8 GB peak and 0.285 s per step: 22.5 GPU-hours against the
+reference's 21.3. With the fast kernel, the whole DrivAerML ladder costs the
+same wall-clock as the reference configuration, so on this dataset the
+protocol's operating point left a 23% pressure-error reduction on the table.
+Every fp32-versus-bf16 shift lies between 0.94 and 0.97; all sampled points
+bit-identical across the two instruments. The DrivAerML 40,000-cell arms
+(reference kernel) and the width-384 × 40,000 corner are still training.
