@@ -11466,3 +11466,30 @@ reference-kernel arms, each labelled. The 1.8% offset is a two-seed number on
 one configuration; a third seed and a HiLift repeat would tighten it, and it
 is small against every effect the book argues over (the smallest quoted is
 5%).
+
+**DrivAerML token arms and the 512 × 80,000 pilot (float32; fast kernel,
+labelled).** At the reference width, 80,000 cells per car give 0.0468
+against the reference's 0.0557 (0.84x; bf16 0.0484): the
+resolution-limited bar (≥ 5%) is met by a wide margin. The largest
+configuration, width 512 with 80,000 cells, gives **0.0428** (0.77x; bf16
+0.0441), at 22.8 GB peak and 0.285 s per step: 22.5 GPU-hours against the
+reference's 21.3. With the fast kernel, the whole DrivAerML ladder costs the
+same wall-clock as the reference configuration, so on this dataset the
+protocol's operating point left a 23% pressure-error reduction on the table.
+Every fp32-versus-bf16 shift lies between 0.94 and 0.97; all sampled points
+bit-identical across the two instruments. The DrivAerML 40,000-cell arms
+(reference kernel) and the width-384 × 40,000 corner are still training.
+
+**HiLift lanes are input-bound by fleet contention.** With about seventy
+HiLift lanes reading the 285-million-cell boundary meshes from Lustre at
+once, the HiLift SCALE lanes' recent median step is 2.8 s at 80,000 cells
+(first link, before the fleet filled: 0.31 s) and 1.9 s at width 512 (first
+link 1.28 s), with 90th percentiles of 6–10 s; the DrivAerML lanes, whose
+meshes are 30x smaller, are unaffected (40,000-cell arm 1.29 s per step,
+flat). The HiLift arms therefore project to five to seven days rather than
+the 13–15 hours of the acceptance table; the coordinating session decides
+whether to accept that, thin the fleet, or wait for the dataset-level read
+fix (@sec-nb-hilift-io-verdict). Nothing about the lanes' numerics is
+affected; only their wall-clock and the GPU-hours column, which for the
+HiLift arms measures the filesystem, not the model, and is reported with
+that label.
