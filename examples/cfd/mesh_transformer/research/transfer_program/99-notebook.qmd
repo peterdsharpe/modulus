@@ -1649,3 +1649,20 @@ the fraction of the 0.093 → 0.068 gap closed. Lanes v0wk-0..3
 under `code_wake` (the program's evaluation snapshot does not carry the
 option yet; both snapshots evaluate the campaign D reference identically,
 so the comparison is same-snapshot in the sense of the CLAIMS rule).
+
+**Where the wake tokens sit (addendum to @sec-nb-wake-launch).** Computed
+from the saved surfaces of three validation cars
+(`transfer/wake_positions.py`; drive +x; measure = triangle area × inclusion
+ratio): the measure-weighted RMS extent of the vehicle along the drive is
+ℓ = 0.29 body lengths (bodies 0.84–0.92 L_ref long, L_ref = 5 m); the
+weighted centre lies 0.51–0.57 body lengths from the nose and the rear
+1.5–1.7 ℓ behind the centre. The three tokens therefore land at 0.29, 0.58
+and 1.16 body lengths behind the centre: the first inside the body over
+the rear deck (0.14–0.20 L ahead of the rear), the second just behind the
+rear (+0.09 to +0.15 L, the near wake), the third 0.67–0.73 body lengths
+behind the rear (about 3.5 m, the outer wake). A unit note for
+@sec-nb-bands: its "L" is L_ref (the pipeline's coordinates are already
+divided by L_ref), so the far band SDF ≥ 0.05 L begins 25 cm from the
+surface and the car is 0.92 L long; the two downstream tokens sit in that
+band and the first anchors the rear body. Both facts go into the verdict
+table beside the four lanes' band decompositions.
