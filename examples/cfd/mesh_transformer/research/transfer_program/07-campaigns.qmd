@@ -171,6 +171,52 @@ ISLA already has a construction (latent volume tokens at downstream
 offsets along the drive); its preregistered readout would be the far-band
 eddy-viscosity error (bars in @sec-nb-bands).
 
+## Convention conditioning on the fastback shift (campaign C, T1) {#sec-campaigns-conditioning}
+
+If two vehicle families with different simulation conventions (solver,
+ground and wheel treatment) are trained together, does telling the model
+which convention a case follows help it keep them apart? T1 trains ISLA and
+the unit-drive GeoTransolver on all 435 DrivAerML cars plus the 794 SHIFT-SUV
+estate cars, with and without a constant per-cell convention flag (0 for
+DrivAerML, 1 for SHIFT-SUV; a boundary scalar for ISLA, a seventh functional
+channel for GeoTransolver), and scores both zero-shot on the 99 fastback
+validation cases, which carry the flag value 1 (@sec-nb-campc-t1-verdict).
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/campaign_c_transfer/campaign_c_t1_2026-09-10.json").read_text())["arms"]
+rows = [("ISLA, no flag", "cond0_isla"), ("ISLA, convention flag", "cond1_isla"),
+        ("GeoTransolver (unit drive), no flag", "cond0_gt"), ("GeoTransolver (unit drive), convention flag", "cond1_gt")]
+print("| arm | seeds | fastback pressure | fastback wall shear | fastback drag rel. MAE | DrivAerML pressure |")
+print("|---|---|---|---|---|---|")
+for n, k in rows:
+    a = d[k]; f = a["fastback"]; dr = a.get("drivaer") or {}
+    print(f"| {n} | {a['n_seeds']} | {f['pressure_l2']:.3f} | {f['wss_l2']:.3f} | {f['CD_rel_mae']:.3f} | {dr.get('pressure_l2', float('nan')):.4f} |")
+print()
+print(": Float32 inference, seed means over two seeds; every arm trains on 435 DrivAerML + 794 estate cars for 500 epochs at lr 1e-3. Drag is the recipe's integrated drag coefficient, mean absolute error over the reference mean (0.75). Data: studies/campaign_c_transfer/campaign_c_t1_2026-09-10.json. {#tbl-campaigns-conditioning}")
+```
+
+The flag is worth nothing: the fastback error moves by 1% (ISLA) and 5%
+(GeoTransolver) in the wrong direction, inside or at the seed spread, and
+the in-family DrivAerML error by 1–2%. The preregistered NULL clause holds
+for ISLA and GeoTransolver lands at its edge, on the side of no help. The
+conventions differ in the flow the surface sees, which both models read
+from the geometry and the field they fit, so a one-bit label carries no
+information the inputs lack; what the estate family buys the fastback
+cases is coverage, not identification.
+
+The unconditioned arms also answer a question the diversity result below
+leaves open: how much of the in-family cost of mixing is the mixing itself
+when the source data is not halved. With all 435 DrivAerML cars kept,
+adding 794 estate cars raises the DrivAerML error 17% for ISLA and 4% for
+GeoTransolver. Against the half-and-half mix (8% and 4%), ISLA's mixing
+cost grows with the foreign share and GeoTransolver's does not, and the
+extra 577 estate cars improve the fastback error by only 6–9% over the
+217-car mix, so the sibling family's coverage saturates within a few
+hundred cases.
+
 ## Matched-count diversity on the fastback shift (campaign C, T2) {#sec-campaigns-diversity}
 
 With the training set held at 435 cases, replacing half of the DrivAerML

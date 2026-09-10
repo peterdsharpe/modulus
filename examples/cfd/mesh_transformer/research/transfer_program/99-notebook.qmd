@@ -1717,3 +1717,88 @@ ISLA in this program; the D1 code (support tokens, passive read blocks,
 `SplitInteriorSupport`) stays in the repository as the runnable record of a
 refuted configuration. Chapter @sec-computational-support is written from
 this entry.
+
+## 2026-09-10 — Verdict, campaign C T1 complete conditioning (float32): NULL — a per-case convention flag changes nothing on the fastback cases (ISLA 0.120 vs 0.121, GeoTransolver 0.105 vs 0.111) and nothing in-family; with the full source kept, mixing 794 estate cars costs ISLA 17% and GeoTransolver 4% {#sec-nb-campc-t1-verdict}
+
+**Setting.** T1 of campaign C (`studies/campaign_c_transfer/PREREG.md`)
+asks whether the compound mismatch between DrivAerML's and SHIFT-SUV's
+conventions (solver, ground and wheel treatment) is partly an
+identifiability problem: two families trained together might blur into one
+average if the model cannot tell which convention a case follows. The
+instrument is a constant per-cell scalar, 0 for every DrivAerML case and 1
+for every SHIFT-SUV case, handed to ISLA as a boundary scalar and to the
+unit-drive GeoTransolver as a seventh functional channel; the unconditioned
+twins train on the same mixed data (the full 435 DrivAerML train cars plus
+the 794 estate cars, 1,229 cases) with the flag absent. Two seeds per arm,
+500 epochs, lr 1e-3, frozen protocol; float32 inference under the
+program-wide evaluation snapshot, no skipped loads in any log. The fastback
+evaluation carries the flag value 1, since fastback shares estate's
+conventions. Bars: conditioning MATTERS if the conditioned fastback error is
+≥ 15% below its unconditioned twin for either architecture; NULL within 5%;
+between, reported; an in-family (DrivAerML validation) cost above 5% is
+reported as such.
+
+**Readout (seed means, seeds in parentheses; artifact
+`studies/campaign_c_transfer/campaign_c_t1_2026-09-10.json`).**
+
+| arm | fastback pressure | fastback wall shear | fastback drag rel. MAE | DrivAerML pressure |
+|---|---|---|---|---|
+| ISLA, no flag | 0.120 (0.116, 0.123) | 0.139 | 0.184 | 0.0652 |
+| ISLA, convention flag | 0.121 (0.120, 0.122) | 0.141 | 0.152 | 0.0662 |
+| GeoTransolver unit drive, no flag | 0.105 (0.105, 0.105) | 0.127 | 0.115 | 0.0525 |
+| GeoTransolver unit drive, convention flag | 0.111 (0.109, 0.112) | 0.128 | 0.123 | 0.0529 |
+
+: All four arms train on 435 DrivAerML + 794 estate cars. Drag: the recipe's integrated drag coefficient, mean absolute error over the reference mean (0.75). {#tbl-campc-t1}
+
+**Verdict: NULL for ISLA (the flag moves the fastback error by 1.2% in the
+wrong direction, 0.001 worse), "between" for GeoTransolver on the wrong
+side (5.2% worse, 0.005), in-family cost 1.5% and 0.8%, both inside the 5%
+clause.** The seed spreads (0.007 for ISLA, 0.003 for GeoTransolver) cover
+the ISLA difference and most of GeoTransolver's; neither architecture
+extracts anything from knowing which convention a case follows. The
+reading is the second of the two preregistered ones: the mismatch is not
+recoverable from a flag, and what the estate family buys the fastback cases
+is coverage of its conventions in the data, not identification of them.
+This fits the geometry of the problem: the conventions differ in the flow
+the surface sees (ground clearance, rotating wheels, solver), which the
+model reads off the boundary geometry and the pressure field it is fitting,
+so a one-bit label adds no information the inputs did not already carry.
+
+**Mixing cost with the source kept whole (the question ISLA Main asked).**
+The T2 decomposition (@tbl-campc-t2-decomp) measured the mixing cost at a
+50% foreign share with the source halved: 8% (ISLA) and 4% (GeoTransolver)
+on the DrivAerML validation pressure. The unconditioned T1 arms are the
+same measurement at a 65% foreign share with the source kept whole (435 +
+794), so the halving factor is absent and the whole in-family rise is
+mixing:
+
+| architecture | 435 DrivAerML alone | 435 + 794 estate | mixing factor, full source | mixing factor, T2 (218 + 217) | fastback, 435 + 794 | fastback, 218 + 217 |
+|---|---|---|---|---|---|---|
+| ISLA | 0.0557 | 0.0652 | 1.171 | 1.078 | 0.120 | 0.128 |
+| GeoTransolver, unit drive | 0.0504 | 0.0525 | 1.042 | 1.043 | 0.105 | 0.115 |
+
+: DrivAerML validation pressure relative L2 and fastback pressure relative L2, float32, two-seed means. Artifacts `campaign_c_t1_2026-09-10.json` (arms `cond0_*`, `ref_single_*`) and `campaign_c_t2_2026-09-10.json`. {#tbl-campc-t1-mixing}
+
+So the 17% in-family rise of the 1,229-case ISLA model is entirely mixing,
+and ISLA's mixing cost grows with the foreign share (8% at half, 17% at two
+thirds) while GeoTransolver's does not (4% at either share). The extra 577
+estate cars buy the fastback cases only 6% (ISLA) and 9% (GeoTransolver)
+over the 217-car mix, so the estate coverage saturates early, as the T2
+verdict suggested. The picture across T1–T3 is one statement with three
+measurements: the unit-drive GeoTransolver holds its DrivAerML fit while
+absorbing a second family (4% cost at either share) and carries 31% of its
+DrivAerML pretraining into a 20-label adaptation; ISLA pays a mixing cost
+that scales with the foreign share and carries nothing into adaptation.
+Both agree that a convention flag is worthless and that coverage saturates
+by a few hundred sibling cars.
+
+**What changes.** Campaign C is complete. The transfer levers for this
+program's setting rank: coverage (a few hundred cases of a sibling family,
+T2) above few-shot adaptation (20 labels, GeoTransolver only, T3) above
+conditioning (nothing, T1); the architectural gap they expose is ISLA's
+family-specific DrivAerML fit, the target of the interior-context and
+measure-consistent directions elsewhere in this book. Caveat: one flag
+design (a constant one-bit scalar); a flag carrying the physical conditions
+that differ (ground clearance, wheel rotation) is a different experiment,
+but the T1 result says the model already reads those from the inputs.
+Chapter @sec-campaigns-conditioning is written from this entry.

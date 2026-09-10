@@ -64,3 +64,17 @@ any arm's definition).
 - GT few-shot arms after `grep -q "Training completed" $T/runs/uw_gt_unit_lr1e3_seed42/train.log`: `for i in 16 17 18 19; do sbatch -J camp-c-$i --array=$i --dependency=singleton transfer/campaign_c_aga.sbatch; done`
 - evaluate a trained lane: `sbatch -q short -t 01:30:00 --array=<idx> transfer/campaign_c_eval_aga.sbatch`
 - reduce: field relative L2 and pressure-force relative error per case from `$T/campc_evals/<run>/fastback/*/predictions` with the C1 diagnostic's conventions (`studies/controls/pressure_offset_diagnostic.py` shows the loaders: gauge pressure via p_inf, areas from saved triangles, normals from saved cells); two-seed mean predictions; bars in PREREG.md.
+
+## 2026-09-10 — T1 verdict (float32): NULL; campaign C closed
+
+All eight conditioning lanes (campC_cond{0,1}_{isla,gt}_seed{42,43}) trained
+to 500 epochs and were evaluated in float32 under `code_eval`
+(`$T/campc_evals_fp32`; no "skipping load" in any log). Fastback pressure
+relative L2: ISLA 0.1197 (no flag) vs 0.1211 (flag); GeoTransolver 0.1052 vs
+0.1107. DrivAerML validation: 0.0652 vs 0.0662; 0.0525 vs 0.0529. Reducer
+verdicts: NULL (ISLA, gain −1.2%) and BETWEEN on the wrong side
+(GeoTransolver, −5.2%); in-family cost 1.5% / 0.8%. Full-source mixing
+factors (cond0 ÷ 435 DrivAerML alone, DrivAerML pressure): ISLA 1.171,
+GeoTransolver 1.042. Artifact `campaign_c_t1_2026-09-10.json` holds all 32
+lanes (`python3 transfer/reduce_campaign_c.py` on the login node). Book:
+`@sec-nb-campc-t1-verdict`, `@sec-campaigns-conditioning`.
