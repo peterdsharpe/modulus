@@ -61,7 +61,7 @@ def points_identical(root_a, root_b, run):
     return {"checked": len(pa), "identical": n_same}
 
 
-LOADER_HAZARD = ("skipping load", "Could not find valid model file")
+LOADER_HAZARD = ("skipping load", "Could not find valid model file", "Inference summary is inconsistent")  # last: infer.py summary range guard (f9330f317)
 HAZARD = {"logs_checked": 0, "hits": []}
 
 
@@ -156,8 +156,12 @@ for name, (root, runs) in REFS.items():
 # uniform (drivaer_probe_unif2) pressure error, float32, each model at its own training resolution. Reference
 # probes come from the transfer campaign (transfer/campaign_e_fp32/<run>/{unif,biased}); the 512 x 80k corner
 # arm from hl_evals_probe_fp32/<run>/{unif,biased}.
-PROBES = {"dr_ref_unit_lr3e3": ("transfer/campaign_e_fp32", ["uw_transolver_unit_lr3e3_seed42", "uw_transolver_unit_lr3e3_seed43"]),
-          "dr_c512x80k": ("hl_evals_probe_fp32", ["scale_transolver_dr_c512x80k_seed42", "scale_transolver_dr_c512x80k_seed43"])}
+# The probe datasets pre-read a pool 4x the probe size (40,000 cells for a 10,000-cell probe); at 80,000 cells both
+# variants keep the whole pool and coincide, so the corner arm is probed twice: at the probe design point (10,000
+# cells, like-for-like with the reference) and at its own resolution with an 80k-pool variant (320,000-cell pool).
+PROBES = {"dr_ref_unit_lr3e3_at10k": ("transfer/campaign_e_fp32", ["uw_transolver_unit_lr3e3_seed42", "uw_transolver_unit_lr3e3_seed43"]),
+          "dr_c512x80k_at10k": ("hl_evals_probe_fp32", ["scale_transolver_dr_c512x80k_seed42", "scale_transolver_dr_c512x80k_seed43"]),
+          "dr_c512x80k_at80k": ("hl_evals_probe80k_fp32", ["scale_transolver_dr_c512x80k_seed42", "scale_transolver_dr_c512x80k_seed43"])}
 out["density_probe"] = {}
 for name, (root, runs) in PROBES.items():
     per = []

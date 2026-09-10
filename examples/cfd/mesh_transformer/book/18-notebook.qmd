@@ -11060,6 +11060,69 @@ and need about a day and a half; their verdict and the cross-dataset
 reading are appended here when they land, against the unit-drive
 references udrv_hl_transolver_full_lr3e3_seed{42,43}.
 
+
+**Addendum (2026-09-10): the 512 × 80,000 corner, the density-bias probe,
+and provenance.** The coordinator added a sixth DrivAerML arm after ISLA's
+512 × 80k pilot scored 0.0428 in float32: Transolver at width 512 with
+80,000 cells (`scale_transolver_dr_c512x80k_seed{42,43}`).
+
+| arm | width | cells | params | pressure fp32 (seeds) | vs ref | pressure bf16 | bf16 − fp32 (mean; max per case) | peak mem | step | GPU-h (500 ep) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| c512x80k | 512 | 80,000 | 23.9M | **0.0431** (0.0434 / 0.0428) | **−16.7%** | 0.0471 | +0.0040; 0.0074 | 27.6 GB | 0.111 s | 6.6 |
+
+The two knobs stay additive at the corner (−16.7% against −8.7% for width
+alone and −7.9% for cells alone), for 14% more GPU-hours than the reference
+and 28 GB of memory. This is the Transolver frontier point on DrivAerML at
+this budget: 0.0431 against ISLA's pilot 0.0428 at the same corner (the
+cross-architecture reading is the coordinator's).
+
+*Density-bias probe* (program redirect of 2026-09-10: accuracy must come
+with discretization invariance). Each model is evaluated in float32 on a
+uniform sample (`drivaer_probe_unif2`) and on a 10:1 biased-density sample
+(`drivaer_probe_biased3`, Poisson inclusion with per-cell inverse-inclusion
+weights); readout biased ÷ uniform pressure error. The probe datasets
+pre-read a pool 4x the probe size (40,000 cells), so a probe at 80,000 cells
+keeps the whole pool in both variants and returns 1.000 by construction: a
+first pass did exactly that and was discarded (moved to
+hl_evals_probe_fp32/invalid_transolver_80k_on_40k_pool/). The corner arm is
+therefore probed twice: at the probe design point (10,000 cells, like for
+like with the reference) and at its own 80,000 cells with a 320,000-cell
+pool (`drivaer_probe_{unif2,biased3}_80k`, the same 4x ratio).
+
+| arm | probe cells | uniform fp32 | biased fp32 | biased ÷ uniform (seeds) |
+|---|---|---|---|---|
+| reference (256, 10k; transfer campaign E) | 10,000 | 0.0517 | 0.200 | **3.9** (2.2 / 5.5) |
+| c512x80k at the design point | 10,000 | 0.0465 | 0.204 | **4.4** (3.9 / 4.9) |
+| c512x80k at its own resolution | 80,000 | 0.0430 | 0.199 | **4.6** (4.2 / 5.1) |
+
+Scale buys no discretization invariance: the largest Transolver degrades
+4–5x under a 10:1 sampling bias, the same class as the reference (2–5x,
+seed-fragile), and its biased-sample error (0.20) is the reference's. The
+probe at 10,000 cells also measures the resolution shift for a model trained
+at 80,000: its uniform error rises from 0.0430 to 0.0465 (+8%), which is what
+a deployment that samples fewer cells than training would pay. Under the
+program's redirect, the corner arm's 16.7% gain is capacity and resolution,
+not a physically principled improvement, and it fails the invariance test
+as the reference does.
+
+*Provenance.* Every arm's sampled points are bit-identical between the bf16
+and float32 evaluations on all 48 cases (checked for all 12 DrivAerML runs);
+44 evaluation and probe logs were checked for skipped or missing checkpoint
+loads and for the inference summary range guard (added to infer.py on
+2026-09-10): zero hits. The ten first-wave DrivAerML lanes were evaluated
+under the `code` snapshot; the corner lanes and all probes under the
+program-wide evaluation snapshot `code_eval` (identity check by the main
+session: Transolver uw_transolver_unit_lr3e3_seed42 bitwise identical in
+float32 under both). Training launchers are unchanged. Reference density
+probes are the transfer campaign's (transfer/campaign_e_fp32/).
+
+*HiLift half: training, I/O-bound, weeks.* The ten HiLift lanes (1,260
+cases) run at 66–68 epochs per day for the width arms and 38–46 per day for
+the 40k/80k-cell arms under the HiLift reader contention (measured over the
+first 15 h), so they finish in about one to two weeks at the full protocol;
+per the coordinator no epoch cut is applied. Their verdict is appended here
+when they land.
+
 ## 2026-09-10 — FP32-REEVAL verdict, all groups: 209 checkpoints re-evaluated in float32 on bit-identical points; the bf16 offset is small where errors are large and grows to 8–18% where errors are small, always more for the baselines than for ISLA {#sec-nb-fp32-reeval-verdict-all}
 
 **Scope.** Every reported checkpoint with a completed bf16 evaluation was
