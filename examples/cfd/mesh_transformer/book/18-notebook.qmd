@@ -12580,9 +12580,14 @@ on the *uniform* draw when read in the area-weighted frame, so the constant
 gauge's accuracy rides on an exact frame to a degree that a centroid shift
 of the size the area weighting produces on an ordinary sample is enough to
 break it, and the two seeds differ fourfold in that sensitivity. The
-displacement between the two centroids on the uniform draw, in body
-lengths, is being computed from the same probe and will be added beside
-these ratios.
+displacement is small: on the uniform draw the area-weighted and plain
+centroids differ by 0.031 nondimensional units, 0.16 m, **3.4% of the body
+length** (48 cars: 2.4–4.7%), entirely from the area weighting (with bare
+Horvitz–Thompson weights and no area the two coincide exactly). On the
+biased draw the plain centroid moves 0.23 body lengths (1.08 m) from its
+uniform position while the measure-weighted centroid moves 0.010 body
+lengths (0.05 m; 0.2–2.8%), which is the whole mechanism in two numbers
+(`$T/center/centroid_displacement.py`; table in the artifact).
 
 **Preregistered bars for the four trained lanes** (before they read out):
 joint pass if the density ratio is ≤ 1.5x *and* the float32 pressure
