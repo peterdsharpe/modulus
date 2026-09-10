@@ -1271,3 +1271,60 @@ knowledge is worth about the same at step 0 and very different amounts
 after adaptation. That is a sharper statement of the T3 finding than the
 one in @sec-nb-campc-t3-verdict, and it removes the last doubt about the
 initialization.
+
+## 2026-09-10 — Verdict, campaign C T2 matched-count diversity (float32): replacing half of 435 DrivAerML cars with estate cars cuts the fastback error 84% (ISLA) and 81% (GeoTransolver) but costs 32% and 19% in-family; a trade, not a free lever {#sec-nb-campc-t2-verdict}
+
+**Setting.** T2 of campaign C (`studies/campaign_c_transfer/PREREG.md`)
+holds the training-set size at 435 cases and swaps composition: 218
+DrivAerML plus 217 SHIFT-SUV estate cars (drawn deterministically, seed
+2026) against the all-DrivAerML reference runs, for ISLA and the unit-drive
+GeoTransolver, two seeds each, frozen protocol. Readouts in float32:
+zero-shot surface-pressure relative L2 on the 99 SHIFT-SUV fastback
+validation cases (a third family, seen by neither arm) and the in-family
+DrivAerML validation error (48 cars). The references are the existing
+single-family checkpoints (`iw_mt2_lr1e3_seed{42,43}`,
+`uw_gt_unit_lr1e3_seed{42,43}`) evaluated under the snapshot that wrote them
+(@sec-nb-snapshot-hazard). Bar: diversity HELPS if the fastback error falls
+by ≥ 30% at ≤ 10% in-family cost; otherwise the trade is reported.
+
+**Readout (seed means; artifact
+`studies/campaign_c_transfer/campaign_c_t2_2026-09-10.json`).**
+
+| arm | fastback pressure | fastback wall shear | fastback drag rel. MAE | DrivAerML pressure |
+|---|---|---|---|---|
+| ISLA, 435 DrivAerML (reference) | 0.788 (0.782, 0.794) | 1.327 | 1.61 | 0.0557 |
+| ISLA, 218 DrivAerML + 217 estate | 0.128 (0.129, 0.126) | 0.157 | 0.16 | 0.0737 |
+| GeoTransolver unit drive, 435 DrivAerML (reference) | 0.612 (0.609, 0.615) | 1.397 | 1.56 | 0.0504 |
+| GeoTransolver unit drive, 218 DrivAerML + 217 estate | 0.115 (0.109, 0.121) | 0.141 | 0.13 | 0.0598 |
+
+: Drag: the recipe's integrated drag coefficient, mean absolute error over the reference mean; the zero-shot references are off by more than the coefficient itself. {#tbl-campc-t2}
+
+**Verdict: diversity helps on the target at an in-family cost above the
+bar, for both architectures; the preregistered "helps" clause is not met
+and the trade is reported.** The fastback error drops 84% (ISLA, 0.788 →
+0.128) and 81% (GeoTransolver, 0.612 → 0.115), six to seven times the 30%
+bar, and the drag error goes from unusable (> 100%) to 13–16%. The price
+is paid in the family that lost half its training cars: DrivAerML error
+rises 32% for ISLA (0.0557 → 0.0737) and 19% for GeoTransolver (0.0504 →
+0.0598), against the 10% bar. Two readings. First, the estate cars carry
+the fastback family's conventions (same simulation, ground and wheel
+treatment, different body), so 217 of them substitute for the 794 the
+program had used before: the mixed 435-case models reach 0.128 and 0.115
+on the fastback cases against 0.11–0.13 for the historical DrivAerML +
+794-estate training, so the estate coverage saturates fast. Second, the
+in-family cost is not symmetric between architectures: GeoTransolver
+gives up 19% to gain the second family, ISLA 32%, consistent with the
+few-shot reading (@sec-nb-campc-t3-verdict) that ISLA's DrivAerML fit is
+more family-specific; but note that the per-family data halved for both,
+so part of the cost is the 218-car rung of each architecture's own
+data ladder, not the mixing.
+
+**What changes.** For the program's transfer question the practical
+statement is: with a fixed label budget, spending half of it on the target
+convention's sibling family buys the target family almost entirely and
+costs a fifth to a third of the source family's accuracy; the mixed-family
+model is the deployable one if both families matter, the single-family
+model if only the source does. The remaining T1 arms (complete
+conditioning, four lanes still training) ask whether a per-case condition
+input recovers part of that in-family cost by letting the model tell the
+two conventions apart.
