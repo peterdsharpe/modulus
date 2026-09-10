@@ -107,7 +107,13 @@
     "label": "GeoTransolver, unit drive, 512 \u00d7 80k",
     "in_family": 0.0419,
     "density_factor": 4.2,
-    "gpu_hours": 13.0
+    "gpu_hours": 12.7,
+    "step_s": 0.211,
+    "peak_memory_gb": 41.5,
+    "density_seeds": [
+     6.5,
+     1.9
+    ]
    },
    "isla_constant_gauge_512x80k": {
     "label": "ISLA, constant gauge, 512 \u00d7 80k (fast kernel)",
