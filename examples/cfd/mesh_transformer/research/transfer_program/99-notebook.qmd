@@ -1096,3 +1096,60 @@ value of equivariance is conditional on the deployment: pose-normalized
 data do not need it; data that arrive in arbitrary frames, or augmentation
 budgets that cannot cover SO(3), do. Cost: none of the arms differ in step
 time by construction of the transform.
+
+## 2026-09-10 — Verdict, campaign A at 35 cases (float32): the HiLift orderings stand across three independent training draws (GeoTransolver ÷ ISLA 0.91, Transolver ÷ ISLA 0.87, both intervals below 1.0); the weights-off gain is draw-dependent; the draw moves errors 3–11x more than the seed {#sec-nb-campa-n35}
+
+**Setting.** Every HiLiftAeroML comparison in the program book rests on one
+curated training draw per rung, with two or three seeds. Campaign A
+(`studies/campaign_a_draws/PREREG.md`) retrains the four arms of the 35-case
+rung (unit-drive GeoTransolver at lr 1e-3, unit-drive Transolver at 3e-3,
+ISLA, ISLA without measure weights, all at 1e-3, frozen protocol) on three
+independent geometry-stratified draws of 35 training cases, three seeds
+each (36 lanes), and scores them on the shared validation set in float32;
+the curated draw's existing runs, re-evaluated in float32 by the main
+session, are the comparison "draw 0". The 210-case rung's 36 lanes are
+still training.
+
+**Readout (validation surface-pressure relative L2; seed means per draw;
+artifact `studies/campaign_a_draws/campaign_a_n35_fp32_2026-09-10.json`).**
+
+| arm | draw 1 | draw 2 | draw 3 | curated draw | between-draw SD ÷ within-draw SD |
+|---|---|---|---|---|---|
+| GeoTransolver, unit drive | 0.1155 | 0.1309 | 0.1434 | 0.1232 | 8.8 |
+| Transolver, unit drive | 0.1109 | 0.1249 | 0.1349 | 0.1142 | 10.9 |
+| ISLA | 0.1311 | 0.1467 | 0.1498 | 0.1377 | 3.4 |
+| ISLA, measure weights off | 0.1175 | 0.1317 | 0.1419 | 0.1219 | 8.4 |
+
+| ratio | draw 1 | draw 2 | draw 3 | curated | mean over draws | 90% interval (t, n = 3) | verdict |
+|---|---|---|---|---|---|---|---|
+| GeoTransolver ÷ ISLA | 0.881 | 0.892 | 0.957 | 0.895 | 0.910 | [0.840, 0.979] | ISLA behind, stands |
+| Transolver ÷ ISLA | 0.846 | 0.852 | 0.900 | 0.829 | 0.866 | [0.816, 0.916] | ISLA behind, stands |
+| ISLA weights off ÷ ISLA | 0.896 | 0.898 | 0.947 | 0.885 | 0.914 | [0.865, 0.963] | between (persists on two draws, ≥ 0.93 on the third) |
+
+: The curated draw lies inside the three-draw range for every arm ("typical"), at the easy end. {#tbl-campa-n35}
+
+**Verdict at the 35-case rung.** Both "ISLA behind" orderings **stand**:
+the 90% intervals of baseline ÷ ISLA lie entirely below 1.0, and the
+curated draw's ratios (0.895, 0.829) are inside them, so the book's
+unit-drive statements at this rung gain a data-draw interval and lose
+nothing. The **weights-off gain is draw-dependent**: it persists on draws 1
+and 2 (0.896, 0.898, and 0.885 on the curated draw) but is 0.947 on draw 3,
+past the 0.93 bar and short of the 0.97 "fades" bar, so the preregistered
+reading is "between": the gain is real on average (0.914, interval below
+1.0) but its size varies by draw by as much as its mean distance from
+parity. The most consequential number is the variance decomposition: the
+between-draw standard deviation of an arm's error is 3.4x (ISLA) to 10.9x
+(Transolver) its within-draw (seed) standard deviation, and draw 3 is 24%
+harder than draw 1 for GeoTransolver; **the two-seed protocol understates
+the uncertainty of every 35-case HiLift number by a factor of three to
+eleven**, and the preregistration's consequence applies: future rungs need
+draws, not seeds. ISLA's lower ratio (3.4) means its seed noise is larger,
+not that it is less draw-sensitive: its within-draw SD is 0.0030 against
+0.0011–0.0016 for the others.
+
+**What changes.** The chapter-5 comparisons at 35 cases may be quoted with
+intervals (GeoTransolver 0.84–0.98 of ISLA, Transolver 0.82–0.92); the
+weights-off recommendation at 35 cases is qualified as a draw-dependent
+gain of 5–10%; and any future single-draw comparison on HiLift is a
+measurement of that draw. The 210-case rung decides whether the ratios
+tighten with data, as the ladder's slopes suggest.

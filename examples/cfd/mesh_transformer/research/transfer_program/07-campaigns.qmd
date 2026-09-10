@@ -14,6 +14,55 @@ preregistered bar, the float32 readout and what it changes. Campaign A
 (data-draw variance), campaign D (interior carriers) and the conditioning
 and diversity parts of C are still training and are absent here by design.
 
+## Data-draw variance of the HiLift comparisons (campaign A, 35-case rung) {#sec-campaigns-draws}
+
+Every HiLiftAeroML comparison in the program book rests on one curated
+training draw per rung with two or three seeds. Campaign A retrains the
+four arms of the 35-case rung (unit-drive GeoTransolver, unit-drive
+Transolver, ISLA, ISLA without measure weights) on three independent
+geometry-stratified draws of 35 training cases, three seeds each, and asks
+whether the orderings survive the draw and how much of a number's
+uncertainty the seed protocol was missing (@sec-nb-campa-n35;
+preregistration in `studies/campaign_a_draws/`). The 210-case rung is
+still training.
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/campaign_a_draws/campaign_a_n35_fp32_2026-09-10.json").read_text())
+names = {"gt_n35": "GeoTransolver, unit drive", "transolver_n35": "Transolver, unit drive", "isla_n35": "ISLA", "islanw_n35": "ISLA, measure weights off"}
+print("| arm | draw 1 | draw 2 | draw 3 | curated draw | between-draw SD ÷ within-draw SD |")
+print("|---|---|---|---|---|---|")
+for k, n in names.items():
+    a = d["arms"][k]; pd_ = a["per_draw"]; dec = a["pressure_decomposition"]
+    cells = [f"{pd_[str(i)]['seed_mean']['pressure_l2']:.4f}" if str(i) in pd_ else "—" for i in (1, 2, 3, 0)]
+    print(f"| {n} | " + " | ".join(cells) + f" | {dec['ratio_between_over_within']:.1f} |")
+print()
+print(": Validation surface-pressure relative L2 at 35 training cases, float32 inference, seed means (three seeds) per draw; the curated draw is the program book's split, re-evaluated in float32. Data: studies/campaign_a_draws/campaign_a_n35_fp32_2026-09-10.json. {#tbl-campaigns-draws}")
+print()
+rn = {"gt_over_isla_n35": "GeoTransolver ÷ ISLA", "transolver_over_isla_n35": "Transolver ÷ ISLA", "noweights_over_isla_n35": "ISLA weights off ÷ ISLA"}
+print("| ratio | draw 1 | draw 2 | draw 3 | curated | mean | 90% interval | verdict |")
+print("|---|---|---|---|---|---|---|---|")
+for k, n in rn.items():
+    r = d["ratios"][k]; pdr = r["per_draw"]
+    cells = [f"{pdr[str(i)]['ratio']:.3f}" if str(i) in pdr else "—" for i in (1, 2, 3, 0)]
+    print(f"| {n} | " + " | ".join(cells) + f" | {r['mean_over_draws']:.3f} | [{r['ci90'][0]:.3f}, {r['ci90'][1]:.3f}] | {r['verdict']} |")
+print()
+print(": Ratios of seed-mean errors per draw; the interval is the two-sided 90% t-interval over the three campaign draws. {#tbl-campaigns-draw-ratios}")
+```
+
+Both "ISLA behind" orderings stand: the intervals lie below 1.0 and the
+curated draw's ratios sit inside them, so the book's 35-case statements
+gain a data-draw interval and lose nothing. The weights-off gain is
+draw-dependent, real on average (0.91) but 0.95 on the hardest draw, so it
+is a 5–10% gain whose size depends on the draw. The number that changes
+practice is the variance decomposition: the between-draw standard deviation
+of an arm's error is 3 to 11 times its seed standard deviation, and the
+hardest draw is 24% harder than the easiest for GeoTransolver, so the
+two-seed protocol has been understating the uncertainty of every 35-case
+HiLift number by that factor; future rungs need draws, not seeds.
+
 ## Equivariance under random poses (campaign B) {#sec-campaigns-pose}
 
 Every benchmark in the ISLA program presents geometries in one canonical
