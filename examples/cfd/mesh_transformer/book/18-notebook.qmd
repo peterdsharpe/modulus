@@ -10108,3 +10108,42 @@ difference; either way, the numbers a checkpoint produces depend on the
 evaluation snapshot at the 6% level, which is larger than several of the
 book's stated margins, and needs its own instrument before any
 cross-snapshot comparison is read.
+
+## 2026-09-09 — Preregistered: SNAPSHOT-LADDER, which code or recipe change moves the evaluation of a fixed checkpoint by 6%? {#sec-nb-snapshot-ladder-prereg}
+
+**Symptom.** The DrivAerML reference checkpoint `iw_mt2_lr1e3_seed42`
+scored a validation pressure relative L2 of 0.05875 at training time, from
+the code snapshot that trained it; evaluated through the recipe's inference
+path from the current snapshot with the same (reference) kernel it scores
+0.06235 (+6.1%; wall shear +6.1%; per-case changes up to 31–51%;
+@sec-nb-cost-matched-fast). Every comparison in the program that reads a
+checkpoint through a different snapshot than the one that trained it rests
+on knowing where that 6% comes from.
+
+**Instrument (eval-only).** The same checkpoint, the reference kernel, the
+same recipe copy ($T/recipe), dataset drivaer_ml_surface, validation split,
+10,000 sampled cells, evaluated under each cluster code snapshot in turn:
+`code` (trained it; produced 0.05875), `code_isla2`, `code_isla3`,
+`code_isla4`, `code_isla5`, `code_perf`; then, if $T/recipe_support (the
+transfer session's recipe copy) differs from $T/recipe, `code` with
+recipe_support. The checkpoint directory is exposed through a symlinked copy
+carrying both class-derived file names (`MeshTransformer2.0.500.mdlus`,
+`ISLA.0.500.mdlus`) so every snapshot loads the same weights, and each
+evaluation must log "Loaded model state dictionary". For two fixed
+validation cars the sampled point coordinates are read from each
+evaluation's prediction artifact and compared across snapshots (identical,
+a permutation, or a different sample).
+
+**Readouts.** Per snapshot: mean pressure, velocity and wall-shear relative
+L2 over the 48 cars; the largest per-case relative change against the
+`code` evaluation; identity of the sampled point sets. **Bars.** The
+discrepancy is *attributed to a snapshot step* if exactly one adjacent pair
+in the ladder moves the mean pressure error by ≥ 3% while every other
+adjacent pair moves it ≤ 0.3%. If the point sets differ across that pair,
+the attribution is *the validation sample changed*, and the change is named
+from the git history of physicsnemo/datapipes/readers/mesh.py and
+physicsnemo/mesh between the two snapshots' recorded commits. If all
+snapshots agree with one another (≤ 0.3%) but not with the 0.05875 recorded
+at training time, the discrepancy lies *between the training-time validation
+pass and infer.py*, and that is the finding. Anything else is reported as
+measured.
