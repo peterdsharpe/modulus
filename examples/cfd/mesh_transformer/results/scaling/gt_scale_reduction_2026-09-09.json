@@ -7,10 +7,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 43,
+    "epochs_seen": 63,
     "peak_mem_gb": 5.41,
-    "median_step_s": 1.5385,
-    "n_logged_steps": 17506,
+    "median_step_s": 1.648,
+    "n_logged_steps": 25260,
     "params": null
    }
   },
@@ -20,10 +20,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 43,
+    "epochs_seen": 63,
     "peak_mem_gb": 5.41,
-    "median_step_s": 1.566,
-    "n_logged_steps": 17200,
+    "median_step_s": 1.548,
+    "n_logged_steps": 24891,
     "params": null
    }
   },
@@ -33,10 +33,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 43,
+    "epochs_seen": 64,
     "peak_mem_gb": 6.16,
-    "median_step_s": 1.537,
-    "n_logged_steps": 17523,
+    "median_step_s": 1.5995,
+    "n_logged_steps": 25199,
     "params": null
    }
   },
@@ -46,10 +46,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 44,
+    "epochs_seen": 64,
     "peak_mem_gb": 6.18,
-    "median_step_s": 1.771,
-    "n_logged_steps": 17188,
+    "median_step_s": 1.822,
+    "n_logged_steps": 24954,
     "params": null
    }
   },
@@ -59,10 +59,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 28,
+    "epochs_seen": 40,
     "peak_mem_gb": 16.4,
-    "median_step_s": 2.445,
-    "n_logged_steps": 12081,
+    "median_step_s": 2.367,
+    "n_logged_steps": 17405,
     "params": null
    }
   },
@@ -72,10 +72,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 22,
+    "epochs_seen": 34,
     "peak_mem_gb": 16.55,
-    "median_step_s": 2.4325,
-    "n_logged_steps": 12006,
+    "median_step_s": 2.496,
+    "n_logged_steps": 17283,
     "params": null
    }
   },
@@ -85,10 +85,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 23,
-    "peak_mem_gb": 32.23,
-    "median_step_s": 2.547,
-    "n_logged_steps": 12154,
+    "epochs_seen": 34,
+    "peak_mem_gb": 32.25,
+    "median_step_s": 2.529,
+    "n_logged_steps": 17280,
     "params": null
    }
   },
@@ -98,10 +98,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 23,
+    "epochs_seen": 35,
     "peak_mem_gb": 32.25,
-    "median_step_s": 2.266,
-    "n_logged_steps": 12007,
+    "median_step_s": 2.3345000000000002,
+    "n_logged_steps": 17368,
     "params": null
    }
   },
@@ -111,10 +111,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 23,
+    "epochs_seen": 35,
     "peak_mem_gb": 18.97,
-    "median_step_s": 2.576,
-    "n_logged_steps": 11852,
+    "median_step_s": 2.514,
+    "n_logged_steps": 17163,
     "params": null
    }
   },
@@ -124,10 +124,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 22,
-    "peak_mem_gb": 18.91,
-    "median_step_s": 2.489,
-    "n_logged_steps": 11897,
+    "epochs_seen": 34,
+    "peak_mem_gb": 18.93,
+    "median_step_s": 2.529,
+    "n_logged_steps": 17175,
     "params": null
    }
   },
@@ -622,9 +622,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 5.41,
-   "median_step_s": 1.55225,
+   "median_step_s": 1.5979999999999999,
    "params": null,
-   "gpu_hours_500_epochs": 271.64375
+   "gpu_hours_500_epochs": 279.65
   },
   "hl_w512": {
    "width": 512,
@@ -635,9 +635,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 6.18,
-   "median_step_s": 1.654,
+   "median_step_s": 1.71075,
    "params": null,
-   "gpu_hours_500_epochs": 289.45
+   "gpu_hours_500_epochs": 299.38125
   },
   "hl_t40k": {
    "width": 256,
@@ -648,9 +648,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 16.55,
-   "median_step_s": 2.4387499999999998,
+   "median_step_s": 2.4314999999999998,
    "params": null,
-   "gpu_hours_500_epochs": 426.78124999999994
+   "gpu_hours_500_epochs": 425.51249999999993
   },
   "hl_t80k": {
    "width": 256,
@@ -661,9 +661,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 32.25,
-   "median_step_s": 2.4065000000000003,
+   "median_step_s": 2.43175,
    "params": null,
-   "gpu_hours_500_epochs": 421.13750000000005
+   "gpu_hours_500_epochs": 425.55625
   },
   "hl_c384x40k": {
    "width": 384,
@@ -674,9 +674,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 18.97,
-   "median_step_s": 2.5324999999999998,
+   "median_step_s": 2.5214999999999996,
    "params": null,
-   "gpu_hours_500_epochs": 443.18749999999994
+   "gpu_hours_500_epochs": 441.26249999999993
   },
   "hl_c512x80k": {
    "width": 512,
@@ -1192,8 +1192,57 @@
    "root": "hl_evals_probe_fp32"
   }
  },
+ "density_probe_sf": {
+  "scale_gt_dr_c512x80k_seed42_r80000": {
+   "resolution": 80000,
+   "unif_pressure_l2": 0.04205574576432506,
+   "biased_pressure_l2": 0.39076758610705536,
+   "biased_over_unif_sample_frame": 9.29165751326504,
+   "biased_over_unif_pool_frame": 6.536676453152927
+  },
+  "scale_gt_dr_c512x80k_seed43_r80000": {
+   "resolution": 80000,
+   "unif_pressure_l2": 0.04202108535294732,
+   "biased_pressure_l2": 0.48534816317260265,
+   "biased_over_unif_sample_frame": 11.55011011962262,
+   "biased_over_unif_pool_frame": 1.894704462195457
+  },
+  "scale_gt_dr_c512x80k_seed42_r10000": {
+   "resolution": 10000,
+   "unif_pressure_l2": 0.04569232898453871,
+   "biased_pressure_l2": 0.42139213097592193,
+   "biased_over_unif_sample_frame": 9.222382407307622
+  },
+  "scale_gt_dr_c512x80k_seed43_r10000": {
+   "resolution": 10000,
+   "unif_pressure_l2": 0.045099465370488666,
+   "biased_pressure_l2": 0.5024758906414112,
+   "biased_over_unif_sample_frame": 11.141504372914625
+  },
+  "uw_gt_unit_lr1e3_seed42_r10000": {
+   "resolution": 10000,
+   "unif_pressure_l2": 0.05024304830779632,
+   "biased_pressure_l2": 0.6026987731456757,
+   "biased_over_unif_sample_frame": 11.995664941614493,
+   "biased_over_unif_pool_frame": 11.777785876672887
+  },
+  "uw_gt_unit_lr1e3_seed43_r10000": {
+   "resolution": 10000,
+   "unif_pressure_l2": 0.05060001377326747,
+   "biased_pressure_l2": 0.603473092118899,
+   "biased_over_unif_sample_frame": 11.926342447711354,
+   "biased_over_unif_pool_frame": 7.860173699252932
+  },
+  "uw_gt_unit_lr1e3_seed44_r10000": {
+   "resolution": 10000,
+   "unif_pressure_l2": 0.05026975522438685,
+   "biased_pressure_l2": 0.6283947092791399,
+   "biased_over_unif_sample_frame": 12.500452935849848,
+   "biased_over_unif_pool_frame": 8.837879194044918
+  }
+ },
  "provenance": {
-  "eval_logs_checked_for_skipped_load": 52,
+  "eval_logs_checked_for_skipped_load": 74,
   "eval_logs_with_skipped_load": [],
   "evaluation_snapshot": "the ten DrivAerML lanes and the references were evaluated under the training snapshot code; from 2026-09-10 the eval, fp32 and probe launchers import the program-wide evaluation snapshot code_eval, identity-checked by the main session (uw_gt_unit_lr1e3_seed42 under code vs code_eval: bitwise identical in float32, zero skipped loads), so both sets are the same function"
  }

@@ -1400,3 +1400,11 @@ interior control @sec-nb-udrv-int-prereg.
   149/180); vs unit Transolver 0.0582: 0.988x (parity; Transolver lower 128/180). Ablation tally: persists 35 (12%),
   210 (8.4%), geo4 (17%), fixed (10.6%); fades DrivAerML (2.9%); pending geo21, 1,260, deflection. ABLATION ONLY —
   write "prices the measure semantics at 8% at 210 cases"; never a configuration. NOW-L node DONE.
+- **Corner density probes, SAMPLE FRAME (2026-09-10, scaling session, fp32, code_eval, two seeds; supersedes the pool-frame
+  4.2x / 4.6x).** At 512×80k, biased ÷ uniform at 80k (10k design point): GeoTransolver 10.5 (10.2), Transolver 14.9
+  (13.7), ISLA constant gauge 16.6 (10.8), ISLA similarity gauge 1.09 (1.56). References at 10k: GT 12.1 (12.0/11.9/12.5),
+  Transolver 11.6 (10.2/13.0), ISLA constant 12.0, ISLA gauge 1.21. Pool frame under-reported the baselines 2.5–3x and
+  manufactured GT's apparent corner improvement and seed asymmetry. WRITE: "density sensitivities in the sample frame
+  10.5x (GeoTransolver), 14.9x (Transolver), 16.6x (ISLA constant gauge) against 1.09x for ISLA's similarity gauge at
+  the same cost; the earlier 4.2x / 4.6x were pool-frame readings and are superseded". No baseline configuration is less
+  sensitive than its reference; Transolver's corner is more so. SCALE DrivAerML half COMPLETE; HiLift half 1–2 weeks.

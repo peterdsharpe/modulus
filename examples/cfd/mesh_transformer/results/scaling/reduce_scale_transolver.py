@@ -175,11 +175,34 @@ for name, (root, runs) in PROBES.items():
     out["density_probe"][name] = {"runs": per, "ratio_mean": st.mean(x["ratio"] for x in per) if per else None,
                                   "uniform_mean": st.mean(x["uniform"] for x in per) if per else None,
                                   "biased_mean": st.mean(x["biased"] for x in per) if per else None}
+# Sample-frame probes (coordinator ruling 2026-09-10): CenterMesh AFTER the sampler, so absolute-coordinate models
+# receive the sample's own mean, as a biased mesher would deliver. Same readout; distinct key. Pool-frame values above
+# are kept for the "sample frame (pool frame)" report.
+PROBES_SF = {"dr_ref_unit_lr3e3_at10k": ["uw_transolver_unit_lr3e3_seed42_r10000", "uw_transolver_unit_lr3e3_seed43_r10000"],
+             "dr_c512x80k_at10k": ["scale_transolver_dr_c512x80k_seed42_r10000", "scale_transolver_dr_c512x80k_seed43_r10000"],
+             "dr_c512x80k_at80k": ["scale_transolver_dr_c512x80k_seed42_r80000", "scale_transolver_dr_c512x80k_seed43_r80000"]}
+out["density_probe_sf"] = {}
+for name, units in PROBES_SF.items():
+    per = []
+    for u_ in units:
+        root = f"hl_evals_probe_fp32/transolver_sf/{u_}"
+        if not (log_ok(f"{T}/{root}/unif.log") and log_ok(f"{T}/{root}/biased.log")):
+            continue
+        u = rows(f"{root}/unif", ""); b = rows(f"{root}/biased", "")
+        if u and b:
+            mu, mb = means(u)["pressure_l2"], means(b)["pressure_l2"]
+            per.append({"unit": u_, "uniform": mu, "biased": mb, "ratio": mb / mu,
+                        "snapshot_sidecar": os.path.exists(f"{T}/{root}/SNAPSHOT.code_eval")})
+    out["density_probe_sf"][name] = {"runs": per, "ratio_mean": st.mean(x["ratio"] for x in per) if per else None,
+                                     "uniform_mean": st.mean(x["uniform"] for x in per) if per else None,
+                                     "biased_mean": st.mean(x["biased"] for x in per) if per else None}
 out["loader_hazard_check"] = HAZARD
 json.dump(out, open(f"{T}/hl_evals/transolver_scale_reduction.json", "w"), indent=1)
 print("LOADER_HAZARD", HAZARD)
 for k, v in out["density_probe"].items():
     print("PROBE", k, json.dumps(v)[:300])
+for k, v in out["density_probe_sf"].items():
+    print("PROBE_SF", k, json.dumps(v)[:400])
 for k, v in out["refs"].items():
     print("REF", k, json.dumps(v)[:300] if v else None)
 for k, v in out["arms"].items():
