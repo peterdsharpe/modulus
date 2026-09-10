@@ -1194,3 +1194,9 @@ interior control @sec-nb-udrv-int-prereg.
   GT-volume: pressure 1.08x (was 1.06x), velocity 0.75x (was 0.73x), ν_t 1.27x (was 1.28x). Write
   "8% behind on pressure, 25% ahead on velocity, 27% behind on eddy viscosity" once chapter 8 and the
   index are refreshed to three seeds (pending the generalization session's index merge).
+- **Gauge learning-rate confound on DrivAerML (2026-09-10, generalization session).** iw_mt2_gauge_seed{42,43}
+  were trained at lr 3e-3 (instwave default), iw_mt2_lr1e3 at 1e-3, so "gauge 0.0616 vs reference
+  0.0558" is rate-confounded; rate-matched (3e-3 vs mt2_v3c_seed42 0.0620 fp32) the gauge is at PARITY
+  on DrivAerML. Never quote a DrivAerML gauge price; label every gauge row with its rate. The 35-case
+  1.08x gauge cost is rate-matched and stands; chapter 6 §density already states DrivAerML neutrality
+  (same seeds, same rate). Rate-matched 1e-3 pair w4_dr_mt2_gauge_lr1e3_seed{42,43} in WAVE-4.
