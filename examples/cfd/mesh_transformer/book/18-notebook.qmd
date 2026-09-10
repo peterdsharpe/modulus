@@ -9860,3 +9860,18 @@ skipped loads; summary-range guard silent on every corner and probe log
 protocol; per the coordinator's decision they run unshortened and unheld,
 and the HiLift half of this verdict is written when they land. The
 DrivAerML half above is complete.
+
+**Sample-frame probe (2026-09-10, program ruling).** The pool-frame probe
+datasets centred the mesh *before* the biased draw, so GeoTransolver and
+Transolver, which consume absolute centred coordinates, were handed the
+unbiased pool mean; a biased mesher would deliver the sample's own mean.
+The canonical sample-frame datasets (`drivaer_probe_{biased3,unif2}_sf`, 40k
+pool, and `_sf_80k`, 320k pool; the pool-frame files with the CenterMesh
+block moved to directly after the sampler) are run in float32 under
+`code_eval` for the corner at 80,000 and at 10,000 cells (the design point,
+like-for-like with the reference) and for the unit-drive reference at 10,000
+(the control: the generalization session measured about 12x there against
+9.5x pool-frame), seven units, two draws each, outputs under the
+track-private `hl_evals_probe_fp32/gt_sf/`. Readout: biased ÷ uniform as
+"sample frame (pool frame)" per arm and seed, reducer key
+`density_probe_sf`; results appended below when they land.
