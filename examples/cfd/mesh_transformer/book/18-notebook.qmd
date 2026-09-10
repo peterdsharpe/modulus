@@ -12268,7 +12268,7 @@ weights matter.
 
 ## 2026-09-10 — One guarded evaluation snapshot for the program: code_eval reproduces the original-snapshot float32 numbers per case for all three architectures {#sec-nb-code-eval-adopted}
 
-The checkpoint-loading hazard of @sec-nb-snapshot-hazard (a renamed model
+The checkpoint-loading hazard (companion notebook, research/transfer_program, entry #sec-nb-snapshot-hazard; a renamed model
 class made the loader skip the weights file and evaluate the seeded
 initialization, silently) has two structural fixes in the repository: the
 loader refuses to continue when a training checkpoint exists but the
