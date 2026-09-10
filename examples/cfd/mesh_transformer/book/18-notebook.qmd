@@ -9947,3 +9947,21 @@ by this track's float32 and probe launchers carry the raising loader
 (c50b87e0a: a training checkpoint whose model weights file is missing
 raises instead of skipping); and the reducer refuses any run whose
 evaluation log contains a skipped load.
+
+**Evaluation snapshot policy (from here on).** All ISLA SCALE evaluations
+(bf16, float32 and both density probes) now import a single evaluation-only
+snapshot, `code_eval`, exported from worktree-scaling-study 0e41b9ee1: it
+carries the raising checkpoint loader (a training checkpoint whose model
+weights file is missing raises instead of skipping) and the legacy
+class-name search (ISLA declares `MeshTransformer2`, so the reference
+lanes' `MeshTransformer2.*.mdlus` files load into ISLA with a warning), its
+default-flag forward is bitwise the reference, and float32 evaluation is
+kernel-independent, so legacy and current checkpoints alike are valid under
+it. Provenance of what was already evaluated: the fp32/bf16 headline
+numbers and the 10k probes of the SCALE arms were produced under
+`code_isla5` / `code_perf` (checkpoints loaded; 0 skipped loads in every
+log); the reference's 10k probe under `code` (campaign E); the running true
+80k probe (job 700105) evaluates the constant-gauge corner under
+`code_perf_eval` (= `code_perf` + the raising loader) and the two legacy
+references under `code`, all valid. The reducer's skipped-load guard applies
+to every path regardless of snapshot.
