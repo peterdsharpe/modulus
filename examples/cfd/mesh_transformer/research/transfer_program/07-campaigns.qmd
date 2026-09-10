@@ -149,10 +149,15 @@ GeoTransolver's side the local features are a general 4–7% carrier and not
 the source of its eddy-viscosity lead (removing them costs 5% on that
 field against a 10% bar), nor of its bf16 inflation, which is unchanged
 without them. The remaining eddy-viscosity gap is unexplained by either
-arm; under the program's principle the next candidate is a physically
-meaningful per-point geometric input for ISLA's interior queries (the
-signed-distance gradient, which GeoTransolver's per-point channels
-effectively carry), not more width.
+arm, and it is not an input difference: both models receive the same
+per-point geometry at the interior queries (position, signed distance and
+its gradient direction; GeoTransolver as raw channels through a per-point
+network, ISLA through invariant products with its anchors and the drive).
+Under the program's principle the next step is diagnostic before
+architectural: a wall-distance band decomposition of the saved predictions
+says whether the gap lives in the near-wall layer, where the closure's
+behaviour is set by wall distance, and only then is a wall-distance-scaled
+query readout worth preregistering.
 
 ## Matched-count diversity on the fastback shift (campaign C, T2) {#sec-campaigns-diversity}
 

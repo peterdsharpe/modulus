@@ -1529,3 +1529,24 @@ targets' near-wall structure, which is where ν_t lives; a per-point SDF
 gradient channel for ISLA would be the principled next arm under the
 2026-09-10 ruling (a physically meaningful geometric input). Cost: hidden
 344 at about 1.3x the step time and less activation memory (recompute).
+
+**Correction to the "next arm" of @sec-nb-campd-verdict.** The signed-
+distance gradient is already an input of ISLA's interior configuration:
+the resolved config of the hidden-344 run passes
+`query_normals = interior.point_data.sdf_normals` and `query_scalars =
+interior.point_data.sdf`, and GeoTransolver-volume's per-point channels are
+position, signed distance and the same gradient (functional dimension 7)
+plus its six radii. At matched parameters the two models therefore see the
+same per-point geometry, and the 18% eddy-viscosity gap is not an input
+difference but a difference in how the query consumes it (raw channels
+through a per-point network against invariant products with anchors and
+drive). The principled next step is diagnostic: a wall-distance band
+decomposition of the saved float32 predictions
+(`studies/computational_support/band_decomposition.py`; bands SDF < 0.01 L,
+0.01–0.05 L, ≥ 0.05 L; per-band relative L2 and share of squared error for
+eddy viscosity, pressure and velocity; hidden 344, hidden 256, unit-drive
+GeoTransolver-volume, and the no-local-features arm) to locate the gap
+before any architecture change is preregistered. Also recorded: the
+skipped-load audit of every evaluation log of this program (382 logs)
+found the string only in the four snapshot-probe runs that were meant to
+fail; every reported number had its checkpoint loaded.
