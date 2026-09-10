@@ -9670,9 +9670,10 @@ and dataset, five arms against the existing or running reference arm
 
 Sixty lanes (3 architectures × 2 datasets × 5 arms × 2 seeds), plus four
 ISLA lanes at width 384 with the routing measure weights off (both datasets,
-two seeds) so that width is not confounded with the weights-off configuration
-that NOW-L is measuring; every other ISLA arm runs with the reference
-weights-on configuration. ISLA arms run from the code snapshot at 52eb29ec5
+two seeds) as an *ablation* that separates the width effect from the
+weights effect; the weights-off configuration is discretization-dependent
+(it reads the mesher's density) and is never a reference configuration, so
+every reference ISLA number in this study is the measure-weighted model. ISLA arms run from the code snapshot at 52eb29ec5
 (default forward bitwise the reference model) with the exact activation
 recompute enabled on the 40,000- and 80,000-cell arms; the existing
 20,000-cell lanes (floor_hl_mt2_full_20k_seed{42,43}, udrv_hl_gt_full_20k_seed{42,43})
@@ -11841,3 +11842,16 @@ reported as a side column, becomes a first-class axis: an accuracy lead that
 disappears under resampling is a lead over this mesher, not over the
 problem. Everything else in the table is principled or already an
 ablation.
+
+**Redirect (2026-09-10, program-wide, binding).** The program's goal is an
+accurate model reached by physically principled means, because those are
+what generalize to novel problems; accuracy can be bought later with size,
+generalization cannot. For this study: width and token scaling are capacity
+and stand; the weights-off arms are ablations, never references; and the
+512 × 80,000-cell arm of every architecture, and each reference arm, is
+additionally evaluated on the program's sampling-density probe (DrivAerML
+10:1 biased density against a uniform control, float32), so that the cost
+frontier of bar 4 is stated with each configuration's discretization
+invariance beside its accuracy. An architecture change is adopted only if
+its physical rationale is stated and it passes such invariance tests;
+in-distribution accuracy alone never justifies it.
