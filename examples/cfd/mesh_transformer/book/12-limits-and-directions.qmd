@@ -748,9 +748,17 @@ freestream direction at inference, which a canonicalized GeoTransolver
 matches only where a frame can be estimated (@sec-pose); a
 query-independent configuration at a measured 3.0–3.7x accuracy cost
 (@sec-query-independence); and, with the similarity gauge on, insensitivity
-to sampling density at inference (1.20x against 3.6x under a 10:1 bias,
-@sec-robustness-density; the gauge costs 8% at 35 cases and is not the
-configuration behind any accuracy number). Its learning-rate robustness is
+to sampling density at inference: 1.21x under a 10:1 bias in float32 against
+9.5x for the unit-drive GeoTransolver and 3.9x for Transolver
+(@tbl-consistency-matrix, @sec-robustness-density). That last column is the
+one the recommendation has to be read with (@sec-principle): the baselines'
+in-distribution lead of 8–10% on DrivAerML is a lead on the training
+mesher's sampling, and it inverts to a collapse when the sampling changes,
+while the constant-gauge ISLA behind the accuracy numbers collapses too
+(12.1x) and only the similarity gauge, at its 8–10% in-distribution price,
+holds. Which configuration the program stands on is being decided by the
+consistency benchmark and the gauge ladder (#sec-nb-bench-prereg,
+#sec-nb-wave4-prereg). Its learning-rate robustness is
 measured against a physical-drive GeoTransolver and is not claimed as an
 advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on velocity
