@@ -1,0 +1,167 @@
+{
+ "eval_root": "iw_evals",
+ "arms": {
+  "gt_aug": {
+   "runs": {
+    "campB_dr_gt_aug_seed42": {
+     "pressure_l2": 0.06697121122851968,
+     "wss_l2": 0.09948102260629337,
+     "n_cases": 48
+    },
+    "campB_dr_gt_aug_seed43": {
+     "pressure_l2": 0.0676504576113075,
+     "wss_l2": 0.10005902033299208,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.06731083441991359,
+   "wss_mean": 0.09977002146964273,
+   "n_seeds_done": 2
+  },
+  "transolver_aug": {
+   "runs": {
+    "campB_dr_transolver_aug_seed42": {
+     "pressure_l2": 0.07395948935300112,
+     "wss_l2": 0.10848423186689615,
+     "n_cases": 48
+    },
+    "campB_dr_transolver_aug_seed43": {
+     "pressure_l2": 0.07324569524886708,
+     "wss_l2": 0.10791554969425003,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.0736025923009341,
+   "wss_mean": 0.1081998907805731,
+   "n_seeds_done": 2
+  },
+  "isla": {
+   "runs": {
+    "campB_dr_isla_seed42": {
+     "pressure_l2": 0.05942346411757171,
+     "wss_l2": 0.08740807029729088,
+     "n_cases": 48
+    },
+    "campB_dr_isla_seed43": {
+     "pressure_l2": 0.05890455865301192,
+     "wss_l2": 0.08634650645156701,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.059164011385291815,
+   "wss_mean": 0.08687728837442894,
+   "n_seeds_done": 2
+  },
+  "gt_noaug": {
+   "runs": {
+    "campB_dr_gt_noaug_seed42": {
+     "pressure_l2": 0.07015562724942963,
+     "wss_l2": 0.10331202733019988,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.07015562724942963,
+   "wss_mean": 0.10331202733019988,
+   "n_seeds_done": 1
+  },
+  "isla_aug": {
+   "runs": {
+    "campB_dr_isla_aug_seed42": {
+     "pressure_l2": 0.060510162419329085,
+     "wss_l2": 0.08856283019607265,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.060510162419329085,
+   "wss_mean": 0.08856283019607265,
+   "n_seeds_done": 1
+  }
+ },
+ "canonical": {
+  "gt": {
+   "runs": {
+    "uw_gt_unit_lr1e3_seed42": {
+     "pressure_l2": 0.05532941548153758,
+     "wss_l2": 0.08359612850472331,
+     "n_cases": 48
+    },
+    "uw_gt_unit_lr1e3_seed43": {
+     "pressure_l2": 0.05614980643925568,
+     "wss_l2": 0.08372114862625797,
+     "n_cases": 48
+    },
+    "uw_gt_unit_lr1e3_seed44": {
+     "pressure_l2": 0.05536517330134908,
+     "wss_l2": 0.08302537941684325,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.05561479840738078,
+   "n_seeds_done": 3
+  },
+  "transolver_lr1e3": {
+   "runs": {
+    "uw_transolver_unit_lr1e3_seed42": {
+     "pressure_l2": 0.058923958567902446,
+     "wss_l2": 0.08664791363601883,
+     "n_cases": 48
+    },
+    "uw_transolver_unit_lr1e3_seed43": {
+     "pressure_l2": 0.05967064465706547,
+     "wss_l2": 0.08769218809902668,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.05929730161248396,
+   "n_seeds_done": 2
+  },
+  "transolver_lr3e3": {
+   "runs": {
+    "uw_transolver_unit_lr3e3_seed42": {
+     "pressure_l2": 0.05608987257195016,
+     "wss_l2": 0.08350166383509834,
+     "n_cases": 48
+    },
+    "uw_transolver_unit_lr3e3_seed43": {
+     "pressure_l2": 0.05644874041900039,
+     "wss_l2": 0.08297108082721631,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.05626930649547528,
+   "n_seeds_done": 2
+  },
+  "isla": {
+   "runs": {
+    "iw_mt2_lr1e3_seed42": {
+     "pressure_l2": 0.05874508301106592,
+     "wss_l2": 0.0858033187687397,
+     "n_cases": 48
+    },
+    "iw_mt2_lr1e3_seed43": {
+     "pressure_l2": 0.05672003515064716,
+     "wss_l2": 0.08300610383351643,
+     "n_cases": 48
+    },
+    "iw_mt2_lr1e3_seed44": {
+     "pressure_l2": 0.05784916256864866,
+     "wss_l2": 0.08476721417779724,
+     "n_cases": 48
+    }
+   },
+   "pressure_mean": 0.057771426910120584,
+   "n_seeds_done": 3
+  }
+ },
+ "verdict": {
+  "isla_posed_over_canonical": 1.02410507321098,
+  "isla_within_3pct_of_canonical": true,
+  "isla_leads_gt_by_5pct": true,
+  "isla_leads_transolver_by_5pct": true,
+  "gt_posed_over_canonical": 1.210304385657552,
+  "transolver_posed_over_canonical": 1.3080415751499022,
+  "baselines_lose_ge_10pct": true,
+  "augmentation_suffices": false,
+  "call": "EQUIVARIANCE EARNS ACCURACY"
+ }
+}
