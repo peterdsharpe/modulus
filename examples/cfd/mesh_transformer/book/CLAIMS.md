@@ -950,3 +950,9 @@ interior control @sec-nb-udrv-int-prereg.
 - **ISLA DrivAerML third seed (2026-09-09).** iw_mt2_lr1e3_seed44 = 0.0578; three-seed mean 0.0578
   (0.0587/0.0567/0.0578). Keep 0.0577 as the quoted reference; say "three seeds" where the seed
   count is stated.
+- **REPORTING INSTRUMENT (2026-09-09): float32 inference.** Every bf16-evaluated number in the
+  book carries a per-checkpoint rounding offset (same ISLA weights: 0.0568 fp32, 0.0588 or 0.0624
+  under two bf16 graphs; per case up to 31%). Until a number has its float32 re-evaluation,
+  label it "(bf16)"; write no new comparative verdict from bf16 numbers alone; after the
+  campaign, quote float32 numbers and state precision beside them. Within-family bf16
+  comparisons on identical points remain valid as bf16 comparisons.

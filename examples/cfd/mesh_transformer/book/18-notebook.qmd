@@ -10323,3 +10323,34 @@ unaffected (models trained and evaluated with one kernel are
 self-consistent); the `fast_point_softmax` default stays off for evaluating
 existing checkpoints, and would be moot under float32 evaluation, where the
 two kernels agree to 10⁻⁶.
+
+## 2026-09-09 — Protocol change: float32 inference becomes the reporting instrument; every bf16-evaluated number carries a per-checkpoint rounding offset of a few percent {#sec-nb-fp32-instrument}
+
+**Finding** (scaling session's snapshot ladder, merged at d2ea6fa04). The
++6.1% "cross-snapshot" discrepancy on `iw_mt2_lr1e3_seed42` is bfloat16
+*evaluation* rounding of the trained checkpoint, not code, data or recipe:
+on bit-identical points the same weights score 0.05875 under the original
+snapshot's bf16 graph, 0.06235 under every later snapshot's bf16 graph (the
+refactor that pooled the invariants before projecting is exact in real
+arithmetic and moves the bf16 rounding points), and 0.05682 in float32 under
+either snapshot (per case identical to 0.001%). The two bf16 patterns differ
+by 3.3% on the same weights, and per case by up to 31%. Neither bf16 number
+is "the" error. Every within-family comparison in the book is on identical
+points and therefore sound as a bf16 comparison, but each bf16 number carries
+a common few-percent offset relative to float32 whose sign is unknown per
+checkpoint, and it is not known whether GeoTransolver and Transolver (whose
+graphs have no long bf16 reductions over 10,000 points) carry a comparable
+offset.
+
+**Decision.** Float32 inference (`precision=float32` in infer.py) is the
+program's reporting instrument from now on; every reported checkpoint is
+re-evaluated once in float32 (eval-only campaign, outputs under
+`*_evals_fp32/`, existing bf16 artifacts untouched, sampled points asserted
+identical per case); precision is stated beside every number; the
+per-checkpoint bf16 → float32 shift is tabulated so the architectures'
+offsets can be compared. Re-grading order: the 35-case HiLift rung, the
+fixed angle and 4-geometry rungs, DrivAerML surface, the interior family,
+then the rest. Until group one lands, no new comparative verdict is written.
+Under float32 the two softmax kernels agree to 1e-6, so the kernel question
+of @sec-nb-isla-perf-verdict disappears for reporting; `fast_point_softmax`
+stays default off and is the kernel to train with.
