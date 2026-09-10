@@ -10354,3 +10354,50 @@ then the rest. Until group one lands, no new comparative verdict is written.
 Under float32 the two softmax kernels agree to 1e-6, so the kernel question
 of @sec-nb-isla-perf-verdict disappears for reporting; `fast_point_softmax`
 stays default off and is the kernel to train with.
+
+## 2026-09-09 — Preregistered: FP32-REEVAL, re-evaluating every reported checkpoint under float32 inference {#sec-nb-fp32-reeval-prereg}
+
+**Why.** The snapshot ladder (@sec-nb-snapshot-ladder-verdict) showed that
+the same ISLA checkpoint on bit-identical validation points scores 0.0568 in
+float32 and 0.0588 or 0.0624 under two bf16 rounding patterns (per case up
+to 31%). The program has therefore adopted float32 inference as its
+reporting instrument (@sec-program-status, node FP32-EVAL); every reported
+checkpoint is re-evaluated once, the bf16 artifacts stay in place, and the
+precision is stated beside every number from now on.
+
+**Instrument.** For every run with a completed bf16 evaluation, the
+evaluation is repeated with the recipe's `precision=float32` (the trainer's
+and infer.py's shared `precision` key, which selects the autocast context)
+and no other change: the same code snapshot the run's own training and
+evaluation used (`code`, `code_isla2`–`code_isla5`, `code_perf`), the same
+model flags, forward-kwargs, dataset variant and sampled-cell count, the
+reference point-softmax kernel. This is done by cloning each existing
+evaluation launcher with two edits, the output root (`hl_evals` →
+`hl_evals_fp32`, `iw_evals` → `iw_evals_fp32`, `v0_evals` →
+`v0_evals_fp32`) and the added `precision=float32`, so override parity with
+the bf16 evaluation holds by construction. After each evaluation the saved
+sampled points are compared with the bf16 artifact's per case
+(`np.array_equal` on interior points and, where present, boundary points);
+a mismatch stops that family for inspection.
+
+**Order.** (1) the 35-case HiLiftAeroML arms (ISLA weighted and weights
+off, unit-drive and physical-drive GeoTransolver and Transolver including
+the learning-rate steel-men); (2) the fixed angle and the four-geometry
+split; (3) DrivAerML surface; (4) the interior arms and ladder; (5)
+everything else with a bf16 evaluation (210, 510 and 1,260 cases, ladders,
+wave-2 arms, 21 geometries). Skipped: runs whose training has not
+finished, the transfer-program session's runs, and the scaling grid (its
+agents evaluate under float32 themselves).
+
+**Readouts and bars.** Per run and field (pressure, velocity, wall shear or
+eddy viscosity): bf16 mean, float32 mean, relative shift, per-case maximum
+absolute relative shift, and the point-identity result. A family's bf16
+numbers are *reporting-equivalent* if every run's shift is within 1% and
+every per-case maximum within 5%; otherwise the family carries an *offset*.
+The offset is *architecture-dependent* if the per-architecture medians of
+the shift differ by more than 1 percentage point; that decides whether the
+book's cross-architecture ratios move under the new instrument. Verdicts:
+one entry for the 35-case rung as soon as it is reduced (the rung is
+re-graded from it), then one for all groups. Artifacts:
+results/fp32_reeval/fp32_shift_2026-09-09.json and the reducer
+results/fp32_reeval/reduce_fp32_2026-09-09.py.
