@@ -1,0 +1,94 @@
+{
+ "old_class_file": "physicsnemo.experimental.nn.mt2.model",
+ "new_class_file": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/code_isla2/physicsnemo/experimental/nn/isla/__init__.py",
+ "state_dict": {
+  "missing_in_new": [],
+  "unexpected_for_new": [],
+  "n_params_old": 8866484,
+  "n_params_new": 8866484
+ },
+ "attrs": {
+  "use_measure_weights": [
+   true,
+   true
+  ],
+  "similarity_gauge": [
+   false,
+   false
+  ],
+  "parity_fix": [
+   false,
+   false
+  ],
+  "parity_gate_scale": [
+   0.0,
+   0.0
+  ],
+  "vector_basis": [
+   "globe7",
+   "globe7"
+  ],
+  "odd_head": [
+   false,
+   false
+  ],
+  "reference_length": [
+   8.0,
+   8.0
+  ],
+  "eps": [
+   1e-12,
+   1e-12
+  ],
+  "seed_mode": [
+   "invariant",
+   "invariant"
+  ],
+  "use_relational_geo": [
+   "<absent>",
+   "<absent>"
+  ],
+  "interior_queries": [
+   false,
+   false
+  ],
+  "anchor_normal_rho": [
+   0.25,
+   0.25
+  ],
+  "query_independent": [
+   false,
+   false
+  ],
+  "raw_coord_channel": [
+   false,
+   false
+  ],
+  "use_local_features": [
+   false,
+   false
+  ]
+ },
+ "output_rel_l2": {
+  "fp32": 3.5922712413594127e-06,
+  "bf16": 0.032605674117803574,
+  "fp32_uniform_weights": 2.2491979052574607e-06,
+  "old_bf16_vs_fp32": 0.024605466052889824,
+  "new_bf16_vs_fp32": 0.024778543040156364
+ },
+ "per_block_rel_l2_fp32": [
+  2.1564525809480983e-07,
+  2.9805318035869277e-07,
+  8.198735486075748e-07,
+  1.1118993370473618e-06,
+  1.4927992424418335e-06,
+  1.703151383480872e-06,
+  1.8556415852799546e-06,
+  2.1084574655105826e-06,
+  2.1799482965434436e-06,
+  2.0318525457696524e-06,
+  1.5328572544603958e-06,
+  1.06418644918449e-06
+ ],
+ "embed_weight_equal": true
+}
