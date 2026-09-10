@@ -1,3 +1,126 @@
 # Computational support with independent output queries {#sec-computational-support}
 
-Drafted when its study reports; see the notebook for the preregistration and running record.
+**Giving ISLA a problem-derived computational support and decoding the
+requested interior points passively from it, at the same depth and with the
+same inputs as the interacting configuration, loses 43% on interior pressure,
+34% on velocity and 140% on eddy viscosity. The accuracy of ISLA's interior
+configuration is inseparable from letting the requested queries interact.**
+This closes the audit's first direction as proposed, and it says what the
+interacting queries are doing: they are not a convenience of batching but the
+computation itself.
+
+## The question and why it mattered {#sec-computational-support-question}
+
+ISLA's interior configuration ("query tokens + SDF") joins the requested
+interior points to the encoder as interacting tokens carrying their signed
+distance to the surface and its gradient. It led GeoTransolver-volume on
+velocity and, in bf16, on pressure. Its defect for deployment is that the
+prediction at a point depends on which other points are requested with it
+(pressure 0.062 at 10,000 queries, 0.077 at 2,000, 0.110 at 1,000 on fixed
+sentinel points in the program book's measurements). The audit's reading was
+that the queries supply a rich, geometry-aware computational state, and that
+letting the caller's query set define that state is an avoidable choice: derive
+a support set from the problem instead, let it interact, and read the requested
+points off the resulting state passively. Anchored UPT is the precedent. The
+preregistration (`studies/computational_support/PREREG.md`) fixed the arms and
+the bars before any lane ran.
+
+## What was built {#sec-computational-support-built}
+
+`ISLA(support_tokens=True, query_independent=True, n_query_scalars=1,
+query_mass="source_total", n_decoder_layers=K)`: the support points are
+interacting tokens with the same invariant seeds as the surface tokens (a
+token-type offset, the signed distance as a scalar, its gradient as the token
+normal) and a learned total mass equal to a learned fraction of the total
+source measure, so the measure-scale and source-refinement contracts hold; the
+requested points are passive queries decoded through K read blocks that see the
+final slice states, the anchors and a measure-normalized log-space kernel
+readout of all encoder tokens. Ten contract tests cover exact query
+independence with the support fixed, SE(3) covariance, drive degree one,
+measure-scale and refinement invariance, gauge scale equivariance and gradient
+flow. The recipe transform `SplitInteriorSupport` moves the first 5,000 points
+of the reader's deterministic 10,000-point per-case sample into the support set
+with their signed distance and gradient; the remaining 5,000 are scored. That
+split was verified on the saved artifacts: the scored points are exactly the
+second half of the reference arm's 10,000-point sample for every car checked,
+so the per-point relative errors are comparable.
+
+## Readout {#sec-computational-support-readout}
+
+Frozen V0 protocol on DrivAerML volume (435 training cars, 500 epochs, lr
+1e-3, bf16 training, 10,000 surface cells and 10,000 interior points), two
+seeds per arm, float32 inference, same-snapshot references (the interacting
+reference re-evaluated under the study's code snapshot reproduces its recorded
+values to the digit, @sec-nb-evalpoints-verdict).
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/computational_support/d1_verdict_2026-09-10.json").read_text())
+A = d["per_arm"]
+rows = [("(i) reference: query tokens + SDF, 10,000 interacting queries", "isla_qtsdfval"),
+        ("(ii) SUPPORT-12: 5,000 interacting support + 5,000 passive queries, 12 read blocks", "isla_support12"),
+        ("(iii) SUPPORT-4: same, 4 read blocks", "isla_support4"),
+        ("(iv) PASSIVE-12: no support, 5,000 passive queries, 12 read blocks", "isla_passive12"),
+        ("GeoTransolver-volume, unit drive, for scale", "udrv_gt_vol")]
+print("| arm | seeds | pressure | velocity | eddy viscosity |")
+print("|---|---|---|---|---|")
+for n, k in rows:
+    m = A[k]["mean"]; s = A[k]["per_seed"]
+    print(f"| {n} | {len(A[k]['seeds'])} | {m['pressure_l2']:.4f} | {m['velocity_l2']:.4f} | {m['nut_l2']:.4f} |")
+print()
+b = d["verdict"]["d1"]["bars_at_reference"]
+print(f": Interior relative L2 on the 48 DrivAerML validation cars, float32, two-seed means. Preregistered bars at the float32 reference: supported if SUPPORT-12 ≤ {b['supported_max']['pressure_l2']:.4f} / {b['supported_max']['velocity_l2']:.4f} / {b['supported_max']['nut_l2']:.4f}; falsified if pressure ≥ {b['falsified_pressure_min']:.4f}. Data: studies/computational_support/d1_verdict_2026-09-10.json. {{#tbl-d1}}")
+```
+
+**Verdict: falsified.** SUPPORT-12 scores 0.078 on pressure against a
+falsification bar of 0.060 (1.43x the reference), 0.107 on velocity (1.34x)
+and 0.269 on eddy viscosity (2.41x); the two seeds agree to 2%. The
+decomposition the preregistration asked for says how little each ingredient of
+the passive route is worth: going from 4 to 12 read blocks buys 13% on pressure
+(0.090 → 0.078), adding the 5,000-point interacting support buys 12% (0.089 →
+0.078), and neither touches eddy viscosity, which is worse with the support
+than without. Both together leave the passive route 43% behind the interacting
+queries on pressure and 52% behind GeoTransolver-volume. The sentinel-query
+study of the preregistration (query-set dependence of the passive path) was not
+run: with the accuracy half falsified its outcome could not have changed the
+verdict, and query independence of the passive path is already exact by
+construction and by test.
+
+Cost, for completeness: SUPPORT-12 trains at 0.71–0.75 s per step and 10.8 GB
+against the reference's 0.28 s and 6.1 GB (the arms ran unpinned, a measured
++35% on this hardware, so the like-for-like factor is about 1.9x), SUPPORT-4 at
+0.67–0.87 s and 7.1 GB, PASSIVE-12 at 0.62–0.63 s and 5.9 GB. The passive
+route is slower as well as worse.
+
+## What this says about the interacting queries {#sec-computational-support-reading}
+
+The eddy-viscosity number is the diagnostic one. A support set of 5,000
+interior points with signed distance and gradient is a rich, geometry-aware
+state by any reasonable description, and the passive readout sees the final
+slice states, the anchors and a kernel over every encoder token; yet its eddy
+viscosity is 2.4x worse than when the requested points themselves interact.
+What the interacting queries provide is therefore not context about the
+geometry, which the support supplies as well, but computation at the requested
+points: each query's representation is refined through the encoder layers by
+attention with the other tokens, and a read block that only reads the finished
+state cannot reproduce that. This is the alternative reading the audit flagged
+(the accuracy is inseparable from letting the requested queries interact), and
+it is the one the data support. Two consequences follow. The deployment repair
+for the query-set dependence goes through training on varied query counts
+(query-count augmentation, owned by the main program), not through
+architecture. And the passive route at matched depth and inputs is closed for
+ISLA in this program; what remains open on the interior is the far-field
+deficit of the interacting configuration (@sec-campaigns-interior), which is a
+different question.
+
+## Provenance {#sec-computational-support-provenance}
+
+Runs `v0_isla_{support12,support4,passive12}_seed{42,43}` (cluster task
+directory, launcher `v0/v0_support_aga.sbatch`, code snapshot `code_support`),
+evaluated in float32 under the program's evaluation snapshot with no skipped
+loads; references `v0_isla_qtsdfval_seed{42,43}` re-evaluated under the same
+snapshot. Reduction `studies/computational_support/grade_d1.py`; preregistration
+`PREREG.md`; launch and ops record in the notebook from @sec-nb-d1-launch
+onward, verdict at @sec-nb-d1-verdict.

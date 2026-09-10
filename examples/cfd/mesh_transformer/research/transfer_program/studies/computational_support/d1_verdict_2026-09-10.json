@@ -1,0 +1,342 @@
+{
+ "per_arm": {
+  "isla_qtsdfval": {
+   "label": "reference: ISLA query tokens + SDF, 10k interacting queries",
+   "seeds": [
+    42,
+    43
+   ],
+   "per_seed": {
+    "42": {
+     "n": 48,
+     "pressure_l2": 0.05471487118241688,
+     "velocity_l2": 0.07957451061035196,
+     "nut_l2": 0.10679460782557726
+    },
+    "43": {
+     "n": 48,
+     "pressure_l2": 0.05467215902172029,
+     "velocity_l2": 0.07961185260986288,
+     "nut_l2": 0.11641370054955284
+    }
+   },
+   "mean": {
+    "pressure_l2": 0.05469351510206859,
+    "velocity_l2": 0.07959318161010742,
+    "nut_l2": 0.11160415418756506
+   }
+  },
+  "gt_vol": {
+   "label": "GeoTransolver-volume reference (physical drive)",
+   "seeds": [
+    42,
+    43
+   ],
+   "per_seed": {
+    "42": {
+     "n": 48,
+     "pressure_l2": 0.05173558082121114,
+     "velocity_l2": 0.10912637102107207,
+     "nut_l2": 0.08731618158829708
+    },
+    "43": {
+     "n": 48,
+     "pressure_l2": 0.051152870214233793,
+     "velocity_l2": 0.10843583599974711,
+     "nut_l2": 0.08841355579594772
+    }
+   },
+   "mean": {
+    "pressure_l2": 0.051444225517722465,
+    "velocity_l2": 0.1087811035104096,
+    "nut_l2": 0.0878648686921224
+   }
+  },
+  "udrv_gt_vol": {
+   "label": "GeoTransolver-volume reference (unit drive; campaign D's eddy-viscosity reference)",
+   "seeds": [
+    42,
+    43
+   ],
+   "per_seed": {
+    "42": {
+     "n": 48,
+     "pressure_l2": 0.051186893057699,
+     "velocity_l2": 0.1089645023457706,
+     "nut_l2": 0.08797958516515791
+    },
+    "43": {
+     "n": 48,
+     "pressure_l2": 0.05140887356052796,
+     "velocity_l2": 0.10509241186082363,
+     "nut_l2": 0.08775705921774109
+    }
+   },
+   "mean": {
+    "pressure_l2": 0.05129788330911348,
+    "velocity_l2": 0.10702845710329711,
+    "nut_l2": 0.0878683221914495
+   }
+  },
+  "isla_support12": {
+   "label": "SUPPORT-12: 5k interacting support + 5k passive queries, 12 read blocks",
+   "seeds": [
+    42,
+    43
+   ],
+   "per_seed": {
+    "42": {
+     "n": 48,
+     "pressure_l2": 0.077421843384703,
+     "velocity_l2": 0.1060984229358534,
+     "nut_l2": 0.26151936454698443
+    },
+    "43": {
+     "n": 48,
+     "pressure_l2": 0.0787509389532109,
+     "velocity_l2": 0.107457446710517,
+     "nut_l2": 0.2762224267547329
+    }
+   },
+   "mean": {
+    "pressure_l2": 0.07808639116895695,
+    "velocity_l2": 0.1067779348231852,
+    "nut_l2": 0.26887089565085864
+   }
+  },
+  "isla_support4": {
+   "label": "SUPPORT-4: same, 4 read blocks",
+   "seeds": [
+    42,
+    43
+   ],
+   "per_seed": {
+    "42": {
+     "n": 48,
+     "pressure_l2": 0.08770397662495573,
+     "velocity_l2": 0.11678305082023144,
+     "nut_l2": 0.2473304900340736
+    },
+    "43": {
+     "n": 48,
+     "pressure_l2": 0.09144606286038955,
+     "velocity_l2": 0.12060889120524128,
+     "nut_l2": 0.2496950070684155
+    }
+   },
+   "mean": {
+    "pressure_l2": 0.08957501974267264,
+    "velocity_l2": 0.11869597101273635,
+    "nut_l2": 0.24851274855124456
+   }
+  },
+  "isla_passive12": {
+   "label": "PASSIVE-12: no support, 5k passive queries, 12 read blocks",
+   "seeds": [
+    42,
+    43
+   ],
+   "per_seed": {
+    "42": {
+     "n": 48,
+     "pressure_l2": 0.0880057370911042,
+     "velocity_l2": 0.11885340325534344,
+     "nut_l2": 0.23262127845858535
+    },
+    "43": {
+     "n": 48,
+     "pressure_l2": 0.0898966514505446,
+     "velocity_l2": 0.12142509237552683,
+     "nut_l2": 0.22833532467484474
+    }
+   },
+   "mean": {
+    "pressure_l2": 0.0889511942708244,
+    "velocity_l2": 0.12013924781543514,
+    "nut_l2": 0.23047830156671506
+   }
+  },
+  "isla_qtsdf_h344": {
+   "label": "campaign D: ISLA QT+SDF, hidden 344 (27.6M params)",
+   "seeds": [
+    42,
+    43
+   ],
+   "per_seed": {
+    "42": {
+     "n": 48,
+     "pressure_l2": 0.049652552154536046,
+     "velocity_l2": 0.07364133543645342,
+     "nut_l2": 0.10581518709659576
+    },
+    "43": {
+     "n": 48,
+     "pressure_l2": 0.049779076517249145,
+     "velocity_l2": 0.07207400538027287,
+     "nut_l2": 0.10082616587169468
+    }
+   },
+   "mean": {
+    "pressure_l2": 0.049715814335892596,
+    "velocity_l2": 0.07285767040836313,
+    "nut_l2": 0.10332067648414522
+   }
+  },
+  "gt_vol_nolocal": {
+   "label": "campaign D: GeoTransolver-volume without local features (unit drive)",
+   "seeds": [
+    42,
+    43
+   ],
+   "per_seed": {
+    "42": {
+     "n": 48,
+     "pressure_l2": 0.055271926103159785,
+     "velocity_l2": 0.11216506222262979,
+     "nut_l2": 0.0933207783382386
+    },
+    "43": {
+     "n": 48,
+     "pressure_l2": 0.05493263349247476,
+     "velocity_l2": 0.1099843558234473,
+     "nut_l2": 0.09139126872954269
+    }
+   },
+   "mean": {
+    "pressure_l2": 0.055102279797817275,
+    "velocity_l2": 0.11107470902303854,
+    "nut_l2": 0.09235602353389064
+   }
+  }
+ },
+ "verdict": {
+  "d1": {
+   "bars_at_reference": {
+    "supported_max": {
+     "pressure_l2": 0.05633432055513065,
+     "velocity_l2": 0.08198097705841065,
+     "nut_l2": 0.11495227881319202
+    },
+    "falsified_pressure_min": 0.060162866612275455
+   },
+   "support12_mean": {
+    "pressure_l2": 0.07808639116895695,
+    "velocity_l2": 0.1067779348231852,
+    "nut_l2": 0.26887089565085864
+   },
+   "ratios_vs_reference": {
+    "pressure_l2": 1.4277084042455996,
+    "velocity_l2": 1.341546256389701,
+    "nut_l2": 2.409147738344817
+   },
+   "accuracy_verdict": "FALSIFIED",
+   "support12_over_gt_vol_pressure": 1.5178844735850148,
+   "depth: SUPPORT-4 / SUPPORT-12": {
+    "pressure_l2": 1.1471271549591469,
+    "velocity_l2": 1.111615159155179,
+    "nut_l2": 0.9242828159205074
+   },
+   "interaction on a support: PASSIVE-12 / SUPPORT-12": {
+    "pressure_l2": 1.1391382408537625,
+    "velocity_l2": 1.1251317794671256,
+    "nut_l2": 0.8572080700991968
+   }
+  },
+  "campaign_d": {
+   "gt_unit_nut_reference": 0.0878683221914495,
+   "gt_vol_nolocal_nut": 0.09235602353389064,
+   "nolocal_over_unit_gt": 1.051073028715209,
+   "local_features_carry_the_lead": false,
+   "isla_h344_nut": 0.10332067648414522,
+   "h344_over_unit_gt": 1.1758580783985813,
+   "h344_verdict": "BETWEEN"
+  },
+  "precision": "float32",
+  "bf16_offset": {
+   "isla_qtsdfval": {
+    "mean": {
+     "pressure_l2": 0.05669822314909349,
+     "velocity_l2": 0.08525070501491427,
+     "nut_l2": 0.12151000093823919
+    },
+    "bf16_over_fp32": {
+     "pressure_l2": 1.0366534870410822,
+     "velocity_l2": 1.0710805032586914,
+     "nut_l2": 1.0887587637107674
+    }
+   },
+   "gt_vol": {
+    "mean": {
+     "pressure_l2": 0.061977394158020616,
+     "velocity_l2": 0.13338586874306202,
+     "nut_l2": 0.09389044612180442
+    },
+    "bf16_over_fp32": {
+     "pressure_l2": 1.2047492898239762,
+     "velocity_l2": 1.2261860234787738,
+     "nut_l2": 1.068577777664422
+    }
+   },
+   "isla_support12": {
+    "mean": {
+     "pressure_l2": 0.08130405284464359,
+     "velocity_l2": 0.1099088730600973,
+     "nut_l2": 0.24842109127591055
+    },
+    "bf16_over_fp32": {
+     "pressure_l2": 1.04120643338126,
+     "velocity_l2": 1.0293219590929217,
+     "nut_l2": 0.9239419189442389
+    }
+   },
+   "isla_support4": {
+    "mean": {
+     "pressure_l2": 0.09128945747700831,
+     "velocity_l2": 0.12071314454078674,
+     "nut_l2": 0.2588918722855548
+    },
+    "bf16_over_fp32": {
+     "pressure_l2": 1.019139685810406,
+     "velocity_l2": 1.0169944566006706,
+     "nut_l2": 1.0417649548959458
+    }
+   },
+   "isla_passive12": {
+    "mean": {
+     "pressure_l2": 0.09090873211001357,
+     "velocity_l2": 0.12261034618131816,
+     "nut_l2": 0.23983448573077717
+    },
+    "bf16_over_fp32": {
+     "pressure_l2": 1.0220068752897142,
+     "velocity_l2": 1.0205686185889833,
+     "nut_l2": 1.0405946421006311
+    }
+   },
+   "isla_qtsdf_h344": {
+    "mean": {
+     "pressure_l2": 0.0518767573327447,
+     "velocity_l2": 0.0790041503496468,
+     "nut_l2": 0.11897547896175335
+    },
+    "bf16_over_fp32": {
+     "pressure_l2": 1.0434659076939228,
+     "velocity_l2": 1.0843628393116744,
+     "nut_l2": 1.151516647106065
+    }
+   },
+   "gt_vol_nolocal": {
+    "mean": {
+     "pressure_l2": 0.06600432893416533,
+     "velocity_l2": 0.13666637016770738,
+     "nut_l2": 0.0989492825853328
+    },
+    "bf16_over_fp32": {
+     "pressure_l2": 1.1978511447502742,
+     "velocity_l2": 1.2304004338139725,
+     "nut_l2": 1.0713895943021272
+    }
+   }
+  }
+ }
+}
