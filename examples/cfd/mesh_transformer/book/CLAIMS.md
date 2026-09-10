@@ -1368,3 +1368,12 @@ interior control @sec-nb-udrv-int-prereg.
   deficit DISTRIBUTED (H5). Write "no single ISLA ingredient carries the cross-family deficit"; never name
   a carrier. Seed spreads 0.17–0.26 on this readout: three seeds minimum, quote spreads. H1 closes when
   the lr 1e-3 gauge pair's zero-shot lands.
+- **MW POST-CENTRE CORRECTION (2026-09-10; $T/transfer/mw_postcenter_density.json).** With CenterMesh
+  moved after the biased draw (frame from the biased sample), mw GT 14.3/14.6x, mw Transolver 15.9/15.4x,
+  unweighted GT 12.0/11.9x, unweighted Transolver 10.2/13.0x (fp32, 10k). RETIRE "measure-weighted
+  baselines are the most density-consistent configurations measured (1.02x)"; the 1.02x was the
+  pipeline's unbiased 40k-pool frame. Write "measure weighting fixes the aggregation, not the frame;
+  under a like-for-like frame the baselines collapse 12–16x, ISLA's measure-weighted frames hold at
+  1.17–1.21x". The published 9.5x / 3.9x baseline collapses were pipeline-frame numbers (under-estimates;
+  12x with the sample frame). Accuracy half of MW STANDS (lead survives). Matrix mw rows carry both
+  factors with the sample-frame one as headline.

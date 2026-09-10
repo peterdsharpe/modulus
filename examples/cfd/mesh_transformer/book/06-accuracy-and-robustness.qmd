@@ -676,11 +676,11 @@ print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-dr
       "Learning rates are stated per row: the similarity-gauge checkpoints at 3e-3 sit beside the "
       "rate-matched constant gauge at 0.0620, and the 1e-3 pair is at parity with the 1e-3 reference. "
       "The measure-weighted rows give GeoTransolver and Transolver the quadrature measure in their "
-      "slice pooling: their accuracy is unchanged and their density factor falls to 1.02x, the lowest "
-      "measured; the probe's pipeline centres every architecture by the plain mean of the 40,000-cell "
-      "uniform pool before the biased draw, so those two rows carry an unbiased frame from the pipeline "
-      "while the ISLA rows re-centre in the model on the biased sample (a like-for-like probe is in "
-      "progress). The measure-centred ISLA row is a sample-statistic frame and not a flagship candidate. "
+      "slice pooling: their accuracy is unchanged. Density factors for all four baseline rows are the "
+      "like-for-like values with the input frame centred on the biased sample, as ISLA's are; with the "
+      "pipeline's unbiased pool frame the same checkpoints read 9.5x / 3.9x (unweighted) and 1.02x "
+      "(weighted), so the pooling fix does not touch the frame, which is what the bias breaks. "
+      "The measure-centred ISLA row is a sample-statistic frame and not a flagship candidate. "
       "Data: results/accuracy_consistency_matrix_2026-09-10.json (provenance per cell "
       "inside). {#tbl-consistency-matrix}")
 ```
@@ -781,19 +781,28 @@ print(f": The DrivAerML frontier at full data. In-family: validation pressure "
       f"results/p1pp_canonical_training_2026-09-03.json. {{#tbl-frontier}}")
 ```
 
-The measure-weighted rows of @tbl-consistency-matrix are the result the
-principle asked for and the one to lead with when the baselines are
-discussed: unweighted slice pooling was a removable hack, and once the
-baselines carry the surface measure (@sec-nb-mw-prereg,
-@sec-nb-mw-verdict) they keep their in-distribution lead over ISLA on both
-datasets (free on the cars, 6.5% on the wings) and become the most
-density-consistent configurations measured, so at the reference size ISLA's
-contracts buy neither accuracy nor consistency on these surfaces. What ISLA
-retains is exact equivariance under arbitrary poses (@sec-pose-contract),
-the interior velocity and near-wall lead at matched parameters
-(@sec-interior), and its memory footprint at scale. Measure-weighted
-pooling is the recommended repair for the Transolver family and ships in
-the repository flag-gated with its contract tests.
+The measure-weighted rows of @tbl-consistency-matrix are the steel-man the
+principle asked for, and they split the story in two. Accuracy: once
+GeoTransolver and Transolver carry the surface measure in their slice
+pooling (@sec-nb-mw-prereg, @sec-nb-mw-verdict) they keep their
+in-distribution lead over ISLA on both datasets, free on the cars and at a
+6.5% price on the wings, so ISLA's contracts do not buy accuracy at the
+reference size. Consistency: the pooling fix does not touch the frame. Both
+baselines consume absolute centred coordinates, and with the centre taken
+from the biased sample, as a biased mesher would deliver it and as ISLA
+computes it in the model, the weighted baselines degrade 14–16x and the
+unweighted 12x (@sec-nb-mw-postcenter); their published 9.5x and 3.9x were
+measured with an unbiased frame handed to them by the pipeline. Under a
+like-for-like frame only ISLA's measure-weighted frames survive the bias
+(1.17–1.21x), and the frame is the whole of the density story at 10,000
+cells for every architecture, which is what the relative-position frame
+(RELFRAME) is built to remove. What ISLA retains beyond that is exact
+equivariance under arbitrary poses (@sec-pose-contract), the interior
+velocity and near-wall lead at matched parameters (@sec-interior), and its
+memory footprint at scale. Measure-weighted pooling ships in the repository
+flag-gated with its contract tests as the aggregation repair for the
+Transolver family; a principled baseline also needs a frame that is not a
+sample statistic, which this program has not yet built.
 
 Three things to read off the bfloat16 table below. First, at the common learning rate
 ISLA is about 1.2x behind GeoTransolver in-family; at each architecture's best
