@@ -10394,8 +10394,10 @@ research/transfer_program, #sec-nb-campe-verdict), rerun in float32 under
 the reporting rule of @sec-nb-fp32-instrument on the DrivAerML surface
 checkpoints (48 validation cars, pressure relative L2, uniform two-stage
 control against the 10:1 biased sample). These are float32 numbers from the
-same launcher configuration as the book's evaluations; the formal
-re-evaluation campaign (FP32-EVAL) will reproduce them for the book's tables.
+same launcher configuration as the book's evaluations
+(research/transfer_program/studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json,
+merged at ddd58d24b; bf16 twin alongside); the formal re-evaluation
+campaign (FP32-EVAL) will reproduce them for the book's tables.
 
 | arm (435 cars) | uniform, bf16 | uniform, float32 | bf16 − float32 | biased ÷ uniform (float32) |
 |---|---|---|---|---|
