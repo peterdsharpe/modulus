@@ -78,7 +78,7 @@ def test_fast_point_softmax_is_exact_in_float64(kw):
 def test_fast_point_softmax_float32_difference_is_roundoff():
     pts, nrm, drv, w = _cloud(dtype=torch.float32)
     torch.manual_seed(0)
-    fast = ISLA(hidden=64, n_layers=3, n_slices=32).eval()
+    fast = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=True).eval()
     torch.manual_seed(0)
     native = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=False).eval()
     native.load_state_dict(fast.state_dict())
@@ -88,10 +88,10 @@ def test_fast_point_softmax_float32_difference_is_roundoff():
 
 
 def test_fast_point_softmax_keeps_contracts():
-    """SE(3) covariance and measure-scale invariance hold on the default (fast) path."""
+    """SE(3) covariance and measure-scale invariance hold on the fast path."""
     pts, nrm, drv, w = _cloud()
     torch.manual_seed(0)
-    m = ISLA(hidden=64, n_layers=3, n_slices=32).double().eval()
+    m = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=True).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]

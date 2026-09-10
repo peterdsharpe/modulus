@@ -1,0 +1,982 @@
+{
+ "gpu": "NVIDIA GB300",
+ "torch": "2.12.0+cu130",
+ "cuda": "13.0",
+ "batch": 1,
+ "n_warmup": 3,
+ "n_measured": 5,
+ "precision": "bf16 autocast, fp32 params, AdamW(lr=1e-3), MSE on random 9-channel target",
+ "instruments": {
+  "incremental_peak_allocated": "reset_peak_memory_stats(); b=memory_allocated(); step; max_memory_allocated()-b",
+  "total_peak_allocated": "max_memory_allocated() after step",
+  "reserved_after_step": "memory_reserved() after step; empty_cache() between configurations",
+  "step_ms": "cuda-synchronized wall time per step, median of 5"
+ },
+ "aggregation": "summary_gib = max over the 5 measured steps",
+ "configs": [
+  {
+   "name": "isla_h192_fast_plain",
+   "description": "ISLA hidden 192, fast_point_softmax=True, geo_checkpoint=False",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 192,
+    "fast_point_softmax": true,
+    "geo_checkpoint": false
+   },
+   "tokens": 10000,
+   "n_params": 8868221,
+   "resident_allocated_after_warmup_bytes": 174298624,
+   "incremental_peak_allocated_bytes": [
+    3476611072,
+    3476611072,
+    3476611072,
+    3476611072,
+    3476611072
+   ],
+   "total_peak_allocated_bytes": [
+    3650909696,
+    3650909696,
+    3650909696,
+    3650909696,
+    3650909696
+   ],
+   "reserved_after_step_bytes": [
+    4018143232,
+    4018143232,
+    4018143232,
+    4018143232,
+    4018143232
+   ],
+   "step_ms": [
+    72.33770203310996,
+    71.0152389947325,
+    72.23354303278029,
+    72.02663004864007,
+    70.31373493373394
+   ],
+   "step_ms_median": 72.02663004864007,
+   "summary_gib": {
+    "incremental_peak_allocated": 3.2378463745117188,
+    "total_peak_allocated": 3.400174617767334,
+    "reserved_after_step": 3.7421875
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h192_fast_ckpt",
+   "description": "ISLA hidden 192, fast_point_softmax=True, geo_checkpoint=True",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 192,
+    "fast_point_softmax": true,
+    "geo_checkpoint": true
+   },
+   "tokens": 10000,
+   "n_params": 8868221,
+   "resident_allocated_after_warmup_bytes": 174298624,
+   "incremental_peak_allocated_bytes": [
+    1509085184,
+    1509085184,
+    1509085184,
+    1509085184,
+    1509085184
+   ],
+   "total_peak_allocated_bytes": [
+    1683383808,
+    1683383808,
+    1683383808,
+    1683383808,
+    1683383808
+   ],
+   "reserved_after_step_bytes": [
+    1920991232,
+    1920991232,
+    1920991232,
+    1920991232,
+    1920991232
+   ],
+   "step_ms": [
+    98.2458860380575,
+    99.35506898909807,
+    96.31964599248022,
+    98.88354910071939,
+    99.66383699793369
+   ],
+   "step_ms_median": 98.88354910071939,
+   "summary_gib": {
+    "incremental_peak_allocated": 1.4054450988769531,
+    "total_peak_allocated": 1.5677733421325684,
+    "reserved_after_step": 1.7890625
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h192_orig_plain",
+   "description": "ISLA hidden 192, fast_point_softmax=False, geo_checkpoint=False",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 192,
+    "fast_point_softmax": false,
+    "geo_checkpoint": false
+   },
+   "tokens": 10000,
+   "n_params": 8868221,
+   "resident_allocated_after_warmup_bytes": 174298624,
+   "incremental_peak_allocated_bytes": [
+    3475005440,
+    3475005440,
+    3475005440,
+    3475005440,
+    3475005440
+   ],
+   "total_peak_allocated_bytes": [
+    3649304064,
+    3649304064,
+    3649304064,
+    3649304064,
+    3649304064
+   ],
+   "reserved_after_step_bytes": [
+    3892314112,
+    3892314112,
+    3892314112,
+    3892314112,
+    3892314112
+   ],
+   "step_ms": [
+    229.4362720567733,
+    229.87665503751487,
+    229.8825440229848,
+    230.56868696585298,
+    229.572111973539
+   ],
+   "step_ms_median": 229.87665503751487,
+   "summary_gib": {
+    "incremental_peak_allocated": 3.2363510131835938,
+    "total_peak_allocated": 3.398679256439209,
+    "reserved_after_step": 3.625
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h192_orig_ckpt",
+   "description": "ISLA hidden 192, fast_point_softmax=False, geo_checkpoint=True",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 192,
+    "fast_point_softmax": false,
+    "geo_checkpoint": true
+   },
+   "tokens": 10000,
+   "n_params": 8868221,
+   "resident_allocated_after_warmup_bytes": 174298624,
+   "incremental_peak_allocated_bytes": [
+    1509085184,
+    1509085184,
+    1509085184,
+    1509085184,
+    1509085184
+   ],
+   "total_peak_allocated_bytes": [
+    1683383808,
+    1683383808,
+    1683383808,
+    1683383808,
+    1683383808
+   ],
+   "reserved_after_step_bytes": [
+    1920991232,
+    1920991232,
+    1920991232,
+    1920991232,
+    1920991232
+   ],
+   "step_ms": [
+    236.90254194661975,
+    236.74711701460183,
+    236.5248460555449,
+    236.85588501393795,
+    236.48497404064983
+   ],
+   "step_ms_median": 236.74711701460183,
+   "summary_gib": {
+    "incremental_peak_allocated": 1.4054450988769531,
+    "total_peak_allocated": 1.5677733421325684,
+    "reserved_after_step": 1.7890625
+   },
+   "status": "ok"
+  },
+  {
+   "name": "gt_h256",
+   "description": "GeoTransolver n_hidden 256",
+   "config": {
+    "out_dim": 9,
+    "functional_dim": 6,
+    "geometry_dim": 3,
+    "global_dim": 3,
+    "n_layers": 12,
+    "dropout": 0.0,
+    "n_head": 8,
+    "act": "gelu",
+    "mlp_ratio": 4,
+    "slice_num": 256,
+    "use_te": false,
+    "plus": false,
+    "include_local_features": false,
+    "radii": [
+     0.1,
+     0.5,
+     2.0
+    ],
+    "neighbors_in_radius": [
+     16,
+     32,
+     64
+    ],
+    "n_hidden_local": 32,
+    "state_mixing_mode": "weighted",
+    "n_hidden": 256
+   },
+   "tokens": 10000,
+   "n_params": 9047301,
+   "resident_allocated_after_warmup_bytes": 176399872,
+   "incremental_peak_allocated_bytes": [
+    4196196864,
+    4196196864,
+    4196196864,
+    4196196864,
+    4196196864
+   ],
+   "total_peak_allocated_bytes": [
+    4372596736,
+    4372596736,
+    4372596736,
+    4372596736,
+    4372596736
+   ],
+   "reserved_after_step_bytes": [
+    4894752768,
+    4894752768,
+    4894752768,
+    4894752768,
+    4894752768
+   ],
+   "step_ms": [
+    66.20637699961662,
+    66.44708104431629,
+    66.51255302131176,
+    65.60685706790537,
+    64.46720997337252
+   ],
+   "step_ms_median": 66.20637699961662,
+   "summary_gib": {
+    "incremental_peak_allocated": 3.908012866973877,
+    "total_peak_allocated": 4.072298049926758,
+    "reserved_after_step": 4.55859375
+   },
+   "status": "ok"
+  },
+  {
+   "name": "transolver_h256",
+   "description": "Transolver n_hidden 256",
+   "config": {
+    "functional_dim": 3,
+    "out_dim": 9,
+    "embedding_dim": 6,
+    "n_layers": 8,
+    "dropout": 0.0,
+    "n_head": 8,
+    "act": "gelu",
+    "mlp_ratio": 4,
+    "slice_num": 256,
+    "unified_pos": false,
+    "use_te": false,
+    "plus": false,
+    "n_hidden": 256
+   },
+   "tokens": 10000,
+   "n_params": 6023241,
+   "resident_allocated_after_warmup_bytes": 140042752,
+   "incremental_peak_allocated_bytes": [
+    2772400128,
+    2772400128,
+    2772400128,
+    2772400128,
+    2772400128
+   ],
+   "total_peak_allocated_bytes": [
+    2912442880,
+    2912442880,
+    2912442880,
+    2912442880,
+    2912442880
+   ],
+   "reserved_after_step_bytes": [
+    3466592256,
+    3466592256,
+    3466592256,
+    3466592256,
+    3466592256
+   ],
+   "step_ms": [
+    33.465332933701575,
+    32.42030891124159,
+    32.41576498840004,
+    32.064020982943475,
+    31.550228944979608
+   ],
+   "step_ms_median": 32.41576498840004,
+   "summary_gib": {
+    "incremental_peak_allocated": 2.581998825073242,
+    "total_peak_allocated": 2.712423801422119,
+    "reserved_after_step": 3.228515625
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h192_fast_plain",
+   "description": "ISLA hidden 192, fast_point_softmax=True, geo_checkpoint=False",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 192,
+    "fast_point_softmax": true,
+    "geo_checkpoint": false
+   },
+   "tokens": 80000,
+   "n_params": 8868221,
+   "resident_allocated_after_warmup_bytes": 178777088,
+   "incremental_peak_allocated_bytes": [
+    27080400896,
+    27080400896,
+    27080400896,
+    27080400896,
+    27080400896
+   ],
+   "total_peak_allocated_bytes": [
+    27259177984,
+    27259177984,
+    27259177984,
+    27259177984,
+    27259177984
+   ],
+   "reserved_after_step_bytes": [
+    29154607104,
+    29154607104,
+    29154607104,
+    29154607104,
+    29154607104
+   ],
+   "step_ms": [
+    186.7685120087117,
+    186.6811519721523,
+    186.7941759992391,
+    186.76473596133292,
+    186.59027200192213
+   ],
+   "step_ms_median": 186.76473596133292,
+   "summary_gib": {
+    "incremental_peak_allocated": 25.22058868408203,
+    "total_peak_allocated": 25.38708782196045,
+    "reserved_after_step": 27.15234375
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h192_fast_ckpt",
+   "description": "ISLA hidden 192, fast_point_softmax=True, geo_checkpoint=True",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 192,
+    "fast_point_softmax": true,
+    "geo_checkpoint": true
+   },
+   "tokens": 80000,
+   "n_params": 8868221,
+   "resident_allocated_after_warmup_bytes": 178777088,
+   "incremental_peak_allocated_bytes": [
+    11801843712,
+    11801843712,
+    11801843712,
+    11801843712,
+    11801843712
+   ],
+   "total_peak_allocated_bytes": [
+    11980620800,
+    11980620800,
+    11980620800,
+    11980620800,
+    11980620800
+   ],
+   "reserved_after_step_bytes": [
+    13356761088,
+    13356761088,
+    13356761088,
+    13356761088,
+    13356761088
+   ],
+   "step_ms": [
+    244.09201298840344,
+    244.38689195085317,
+    244.46343595627695,
+    244.05431689228863,
+    244.04289189260453
+   ],
+   "step_ms_median": 244.09201298840344,
+   "summary_gib": {
+    "incremental_peak_allocated": 10.991323471069336,
+    "total_peak_allocated": 11.157822608947754,
+    "reserved_after_step": 12.439453125
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h192_orig_plain",
+   "description": "ISLA hidden 192, fast_point_softmax=False, geo_checkpoint=False",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 192,
+    "fast_point_softmax": false,
+    "geo_checkpoint": false
+   },
+   "tokens": 80000,
+   "n_params": 8868221,
+   "resident_allocated_after_warmup_bytes": 178777088,
+   "incremental_peak_allocated_bytes": [
+    27080400896,
+    27080400896,
+    27080400896,
+    27080400896,
+    27080400896
+   ],
+   "total_peak_allocated_bytes": [
+    27259177984,
+    27259177984,
+    27259177984,
+    27259177984,
+    27259177984
+   ],
+   "reserved_after_step_bytes": [
+    29154607104,
+    29154607104,
+    29154607104,
+    29154607104,
+    29154607104
+   ],
+   "step_ms": [
+    3441.5343730943277,
+    3444.8730340227485,
+    3446.701584965922,
+    3440.8728589769453,
+    3442.1581140486524
+   ],
+   "step_ms_median": 3442.1581140486524,
+   "summary_gib": {
+    "incremental_peak_allocated": 25.22058868408203,
+    "total_peak_allocated": 25.38708782196045,
+    "reserved_after_step": 27.15234375
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h192_orig_ckpt",
+   "description": "ISLA hidden 192, fast_point_softmax=False, geo_checkpoint=True",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 192,
+    "fast_point_softmax": false,
+    "geo_checkpoint": true
+   },
+   "tokens": 80000,
+   "n_params": 8868221,
+   "resident_allocated_after_warmup_bytes": 178777088,
+   "incremental_peak_allocated_bytes": [
+    11801843712,
+    11801843712,
+    11801843712,
+    11801843712,
+    11801843712
+   ],
+   "total_peak_allocated_bytes": [
+    11980620800,
+    11980620800,
+    11980620800,
+    11980620800,
+    11980620800
+   ],
+   "reserved_after_step_bytes": [
+    13356761088,
+    13356761088,
+    13356761088,
+    13356761088,
+    13356761088
+   ],
+   "step_ms": [
+    3504.9476289423183,
+    3511.455154977739,
+    3505.1194839179516,
+    3506.761602940969,
+    3504.5637879520655
+   ],
+   "step_ms_median": 3505.1194839179516,
+   "summary_gib": {
+    "incremental_peak_allocated": 10.991323471069336,
+    "total_peak_allocated": 11.157822608947754,
+    "reserved_after_step": 12.439453125
+   },
+   "status": "ok"
+  },
+  {
+   "name": "gt_h256",
+   "description": "GeoTransolver n_hidden 256",
+   "config": {
+    "out_dim": 9,
+    "functional_dim": 6,
+    "geometry_dim": 3,
+    "global_dim": 3,
+    "n_layers": 12,
+    "dropout": 0.0,
+    "n_head": 8,
+    "act": "gelu",
+    "mlp_ratio": 4,
+    "slice_num": 256,
+    "use_te": false,
+    "plus": false,
+    "include_local_features": false,
+    "radii": [
+     0.1,
+     0.5,
+     2.0
+    ],
+    "neighbors_in_radius": [
+     16,
+     32,
+     64
+    ],
+    "n_hidden_local": 32,
+    "state_mixing_mode": "weighted",
+    "n_hidden": 256
+   },
+   "tokens": 80000,
+   "n_params": 9047301,
+   "resident_allocated_after_warmup_bytes": 180878336,
+   "incremental_peak_allocated_bytes": [
+    33304581632,
+    33304581632,
+    33304581632,
+    33304581632,
+    33304581632
+   ],
+   "total_peak_allocated_bytes": [
+    33485459968,
+    33485459968,
+    33485459968,
+    33485459968,
+    33485459968
+   ],
+   "reserved_after_step_bytes": [
+    35121004544,
+    35121004544,
+    35121004544,
+    35121004544,
+    35121004544
+   ],
+   "step_ms": [
+    168.1835959898308,
+    168.2803010335192,
+    168.20317995734513,
+    168.29895705450326,
+    168.27521298546344
+   ],
+   "step_ms_median": 168.27521298546344,
+   "summary_gib": {
+    "incremental_peak_allocated": 31.017308712005615,
+    "total_peak_allocated": 31.1857647895813,
+    "reserved_after_step": 32.708984375
+   },
+   "status": "ok"
+  },
+  {
+   "name": "transolver_h256",
+   "description": "Transolver n_hidden 256",
+   "config": {
+    "functional_dim": 3,
+    "out_dim": 9,
+    "embedding_dim": 6,
+    "n_layers": 8,
+    "dropout": 0.0,
+    "n_head": 8,
+    "act": "gelu",
+    "mlp_ratio": 4,
+    "slice_num": 256,
+    "unified_pos": false,
+    "use_te": false,
+    "plus": false,
+    "n_hidden": 256
+   },
+   "tokens": 80000,
+   "n_params": 6023241,
+   "resident_allocated_after_warmup_bytes": 144521216,
+   "incremental_peak_allocated_bytes": [
+    22064503808,
+    22064503808,
+    22064503808,
+    22064503808,
+    22064503808
+   ],
+   "total_peak_allocated_bytes": [
+    22209025024,
+    22209025024,
+    22209025024,
+    22209025024,
+    22209025024
+   ],
+   "reserved_after_step_bytes": [
+    23674748928,
+    23674748928,
+    23674748928,
+    23674748928,
+    23674748928
+   ],
+   "step_ms": [
+    103.33228798117489,
+    103.2923529855907,
+    103.31529600080103,
+    103.36179297883064,
+    103.32550399471074
+   ],
+   "step_ms_median": 103.32550399471074,
+   "summary_gib": {
+    "incremental_peak_allocated": 20.54917049407959,
+    "total_peak_allocated": 20.68376636505127,
+    "reserved_after_step": 22.048828125
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h512_fast_plain",
+   "description": "ISLA hidden 512, fast_point_softmax=True, geo_checkpoint=False",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 512,
+    "fast_point_softmax": true,
+    "geo_checkpoint": false
+   },
+   "tokens": 10000,
+   "n_params": 60179581,
+   "resident_allocated_after_warmup_bytes": 794513920,
+   "incremental_peak_allocated_bytes": [
+    5099120128,
+    5099120128,
+    5099120128,
+    5099120128,
+    5099120128
+   ],
+   "total_peak_allocated_bytes": [
+    5893634048,
+    5893634048,
+    5893634048,
+    5893634048,
+    5893634048
+   ],
+   "reserved_after_step_bytes": [
+    6236930048,
+    6236930048,
+    6236930048,
+    6236930048,
+    6236930048
+   ],
+   "step_ms": [
+    74.30922600906342,
+    72.85946502815932,
+    72.25834601558745,
+    71.98183506261557,
+    72.6364579750225
+   ],
+   "step_ms_median": 72.6364579750225,
+   "summary_gib": {
+    "incremental_peak_allocated": 4.748925685882568,
+    "total_peak_allocated": 5.488874435424805,
+    "reserved_after_step": 5.80859375
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h512_fast_ckpt",
+   "description": "ISLA hidden 512, fast_point_softmax=True, geo_checkpoint=True",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 512,
+    "fast_point_softmax": true,
+    "geo_checkpoint": true
+   },
+   "tokens": 10000,
+   "n_params": 60179581,
+   "resident_allocated_after_warmup_bytes": 796512768,
+   "incremental_peak_allocated_bytes": [
+    2955387904,
+    2955387904,
+    2955387904,
+    2955387904,
+    2955387904
+   ],
+   "total_peak_allocated_bytes": [
+    3751900672,
+    3751900672,
+    3751900672,
+    3751900672,
+    3751900672
+   ],
+   "reserved_after_step_bytes": [
+    4013948928,
+    4013948928,
+    4013948928,
+    4013948928,
+    4013948928
+   ],
+   "step_ms": [
+    93.75587594695389,
+    96.18211502674967,
+    98.21805101819336,
+    96.5868829516694,
+    97.98393899109215
+   ],
+   "step_ms_median": 96.5868829516694,
+   "summary_gib": {
+    "incremental_peak_allocated": 2.7524194717407227,
+    "total_peak_allocated": 3.494229793548584,
+    "reserved_after_step": 3.73828125
+   },
+   "status": "ok"
+  },
+  {
+   "name": "isla_h512_orig_plain",
+   "description": "ISLA hidden 512, fast_point_softmax=False, geo_checkpoint=False",
+   "config": {
+    "out_scalars": 3,
+    "out_vectors": 2,
+    "n_layers": 12,
+    "n_slices": 256,
+    "mlp_ratio": 4,
+    "reference_length": 8.0,
+    "hidden": 512,
+    "fast_point_softmax": false,
+    "geo_checkpoint": false
+   },
+   "tokens": 10000,
+   "n_params": 60179581,
+   "resident_allocated_after_warmup_bytes": 794513920,
+   "incremental_peak_allocated_bytes": [
+    5099120128,
+    5099120128,
+    5099120128,
+    5099120128,
+    5099120128
+   ],
+   "total_peak_allocated_bytes": [
+    5893634048,
+    5893634048,
+    5893634048,
+    5893634048,
+    5893634048
+   ],
+   "reserved_after_step_bytes": [
+    6236930048,
+    6236930048,
+    6236930048,
+    6236930048,
+    6236930048
+   ],
+   "step_ms": [
+    234.37477799598128,
+    232.83554601948708,
+    233.3543299464509,
+    233.00351400393993,
+    233.99071407038718
+   ],
+   "step_ms_median": 233.3543299464509,
+   "summary_gib": {
+    "incremental_peak_allocated": 4.748925685882568,
+    "total_peak_allocated": 5.488874435424805,
+    "reserved_after_step": 5.80859375
+   },
+   "status": "ok"
+  },
+  {
+   "name": "gt_h512",
+   "description": "GeoTransolver n_hidden 512",
+   "config": {
+    "out_dim": 9,
+    "functional_dim": 6,
+    "geometry_dim": 3,
+    "global_dim": 3,
+    "n_layers": 12,
+    "dropout": 0.0,
+    "n_head": 8,
+    "act": "gelu",
+    "mlp_ratio": 4,
+    "slice_num": 256,
+    "use_te": false,
+    "plus": false,
+    "include_local_features": false,
+    "radii": [
+     0.1,
+     0.5,
+     2.0
+    ],
+    "neighbors_in_radius": [
+     16,
+     32,
+     64
+    ],
+    "n_hidden_local": 32,
+    "state_mixing_mode": "weighted",
+    "n_hidden": 512
+   },
+   "tokens": 10000,
+   "n_params": 35851141,
+   "resident_allocated_after_warmup_bytes": 498032128,
+   "incremental_peak_allocated_bytes": [
+    5368312320,
+    5368312320,
+    5368312320,
+    5368312320,
+    5368312320
+   ],
+   "total_peak_allocated_bytes": [
+    5866344448,
+    5866344448,
+    5866344448,
+    5866344448,
+    5866344448
+   ],
+   "reserved_after_step_bytes": [
+    6423576576,
+    6423576576,
+    6423576576,
+    6423576576,
+    6423576576
+   ],
+   "step_ms": [
+    62.004492967389524,
+    65.71521190926433,
+    66.88423606101424,
+    67.33713205903769,
+    67.19262001570314
+   ],
+   "step_ms_median": 66.88423606101424,
+   "summary_gib": {
+    "incremental_peak_allocated": 4.999630451202393,
+    "total_peak_allocated": 5.463459014892578,
+    "reserved_after_step": 5.982421875
+   },
+   "status": "ok"
+  },
+  {
+   "name": "transolver_h512",
+   "description": "Transolver n_hidden 512",
+   "config": {
+    "functional_dim": 3,
+    "out_dim": 9,
+    "embedding_dim": 6,
+    "n_layers": 8,
+    "dropout": 0.0,
+    "n_head": 8,
+    "act": "gelu",
+    "mlp_ratio": 4,
+    "slice_num": 256,
+    "unified_pos": false,
+    "use_te": false,
+    "plus": false,
+    "n_hidden": 512
+   },
+   "tokens": 10000,
+   "n_params": 23889993,
+   "resident_allocated_after_warmup_bytes": 354443776,
+   "incremental_peak_allocated_bytes": [
+    3530525696,
+    3530525696,
+    3530525696,
+    3530525696,
+    3530525696
+   ],
+   "total_peak_allocated_bytes": [
+    3884969472,
+    3884969472,
+    3884969472,
+    3884969472,
+    3884969472
+   ],
+   "reserved_after_step_bytes": [
+    4378853376,
+    4378853376,
+    4378853376,
+    4378853376,
+    4378853376
+   ],
+   "step_ms": [
+    31.69231000356376,
+    31.16178303025663,
+    31.310869962908328,
+    31.194551032967865,
+    31.19343100115657
+   ],
+   "step_ms_median": 31.194551032967865,
+   "summary_gib": {
+    "incremental_peak_allocated": 3.288058280944824,
+    "total_peak_allocated": 3.618159770965576,
+    "reserved_after_step": 4.078125
+   },
+   "status": "ok"
+  }
+ ]
+}
