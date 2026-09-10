@@ -11434,3 +11434,35 @@ reference lanes' 0.0557 (+1.8%, inside the 3% bar; bf16 0.0596 against
 (the reference lanes ran older code). The fast-kernel arms (80,000 tokens
 and the 512 × 80,000 pilot) are therefore pooled with the reference-kernel
 arms in the verdict, each still labelled with its kernel.
+
+## 2026-09-10 — Fast point-softmax kernel passes its training-neutrality control (+1.8% in float32, inside the 3% bar) and becomes the default {#sec-nb-fast-kernel-default}
+
+The point-over-slices softmax was 85–95% of every ISLA training step under
+PyTorch's middle-dimension kernel (@sec-nb-cost-matched-fast); reducing along
+a contiguous last dimension gives the same arithmetic in a different
+summation order at a fraction of the cost. The option shipped default-off
+with two preregistered conditions for flipping it: a trained-from-scratch
+neutrality check and an evaluation identity check. The scaling session ran
+the first as the DrivAerML reference configuration (435 cars, 10,000 cells,
+learning rate 1e-3, 500 epochs) trained with the fast kernel on two seeds
+(scale_isla_dr_kernelctrl_seed42/43, code_perf snapshot). **Float32 pressure
+error 0.0567 against the reference lanes' 0.0557, a 1.8% offset inside the 3%
+bar** (bfloat16 0.0596 against 0.0577), at 0.161 s per step and 3.9 GB
+against 0.273 s and 9.8 GB for the reference lanes, which also ran older
+code, so the cost ratio is an upper bound on the kernel's share.
+
+The second condition, evaluation identity on a trained checkpoint, failed
+under bfloat16 (1.0–1.5% between kernels, per case up to 26%,
+@sec-nb-fp32-instrument) and passes under float32, where the two kernels
+agree to 10⁻⁶. Since float32 is the book's reporting instrument
+(@sec-nb-fp32-instrument), that failure no longer bears on any reported
+number. Decision: `fast_point_softmax` defaults to True in the model
+(commit on psharpe/mesh-transformer), with three rules recorded in CLAIMS:
+every checkpoint trained before 2026-09-10 used the reference kernel; float32
+evaluation needs no kernel flag; a bfloat16 evaluation of an older checkpoint
+must still request the reference kernel. The scaling study pools its
+fast-kernel arms (80,000 tokens and the 512 × 80,000 corner) with the
+reference-kernel arms, each labelled. The 1.8% offset is a two-seed number on
+one configuration; a third seed and a HiLift repeat would tighten it, and it
+is small against every effect the book argues over (the smallest quoted is
+5%).

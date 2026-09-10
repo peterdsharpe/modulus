@@ -67,7 +67,8 @@ def _softmax_over_points(x: Float[torch.Tensor, "batch tokens slices"], fast: bo
     source of the superlinear token scaling. Reducing along a contiguous last
     dimension instead uses the row-parallel kernel. Same arithmetic; the
     floating-point summation order differs (roundoff). ``fast=False`` keeps
-    the original kernel for bitwise reproduction of earlier checkpoints.
+    the original kernel for bitwise reproduction of checkpoints trained before
+    2026-09-10 (bf16 outputs differ 1-1.5% between kernels; float32 agree to 1e-6).
     """
     if not fast:
         return torch.softmax(x, dim=1)
@@ -177,7 +178,7 @@ class _SliceBlock(nn.Module):
     def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
                  use_relational_geo: bool = True, geo_checkpoint: bool = False,
                  second_moment: bool = False, anchor_topk: int = 0,
-                 fast_point_softmax: bool = False) -> None:
+                 fast_point_softmax: bool = True) -> None:
         super().__init__()
         self.use_relational_geo = use_relational_geo
         self.fast_point_softmax = bool(fast_point_softmax)
@@ -380,7 +381,7 @@ class ISLA(Module):
         reference_length: float = 8.0,
         use_measure_weights: bool = True,
         measure_weight_power: float = 1.0,
-        fast_point_softmax: bool = False,
+        fast_point_softmax: bool = True,
         use_local_features: bool = False,
         local_radii: tuple[float, ...] = (0.01, 0.03),
         n_boundary_scalars: int = 0,
@@ -426,6 +427,10 @@ class ISLA(Module):
         ### ISLA-PERF (2026-09-09): point softmaxes reduce along a contiguous last
         ### dimension (see _softmax_over_points); False reproduces the original
         ### middle-dimension kernel bitwise (roundoff-level difference otherwise).
+        ### Default True since 2026-09-10: training-neutral on DrivAerML (+1.8% in
+        ### float32, inside the 3% bar) at 0.59x step time and 0.4x memory; the two
+        ### kernels agree to 1e-6 in float32 evaluation. Checkpoints trained before
+        ### 2026-09-10 used the reference kernel.
         self.fast_point_softmax = bool(fast_point_softmax)
         self.out_scalars = out_scalars
         self.out_vectors = out_vectors

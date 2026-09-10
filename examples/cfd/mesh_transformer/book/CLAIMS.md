@@ -1061,3 +1061,14 @@ interior control @sec-nb-udrv-int-prereg.
   20,000-epoch attempt 4 (one sample per epoch) hit lr 1e-6 by step 300 and is archived, not a
   result; its relaunch uses step_size 4000. Comparisons at equal epoch counts (all ladder rungs,
   SCALE's 80k-token arms) are unaffected.
+- **Fast point-softmax kernel is the default (2026-09-10).** Neutrality control passed: the
+  DrivAerML reference configuration trained with `fast_point_softmax=true` (code_perf, two seeds,
+  scale_isla_dr_kernelctrl_seed42/43) scores 0.0567 in float32 against the reference lanes' 0.0557
+  (+1.8%, inside the preregistered 3% bar; bf16 0.0596 vs 0.0577) at 0.161 s/step and 3.9 GB
+  against 0.273 s and 9.8 GB. `fast_point_softmax` now defaults to True in `ISLA` and `_SliceBlock`.
+  RULES: every checkpoint trained before 2026-09-10 (all ladder, WAVE-3, UDRV, interior and
+  transfer lanes; the SCALE reference-kernel arms) used the reference kernel; float32 evaluation
+  is kernel-independent (agreement to 1e-6), so the float32 reporting instrument needs no kernel
+  flag; bf16 evaluation of a pre-2026-09-10 checkpoint must still pass `fast_point_softmax=false`.
+  Never pool arms trained on different kernels in one comparison without labelling both (the SCALE
+  ISLA study labels its fast-kernel 80k and 512×80k arms). Supersedes "stays default False" above.
