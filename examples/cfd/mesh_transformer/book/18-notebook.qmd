@@ -10059,3 +10059,11 @@ favour of "monotone improvement to at least 60,000 cells"; if 70k is
 healthy and only 80k fails regardless of kernel, the cliff is a model
 property at 8x count and stands. The 80k-trained models' own 80k numbers
 (fast kernel) are unaffected either way.
+
+**CPU control on the kernel hypothesis.** On CPU in float32, with identical
+weights and inputs, the reference and fast point-softmax kernels agree to
+3.5 × 10⁻⁷ relative at 60,000, 65,536, 65,537 and 70,000 points (one-layer
+ISLA, hidden 64, 256 slices; outputs finite, standard deviation unchanged):
+there is no CPU defect above 2¹⁶ points. If the cliff is a kernel defect it
+is specific to the GPU path; the coordinating session's one-GPU softmax
+micro-test and the bracket probes decide.
