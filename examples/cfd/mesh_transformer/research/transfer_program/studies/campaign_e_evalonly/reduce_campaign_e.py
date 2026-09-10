@@ -6,6 +6,18 @@ wall-shear relative L2 on the uniform control and the 10:1 biased draw, the
 per-run degradation factor biased / uniform, per-arm seed means, and the
 preregistered verdict. Writes ``campaign_e_density_<date>.json`` next to
 this file (or to the path given as argv[1]).
+
+Centering convention (2026-09-10). The original probe yamls
+(``drivaer_probe_{unif2,biased3}``) run CenterMesh BEFORE the draw, so models
+that consume absolute centred coordinates were probed in the unbiased pool
+frame ("pool frame"); the program's canonical probes now centre AFTER the draw
+(``drivaer_probe_{unif2,biased3}_sf``, "sample frame": the frame a biased
+mesher would deliver). ``--frame pool`` (default) reads the pool-frame
+evaluations in ``transfer/campaign_e_fp32``; ``--frame sample`` reads the
+sample-frame evaluations, searching ``transfer/campaign_e_fp32_sf`` (this
+session's launcher ``campaign_e_density_fp32_sf_aga.sbatch``) and then the
+generalization session's ``mw_evals_probe_postcenter`` (same yaml, same
+float32 instrument) for each run. The convention is recorded in the output.
 """
 import glob
 import json
@@ -15,6 +27,12 @@ from datetime import date
 from pathlib import Path
 
 T = "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0"
+FRAME = "pool"
+if "--frame" in sys.argv:
+    i = sys.argv.index("--frame"); FRAME = sys.argv[i + 1]; del sys.argv[i:i + 2]
+ROOTS = {"pool": [f"{T}/transfer/campaign_e_fp32"],            # float32, pool frame (campaign_e_density_fp32_2026-09-09.json)
+         "pool_bf16": [f"{T}/transfer/campaign_e"],            # bf16 preview, pool frame (campaign_e_density_bf16_2026-09-09.json)
+         "sample": [f"{T}/transfer/campaign_e_fp32_sf", f"{T}/mw_evals_probe_postcenter"]}[FRAME]
 ARMS = {
     "gt_unit": ["uw_gt_unit_lr1e3_seed42", "uw_gt_unit_lr1e3_seed43", "uw_gt_unit_lr1e3_seed44"],
     "transolver_unit": ["uw_transolver_unit_lr3e3_seed42", "uw_transolver_unit_lr3e3_seed43"],
@@ -27,17 +45,20 @@ BARS = {"holds_gt_factor_min": 1.32, "isla_factor_max": 1.24, "not_hold_gt_facto
 
 
 def run_metrics(run, probe):
-    ps = glob.glob(f"{T}/transfer/campaign_e/{run}/{probe}/**/metrics.jsonl", recursive=True)
-    if not ps:
+    for root in ROOTS:
+        ps = glob.glob(f"{root}/{run}/{probe}/**/metrics.jsonl", recursive=True)
+        if ps:
+            break
+    else:
         return None
     rows = [json.loads(l) for l in open(ps[0])]
     rows = [r for r in rows if r.get("phase") == "infer_step"]
     keys = [k for k in rows[0]["metrics"] if k.endswith("_l2")]
     per_case = {r["sample_id"]: r["metrics"] for r in rows}
-    return {"n": len(rows), "mean": {k: statistics.mean(r["metrics"][k] for r in rows) for k in keys}, "per_case": per_case}
+    return {"n": len(rows), "mean": {k: statistics.mean(r["metrics"][k] for r in rows) for k in keys}, "per_case": per_case, "source": ps[0]}
 
 
-out = {"date": date.today().isoformat(), "bars": BARS, "runs": {}, "arms": {}}
+out = {"date": date.today().isoformat(), "frame": FRAME, "bars": BARS, "runs": {}, "arms": {}}
 for arm, runs in ARMS.items():
     factors, unif, biased = [], [], []
     for run in runs:
@@ -50,7 +71,8 @@ for arm, runs in ARMS.items():
         common = sorted(set(u["per_case"]) & set(b["per_case"]))
         per_car = [b["per_case"][c]["pressure_l2"] / u["per_case"][c]["pressure_l2"] for c in common]
         out["runs"][run] = {"n_unif": u["n"], "n_biased": b["n"], "unif": u["mean"], "biased": b["mean"], "factor_pressure": f,
-                            "per_car_factor_median": statistics.median(per_car), "cars_worse_under_bias": sum(x > 1 for x in per_car), "n_common": len(common)}
+                            "per_car_factor_median": statistics.median(per_car), "cars_worse_under_bias": sum(x > 1 for x in per_car), "n_common": len(common),
+                            "source_unif": u["source"], "source_biased": b["source"]}
         factors.append(f); unif.append(u["mean"]["pressure_l2"]); biased.append(b["mean"]["pressure_l2"])
     if factors:
         out["arms"][arm] = {"n_seeds": len(factors), "factor_mean": statistics.mean(factors), "factor_seeds": factors,
@@ -72,6 +94,7 @@ if g and i:
         v = "BETWEEN: reported as ratio of factors"
     out["verdict"] = {"text": v, "gt_factor": g["factor_mean"], "isla_factor": i["factor_mean"], "ratio_gt_over_isla": g["factor_mean"] / i["factor_mean"]}
 
+print(f"frame: {FRAME}")
 print("| arm | seeds | uniform pressure | biased pressure | degradation factor (seeds) |")
 print("|---|---|---|---|---|")
 for arm, a in out["arms"].items():
@@ -80,6 +103,6 @@ for run, r in out["runs"].items():
     if r:
         print(f"  {run}: unif {r['unif']['pressure_l2']:.4f} biased {r['biased']['pressure_l2']:.4f} factor {r['factor_pressure']:.3f} median per-car {r['per_car_factor_median']:.3f} worse {r['cars_worse_under_bias']}/{r['n_common']}")
 print(json.dumps(out.get("verdict"), indent=1))
-dst = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).with_name(f"campaign_e_density_{out['date']}.json")
+dst = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).with_name(f"campaign_e_density_{FRAME}frame_{out['date']}.json")
 slim = {**out, "runs": {k: ({kk: vv for kk, vv in v.items()} if v else None) for k, v in out["runs"].items()}}
 dst.write_text(json.dumps(slim, indent=1)); print("wrote", dst)

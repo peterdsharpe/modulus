@@ -1,0 +1,340 @@
+{
+ "date": "2026-09-10",
+ "frame": "sample",
+ "bars": {
+  "holds_gt_factor_min": 1.32,
+  "isla_factor_max": 1.24,
+  "not_hold_gt_factor_max": 1.24,
+  "isla_gauge_factor_prior": 1.2
+ },
+ "runs": {
+  "uw_gt_unit_lr1e3_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05024304830779632,
+    "wss_x_l2": 0.0575403431430459,
+    "wss_y_l2": 0.1357719823718071,
+    "wss_z_l2": 0.11285977065563202,
+    "wss_l2": 0.07686898771983881
+   },
+   "biased": {
+    "pressure_l2": 0.6026987731456757,
+    "wss_x_l2": 0.5707084325452646,
+    "wss_y_l2": 0.9443202118078867,
+    "wss_z_l2": 0.9393874195714792,
+    "wss_l2": 0.6698326344291369
+   },
+   "factor_pressure": 11.995664941614493,
+   "per_car_factor_median": 12.384851348957746,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/mw_evals_probe_postcenter/uw_gt_unit_lr1e3_seed42/unif/uw_gt_unit_lr1e3_seed42/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/mw_evals_probe_postcenter/uw_gt_unit_lr1e3_seed42/biased/uw_gt_unit_lr1e3_seed42/metrics.jsonl"
+  },
+  "uw_gt_unit_lr1e3_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05060001377326747,
+    "wss_x_l2": 0.05758600115465621,
+    "wss_y_l2": 0.13558548890675107,
+    "wss_z_l2": 0.1127654523588717,
+    "wss_l2": 0.07683902528757851
+   },
+   "biased": {
+    "pressure_l2": 0.603473092118899,
+    "wss_x_l2": 0.5346186123788357,
+    "wss_y_l2": 0.8817004238565763,
+    "wss_z_l2": 0.8494448699057102,
+    "wss_l2": 0.6220409063001474
+   },
+   "factor_pressure": 11.926342447711354,
+   "per_car_factor_median": 12.041600390209348,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/mw_evals_probe_postcenter/uw_gt_unit_lr1e3_seed43/unif/uw_gt_unit_lr1e3_seed43/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/mw_evals_probe_postcenter/uw_gt_unit_lr1e3_seed43/biased/uw_gt_unit_lr1e3_seed43/metrics.jsonl"
+  },
+  "uw_gt_unit_lr1e3_seed44": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05026975522438685,
+    "wss_x_l2": 0.057284315659975014,
+    "wss_y_l2": 0.13486643802995482,
+    "wss_z_l2": 0.11217458266764879,
+    "wss_l2": 0.07644490990787745
+   },
+   "biased": {
+    "pressure_l2": 0.6283947092791399,
+    "wss_x_l2": 0.6244455389678478,
+    "wss_y_l2": 0.9563515248397986,
+    "wss_z_l2": 0.9181871364514033,
+    "wss_l2": 0.7044527418911457
+   },
+   "factor_pressure": 12.500452935849848,
+   "per_car_factor_median": 12.991387914408538,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/uw_gt_unit_lr1e3_seed44/unif/uw_gt_unit_lr1e3_seed44/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/uw_gt_unit_lr1e3_seed44/biased/uw_gt_unit_lr1e3_seed44/metrics.jsonl"
+  },
+  "uw_transolver_unit_lr3e3_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.051833937565485634,
+    "wss_x_l2": 0.05801799699353675,
+    "wss_y_l2": 0.13686131980891028,
+    "wss_z_l2": 0.11470344398791592,
+    "wss_l2": 0.07765995167816679
+   },
+   "biased": {
+    "pressure_l2": 0.5277952309697866,
+    "wss_x_l2": 0.5208997509131829,
+    "wss_y_l2": 0.9015322575966517,
+    "wss_z_l2": 0.8553013702233633,
+    "wss_l2": 0.6165299993008375
+   },
+   "factor_pressure": 10.18242595023741,
+   "per_car_factor_median": 10.329548051243922,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/mw_evals_probe_postcenter/uw_transolver_unit_lr3e3_seed42/unif/uw_transolver_unit_lr3e3_seed42/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/mw_evals_probe_postcenter/uw_transolver_unit_lr3e3_seed42/biased/uw_transolver_unit_lr3e3_seed42/metrics.jsonl"
+  },
+  "uw_transolver_unit_lr3e3_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05172292763988177,
+    "wss_x_l2": 0.05806405718127886,
+    "wss_y_l2": 0.13746120454743505,
+    "wss_z_l2": 0.11457508817935984,
+    "wss_l2": 0.07774998643435538
+   },
+   "biased": {
+    "pressure_l2": 0.6742930822074413,
+    "wss_x_l2": 0.6212667735914389,
+    "wss_y_l2": 0.9122113573054472,
+    "wss_z_l2": 0.928955273081859,
+    "wss_l2": 0.6982014824946722
+   },
+   "factor_pressure": 13.036637966477311,
+   "per_car_factor_median": 13.324639195130096,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/mw_evals_probe_postcenter/uw_transolver_unit_lr3e3_seed43/unif/uw_transolver_unit_lr3e3_seed43/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/mw_evals_probe_postcenter/uw_transolver_unit_lr3e3_seed43/biased/uw_transolver_unit_lr3e3_seed43/metrics.jsonl"
+  },
+  "iw_mt2_lr1e3_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05665401260678967,
+    "wss_x_l2": 0.06243263720534742,
+    "wss_y_l2": 0.1431302089865009,
+    "wss_z_l2": 0.1248688066067795,
+    "wss_l2": 0.08311285947759946
+   },
+   "biased": {
+    "pressure_l2": 0.702085887392362,
+    "wss_x_l2": 0.577599378923575,
+    "wss_y_l2": 0.9360987581312656,
+    "wss_z_l2": 0.936942550043265,
+    "wss_l2": 0.6726586682101091
+   },
+   "factor_pressure": 12.392518289308617,
+   "per_car_factor_median": 12.462186186450946,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/iw_mt2_lr1e3_seed42/unif/iw_mt2_lr1e3_seed42/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/iw_mt2_lr1e3_seed42/biased/iw_mt2_lr1e3_seed42/metrics.jsonl"
+  },
+  "iw_mt2_lr1e3_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.055351749838640295,
+    "wss_x_l2": 0.06081024060646693,
+    "wss_y_l2": 0.13990538970877728,
+    "wss_z_l2": 0.12223065908377369,
+    "wss_l2": 0.08114991461237271
+   },
+   "biased": {
+    "pressure_l2": 0.6410960108041763,
+    "wss_x_l2": 0.5396737282474836,
+    "wss_y_l2": 0.9325193613767624,
+    "wss_z_l2": 0.9771849227448305,
+    "wss_l2": 0.6544764588276545
+   },
+   "factor_pressure": 11.582217593356662,
+   "per_car_factor_median": 11.597498762237345,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/iw_mt2_lr1e3_seed43/unif/iw_mt2_lr1e3_seed43/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/iw_mt2_lr1e3_seed43/biased/iw_mt2_lr1e3_seed43/metrics.jsonl"
+  },
+  "iw_mt2_gauge_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.06317223329097033,
+    "wss_x_l2": 0.06907328777015209,
+    "wss_y_l2": 0.15765793062746525,
+    "wss_z_l2": 0.1371828915240864,
+    "wss_l2": 0.09167681339507301
+   },
+   "biased": {
+    "pressure_l2": 0.07551312462116282,
+    "wss_x_l2": 0.0810100024100393,
+    "wss_y_l2": 0.19304625938336054,
+    "wss_z_l2": 0.18240981517980495,
+    "wss_l2": 0.11456579125175874
+   },
+   "factor_pressure": 1.1953530956132346,
+   "per_car_factor_median": 1.1840523321264675,
+   "cars_worse_under_bias": 47,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/iw_mt2_gauge_seed42/unif/iw_mt2_gauge_seed42/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/iw_mt2_gauge_seed42/biased/iw_mt2_gauge_seed42/metrics.jsonl"
+  },
+  "iw_mt2_gauge_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.06169751410682996,
+    "wss_x_l2": 0.06646277429535985,
+    "wss_y_l2": 0.15473062467450896,
+    "wss_z_l2": 0.13292378823583326,
+    "wss_l2": 0.08886701132481296
+   },
+   "biased": {
+    "pressure_l2": 0.07513769421105583,
+    "wss_x_l2": 0.07960906508378685,
+    "wss_y_l2": 0.1938410485163331,
+    "wss_z_l2": 0.18756818740318218,
+    "wss_l2": 0.11581890657544136
+   },
+   "factor_pressure": 1.217839896773702,
+   "per_car_factor_median": 1.175026739828248,
+   "cars_worse_under_bias": 47,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/iw_mt2_gauge_seed43/unif/iw_mt2_gauge_seed43/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/iw_mt2_gauge_seed43/biased/iw_mt2_gauge_seed43/metrics.jsonl"
+  },
+  "now_mt2_lr1e3_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05418960866518319,
+    "wss_x_l2": 0.059927440636480846,
+    "wss_y_l2": 0.1380966822616756,
+    "wss_z_l2": 0.11973216695090134,
+    "wss_l2": 0.07986643646533291
+   },
+   "biased": {
+    "pressure_l2": 1.2682654360930126,
+    "wss_x_l2": 0.9383421999712785,
+    "wss_y_l2": 1.1300789266824722,
+    "wss_z_l2": 1.18431610117356,
+    "wss_l2": 0.9917613739768664
+   },
+   "factor_pressure": 23.40421839783229,
+   "per_car_factor_median": 23.055437548828166,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/now_mt2_lr1e3_seed42/unif/now_mt2_lr1e3_seed42/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/now_mt2_lr1e3_seed42/biased/now_mt2_lr1e3_seed42/metrics.jsonl"
+  },
+  "now_mt2_lr1e3_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05358110228553414,
+    "wss_x_l2": 0.059989643127967916,
+    "wss_y_l2": 0.13692632783204317,
+    "wss_z_l2": 0.11997956254829963,
+    "wss_l2": 0.0797860436141491
+   },
+   "biased": {
+    "pressure_l2": 0.8068356923758984,
+    "wss_x_l2": 0.7358350940048695,
+    "wss_y_l2": 1.0481744644542534,
+    "wss_z_l2": 1.0606161293884118,
+    "wss_l2": 0.8166762515902519
+   },
+   "factor_pressure": 15.058213772390575,
+   "per_car_factor_median": 15.116871851708227,
+   "cars_worse_under_bias": 48,
+   "n_common": 48,
+   "source_unif": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/now_mt2_lr1e3_seed43/unif/now_mt2_lr1e3_seed43/metrics.jsonl",
+   "source_biased": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/transfer/campaign_e_fp32_sf/now_mt2_lr1e3_seed43/biased/now_mt2_lr1e3_seed43/metrics.jsonl"
+  }
+ },
+ "arms": {
+  "gt_unit": {
+   "n_seeds": 3,
+   "factor_mean": 12.140820108391898,
+   "factor_seeds": [
+    11.995664941614493,
+    11.926342447711354,
+    12.500452935849848
+   ],
+   "unif_pressure_mean": 0.05037093910181688,
+   "biased_pressure_mean": 0.6115221915145715
+  },
+  "transolver_unit": {
+   "n_seeds": 2,
+   "factor_mean": 11.609531958357362,
+   "factor_seeds": [
+    10.18242595023741,
+    13.036637966477311
+   ],
+   "unif_pressure_mean": 0.0517784326026837,
+   "biased_pressure_mean": 0.601044156588614
+  },
+  "isla_reference": {
+   "n_seeds": 2,
+   "factor_mean": 11.98736794133264,
+   "factor_seeds": [
+    12.392518289308617,
+    11.582217593356662
+   ],
+   "unif_pressure_mean": 0.05600288122271498,
+   "biased_pressure_mean": 0.6715909490982692
+  },
+  "isla_gauge": {
+   "n_seeds": 2,
+   "factor_mean": 1.2065964961934683,
+   "factor_seeds": [
+    1.1953530956132346,
+    1.217839896773702
+   ],
+   "unif_pressure_mean": 0.06243487369890015,
+   "biased_pressure_mean": 0.07532540941610932
+  },
+  "isla_noweights": {
+   "n_seeds": 2,
+   "factor_mean": 19.231216085111434,
+   "factor_seeds": [
+    23.40421839783229,
+    15.058213772390575
+   ],
+   "unif_pressure_mean": 0.053885355475358665,
+   "biased_pressure_mean": 1.0375505642344556
+  }
+ },
+ "verdict_gauge_arm": {
+  "gt_factor": 12.140820108391898,
+  "isla_gauge_factor": 1.2065964961934683,
+  "holds_by_bars_with_gauge_as_isla": true
+ },
+ "verdict": {
+  "text": "BETWEEN: reported as ratio of factors",
+  "gt_factor": 12.140820108391898,
+  "isla_factor": 11.98736794133264,
+  "ratio_gt_over_isla": 1.0128011560010728
+ }
+}
