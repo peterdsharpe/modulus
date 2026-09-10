@@ -82,6 +82,10 @@ compile: true
 # Transolver / FLARE / GLOBE / HiLift / DoMINO invocations).
 training:
   num_epochs: 500
+  # Fine-tuning: a checkpoint directory (or .mdlus file) whose model weights
+  # initialize this run; optimizer, scheduler and epoch start fresh. Ignored
+  # once the run has its own checkpoints (chained links resume normally).
+  init_from: null
   optimizer:
     lr: 3.0e-3
   scheduler:

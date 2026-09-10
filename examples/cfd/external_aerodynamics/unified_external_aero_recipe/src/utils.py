@@ -36,6 +36,38 @@ from physicsnemo.datapipes.keys import as_nested_key
 from physicsnemo.mesh import DomainMesh, Mesh
 from physicsnemo.optim import CombinedOptimizer, Muon
 
+
+def initialize_from_checkpoint(
+    model: torch.nn.Module, init_from: str, device: str | torch.device = "cpu"
+) -> dict[str, Any]:
+    """Load model weights (only) from another run's checkpoint directory or file.
+
+    ``init_from`` is either a ``.mdlus`` file or a directory containing
+    ``<ModelClass>.<rank>.<epoch>.mdlus`` files written by
+    :func:`physicsnemo.utils.save_checkpoint`; the newest epoch is used. The
+    state dict is loaded through :meth:`physicsnemo.Module.load` with
+    ``strict=True``, so the saved class name is irrelevant (a checkpoint
+    written under the legacy ``MeshTransformer2`` name loads into ``ISLA``)
+    while any architecture mismatch raises instead of silently skipping.
+    Optimizer, scheduler and epoch are not touched: fine-tuning starts at
+    epoch 0 with a fresh optimizer (transfer program, campaign C).
+    """
+    path = Path(init_from)
+    if path.is_dir():
+        files = sorted(
+            path.glob("*.mdlus"), key=lambda p: int(p.stem.split(".")[-1])
+        )
+        if not files:
+            raise FileNotFoundError(f"init_from={init_from!r}: no .mdlus files found")
+        path = files[-1]
+    if not path.exists():
+        raise FileNotFoundError(f"init_from={init_from!r} does not exist")
+    tail = path.stem.split(".")[-1]
+    epoch = int(tail) if tail.isdigit() else -1
+    target = model.module if hasattr(model, "module") else model
+    target.load(str(path), map_location=device, strict=True)
+    return {"file": str(path), "epoch": epoch}
+
 ### Recipe-wide type aliases. Re-exported for use in loss.py, metrics.py,
 ### output_normalize.py, forward_kwargs.py, collate.py, train.py, infer.py,
 ### and the tests so that ``target_config`` values share a single source of

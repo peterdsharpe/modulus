@@ -35,6 +35,7 @@ Usage::
 
 import math
 import os
+from pathlib import Path
 import time
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import nullcontext
@@ -59,6 +60,7 @@ from utils import (
     Precision,
     build_muon_optimizer,
     get_autocast_context,
+    initialize_from_checkpoint,
     make_jsonl_logger,
     recursive_to_device,
     resolve_dict,
@@ -1052,6 +1054,26 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"Parameters: {num_params:,}")
 
     model.to(device)
+
+    ### Fine-tuning: initialize weights from another run's checkpoint directory
+    ### (weights only; optimizer, scheduler and epoch start fresh). Skipped when
+    ### this run already has its own checkpoints, so chained links resume from
+    ### themselves rather than re-initializing (transfer program, campaign C).
+    init_from = cfg.training.get("init_from", None)
+    if init_from:
+        own_ckpt_dir = os.path.join(checkpoint_dir, cfg.run_id, "checkpoints")
+        if os.path.isdir(own_ckpt_dir) and any(
+            f.endswith(".mdlus") for f in os.listdir(own_ckpt_dir)
+        ):
+            logger.info(
+                f"init_from={init_from!r} ignored: run has its own checkpoints "
+                f"in {own_ckpt_dir}; resuming from them."
+            )
+        else:
+            init_report = initialize_from_checkpoint(model, init_from, device=device)
+            logger.info(f"Initialized weights from {init_report['file']} (epoch {init_report['epoch']})")
+            if is_rank0 and log_jsonl is not None:
+                log_jsonl({"phase": "init_from", **init_report})
 
     if dist_manager.world_size > 1:
         model = torch.nn.parallel.DistributedDataParallel(
