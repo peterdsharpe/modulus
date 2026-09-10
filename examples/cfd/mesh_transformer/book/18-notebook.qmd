@@ -12799,16 +12799,23 @@ reference row of each architecture is the book's operating point; ratios are
 | architecture | reference (width × cells) | fp32 | bf16 | step | memory | GPU-h | biased ÷ uniform at 10k | width 384 | width 512 | 40k cells | 80k cells | 384 × 40k |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | GeoTransolver, unit drive | 256 × 10k, 9.0M | 0.0503 | 0.0556 | 0.15 s | 4.1 GB | 8.7 | 9.5 (11.8 / 7.9 / 8.8) | 0.915 | 0.893 | 0.943 | 0.916 | 0.878 |
-| ISLA, constant gauge, weights on | 192 × 10k, 8.9M | 0.0557 | 0.0577 | 0.273 s | 9.8 GB | 21.3 | 12.1 (12.5 / 11.7) | 0.926 | 0.912 | training (`t40k`) | 0.840 (fast kernel) | training (`c384x40k`) |
+| ISLA, constant gauge, weights on | 192 × 10k, 8.9M | 0.0557 | 0.0577 | 0.273 s | 9.8 GB | 21.3 | 12.1 (12.5 / 11.7) | 0.926 | 0.912 | 0.883 (reference kernel, 1.28 s/step) | 0.840 (fast kernel) | 0.811 (reference kernel) |
 | Transolver, unit drive, lr 3e-3 | 256 × 10k, 6.0M | 0.0517 | 0.0563 | 0.097 s | 3.2 GB | 5.8 | 3.9 (2.2 / 5.5) | 0.928 | 0.913 | 0.932 | 0.921 | 0.880 |
 | ISLA, similarity gauge, weights on (`iw_mt2_gauge`) | 192 × 10k, 8.9M | 0.0616 | — | as constant gauge | | | **1.21** (1.21 / 1.21); 1.01 at 80k | — | — | — | — | — |
 
-Width scales for all three (bar 1: 9–11% at 512 wide, met everywhere) and
-all three are resolution-limited (bar 2: 8% for the baselines at 80,000
-cells, 16% for ISLA). The two knobs are close to additive for every
-architecture, so the corner is each architecture's best DrivAerML
-configuration in this study, with no sign of saturation at 512 wide or
-80,000 cells.
+Width scales for all three (bar 1: 9–11% at 512 wide, met everywhere;
+ISLA's 384 → 512 step is 1.6%, inside seed spread, so its width gain is
+flattening by 512) and all three are resolution-limited (bar 2: 8% for the
+baselines at 80,000 cells, 16% for ISLA, with 12% already at 40,000). The
+two knobs compose nearly independently for every architecture (ISLA:
+0.912 × 0.840 = 0.766 against the measured corner 0.768), so the corner is
+each architecture's best DrivAerML configuration in this study, with no
+sign of saturation at 80,000 cells. Two ISLA cost caveats from its track:
+the two 40k arms trained on the reference kernel before the fast kernel was
+adopted (1.28 s per step, 86 GPU-hours against 21–23 for every other arm),
+and peak memory is not comparable across training snapshots (the reference
+reads 9.8 GB under the legacy snapshot and the same configuration 3.9 GB
+under `code_perf`), so memory is ordered within a snapshot only.
 
 **Bar 3, does scale change the ordering.** With r = baseline ÷ ISLA at the
 matched arm, in float32:
@@ -12916,9 +12923,9 @@ produced by an evaluation under a pre-`code_eval` snapshot at 65,536 points
 or more. The structural guards now in force: every evaluation imports
 `code_eval` and writes its snapshot beside its output; reducers refuse
 unnamed snapshots and skipped loads; infer.py refuses to write a summary
-outside the range of its own per-sample values (commit f9330f317). Pending
-for this entry: the ISLA 40,000-cell and 384 × 40k arms (rows 14–19, epoch
-~448, about two hours) and the HiLift half. Every ISLA evaluation and probe
+outside the range of its own per-sample values (commit f9330f317). Every DrivAerML
+arm of the preregistration is now in this entry; pending: the sample-frame
+density probes at the corner (below, when they land) and the HiLift half. Every ISLA evaluation and probe
 now names its snapshot per instrument (reference `code`; width arms
 `code_isla5`; token, constant-gauge corner and kernel control `code_perf`;
 gauge corner `code_eval`) and no evaluation tripped the summary guard.
