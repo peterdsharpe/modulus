@@ -1024,11 +1024,22 @@ interior control @sec-nb-udrv-int-prereg.
 - **Few-shot transfer (2026-09-10, transfer session campaign C T3, float32; research/transfer_program
   #sec-nb-campc-t3-verdict).** Fine-tuning on 20 labelled fastback cases (1,000 steps, lr 1e-3):
   GeoTransolver from the unit-drive DrivAerML checkpoint 0.128 vs 0.186 from scratch (31% better);
-  ISLA from mt2_v3c (lr 3e-3 checkpoint) 0.187 vs 0.198 (6%). Write "ISLA's DrivAerML
-  representation transfers less than GeoTransolver's" and name the checkpoint asymmetry
-  (different drive and learning rate) as a caveat; the mixed-435 ISLA pays 33% in-family (T2
-  preview, one seed). Third independent sign of family-specific learning (with the 1.6x zero-shot
-  force error and the constant-gauge density collapse).
+  ISLA from mt2_v3c (lr 3e-3 checkpoint) 0.187 vs 0.198 (6%) — **ISLA half PROVISIONAL
+  (2026-09-10)**: see the snapshot hazard below; the fine-tune may have started from an unloaded
+  init (first-epoch loss 0.105 above the scratch arm's 0.080). Until the frozen-init lane and the
+  `code` re-evaluation land, write only the GeoTransolver half; do NOT write "ISLA's DrivAerML
+  representation transfers less" or count T3 as the third sign of family-specific learning (two
+  signs stand: 1.6x zero-shot force error, constant-gauge density collapse). The mixed-435 ISLA
+  pays 33% in-family (T2 preview, one seed).
+- **Snapshot hazard for legacy surface ISLA checkpoints (2026-09-10; transfer session probe job
+  699026, float32, 48 cars).** iw_mt2_lr1e3_seed42 and mt2_v3c_seed42 evaluate to 0.0568 / 0.0620
+  under `code` but to an identical 1.5667 (wss 1.8713) under `code_support`: the legacy `.pt`
+  state dict no longer matches the ISLA module there and the non-strict load leaves the seeded
+  init. GeoTransolver unaffected. RULES: evaluate legacy surface ISLA checkpoints only under the
+  snapshot that trained them (`code`, `code_isla*`); the fp32 campaign used `code` for these and
+  stands; any legacy-ISLA number produced through `code_support` or later is invalid; an identical
+  error from two different checkpoints is a load failure, never a result; make the state-dict load
+  strict (or assert a changed output vs init) in every new evaluation snapshot.
 
 - **POSE-BENCH (2026-09-10, transfer session campaign B, float32; studies/campaign_b_pose/campaign_b_fp32_2026-09-10.json).**
   Every case in its own random SO(3) pose, DrivAerML 435 cars: ISLA (no augmentation) 0.0566
