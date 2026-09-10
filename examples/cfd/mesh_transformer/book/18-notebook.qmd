@@ -10354,3 +10354,35 @@ then the rest. Until group one lands, no new comparative verdict is written.
 Under float32 the two softmax kernels agree to 1e-6, so the kernel question
 of @sec-nb-isla-perf-verdict disappears for reporting; `fast_point_softmax`
 stays default off and is the kernel to train with.
+
+## 2026-09-09 — 4-geometry rung, remaining arms (bf16, interim): unit-drive Transolver 0.193, ISLA weights off 0.208 against weighted ISLA 0.250 and unit-drive GeoTransolver 0.189 {#sec-nb-geo40-arms-interim}
+
+**Status of these numbers.** They are bfloat16 evaluations and are recorded
+here for the offset table and as an interim reading; under the reporting
+rule of @sec-nb-fp32-instrument the rung's verdict is written when its
+float32 re-evaluation lands (group 2 of the campaign). Points are identical
+across all arms.
+
+**Readout** (results/udrv_reduction_2026-09-09e.json; 180 validation cases,
+18 held-out geometries; bf16):
+
+| arm | pressure (seeds → mean) | ÷ ISLA weighted (0.250) | ÷ ISLA weights off (0.208) | cases / geometries lower than weighted ISLA |
+|---|---|---|---|---|
+| GeoTransolver, unit direction | 0.1888 / 0.1888 → 0.189 | 0.76 | 0.91 | 96 of 180 / 9 of 18 |
+| Transolver, unit direction (lr 3e-3) | 0.188 / 0.198 → **0.193** | **0.77** | **0.93** | 110 of 180 / 10 of 18 (median 1.10) |
+| ISLA, measure weights off | 0.204 / 0.212 → **0.208** | **0.83** | 1.00 | 149 of 180 / 15 of 18 (median 1.16) |
+| ISLA, measure weights on | 0.248 / 0.251 → 0.250 | 1.00 | 1.20 | — |
+
+**Interim reading.** Both unit-drive baselines beat weighted ISLA by the
+mean (0.76x, 0.77x) with an even per-geometry split; against ISLA's best
+fair configuration the gap narrows to 0.91x and 0.93x. Dropping the measure
+weights gains 17% at this rung (149 of 180 cases, 15 of 18 geometries), the
+largest weights-off gain so far and in the direction the variance reading
+predicts for a split with few, geometrically diverse training cases. NOW-L
+ladder tally (bf16, weights off versus on): 35 cases −12% (persists), 4
+geometries −17% (persists), DrivAerML 435 cars −2.8% (fades); 210 cases,
+21 geometries, 1,260 cases, fixed angle and deflection pending. The rule
+stands at ≥ 4 of 6 HiLift rungs persisting before the reference
+configuration changes, and the density-robustness cost of weights off
+(campaign E, bf16 preview: 18x degradation under a 10:1 sampling bias
+against 1.2x for the similarity gauge) is part of that decision.
