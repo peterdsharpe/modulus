@@ -10155,3 +10155,22 @@ paragraph and the verdict table's DrivAerML rows are rewritten; "8.5%
 behind" is retired. ISLA's third DrivAerML seed (`iw_mt2_lr1e3_seed44`,
 training) is added to the reference when it lands. Tech-tree change: WAVE-3
 arm 5 measured.
+
+**Correction (later the same day).** With pinning off, the same lanes stalled
+again (twice more on the probe lane, once across every interior lane at
+19:22–19:25 in three sessions), and the new stack dumps place the stuck rank
+inside the host-to-device copy of the loaded sample
+(`physicsnemo/mesh/domain_mesh.py:1686` → `TensorDict.to(device)`), with the
+other ranks in the step barrier. Pinning was a *site* of the hang, not its
+cause: on one rank the CUDA context stops completing host-side operations
+at a random point, on DrivAerML interior lanes only, with synchronized onset
+across nodes and sessions, which is a GPU-driver or shared-infrastructure
+condition outside user space (py-spy attach is denied on the nodes). The
+chains do progress between stalls. Mitigation adopted on every interior
+launcher: `PHYSICSNEMO_DIST_TIMEOUT_S=600` so a stalled link dies and
+resumes from its checkpoint in ten minutes rather than sixty, link
+recycling at 15 minutes idle, and `dataloader.pin_memory=false` kept
+because it removes one hang site. The +35% step-time caveat stands for
+unpinned lanes. Open question for the cluster team: what changed on the
+GB300 nodes' CUDA or driver side around 12:14 PDT on 2026-09-09 for jobs
+performing large host-to-device copies.
