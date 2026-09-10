@@ -9416,3 +9416,58 @@ minutes instead of sixty) and links idle for more than fifteen minutes are
 recycled; `pin_memory=false` is kept because it removes one hang site at a
 35% step-time cost. Expected loss: one stall per thirty to sixty minutes
 per lane, each costing ten minutes plus up to ten epochs of replay.
+
+## 2026-09-10 — Verdict: QTDENS — neither a query-density scalar nor an ISLA-native query-neighbour channel closes the interior eddy-viscosity gap (float32 ν_t 1.32x and 1.30x GeoTransolver-volume against the reference arm's 1.28x) {#sec-nb-qt-density-verdict}
+
+**Setting and bars** (@sec-nb-qt-density-prereg and its float32
+amendment). ISLA query tokens + SDF trails GeoTransolver-volume on eddy
+viscosity ν_t; two readings of GeoTransolver-volume's neighbouring-point
+aggregation competed: it reads the local sampling density (mesh scale,
+hence the hybrid RANS/LES closure's filter length) or it reads neighbouring
+flow geometry. Two flag-gated ISLA channels on the reference arm, two seeds
+each, frozen protocol, 365 surface cells: a density scalar (other queries
+within 0.05 gauge units) and a k = 16 neighbour aggregation of pair
+invariants including wall-distance differences. Graded on float32
+(@sec-nb-fp32-instrument): closes the gap if ν_t ≤ 0.0967, fails if
+ν_t ≥ 0.1099; pressure and velocity effects reported if outside 5% of the
+float32 reference arm (0.0520–0.0574 and 0.0756–0.0836). Training: both
+channels cost nothing at training time (0.28 s per step and 6.0 GB, identical
+to the reference arm); the lanes were slowed by the interior stall of
+@sec-nb-interior-stall-diagnosis, not by the channels.
+
+**Readout** (48 validation cars, two-seed means; float32 in
+`v0_evals_fp32/`, bf16 in `v0_evals/`; results/qtdens_reduction_2026-09-10.json):
+
+| arm | precision | pressure | velocity | ν_t (seeds) | ν_t ÷ GeoTransolver-volume |
+|---|---|---|---|---|---|
+| GeoTransolver-volume | float32 | 0.0515 | 0.1090 | 0.0877 (0.0869 / 0.0884) | 1.00 |
+| ISLA query tokens + SDF (reference) | float32 | 0.0548 | 0.0801 | 0.1122 (0.1058 / 0.1187) | 1.28 |
+| + query-density scalar | float32 | 0.0542 | 0.0779 | **0.1155** (0.1160 / 0.1150) | **1.32** |
+| + query-neighbour channel (k = 16) | float32 | 0.0541 | 0.0795 | **0.1138** (0.1069 / 0.1207) | **1.30** |
+| GeoTransolver-volume | bfloat16 | 0.0620 | 0.1334 | 0.0939 | 1.00 |
+| ISLA query tokens + SDF (reference) | bfloat16 | 0.0567 | 0.0853 | 0.1215 | 1.29 |
+| + query-density scalar | bfloat16 | 0.0564 | 0.0840 | 0.1252 | 1.33 |
+| + query-neighbour channel | bfloat16 | 0.0563 | 0.0855 | 0.1239 | 1.32 |
+
+**Verdict: neither closes the gap; both fail the bar.** In float32 the
+density arm's ν_t is 0.1155 and the neighbour arm's 0.1138, both above the
+0.1099 failure line and both within the reference arm's seed spread
+(0.1058–0.1187); the neighbour arm's own seeds span 0.1069–0.1207. Pressure
+(−1%) and velocity (−0.7% to −2.7%) stay inside the 5% band, so neither
+channel is a channel effect in its own right. The bf16 pass tells the same
+story with the expected offset (GeoTransolver-volume inflated 20–23%, ISLA
+4–8%, as @sec-nb-fp32-instrument found).
+
+**What it means.** The preregistration's fourth outcome: the ν_t gap is not
+in the query-side inputs at this width and depth. The instrumental reading
+is weakened rather than confirmed: a model given the sampling density
+directly gained nothing on ν_t, so whatever GeoTransolver-volume's local
+features supply, it is not recoverable from the density alone by this
+architecture (with the usual caveat that an available input may go unused
+in training). The physical reading is not supported either: relative
+geometry and wall-distance differences of the sixteen nearest queries add
+nothing. The remaining candidates for the gap are GeoTransolver-volume's
+effective width of 448 and its multi-radius encoding taken together, and
+the thread is deprioritized as the preregistration said it would be. The
+channels stay in the code as flag-gated, default-off options with contract
+tests; neither is adopted. Tech-tree change: QTDENS RUNNING → DONE (neither).
