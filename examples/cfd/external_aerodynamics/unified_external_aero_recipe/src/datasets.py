@@ -332,6 +332,7 @@ def build_dataset(
     device: str | torch.device | None = "auto",
     num_workers: int = 1,
     pin_memory: bool = False,
+    cache_host: bool = False,
 ) -> MeshDataset:
     """Build a single MeshDataset from a Hydra-style pipeline config.
 
@@ -398,7 +399,8 @@ def build_dataset(
 
     transforms = resolved if resolved else None
     return MeshDataset(
-        reader, transforms=transforms, device=device, num_workers=num_workers
+        reader, transforms=transforms, device=device, num_workers=num_workers,
+        cache_host=cache_host,
     )
 
 
@@ -624,6 +626,7 @@ def _build_manifest_val_dataset(
     device: str | torch.device | None,
     num_workers: int,
     pin_memory: bool,
+    cache_host: bool = False,
 ) -> MeshDataset | None:
     """Build a dedicated un-augmented validation dataset for manifest mode.
 
@@ -649,6 +652,7 @@ def _build_manifest_val_dataset(
         device=device,
         num_workers=num_workers,
         pin_memory=pin_memory,
+        cache_host=cache_host,
     )
 
 
@@ -799,6 +803,7 @@ def build_dataloaders(
     use_streams = dl_cfg.get("use_streams", False)
     num_workers = dl_cfg.get("num_workers", 1)
     pin_memory = dl_cfg.get("pin_memory", False)
+    cache_host = dl_cfg.get("cache_host", False)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     sampler_seed = cfg.training.get("seed", 0) or 0
 
@@ -899,6 +904,7 @@ def build_dataloaders(
             device=device,
             num_workers=num_workers,
             pin_memory=pin_memory,
+            cache_host=cache_host,
         )
         train_datasets.append(dataset)
 
@@ -938,6 +944,7 @@ def build_dataloaders(
                 device=device,
                 num_workers=num_workers,
                 pin_memory=pin_memory,
+                cache_host=cache_host,
             )
             val_dataset = (
                 manifest_val_dataset if manifest_val_dataset is not None else dataset
@@ -961,6 +968,7 @@ def build_dataloaders(
                 device=device,
                 num_workers=num_workers,
                 pin_memory=pin_memory,
+                cache_host=cache_host,
             )
             val_datasets.append(val_dataset)
             combined_val_indices.extend(

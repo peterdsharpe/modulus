@@ -82,6 +82,7 @@ class MeshDataset(DatasetBase):
         transforms: Sequence[MeshTransform] | None = None,
         device: str | torch.device | None = None,
         num_workers: int = 1,
+        cache_host: bool = False,
     ) -> None:
         """
         Parameters
@@ -97,9 +98,21 @@ class MeshDataset(DatasetBase):
             run :meth:`_load_host` (disk read + pin_memory) concurrently;
             GPU operations (H2D transfer, transforms) always run on the
             main thread in :meth:`_consume`.
+        cache_host : bool, default=False
+            Keep every sample returned by the reader in host memory after
+            its first read and serve later requests for the same index
+            from that cache, so a dataset of a few (possibly repeated)
+            samples is read from disk once. Intended for single-sample or
+            few-sample fitting runs; the cached sample is the reader's
+            output for that index (including any subsampling the reader
+            applied), so repeated indices return the identical sample.
+            Requires the device transfer or non-mutating transforms, since
+            the cached object is handed out again on the next request.
         """
         super().__init__(num_workers=num_workers)
         self.reader = reader
+        self.cache_host = bool(cache_host)
+        self._host_cache: dict[int, tuple[Any, dict[str, Any]]] = {}
         self.transforms = list(transforms) if transforms else []
         self._device = torch.device(device) if isinstance(device, str) else device
 
@@ -178,7 +191,7 @@ class MeshDataset(DatasetBase):
     ) -> tuple[Union[Mesh, DomainMesh, TensorDict], dict[str, Any]]:
         """Synchronous load: reader -> device transfer -> transforms."""
         with torch.profiler.record_function("MeshDataset._load: reader[index]"):
-            data, metadata = self.reader[index]
+            data, metadata = self._read_host(index)
 
         if self._device is not None:
             with torch.profiler.record_function("MeshDataset._load: data.to(device)"):
@@ -202,6 +215,17 @@ class MeshDataset(DatasetBase):
     # Producer / consumer split (overrides DatasetBase defaults)
     # ------------------------------------------------------------------
 
+    def _read_host(self, index: int) -> tuple[Union[Mesh, DomainMesh, TensorDict], dict[str, Any]]:
+        """Read one sample from the reader, through the host cache when enabled."""
+        if self.cache_host:
+            hit = self._host_cache.get(index)
+            if hit is not None:
+                return hit
+        data, metadata = self.reader[index]
+        if self.cache_host:
+            self._host_cache[index] = (data, metadata)
+        return data, metadata
+
     def _load_host(self, work_item: int) -> HostPayload:
         """Producer stage: read a mesh sample on a worker thread.
 
@@ -221,7 +245,7 @@ class MeshDataset(DatasetBase):
             error.
         """
         try:
-            data, metadata = self.reader[work_item]
+            data, metadata = self._read_host(work_item)
             return HostPayload(work_item=work_item, data=data, metadata=metadata)
         except Exception as e:  # noqa: BLE001
             return HostPayload(work_item=work_item, error=e)
