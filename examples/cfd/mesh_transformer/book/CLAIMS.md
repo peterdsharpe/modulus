@@ -1111,3 +1111,8 @@ interior control @sec-nb-udrv-int-prereg.
   'GeoTransolver reads the mesh density' hypothesis is weakened, not refuted"; never "the gap is
   discretization" or "the gap is capacity" (capacity is the candidate left standing, untested at
   matched width). `query_density_feature` / `query_neighbor_features` stay flag-gated, default off.
+- **Stale `.done` markers (2026-09-10 ops).** Evaluation `.done` markers mark completion, not
+  validity: the load-failed T2 evaluations left `.done` files, and a rerun skipped on them and
+  reproduced the 1.5301 / 1.5667 pair verbatim. When an evaluation is declared invalid (snapshot
+  hazard, wrong kernel flag, wrong precision), delete its output directory before resubmitting;
+  reducers must treat a repeated identical error across checkpoints as an artifact, never a value.
