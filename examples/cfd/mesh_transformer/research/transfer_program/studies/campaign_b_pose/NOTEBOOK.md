@@ -99,3 +99,16 @@ per-run submission marker then preventing a retry. Fix (cluster file
 `transfer/campaign_b_eval_aga.sbatch`, backup `.bak_4per`): one run per array task
 on GPU 0 (`idx = SLURM_ARRAY_TASK_ID`), default array 0–7. No evaluation had been
 submitted yet (no `.eval_submitted_*` markers), so nothing needs re-running.
+
+## 2026-09-10 — Float32 is the reporting instrument; canonical references re-pointed
+
+Per the program's CLAIMS rule 31a069280 (bf16 evaluation of one checkpoint varies by
+up to 6% between graphs), every campaign B run is evaluated in float32
+(`iw_evals_fp32/`) with bf16 alongside for the offset table, and the reducer now reads
+the canonical references from the main session's float32 re-evaluations in the same
+directory instead of the bf16 constants in PREREG.md: unit-drive GeoTransolver
+0.0503 (three seeds), unit-drive Transolver 0.0517 (lr 3e-3), ISLA 0.0558 (three seeds;
+the preregistration's 0.0588 / 0.0567 were bf16). The bars are ratios (posed ÷
+canonical, ISLA ÷ baseline) and are unchanged. The eval launcher's per-run
+submission markers for the two lanes evaluated in bf16 only were cleared once those
+evals finished, so their float32 evaluations were submitted by the watcher.
