@@ -1434,3 +1434,29 @@ variants transfers better than the reference, and the gauge's two seeds
 differ by 0.19 on this readout (artifacts
 `$T/transfer/fastback_zeroshot_fp32/<run>/fastback/`, launcher
 `studies/campaign_c_transfer/fastback_zeroshot_variants_aga.sbatch`).
+
+**Mechanism of the constant-gauge collapse, checked against the frozen code
+(addendum to @sec-nb-probe-convention).** The main session's derivation
+names the unweighted centroid as the one sampling-dependent quantity in the
+reference forward pass; verified in the snapshot that trained the reference
+(`code/physicsnemo/experimental/nn/mt2/model.py`): the constant-gauge branch
+centers by the plain mean of the sampled points (line 513) while the
+similarity gauge centers by the measure-weighted mean and scales by the
+weighted RMS radius (507–511); slice attention is a softmax over points of
+logits plus log measure weights (94, 124, 524), a Horvitz–Thompson
+weighting that is unbiased under spatially varying inclusion; the point-to-
+slice readback is a softmax over slices with no measure (127, 184); local
+features and virtual tokens are off in the reference. The centroid enters
+through the per-point seed features (r̂·d̂, r̂·n̂, |r|, lines 533–535) and the
+anchor directions; the relational terms r − z are translation-invariant.
+Two points added to the main session's preregistered test (weighted
+centering at evaluation should recover most of the 12x; falsifier ≥ 6x):
+the weighted attention's effective sample size in the sparse half drops
+about tenfold under the bias, so a variance residual of the gauge arm's
+size (1.21x) remains by construction; and with per-cell area weights the
+weighted centroid differs from the plain mean even on the uniform draw, so
+the clean comparison is uniform and biased both evaluated with weighted
+centering, with the uniform-plain number beside them as the cost of the
+frame change. The weights-off arm's 19x adds the loss of the HT weighting
+in the attention (log weights zero, line 521) and should not be recovered by
+weighted centering alone, a second prediction with a sign.
