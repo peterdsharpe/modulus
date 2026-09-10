@@ -68,7 +68,8 @@ def main(ref, cand, n=None):
             verdict = f"SUBSET frac={frac:.4f} second_half_in_order={second_half}"
             ok = frac > 0.999
         ok_all &= ok
-        print(f"{c}: ref {P.shape[0]} pts, cand {Q.shape[0]} pts, {verdict}; pressure_l2 ref {mref.get(c)} cand {mcand.get(c)}")
+        sid = c[: -len(".pdmsh")] if c.endswith(".pdmsh") else c  # prediction dirs carry the mesh suffix, metrics use the sample id
+        print(f"{c}: ref {P.shape[0]} pts, cand {Q.shape[0]} pts, {verdict}; pressure_l2 ref {mref.get(sid)} cand {mcand.get(sid)}")
     print("ALL_OK" if ok_all else "MISMATCH")
     return 0 if ok_all else 1
 

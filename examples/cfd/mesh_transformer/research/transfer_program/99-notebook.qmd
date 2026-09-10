@@ -505,3 +505,24 @@ for the same car; this is checked on the saved prediction artifacts for a
 few cars once the first D1 evaluation exists. A per-point relative L2 over
 a random half of the same sample is comparable with the full-sample value
 up to sampling noise, which the two-seed spread already exceeds.
+
+## 2026-09-09 — Verdict: the recorded V0 references stand under the D1 snapshot (per-car metrics bit-identical, sampled points identical) {#sec-nb-evalpoints-verdict}
+
+Check (1) of @sec-nb-evalpoints is complete. The four reference
+checkpoints (ISLA query tokens + SDF, seeds 42 and 43; GeoTransolver-volume,
+seeds 42 and 43) were re-evaluated on the 48 DrivAerML validation cars under
+`code_support` + `recipe_support` (job 695764, about two minutes per run
+on one GB300). Every per-car pressure, velocity and eddy-viscosity relative
+L2 agrees with the original evaluation (snapshot `code_isla2` + `recipe`)
+to the last printed digit, maximum per-car absolute difference 0.0, so the
+48-car means are unchanged: ISLA query tokens + SDF 0.0569 / 0.0850 /
+0.1172 (seed 42) and 0.0565 / 0.0855 / 0.1258 (seed 43), GeoTransolver-volume
+0.0622 / 0.1335 / 0.0934 and 0.0618 / 0.1332 / 0.0944; and the 10,000
+sampled interior points of three cars per run are identical between the
+two evaluations (`check_eval_points.py`, `allclose` at 10⁻⁶). The D1 and
+campaign-D lanes may therefore be compared with the recorded reference
+values, with one condition still to verify when the first D1 evaluation
+exists: that the 5,000 scored query points are the second half of the same
+10,000-point sample (check 2). Artifact:
+`studies/computational_support/ref_reeval_2026-09-09.json`; the
+re-evaluated outputs stay in `$T/v0_evals_support/`.
