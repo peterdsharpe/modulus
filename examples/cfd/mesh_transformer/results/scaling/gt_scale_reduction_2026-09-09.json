@@ -1,5 +1,5 @@
 {
- "instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure",
+ "instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure; density-bias probe biased/unif in fp32 where run",
  "runs": {
   "scale_gt_hl_w384_seed42": {
    "eval": {
@@ -7,10 +7,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 20,
-    "peak_mem_gb": 5.39,
-    "median_step_s": 1.5415,
-    "n_logged_steps": 6780,
+    "epochs_seen": 45,
+    "peak_mem_gb": 5.41,
+    "median_step_s": 1.55,
+    "n_logged_steps": 16621,
     "params": null
    }
   },
@@ -20,10 +20,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 20,
-    "peak_mem_gb": 5.39,
-    "median_step_s": 1.594,
-    "n_logged_steps": 6550,
+    "epochs_seen": 45,
+    "peak_mem_gb": 5.41,
+    "median_step_s": 1.566,
+    "n_logged_steps": 16349,
     "params": null
    }
   },
@@ -33,10 +33,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 20,
-    "peak_mem_gb": 6.14,
-    "median_step_s": 1.5230000000000001,
-    "n_logged_steps": 6908,
+    "epochs_seen": 45,
+    "peak_mem_gb": 6.16,
+    "median_step_s": 1.545,
+    "n_logged_steps": 16736,
     "params": null
    }
   },
@@ -46,10 +46,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 20,
+    "epochs_seen": 45,
     "peak_mem_gb": 6.18,
-    "median_step_s": 1.716,
-    "n_logged_steps": 6598,
+    "median_step_s": 1.763,
+    "n_logged_steps": 16254,
     "params": null
    }
   },
@@ -59,10 +59,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 26,
     "peak_mem_gb": 16.4,
-    "median_step_s": 2.401,
-    "n_logged_steps": 4617,
+    "median_step_s": 2.456,
+    "n_logged_steps": 11507,
     "params": null
    }
   },
@@ -72,10 +72,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 25,
     "peak_mem_gb": 16.55,
-    "median_step_s": 2.6189999999999998,
-    "n_logged_steps": 4642,
+    "median_step_s": 2.4305,
+    "n_logged_steps": 11491,
     "params": null
    }
   },
@@ -85,10 +85,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 13,
+    "epochs_seen": 25,
     "peak_mem_gb": 32.23,
-    "median_step_s": 2.676,
-    "n_logged_steps": 4807,
+    "median_step_s": 2.5505,
+    "n_logged_steps": 11702,
     "params": null
    }
   },
@@ -98,10 +98,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 26,
     "peak_mem_gb": 32.25,
-    "median_step_s": 2.63,
-    "n_logged_steps": 4539,
+    "median_step_s": 2.297,
+    "n_logged_steps": 11407,
     "params": null
    }
   },
@@ -111,10 +111,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 25,
     "peak_mem_gb": 18.97,
-    "median_step_s": 2.449,
-    "n_logged_steps": 4612,
+    "median_step_s": 2.585,
+    "n_logged_steps": 11377,
     "params": null
    }
   },
@@ -124,12 +124,24 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 25,
     "peak_mem_gb": 18.91,
-    "median_step_s": 2.7110000000000003,
-    "n_logged_steps": 4588,
+    "median_step_s": 2.497,
+    "n_logged_steps": 11383,
     "params": null
    }
+  },
+  "scale_gt_hl_c512x80k_seed42": {
+   "eval": {
+    "headline": null
+   },
+   "train": null
+  },
+  "scale_gt_hl_c512x80k_seed43": {
+   "eval": {
+    "headline": null
+   },
+   "train": null
   },
   "scale_gt_dr_w384_seed42": {
    "eval": {
@@ -520,6 +532,32 @@
     "n_logged_steps": 54134,
     "params": null
    }
+  },
+  "scale_gt_dr_c512x80k_seed42": {
+   "eval": {
+    "headline": null
+   },
+   "train": {
+    "completed": false,
+    "epochs_seen": 457,
+    "peak_mem_gb": 41.46,
+    "median_step_s": 0.205,
+    "n_logged_steps": 49384,
+    "params": null
+   }
+  },
+  "scale_gt_dr_c512x80k_seed43": {
+   "eval": {
+    "headline": null
+   },
+   "train": {
+    "completed": false,
+    "epochs_seen": 451,
+    "peak_mem_gb": 41.46,
+    "median_step_s": 0.209,
+    "n_logged_steps": 48671,
+    "params": null
+   }
   }
  },
  "arms": {
@@ -531,10 +569,10 @@
     "scale_gt_hl_w384_seed43"
    ],
    "headline": null,
-   "peak_mem_gb": 5.39,
-   "median_step_s": 1.5677500000000002,
+   "peak_mem_gb": 5.41,
+   "median_step_s": 1.558,
    "params": null,
-   "gpu_hours_500_epochs": 274.35625000000005
+   "gpu_hours_500_epochs": 272.65
   },
   "hl_w512": {
    "width": 512,
@@ -545,9 +583,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 6.18,
-   "median_step_s": 1.6195,
+   "median_step_s": 1.654,
    "params": null,
-   "gpu_hours_500_epochs": 283.4125
+   "gpu_hours_500_epochs": 289.45
   },
   "hl_t40k": {
    "width": 256,
@@ -558,9 +596,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 16.55,
-   "median_step_s": 2.51,
+   "median_step_s": 2.44325,
    "params": null,
-   "gpu_hours_500_epochs": 439.24999999999994
+   "gpu_hours_500_epochs": 427.56875
   },
   "hl_t80k": {
    "width": 256,
@@ -571,9 +609,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 32.25,
-   "median_step_s": 2.653,
+   "median_step_s": 2.42375,
    "params": null,
-   "gpu_hours_500_epochs": 464.275
+   "gpu_hours_500_epochs": 424.15625
   },
   "hl_c384x40k": {
    "width": 384,
@@ -584,9 +622,18 @@
    ],
    "headline": null,
    "peak_mem_gb": 18.97,
-   "median_step_s": 2.58,
+   "median_step_s": 2.541,
    "params": null,
-   "gpu_hours_500_epochs": 451.5
+   "gpu_hours_500_epochs": 444.675
+  },
+  "hl_c512x80k": {
+   "width": 512,
+   "tokens": 80000,
+   "runs": [
+    "scale_gt_hl_c512x80k_seed42",
+    "scale_gt_hl_c512x80k_seed43"
+   ],
+   "headline": null
   },
   "dr_w384": {
    "width": 384,
@@ -772,6 +819,19 @@
    "median_step_s": 0.1745,
    "params": null,
    "gpu_hours_500_epochs": 10.47
+  },
+  "dr_c512x80k": {
+   "width": 512,
+   "tokens": 80000,
+   "runs": [
+    "scale_gt_dr_c512x80k_seed42",
+    "scale_gt_dr_c512x80k_seed43"
+   ],
+   "headline": null,
+   "peak_mem_gb": 41.46,
+   "median_step_s": 0.207,
+   "params": null,
+   "gpu_hours_500_epochs": 12.42
   }
  },
  "references": {
@@ -1023,5 +1083,30 @@
    "pressure_l2": 0.04983512874847899,
    "instrument": "fp32"
   }
+ },
+ "probe": {
+  "uw_gt_unit_lr1e3_seed42": {
+   "unif_pressure_l2": 0.05025228252634406,
+   "biased_pressure_l2": 0.5918606234093508,
+   "biased_over_unif": 11.777785876672887,
+   "root": "transfer/campaign_e_fp32"
+  },
+  "uw_gt_unit_lr1e3_seed43": {
+   "unif_pressure_l2": 0.051019253209233284,
+   "biased_pressure_l2": 0.4010201922307412,
+   "biased_over_unif": 7.860173699252932,
+   "root": "transfer/campaign_e_fp32"
+  },
+  "uw_gt_unit_lr1e3_seed44": {
+   "unif_pressure_l2": 0.050370418932288885,
+   "biased_pressure_l2": 0.44516767747700214,
+   "biased_over_unif": 8.837879194044918,
+   "root": "transfer/campaign_e_fp32"
+  }
+ },
+ "provenance": {
+  "eval_logs_checked_for_skipped_load": 36,
+  "eval_logs_with_skipped_load": [],
+  "evaluation_snapshot": "the ten DrivAerML lanes and the references were evaluated under the training snapshot code; from 2026-09-10 the eval, fp32 and probe launchers import the program-wide evaluation snapshot code_eval, identity-checked by the main session (uw_gt_unit_lr1e3_seed42 under code vs code_eval: bitwise identical in float32, zero skipped loads), so both sets are the same function"
  }
 }
