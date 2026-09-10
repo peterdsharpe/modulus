@@ -9811,3 +9811,16 @@ The reference already has its probe (transfer/campaign_e_fp32): uniform
 **11.8 / 7.9 / 8.8** — the unit-drive GeoTransolver at 9M parameters and
 10,000 cells loses an order of magnitude under a 10:1 density bias. The
 corner arm's probe runs when its chains finish; the reducer carries both.
+
+**Provenance (2026-09-10).** Thirty-six evaluation and probe logs (ten
+lanes in two precisions, the reference lanes, and the reference probes) were
+scanned for a silently skipped checkpoint load ("skipping load" / "Could not
+find valid model file"): zero hits. The ten lanes and the references were
+evaluated under the training snapshot `code`; from this date the evaluation,
+fp32 and probe launchers import the program-wide evaluation snapshot
+`code_eval`, identity-checked by the main session on
+`uw_gt_unit_lr1e3_seed42` (bitwise identical to `code` in float32, zero
+skipped loads), so both sets of evaluations are the same function. Wall
+shear (fp32, two-seed means) moves with pressure: wss_x 0.0540 / 0.0533 /
+0.0541 / 0.0530 / 0.0518 for w384 / w512 / t40k / t80k / c384x40k against
+the same components under bf16 about 10% higher.
