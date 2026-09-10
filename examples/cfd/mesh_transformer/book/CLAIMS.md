@@ -962,3 +962,10 @@ interior control @sec-nb-udrv-int-prereg.
   Transolver 0.0517 < ISLA weights off 0.0544 < ISLA 0.0558 (GT 10% ahead). Density robustness
   (fp32): gauge ISLA 1.21x; unit GT 9.5x; Transolver 3.9x; constant-gauge ISLA 12.1x; weights-off
   ISLA 19.1x. Write "the similarity gauge is the mechanism, at a 10–20% uniform-draw cost".
+- **Physics residuals on the saved interior samples are not meaningful (2026-09-09, transfer
+  session H1, research/transfer_program #sec-nb-h1-verdict).** The 10,000-point interior sample
+  (6e-5 of the mesh; neighbours 3–16 cm apart) does not resolve the field: a meshfree Laplacian
+  of an analytic field is off 12% median / 124% mean, the true velocity's discrete divergence is
+  35% of its gradient norm, and pressure recovered from the TRUE velocity misses by 7.7x. Never
+  quote a divergence or momentum-residual diagnostic computed on these artifacts; such diagnostics
+  need dense re-sampled evaluations or the full mesh.
