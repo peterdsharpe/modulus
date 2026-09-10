@@ -93,6 +93,78 @@
    "pose_note": "with SO(3) augmentation",
    "zero_shot_fastback": null,
    "few_shot_gain": null
+  },
+  "geotransolver_unit_mw": {
+   "label": "GeoTransolver, unit drive, measure-weighted pooling (lr 1e-3)",
+   "runs": "mw_dr_gt_unit_lr1e3_seed{42,43}",
+   "in_family": 0.0498,
+   "in_family_seeds": [
+    0.0492,
+    0.0505
+   ],
+   "density_factor": 1.02,
+   "density_seeds": [
+    1.03,
+    1.01
+   ],
+   "pose_factor": null,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "MW steel-man (#sec-nb-mw-verdict); probe frame from the pipeline pool mean"
+  },
+  "transolver_unit_mw": {
+   "label": "Transolver, unit drive, measure-weighted pooling (lr 3e-3)",
+   "runs": "mw_dr_transolver_unit_lr3e3_seed{42,43}",
+   "in_family": 0.0522,
+   "in_family_seeds": [
+    0.0519,
+    0.0525
+   ],
+   "density_factor": 1.025,
+   "density_seeds": [
+    1.02,
+    1.03
+   ],
+   "pose_factor": null,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "MW steel-man"
+  },
+  "isla_similarity_gauge_lr1e3": {
+   "label": "ISLA, similarity gauge (lr 1e-3, rate-matched)",
+   "runs": "w4_dr_mt2_gauge_lr1e3_seed{42,43}",
+   "in_family": 0.0543,
+   "in_family_seeds": [
+    0.0552,
+    0.0534
+   ],
+   "density_factor": 1.2,
+   "density_seeds": [
+    1.18,
+    1.22
+   ],
+   "pose_factor": 1.01,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "#sec-nb-wave4-drivaer-note; zero-shot fastback pending"
+  },
+  "isla_constant_gauge_mcenter": {
+   "label": "ISLA, constant gauge, measure-weighted centring (lr 1e-3)",
+   "runs": "cg_dr_mt2_mcenter_seed{42,43}",
+   "in_family": 0.0548,
+   "in_family_seeds": [
+    0.055,
+    0.0545
+   ],
+   "density_factor": 1.17,
+   "density_seeds": [
+    1.17,
+    1.18
+   ],
+   "pose_factor": 1.01,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "#sec-nb-center-lanes-verdict; sample-statistic frame, not a flagship candidate under the ruling"
   }
  },
  "hilift_pending": "HiLift density and area-resampling factors come from the consistency benchmark (#sec-nb-bench-prereg); until it lands the HiLift rows carry accuracy only",

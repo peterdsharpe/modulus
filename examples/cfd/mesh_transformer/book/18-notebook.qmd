@@ -13589,3 +13589,122 @@ exists, the same 512 × 80,000 corner is run with it and its row replaces the
 gauge row as the adoptable one; until then "the configuration the program
 can adopt" above should be read as "the frame class the program adopts,
 measured here through its similarity-gauge instance".
+
+## 2026-09-10 — Verdict, MW: with measure-weighted slice pooling the baselines keep their lead over ISLA (0.0498 / 0.0522 on DrivAerML, 0.1173 / 0.1217 at 35 HiLift cases) and become the most density-consistent configurations measured (1.02x under the 10:1 bias) {#sec-nb-mw-verdict}
+
+The MW study (@sec-nb-mw-prereg) gave GeoTransolver and Transolver the same
+quadrature measure ISLA carries, in their slice softmax (each point's
+contribution weighted by its cell area times the Horvitz–Thompson weight;
+flag `measure_weighted_slices`, contract-tested: duplicating half the tokens
+at half measure leaves the output unchanged, which the unweighted models
+fail). Ten lanes trained under the frozen protocol with the unit drive
+(HiLift 35 cases, three seeds each at 3e-3; DrivAerML 435 cars, two seeds,
+GeoTransolver 1e-3 and Transolver 3e-3), snapshot code_mw; float32
+evaluation and the 10:1 density probe under the same snapshot (no loader
+warnings). Artifact: `results/mw_w4dr_xfam_reduction_2026-09-10.json` (block `mw`).
+
+| architecture, measure-weighted pooling | DrivAerML (seeds → mean) | unweighted reference | density 10:1 (seeds → mean) | HiLift 35 (seeds → mean) | unweighted reference | ÷ ISLA 0.1377 |
+|---|---|---|---|---|---|---|
+| GeoTransolver, unit drive | 0.0492 / 0.0505 → **0.0498** | 0.0503 | 1.03 / 1.01 → **1.02x** | 0.1127 / 0.1220 / 0.1173 → **0.1173** | 0.1102 | 0.85x |
+| Transolver, unit drive | 0.0519 / 0.0525 → **0.0522** | 0.0517 | 1.02 / 1.03 → **1.025x** | 0.1211 / 0.1207 / 0.1234 → **0.1217** | 0.1142 | 0.88x |
+
+**Against the bars.** DrivAerML: both weighted baselines are within seed
+spread of their unweighted selves and far below the 0.0530 "lead survives"
+bar; the density factor falls from 9.5x (GeoTransolver) and 3.9x
+(Transolver) to 1.02x, under the 1.5x "measure-consistent" bar and below
+every ISLA configuration measured (similarity gauge 1.21x, measure centering
+1.17x). HiLift 35: the weighted baselines pay 6.5% (GeoTransolver 0.1102 →
+0.1173) and 6.6% (Transolver 0.1142 → 0.1217) but stay under the 0.131 bar,
+so the lead over ISLA survives at 0.85x and 0.88x; part of the baselines'
+HiLift lead was the density read (about a third of it), most was not. The
+prediction held on both counts: on the cars the read had nothing to carry;
+on the wings it carried some.
+
+**Reading, stated plainly.** Unweighted slice pooling is a removable hack.
+With measure semantics GeoTransolver and Transolver keep their
+in-distribution lead over ISLA on both datasets (free on the cars, 6.5% on
+the wings) and become the most density-consistent configurations measured,
+so at the reference size ISLA's contracts buy neither accuracy nor
+consistency; what ISLA retains is exact equivariance under arbitrary poses
+(6–19%, @sec-nb-campb-verdict), the interior velocity and near-wall lead at
+matched parameters (@sec-interior), and the memory footprint at scale.
+Measure-weighted pooling is the recommended repair for the Transolver family:
+a principled, general fix of exactly the kind this program should ship, and
+it lands in the repository flag-gated and default-off with its contract
+tests. Two qualifications belong beside that sentence. First, a structural asymmetry in the probe: the datapipe
+centres every architecture's coordinates by the plain mean of the reader's
+40,000-cell uniform pool (`CenterMesh`, before the biased second-stage draw),
+so the baselines see an unbiased frame from the pipeline while ISLA
+re-centres inside the model on the biased 10,000-cell sample; the baselines'
+1.02x therefore measures the slice pooling with the frame held fixed, and the
+pool-mean centring is itself a sample statistic of the kind Peter's ruling
+removes from the flagship (@sec-nb-relframe-prereg). ISLA's residual 1.17–1.21x
+is that in-model frame estimate, which RELFRAME removes; a like-for-like
+probe with the pipeline's centring moved after the biased draw (the frame a
+biased mesher would deliver) is being run on the weighted and unweighted
+baselines so that both numbers sit side by side. Second, the HiLift
+consistency of the weighted baselines is not yet measured (no HiLift density
+probe; the BENCH samplers are being run on these checkpoints), and the
+BENCH area sampler (@sec-nb-bench-verdict) is the harder test: whether the
+weighted baselines converge under it, as the measure-weighted ISLA arms do
+and the unweighted baselines do not, is the readout that decides whether
+"measure semantics" has been transferred or only the bias probe passed.
+Chapter 5's 35-case table and chapter 6's matrix gain these rows; the code
+is flag-gated and default-off in the repository.
+
+## 2026-09-10 — WAVE-4 note: the similarity gauge at the reference learning rate on DrivAerML is at parity (0.0543 against 0.0557) with density 1.20x {#sec-nb-wave4-drivaer-note}
+
+The rate-matched pair added after @sec-nb-gauge-lr-confound
+(w4_dr_mt2_gauge_lr1e3_seed{42,43}; similarity gauge, unit drive, lr 1e-3,
+snapshot code) scores 0.0552 / 0.0534 → **0.0543** in float32 against the
+constant-gauge reference's 0.0557 (0.975x, inside seed spread), with biased
+÷ uniform 1.18 / 1.22 → **1.20x** under the 10:1 probe (evaluation snapshot
+code_eval; no loader warnings; artifact `results/mw_w4dr_xfam_reduction_2026-09-10.json`, block `w4dr`).
+The gauge's DrivAerML "price" is confirmed to have been the learning-rate
+confound: at matched rate it costs nothing and buys the 12x → 1.2x density
+robustness. Its HiLift prices stand (1.076x at 35 cases, 1.074x at 4
+geometries, both rate-matched). Under Peter's ruling the gauge's
+sample-statistic frame is still not the flagship's; these numbers are the
+gauge row of the matrix.
+
+## 2026-09-10 — Verdict, XFAM (interim, one arm pending): no single ISLA ingredient carries the cross-family deficit; anchors and seeds are null, the gauge points the wrong way, the deficit is distributed {#sec-nb-xfam-verdict}
+
+The XFAM study (@sec-nb-xfam-prereg) trained the rival-hypothesis arms on
+DrivAerML (435 cars, unit drive, lr 1e-3, three seeds each, snapshot code)
+and evaluated them zero-shot on the 99 SHIFT-SUV fastback cases in float32
+under the same snapshot (no loader warnings). Reference ISLA 0.788 (0.782 /
+0.794), unit-drive GeoTransolver 0.612; bars: ≤ 0.70 carries the deficit,
+0.70–0.76 contributes, ≥ 0.76 does not. Artifact `results/mw_w4dr_xfam_reduction_2026-09-10.json` (block
+`xfam`) and the transfer session's variant evaluations
+($T/transfer/fastback_zeroshot_fp32).
+
+| hypothesis | arm | zero-shot fastback (seeds → mean) | in-family DrivAerML (mean) | reading |
+|---|---|---|---|---|
+| H2 slice bottleneck | n_slices 128 | 0.827 / 1.084 / 1.034 → 0.98 | 0.0553 | worse; does not carry |
+| H2 slice bottleneck | n_slices 512 | 0.829 / 0.779 / 1.001 → 0.87 | 0.0545 | worse; does not carry |
+| H3 drive-relative invariants | raw seeds (seed_mode=raw) | 0.822 / 0.825 / 0.654 → 0.767 | 0.0534 | ≥ 0.76: does not carry (one seed at 0.65, spread 0.17) |
+| H1 absolute scale | similarity gauge (lr 3e-3) | 1.038 / 0.851 → 0.945 | 0.0616 | wrong way; lr 1e-3 pair being evaluated |
+| H4 measure weights | weights off | 0.802 / 0.811 → 0.806 | 0.0544 | null |
+| (partial H2) | 2,560 query-independent anchors | 0.800 / 0.900 → 0.850 | — | worse; two-factor variant |
+
+**No arm reaches the 0.70 bar; none reaches 0.76 with its seed mean.** The
+anchor count moves the zero-shot error the wrong way at both 128 and 512;
+the raw seeds are within seed spread of the reference (and 4% better
+in-family, consistent with A35B's finding that the invariant seed set is
+not load-bearing); the gauge is worse; the measure weights are null. The
+seed spreads on this readout are large (0.17–0.26 across three seeds for
+the anchor arms), which the preregistration anticipated by requiring three
+seeds and which itself says the zero-shot fastback number is dominated by
+what the optimizer happens to find, not by the ingredient. The deficit is
+therefore distributed, the H5 reading: ISLA's DrivAerML representation
+transfers worse than GeoTransolver's for no single architectural reason
+that these arms can name, and the campaign C closure (mixing cost grows
+with foreign share for ISLA only; coverage of the sibling family, not a
+family flag, is what transfers) points to training diversity as the lever.
+The H1 row is finalized when the rate-matched gauge pair's zero-shot numbers
+land; a result at or below 0.70 there would reopen the scale hypothesis.
+Follow-up under @sec-principle: no architecture change is proposed from
+this study; the cross-family question moves to data (which families, how
+many, mixed how) and to RELFRAME's zero-shot numbers once trained, since a
+frame-free model is the first ISLA whose fastback error is not tied to a
+DrivAerML-fitted centroid.

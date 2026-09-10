@@ -1351,3 +1351,20 @@ interior control @sec-nb-udrv-int-prereg.
   demonstrates the FRAME CLASS (density-blind frame costs nothing at scale), not an adopted configuration;
   write "the frame class" and "under decision", never "adopted at scale". (4) Area-proportional / shortcut
   study greenlit (fork). (5) HiLift reader slowdown accepted, no read fix now.
+- **MW verdict (2026-09-10, fp32; results/mw_w4dr_xfam_reduction_2026-09-10.json).** Measure-weighted
+  pooling: GT-mw DrivAerML 0.0498 (0.0492/0.0505; unweighted 0.0503), density 1.02x (1.03/1.01); Transolver-mw
+  0.0522 (0.0519/0.0525; 0.0517), 1.025x. HiLift 35: GT-mw 0.1173 (0.1127/0.1220/0.1173; unweighted 0.1102,
+  +6.5%) = 0.85x ISLA; Transolver-mw 0.1217 (+6.6%) = 0.88x ISLA. Both "lead survives". Write "the
+  principled baselines keep their lead and are the most density-consistent configurations measured
+  (1.02x)"; ALWAYS add: the probe's CenterMesh centres all inputs by the 40k uniform pool's plain mean
+  BEFORE the biased draw, so the baselines' frame is unbiased from the pipeline while ISLA re-centres
+  on the biased sample — the baselines' pool-mean centring is a sample-statistic frame too (Peter's
+  ruling). HiLift consistency of MW: pending BENCH samplers. Never write "measure semantics transferred"
+  until the area-sampler trend is measured for the MW checkpoints.
+- **Gauge at lr 1e-3 on DrivAerML (2026-09-10).** 0.0543 (0.0552/0.0534) vs constant 0.0557 → 0.975x;
+  density 1.20x (1.18/1.22). Confirms the lr confound; the gauge is free on DrivAerML at matched rate.
+- **XFAM interim verdict (2026-09-10).** Zero-shot fastback (ref 0.788): n_slices 128 → 0.98, 512 → 0.87,
+  raw seeds 0.767 (0.822/0.825/0.654), gauge (3e-3) 0.945, weights-off 0.806, v5a4 0.850. No arm ≤ 0.70;
+  deficit DISTRIBUTED (H5). Write "no single ISLA ingredient carries the cross-family deficit"; never name
+  a carrier. Seed spreads 0.17–0.26 on this readout: three seeds minimum, quote spreads. H1 closes when
+  the lr 1e-3 gauge pair's zero-shot lands.
