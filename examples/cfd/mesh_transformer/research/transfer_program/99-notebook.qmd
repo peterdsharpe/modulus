@@ -526,3 +526,35 @@ exists: that the 5,000 scored query points are the second half of the same
 10,000-point sample (check 2). Artifact:
 `studies/computational_support/ref_reeval_2026-09-09.json`; the
 re-evaluated outputs stay in `$T/v0_evals_support/`.
+
+## 2026-09-09 — Ops: the interior stall recurred at 19:22 with pinned memory off; pinning was a site, not the cause {#sec-nb-ops-stall3}
+
+Third synchronized stall of the day. Every DrivAerML interior lane on the
+cluster, mine (six D1, four campaign-D) and the main session's (density and
+neighbour arms, ISLA query-token seed 44), stopped logging between 19:22 and
+19:25, all running with `dataloader.pin_memory=false`; one D1 lane
+(support-12, seed 42) followed at 19:32. At the same minutes every surface
+and HiLift lane on the cluster (campaigns A, B and C, the scaling study, the
+main session's seven unit-drive DrivAerML surface lanes, which finished and
+evaluated normally) kept stepping, and a login-node directory listing on the
+same Lustre file system returned in 90 ms. The reading of @sec-nb-ops-pin,
+that pinned memory is the cause, is therefore superseded. The main session's
+latest stack dumps place the stuck rank inside the host-to-device copy of
+the loaded sample (`TensorDict.to(device)` from `domain_mesh.py`), with the
+other ranks waiting in the step barrier: one rank's CUDA context stops
+completing host-side operations, and pinning was merely where it first
+showed. Two facts constrain the cause: it is interior-only (the volume
+lanes are the only ones moving 10,000-point interior arrays per sample,
+with the largest host-to-device traffic), and the onset is synchronized
+across about fifteen nodes and two sessions (17:34, 19:22), which argues
+for a shared trigger rather than per-node driver state. Neither is fixable
+in user space; the main session is surfacing the driver-side question to
+Peter for the cluster team. Mitigation both sessions converge on: a short
+collective timeout so the ranks die instead of idling (my launchers go from
+1,200 s to 600 s for future links; the ranks reported NCCL timeouts at
+19:42–19:45 and the links exit and restart from the last epoch checkpoint)
+plus link recycling on a 15-minute idle log. Each stall costs one timeout
+plus one partial epoch per lane; at roughly one stall per 30–60 minutes per
+lane this is a 10–25% throughput loss on the interior campaigns, tolerable,
+and the reader hand-off's bounded wait remains a robustness fix worth
+carrying upstream independently.
