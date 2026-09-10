@@ -11298,3 +11298,139 @@ The single-sample track's attempt is archived as not a result and relaunched
 with `step_size=4000` (fixed cached sample and 64 cycled cached views, twelve
 lanes each, float32-training arms included). Protocol statement amended in
 @sec-protocol; rule recorded in CLAIMS.
+
+## 2026-09-09 — SCALE, ISLA arm launched: 24 lanes; the heaviest configurations fit with room to spare (width 512 at 6.1 GB, 80,000 tokens at 13 GB) {#sec-nb-scale-isla-launch}
+
+**What runs.** The ISLA rows of @sec-nb-scale-prereg, from lane table
+highlift/scale_lanes_isla.tsv through highlift/hl_scale_isla_aga.sbatch
+(cloned from the wave-2 launcher: 3600 s distributed timeout, per-link
+failure fingerprint, chain-ahead singleton). Three amendments from the
+coordinating session, applied before launch: the code snapshot is
+`code_isla5` (52eb29ec5), whose default-flag forward is bitwise the reference
+model and which exposes the exact activation recompute; the token arms
+(40,000, 80,000 and the 384 × 40,000 corner) run with
+`+model.geo_checkpoint=true` (forward bitwise unchanged; without it the
+80,000-token lanes would not fit at width 512); and one de-confounding pair
+per dataset was added, `w384nw` = width 384 with the routing measure
+weights off (rows 20–23), because the weights-off ladder (@sec-nb-noweights-prereg,
+@sec-nb-wave3-prereg) may move ISLA's reference by about 12% and the two
+knobs must not be confused. Every other ISLA arm here runs with measure
+weights *on*, the reference configuration. The existing 20,000-token ISLA
+lanes `floor_hl_mt2_full_20k_seed{42,43}` (physical-drive era; ISLA's drive
+input is the unit direction regardless) serve as the 20k rung of the HiLift
+token ladder when they land.
+
+**Acceptance of the heaviest arms** (first link, four B300 GPUs per lane;
+from each lane's train.log):
+
+| arm | parameters | peak memory per GPU | step time | steps per epoch | projected training time |
+|---|---|---|---|---|---|
+| HiLift width 512, 10k | 60.2M | 6.1 GB | 1.28 s | 315 | ~2.3 days |
+| HiLift width 192, 80k (recompute) | 8.9M | 13.0 GB | 3.44 s | 315 | ~6.3 days |
+| DrivAerML width 512, 10k | 60.2M | 6.1 GB | 0.30 s | 108 | ~4.5 hours |
+| DrivAerML width 192, 80k (recompute) | 8.9M | 12.6 GB | 3.40 s | 108 | ~2.1 days |
+
+No lane exceeded 13 GB of the 288 GB available; the study is bounded by
+step time, not memory. HiLift's step is four times DrivAerML's at equal
+width and token count (five target fields and a heavier data pipeline), so
+the HiLift 80,000-token arm is the long pole. Remaining sixteen lanes
+(width 384, 40,000 tokens, the corner, the weights-off pair; both datasets)
+launched after acceptance. Evaluation: highlift/hl_scale_isla_eval_aga.sbatch
+per lane; reduction results/scaling/reduce_scale_isla.py.
+
+**Amendment after the performance track's result (same day).** The
+performance track found the point-over-slices softmax kernel to be 85–95% of
+ISLA's step and replaced it (`fast_point_softmax`, default on; exact to
+1e-11 in float64; 1.0–1.5% relative L2 against the old kernel under bf16,
+the size of the model's own bf16-versus-fp32 difference). Three changes,
+each stated with its provenance: the four 80,000-cell lanes were cancelled
+a few hours into a six-day run, their partial run directories deleted, and
+resubmitted from the snapshot `code_perf` (5eaee07e7) through a launcher
+clone, highlift/hl_scale_isla_perf_aga.sbatch, that differs from the
+original only in `CODE`; the width and 40,000-cell arms stay on
+`code_isla5`, whose numerics match the book's checkpoints. Rows 24–27 add
+the largest configuration in the grid, `c512x80k` (width 512 with 80,000
+cells, both datasets, seeds 42/43), and rows 28–29 add a kernel control,
+the DrivAerML reference configuration (width 192, 10,000 cells, weights
+on, lr 1e-3) trained from `code_perf`; all six from the fast kernel.
+**Bar for the kernel control:** the fast kernel is *training-neutral* if
+its two-seed mean pressure error is within 3% of the reference 0.0577
+(seeds 0.0588 / 0.0567); if it differs by 5% or more, every fast-kernel arm
+is reported as a separate numerics family and not pooled with the
+reference-kernel arms. Every arm trained from `code_perf` is labelled
+"trained with the fast point-softmax kernel; numerics differ from the
+reference checkpoints at bf16 roundoff" in the reduction and the verdict.
+
+**Second amendment (same day).** The merged code ships the fast kernel
+opt-in (`fast_point_softmax` default False until training neutrality is
+shown); the `code_perf` snapshot predates that flip. Every lane run from
+`code_perf` therefore carries `+model.fast_point_softmax=true` in its lane
+row so the hydra override in its log names the kernel explicitly (rows 6,
+7, 16, 17 and 24–29 of highlift/scale_lanes_isla.tsv); the ten lanes had
+started a minute earlier without the flag and were cancelled, their run
+directories (startup logs only) deleted, and their chains left to restart
+from the flagged rows. All other ISLA lanes in this study run the
+reference kernel.
+
+**Acceptance of the fast-kernel lanes** (first link, four GPUs per lane):
+
+| arm (fast point-softmax kernel) | peak memory per GPU | step time | projected training time |
+|---|---|---|---|
+| DrivAerML kernel control (width 192, 10k) | 3.7 GB | 0.11 s | ~1.7 hours |
+| HiLift width 192, 80k | 12.3 GB | 0.31 s | ~13.5 hours (was ~6.3 days) |
+| DrivAerML width 192, 80k | 12.3 GB | 0.26 s | ~4 hours (was ~2.1 days) |
+| HiLift width 512, 80k | 22.4 GB | 0.34 s | ~15 hours |
+| DrivAerML width 512, 80k | 22.4 GB | 0.29 s | ~4.5 hours |
+
+The point-over-slices softmax was the step, not the invariants: with it
+replaced, an 80,000-token ISLA at width 512 costs a tenth more per step
+than the reference configuration did, at 22 GB of the 288 available.
+
+**Third amendment: float32 as the reporting instrument.** Following the
+program-wide protocol change (@sec-nb-snapshot-ladder-verdict: bf16
+evaluation moves a trained ISLA checkpoint's error by several percent with
+the rounding pattern), every SCALE lane is evaluated twice: with the
+existing bf16 launcher (hl_evals/<run>/) and with a float32 clone
+(highlift/hl_scale_isla_eval_fp32_aga.sbatch and its code_perf twin,
+`precision=float32`, hl_evals_fp32/<run>/). The reducer asserts per case
+that the two artifacts sampled bit-identical points, reports the float32
+numbers as the headline with the bf16 numbers and the per-run shift
+alongside, and takes the reference arms' float32 re-evaluations from the
+re-evaluation campaign when they exist, otherwise their bf16 numbers with
+that label. Reference-kernel lanes are evaluated with the fast kernel off;
+code_perf lanes with it on, as trained (under float32 the two kernels agree
+to 1e-6).
+
+**First readout (DrivAerML, width 512; float32 instrument).** ISLA at width
+512 (60.2M parameters) scores 0.0508 against the reference width's 0.0557
+(float32 re-evaluation of `iw_mt2_lr1e3_seed{42,43}`; bf16 0.0577), a ratio
+of 0.91: the width-scaling bar (≥ 5% better) is met on DrivAerML. The cost
+of the 6.8x parameter increase is 2% in step time (0.278 against 0.273 s)
+and 22.7 against 21.3 GPU-hours, at 6.1 GB peak memory: at 10,000 tokens
+and width 192 the B300 is not compute-bound, so width is nearly free here.
+Both evaluations sampled bit-identical points; the fp32-over-bf16 shift is
+0.949 for the wide model and 0.965 for the reference. Partial artifact
+results/scaling/isla_scale_reduction_2026-09-09.json (overwritten as arms
+land).
+
+**DrivAerML width ladder complete (float32 instrument; 48 validation cars,
+two-seed means).** Reference width 192 (8.9M) 0.0557 → width 384 (34.2M)
+0.0516 (0.93x) → width 512 (60.2M) 0.0508 (0.91x); bf16 evaluations
+0.0577 / 0.0544 / 0.0536 with fp32-over-bf16 shifts 0.965 / 0.949 / 0.949.
+Step times 0.273 / 0.274 / 0.278 s and peak memory 9.8 (older code) / 5.2 /
+6.1 GB: the 6.8x parameter increase is free in wall-clock at 10,000 tokens.
+The de-confound pair, width 384 with the routing measure weights off, scores
+0.0505 (0.979 of the weighted width-384 arm, within the 3% "fades" band of
+@sec-nb-noweights-prereg): at full DrivAerML data and width 384 the weights
+cost 2%, against 12% at 35 HiLift cases, so the two knobs are nearly
+independent here and the width gain is not a weights artifact. Width bar 1
+on DrivAerML: **scales** (0.91 ≤ 0.95).
+
+**Kernel control: the fast point-softmax kernel is training-neutral.** The
+DrivAerML reference configuration trained from `code_perf` with
+`+model.fast_point_softmax=true` scores 0.0567 in float32 against the
+reference lanes' 0.0557 (+1.8%, inside the 3% bar; bf16 0.0596 against
+0.0577, +3.3%), at 0.161 s per step against 0.273 and 3.9 GB against 9.8 GB
+(the reference lanes ran older code). The fast-kernel arms (80,000 tokens
+and the 512 × 80,000 pilot) are therefore pooled with the reference-kernel
+arms in the verdict, each still labelled with its kernel.
