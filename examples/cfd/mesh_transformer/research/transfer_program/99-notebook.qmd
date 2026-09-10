@@ -1153,3 +1153,121 @@ weights-off recommendation at 35 cases is qualified as a draw-dependent
 gain of 5–10%; and any future single-draw comparison on HiLift is a
 measurement of that draw. The 210-case rung decides whether the ratios
 tighten with data, as the ladder's slopes suggest.
+
+## 2026-09-10 — Instrument hazard: a legacy surface ISLA checkpoint evaluated under the D1 code snapshot scores 1.57 because the loader silently skips its weights file; campaign C's ISLA fine-tune result held as provisional pending a frozen-init probe {#sec-nb-snapshot-hazard}
+
+**Symptom.** The single-family ISLA references for campaign C's T2 bars
+(`iw_mt2_lr1e3_seed{42,43}`), evaluated through the campaign's recipe copy
+and code snapshot (`recipe_campc` + `code_support`), scored 1.53 on the
+fastback cases and 1.57 on DrivAerML in float32, against 0.0568 for the
+same checkpoint in the main session's float32 re-evaluation; the unit-drive
+GeoTransolver reference through the same launcher reproduced its known
+value (0.0504). A four-way probe (job 699026, float32, DrivAerML 48 cars)
+separated the recipe copy from the code snapshot:
+
+| checkpoint | code + recipe_campc | code_support + recipe | code_support + recipe_campc | code + recipe |
+|---|---|---|---|---|
+| `iw_mt2_lr1e3_seed42` (ISLA reference) | 0.0568 | 1.5667 | 1.5667 (first pass) | 0.0568 (main session) |
+| `mt2_v3c_seed42` (T3 fine-tune source) | | | 1.5667 | 0.0620 |
+
+: Identical 1.5667 for two different checkpoints: the weights were never loaded. {#tbl-snapshot-hazard}
+
+**Mechanism.** Model weights are saved as `<ClassName>.0.<epoch>.mdlus`,
+optimizer and scheduler as `checkpoint.0.<epoch>.pt`. The loader
+(`physicsnemo/utils/checkpoint.py::load_checkpoint`) derives the weights
+filename from the model's *current* class name; under `code_support`,
+`MeshTransformer2` is an alias of `ISLA`, so it looks for `ISLA.0.500.mdlus`,
+does not find the legacy `MeshTransformer2.0.500.mdlus`, logs an error
+("could not find valid model file, skipping load") and continues; the
+inference script then loads the optimizer file, reports "loaded checkpoint
+(epoch 500)" and evaluates the seeded random initialization. Under `code`
+the class is still `MeshTransformer2` and the file is found. The recipe copy
+is irrelevant. The same hazard applies to any evaluation of a
+legacy-named surface checkpoint under a snapshot in which the class was
+renamed; the interior V0 references were unaffected because their runs
+were trained under a snapshot that already saved `ISLA.*.mdlus`, which is
+why the same-snapshot identity checks of @sec-nb-evalpoints-verdict passed.
+
+**Consequences and actions.** (1) The two T2 ISLA reference evaluations
+are invalid and are rerun under `code` (probe job 699070 also evaluates
+`iw_mt2_lr1e3_seed42` and `mt2_v3c_seed42` on the fastback cases under
+`code`, and the code_support-trained T3 checkpoints under `code`, as a
+cross-snapshot check). (2) Campaign C's ISLA fine-tune arms initialized
+from `mt2_v3c_seed42` through the campaign's `init_from` hook, which globs
+the `.mdlus` file explicitly and loads it with `strict=True`; the hook
+reported success, so the initialization most likely carried the trained
+weights, but the fine-tune's first-batch loss (0.105) is above the scratch
+arm's (0.080), so the result "pretraining is worth nothing for ISLA"
+(@sec-nb-campc-t3-verdict) is **held as provisional** until a frozen-init
+lane decides it: lane 28 (`campC_probe_v3c_lr0`) loads the same source
+through the same hook, trains one epoch at learning rate zero (so the
+resaved `ISLA.0.1.mdlus` is the loaded source, byte-for-byte in weights),
+and is then evaluated on the fastback cases under `code_support`; if that
+gives the source's true zero-shot error (about 1.0, measured under `code`
+in the same probe), the T3 ISLA result stands; if it gives 1.5-class
+garbage, the fine-tune started from noise and the ISLA half of T3 is
+withdrawn and rerun. The GeoTransolver half of T3 is unaffected (its
+loader path found `GeoTransolver.0.500.mdlus`). (3) The loader is patched
+to raise instead of skipping when a requested model's weights file is
+missing, in `code_support` on the cluster and in the repository, so that
+an evaluation can never again report a number for a model it did not
+load; the main session's CLAIMS carry the rule that an identical error
+from two checkpoints is a load failure.
+
+## 2026-09-10 — Resolved: the T3 ISLA fine-tune started from the correct weights (frozen-init lane reproduces the source's zero-shot error to four digits); the ISLA half of the few-shot verdict stands; loader fix committed {#sec-nb-snapshot-resolved}
+
+**Frozen-init probe (lane 28, `campC_probe_v3c_lr0`).** The T3 fine-tune's
+source checkpoint `mt2_v3c_seed42` was loaded through the campaign's
+`init_from` hook under `code_support`, trained one epoch at learning rate
+zero (five optimizer steps that change nothing), saved as
+`ISLA.0.1.mdlus`, and evaluated on the 99 fastback cases in float32 under
+`code_support`: pressure **0.9791**, wall shear 1.3956. The same source
+evaluated directly under `code` (snapshot probe 2, job 699070): pressure
+**0.9791**, wall shear 1.3956. The hook loaded the trained weights and the
+renamed class computes the same function as the legacy one to four
+digits; the fine-tune arms of @sec-nb-campc-t3-verdict started from the
+real DrivAerML model, and **the ISLA half of the T3 verdict stands as
+written** (pretraining at matched learning rate worth 6%, inside the
+"worth nothing" clause). The first-batch losses that raised the alarm
+(fine-tune 0.105 against scratch 0.080 on the fastback training cases)
+reflect the source's genuine zero-shot mismatch to the fastback family
+(0.98 relative L2, close to predicting zero), not a broken initialization.
+
+**Snapshot probe 2, the rest.** Cross-snapshot evaluation fails
+symmetrically: the code_support-trained T3 checkpoints (`ISLA.0.200.mdlus`)
+evaluated under `code` give an identical 1.5301 for the fine-tune and the
+scratch arm, the mirror image of the 1.5667 pair, because `code` looks for
+`MeshTransformer2.0.200.mdlus`. The single-family ISLA reference
+`iw_mt2_lr1e3_seed42` under `code` scores 0.7824 on the fastback cases
+zero-shot in float32 (the program book's bf16 0.99 was the constant-gauge
+`mt2_v3c` configuration; that checkpoint scores 0.9791 here), so T2's ISLA
+reference is re-evaluated for both seeds under `code` into the campaign's
+evaluation layout before T2 is graded.
+
+**Fix.** `physicsnemo/utils/checkpoint.py::load_checkpoint` now raises
+`FileNotFoundError` when a training checkpoint exists for the requested
+epoch but the named model's weights file does not, on both the
+non-distributed and the distributed path, with the expected file name and
+the files present in the message; a directory without a training
+checkpoint keeps the fresh-start skip. Regression test
+`test_load_checkpoint_refuses_uninitialized_model` reproduces the renamed
+class case and the fresh-directory case. Commit c50b87e0a, standalone for
+lifting into an upstream PR; the same patch is applied to `code_support`
+on the cluster (`transfer/patch_code_support_checkpoint.py`), which the D1,
+campaign D and campaign C evaluation launchers share.
+
+**Correction to the first-batch losses quoted above (@sec-nb-snapshot-hazard,
+@sec-nb-snapshot-resolved).** The "0.105 against 0.080" figures were the
+second epoch's first batch (the training log numbers epochs from 0). The
+true first-batch training losses on the 20 fastback cases are: frozen-init
+probe 0.193751; ISLA fine-tune at lr 1e-3 **0.193751** and at lr 1e-4
+**0.193751** (identical to six digits with the probe: same loaded weights,
+same first batch); ISLA from scratch **0.477**; GeoTransolver fine-tune
+0.176, GeoTransolver from scratch 0.278. So the pretrained ISLA starts 2.5x
+better than a random initialization and the pretrained GeoTransolver 1.6x
+better, and after 1,000 matched-rate steps ISLA's head start has shrunk to
+6% while GeoTransolver's has grown to 31%: the two architectures' DrivAerML
+knowledge is worth about the same at step 0 and very different amounts
+after adaptation. That is a sharper statement of the T3 finding than the
+one in @sec-nb-campc-t3-verdict, and it removes the last doubt about the
+initialization.
