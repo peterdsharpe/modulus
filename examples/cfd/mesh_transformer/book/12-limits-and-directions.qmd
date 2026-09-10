@@ -712,7 +712,14 @@ families such as DrivAerML, GeoTransolver is 1.2–1.3x more accurate on the
 surface below full data (physical drive, which on this dataset is not a
 handicap) and 8–10% more accurate at full data in float32 (5–7% once ISLA
 drops its measure weights); GeoTransolver or Transolver is the
-recommendation on DrivAerML at every size. What ISLA offers on the surface is its contracts:
+recommendation on DrivAerML at every size. Where geometries arrive in arbitrary poses the contracts earn accuracy: on
+DrivAerML with every training and validation case in its own random SO(3)
+pose, ISLA scores 0.0566 (1.01x its canonical error) against 0.0602 for
+GeoTransolver with SO(3) augmentation (1.20x its canonical) and 0.0676 for
+Transolver with augmentation (1.31x), a 6% and 19% lead in float32 that
+reverses the canonical-frame ordering (research/transfer_program,
+#sec-nb-campb-verdict); augmentation recovers only 4 of GeoTransolver's 25
+lost points. Elsewhere what ISLA offers on the surface is its contracts:
 exact rotation and translation covariance without a frame estimate or a
 freestream direction at inference, which a canonicalized GeoTransolver
 matches only where a frame can be estimated (@sec-pose); a

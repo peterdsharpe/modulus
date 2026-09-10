@@ -11198,3 +11198,36 @@ counts, which the float32 per-case maxima on this rung do not disturb at
 the geometry level). Weights off persists at this rung (−17%). NOW-L tally
 unchanged: persists at 35 cases and 4 geometries, fades on DrivAerML;
 210 cases, 21 geometries, 1,260 cases, fixed angle and deflection pending.
+
+## 2026-09-10 — POSE-BENCH supported: with every case in an arbitrary SO(3) pose, ISLA keeps its canonical error (1.01x) while augmented GeoTransolver and Transolver lose 20% and 31%; ISLA's first measured accuracy lead over input-matched baselines {#sec-nb-pose-bench-book}
+
+**Source.** Transfer session, campaign B (research/transfer_program
+#sec-nb-campb-verdict, chapter 7 #sec-campaigns-pose,
+studies/campaign_b_pose/campaign_b_fp32_2026-09-10.json; bf16 twin alongside),
+run against the bars written in @sec-nb-pose-qcount-plan: DrivAerML surface,
+435 cars, every training and validation case in its own fixed random SO(3)
+pose, unit drive for every architecture, float32 evaluation on 48 posed
+validation cars.
+
+| arm | posed error (seeds) | ÷ its canonical error | ÷ posed ISLA |
+|---|---|---|---|
+| ISLA, no augmentation | **0.0566** (0.0571 / 0.0562) | **1.01x** (0.0558) | 1.00 |
+| GeoTransolver, SO(3) augmentation | 0.0602 (0.0600 / 0.0604) | 1.20x (0.0503) | 1.06 |
+| Transolver, SO(3) augmentation, lr 3e-3 | 0.0676 (0.0682 / 0.0671) | 1.31x (0.0517) | 1.19 |
+| GeoTransolver, no augmentation (control) | 0.0631 | 1.25x | 1.11 |
+| ISLA, SO(3) augmentation (control) | 0.0578 | 1.04x | 1.02 |
+
+**Verdict.** Every preregistered clause for "equivariance earns accuracy" is
+met: the augmented baselines are ≥ 10% worse posed than canonical (20% and
+31%), ISLA moves ≤ 3% (1%), and ISLA leads both by ≥ 5% (6% and 19%);
+augmentation recovers only 4 of GeoTransolver's 25 lost points, so it does
+not suffice. One contract clause was miscalibrated: the augmented ISLA
+(0.0578) lands 1.2% above the unaugmented seeds' range (0.0562–0.0571),
+within the 3% used elsewhere in the preregistration and within the
+canonical ISLA's 3.8% three-seed spread, and the pose transform's covariance
+is unit-tested; recorded as stated. bf16 ratios agree (1.21 / 1.31 / 1.02).
+This is the program's first measured accuracy lead for ISLA over
+input-matched baselines, in the one setting its construction targets, and it
+reverses the canonical-frame ordering (10% behind → 6% ahead). The index
+verdict sentence and table, chapter 12's contracts paragraph, the POSE-BENCH
+node and CLAIMS carry it with the caveat.
