@@ -12049,3 +12049,44 @@ fastback cars differ in size from DrivAerML) but does not carry; H2 and H3
 do not; the deficit is distributed, consistent with H5, in which case the
 follow-up is a training-diversity study rather than an architecture change,
 matching @sec-principle. Artifact: results/xfam_zeroshot_2026-09-10.json.
+
+## 2026-09-10 — Preregistered: MIX, training across meshing conventions (uniform-over-cells and area-proportional samplings of the same surfaces) {#sec-nb-mix-prereg}
+
+The long-run advantage of a measure-consistent surrogate is that it can be
+trained on data from several meshers and deployed on another, because its
+aggregate is an integral over the surface rather than a mean over the
+sample. This study tests that claim in its cleanest form, with the physics
+held fixed: the same DrivAerML training cases are presented under two
+meshing conventions, the native cell-uniform sampling (`unif`, 10,000
+cells; what every checkpoint in the book saw) and the area-proportional
+sampling of the same cells (`area`, expected 10,000 cells; the convention a
+uniform point-cloud generator or a different mesher would produce), using
+the `weight_mode="area"` Poisson sampler of @sec-nb-bench-prereg with exact
+Horvitz–Thompson weights. Three training conditions per architecture:
+`unif` only (the existing reference lanes), `area` only, and `mixed`
+(both conventions as two datasets through the recipe's `extra_datasets`
+multi-dataset path, each case seen under both). Architectures: ISLA with
+the similarity gauge, unit-drive GeoTransolver (1e-3), unit-drive
+Transolver (3e-3); two seeds; 500 epochs; float32 evaluation on the 48
+validation cars under both conventions.
+
+**Readouts (pressure rel-L2).** For each architecture: the *swap penalty*
+S = err(train unif, eval area) ÷ err(train unif, eval unif) and its mirror;
+the *mixing cost* C = err(mixed, eval unif) ÷ err(train unif, eval unif)
+and err(mixed, eval area) ÷ err(train area, eval area). **Bars.** S ≤ 1.03
+*convention-independent*; S ≥ 1.10 *pays for the swap*; C ≤ 1.03 *mixes
+for free*; C ≥ 1.10 *pays for mixing*. **Predictions.** The
+similarity-gauge ISLA is convention-independent and mixes for free (S and
+C within 3%). GeoTransolver and Transolver pay for the swap in at least one
+direction (S ≥ 1.10) and pay for mixing (C ≥ 1.05), because their slice
+pooling reads the sampling density; if the measure-weighted baselines of
+@sec-nb-mw-prereg are trained by then, they enter as a fourth and fifth
+architecture with the prediction that the penalty disappears. A result
+where the baselines are convention-independent here would mean DrivAerML's
+meshes are too uniform for the convention to matter, and the study moves to
+HiLiftAeroML, whose gap refinement makes the two conventions differ by
+orders of magnitude in local density. Lanes: 2 conventions × 3
+architectures × 2 seeds = 12 new DrivAerML lanes (the unif-only condition
+exists), snapshot `code` for the baselines and ISLA, recipe copy
+recipe_bench; run ids mix_dr_<arch>_<area|mixed>_seed<seed>. Artifact:
+results/mix_conventions_2026-09-10.json.
