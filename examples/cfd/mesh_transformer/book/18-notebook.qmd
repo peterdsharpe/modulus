@@ -10401,3 +10401,49 @@ one entry for the 35-case rung as soon as it is reduced (the rung is
 re-graded from it), then one for all groups. Artifacts:
 results/fp32_reeval/fp32_shift_2026-09-09.json and the reducer
 results/fp32_reeval/reduce_fp32_2026-09-09.py.
+
+## 2026-09-09 — FP32-REEVAL verdict, 35-case HiLiftAeroML rung: bf16 and float32 agree to within 0.35% on every arm's mean; per-case errors move up to 12% for the unit-drive baselines; no architecture-dependent offset at this rung {#sec-nb-fp32-reeval-verdict-35}
+
+**Readout** (@sec-nb-fp32-reeval-prereg, group 1; 22 checkpoints, 180
+validation cases each, sampled points bit-identical between the bf16 and
+float32 artifacts for every run; results/fp32_reeval/fp32_shift_35_2026-09-09.json).
+Pressure relative L2, seed means; "shift" is the float32 mean over the bf16
+mean minus one; "per-case max" is the largest absolute per-case relative
+change in any seed of the arm; the last column is the arm ÷ ISLA-reference
+ratio under bf16 → float32.
+
+| arm | seeds | bf16 | float32 | shift | per-case max | ÷ ISLA (bf16 → fp32) |
+|---|---|---|---|---|---|---|
+| ISLA, measure weights on (reference) | 3 | 0.1379 | 0.1377 | -0.13% | 2.0% | 1.000 → 1.000 |
+| ISLA, measure weights off | 3 | 0.1225 | 0.1224 | -0.13% | 3.1% | 0.888 → 0.888 |
+| GeoTransolver, unit drive, lr 1e-3 | 3 | 0.1235 | 0.1232 | -0.18% | 11.7% | 0.895 → 0.895 |
+| GeoTransolver, unit drive, lr 3e-3 | 2 | 0.1105 | 0.1102 | -0.26% | 8.5% | 0.801 → 0.800 |
+| Transolver, unit drive, lr 3e-3 | 3 | 0.1145 | 0.1142 | -0.29% | 8.5% | 0.830 → 0.829 |
+| Transolver, unit drive, lr 1e-3 | 2 | 0.1269 | 0.1266 | -0.23% | 11.4% | 0.920 → 0.919 |
+| GeoTransolver, physical velocity | 3 | 0.3809 | 0.3810 | +0.02% | 1.1% | 2.761 → 2.766 |
+| Transolver, physical velocity | 3 | 0.4040 | 0.4009 | -0.77% | 4.8% | 2.929 → 2.910 |
+
+Per-architecture medians of the shift: GeoTransolver -0.10%, ISLA
+-0.14%, Transolver -0.30% (range
+-1.07% to -0.23%, the physical-drive
+Transolver seeds carrying the largest); medians of the per-case maximum:
+GeoTransolver 5.3%, ISLA 2.1%, Transolver
+5.2%.
+
+**Verdict.** By the mean every arm at 35 cases is *reporting-equivalent*
+(all shifts within 0.35%, well inside the 1% bar), so the rung's ratios
+are unchanged to the third digit under the new instrument: ISLA is behind
+the unit-drive GeoTransolver (0.90) and Transolver (0.83) as before, and
+weights-off remains 11% better than the reference. By the per-case bar,
+however, nine of the 22 runs are *not* reporting-equivalent (per-case maxima
+of 5–12%, all of them unit-drive GeoTransolver and Transolver seeds plus one
+physical-drive Transolver seed, against 1–3% for every ISLA seed), so paired
+per-case statistics at this rung must be recomputed under float32 before
+they are quoted. The architecture-dependence bar does not fire here (medians
+differ by 0.2 points), which contrasts with the transfer session's first
+look at DrivAerML surface checkpoints (float32 8.5–9.7% below bf16 for the
+unit-drive baselines against 2.8–4.0% for ISLA): the bf16 offset is a
+property of the trained checkpoint and its data, not of the architecture
+alone, and the remaining groups decide where it is large. One run
+(`udrv_hl_gt_super_scarce_lr3e3_seed43`) exited with status 135 at process
+teardown after writing all 180 cases; its metrics are complete and were used.
