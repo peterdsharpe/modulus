@@ -9783,3 +9783,13 @@ track), nothing about HiLift (pending), and nothing about learning-rate
 retuning (all arms at the protocol's 1e-3; none diverged). Bars 3 and 4 of
 the preregistration (cross-architecture ordering, frontier comparison) are
 the coordinator's, once the ISLA and Transolver arms land under fp32.
+
+**Addendum (2026-09-10).** ISLA's DrivAerML pilot at 512 wide and 80,000
+cells scored 0.0428 in float32, below GeoTransolver's corner above (0.0442
+at 384 × 40,000), so the frontier needs GeoTransolver at the same corner:
+rows 20–21 of highlift/scale_lanes_gt.tsv, arm `c512x80k`
+(`model.n_hidden=512`, 80,000 cells, DrivAerML, seeds 42/43, run ids
+`scale_gt_dr_c512x80k_seed{42,43}`), submitted as chains scale-gt-20/21,
+evaluated in both precisions on completion and added to the table above
+against the same reference; the cross-architecture reading is the
+coordinator's. HiLift rows are unchanged.

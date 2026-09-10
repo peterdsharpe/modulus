@@ -17,13 +17,13 @@ import numpy as np
 
 T = "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0"
 F = ("pressure_l2", "velocity_l2", "tau_wall_l2", "wss_x_l2", "wss_y_l2", "wss_z_l2")  # HiLift: pressure/velocity/tau_wall; DrivAerML surface: pressure + wss components
-ARMS = ("w384", "w512", "t40k", "t80k", "c384x40k")
+ARMS = ("w384", "w512", "t40k", "t80k", "c384x40k", "c512x80k")  # c512x80k: DrivAerML only (coordinator amendment 2026-09-10)
 REF = {  # unit-drive references (main session) with the physical-drive fallbacks
     "hl": {"unit": ["udrv_hl_gt_full_seed42", "udrv_hl_gt_full_seed43"], "physical": ["gt_hl_lr1_seed42", "gt_hl_lr1_seed43"]},
     "dr": {"unit": ["uw_gt_unit_lr1e3_seed42", "uw_gt_unit_lr1e3_seed43", "uw_gt_unit_lr1e3_seed44"], "physical": ["iw_gt_lr1e3_seed42", "iw_gt_lr1e3_seed43"]},
 }
-TOKENS = {"w384": 10000, "w512": 10000, "t40k": 40000, "t80k": 80000, "c384x40k": 40000, "ref": 10000}
-WIDTH = {"w384": 384, "w512": 512, "t40k": 256, "t80k": 256, "c384x40k": 384, "ref": 256}
+TOKENS = {"w384": 10000, "w512": 10000, "t40k": 40000, "t80k": 80000, "c384x40k": 40000, "c512x80k": 80000, "ref": 10000}
+WIDTH = {"w384": 384, "w512": 512, "t40k": 256, "t80k": 256, "c384x40k": 384, "c512x80k": 512, "ref": 256}
 STEPS_PER_EPOCH = {"hl": 1260 // 4, "dr": 435 // 4}
 
 
