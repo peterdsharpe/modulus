@@ -168,6 +168,7 @@ PROBE = {"dr_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_lr1e3_seed{s}" for s i
          "dr_gauge_ref@70k": [f"{T}/scale_probe_fp32_70k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
          "dr_ref@80k_fastkernel": [f"{T}/scale_probe_fp32_80kx/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
          "dr_c512x80k@80k_refkernel": [f"{T}/scale_probe_fp32_80kx/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@80k_codeeval": [f"{T}/scale_probe_fp32_80kx/iw_mt2_gauge_seed{s}" for s in (42, 43)],
          "dr_g512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)],
          "dr_g512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)]}
 
@@ -201,10 +202,19 @@ for arm, dirs in PROBE.items():
 # uniform-sampling error and the biased/uniform ratio at 10,000 and 80,000 evaluation cells. Error falling with count is
 # fine; a sampling-distribution dependence that does not vanish with refinement is the failure the redirect names.
 out["convergence"] = {}
+# STRUCK: the 80,000-cell evaluations of the two legacy references run under the legacy code snapshot (job 700105) collapsed
+# (0.814 / 0.892) while the same checkpoints under code_eval are healthy at 65k, 70k and 80k; the cause is that snapshot's
+# evaluation path at 80,000 cells (not the softmax kernel: micro-test, CPU control and kernel swap all clean). Kept in the
+# probe block with this label; excluded from the convergence curves, whose 80k point is the code_eval evaluation.
+STRUCK = {"dr_ref@80k": "legacy code snapshot at 80,000 cells; struck (see notebook)",
+          "dr_gauge_ref@80k": "legacy code snapshot at 80,000 cells; struck (see notebook)"}
+for k, why in STRUCK.items():
+    if k in out["density_probe"]:
+        out["density_probe"][k]["struck"] = why
 CELLS = (10000, 20000, 40000, "40000v80", 60000, 65000, 70000, 80000, "80000_kernelswap")
-for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@20k", "dr_ref@40k", "dr_ref@40kv80", "dr_ref@60k", "dr_ref@65k", "dr_ref@70k", "dr_ref@80k", "dr_ref@80k_fastkernel")),
+for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@20k", "dr_ref@40k", "dr_ref@40kv80", "dr_ref@60k", "dr_ref@65k", "dr_ref@70k", "dr_ref@80k_fastkernel", None)),
                     ("c512x80k_80k_trained", ("dr_c512x80k", None, "dr_c512x80k@40k", None, None, None, None, "dr_c512x80k@80k", "dr_c512x80k@80k_refkernel")),
-                    ("gauge_reference_10k_trained", ("dr_gauge_ref", "dr_gauge_ref@20k", "dr_gauge_ref@40k", "dr_gauge_ref@40kv80", "dr_gauge_ref@60k", "dr_gauge_ref@65k", "dr_gauge_ref@70k", "dr_gauge_ref@80k", None)),
+                    ("gauge_reference_10k_trained", ("dr_gauge_ref", "dr_gauge_ref@20k", "dr_gauge_ref@40k", "dr_gauge_ref@40kv80", "dr_gauge_ref@60k", "dr_gauge_ref@65k", "dr_gauge_ref@70k", "dr_gauge_ref@80k_codeeval", None)),
                     ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", None, None, None, None, None, None, "dr_g512x80k@80k", None))):
     curve = {}
     for cells, key in zip(CELLS, keys):

@@ -11770,6 +11770,53 @@ there is no CPU defect above 2¹⁶ points. If the cliff is a kernel defect it
 is specific to the GPU path; the coordinating session's one-GPU softmax
 micro-test and the bracket probes decide.
 
+
+**Bracket verdict: the 80,000-cell collapse was the legacy snapshot's
+evaluation path, not the models and not the kernel; the two readings are
+struck.** Under `code_eval` the constant-gauge reference scores 0.0529 at
+65,000, 0.0529 at 70,000 and **0.0528 at 80,000 cells** (on the fast
+kernel, seeds distinct, loads clean), and the 80k-trained corner scores
+0.0427 at 80,000 on the *reference* kernel; the similarity-gauge reference
+scores 0.0577 at 65,000 and 0.0576 at 70,000. The 2¹⁶ kernel hypothesis is
+falsified three ways: the coordinating session's one-GPU micro-test found
+no cliff in `torch.softmax` over dim 1 at any N from 40,000 to 100,000 in
+either precision (results/scaling/softmax_dim1_test_2026-09-10.json), the
+CPU control agreed to 3.5 × 10⁻⁷ across 65,536, and the kernel swap is clean
+in both directions. The only two evaluations that collapsed (0.814 and
+0.892) were the two references evaluated at 80,000 cells under the legacy
+`code` snapshot in job 700105; the same checkpoints under `code_eval` at the
+same count on the same datasets are healthy. Those two readings are struck
+as an artifact of that snapshot's evaluation path at 80,000 cells (the
+mechanism inside the legacy snapshot is not identified and is not pursued:
+every evaluation now runs on `code_eval`). The earlier statements that
+"both 10k-trained references collapse at 8x count" and "bias robustness
+and count generalization are different properties" are **withdrawn**; the
+corrected count curve for the 10k-trained references (float32, uniform):
+
+| cells evaluated | constant-gauge reference | similarity-gauge reference |
+|---|---|---|
+| 10,000 | 0.0558 (bias 12.1x) | 0.0616 (bias 1.21x) |
+| 20,000 | 0.0545 (12.3x) | 0.0594 (1.07x) |
+| 40,000 | 0.0530 (12.6x) | 0.0579 (1.03x) |
+| 60,000 | 0.0529 (12.6x) | 0.0577 (1.01x) |
+| 65,000 | 0.0529 (12.6x) | 0.0577 (1.01x) |
+| 70,000 | 0.0529 (12.6x) | 0.0576 (1.01x) |
+| 80,000 | 0.0528 (12.7x) | pending (job 700404) |
+
+Both 10k-trained models improve monotonically with evaluation count to
+eight times their training count and plateau from about 40,000 cells; the
+constant gauge's 10:1 bias sensitivity is flat at 12–13x across counts and
+the similarity gauge's falls to 1.01. Count generalization upward is
+therefore a property of both configurations. The asymmetry that stands is
+the 80k-trained corner's 0.0663 at 10,000 cells (its native 0.0427): a
+model trained at high count loses accuracy when queried at an eighth of
+it, while a model trained at low count gains when queried denser. A
+further finding from the micro-test, recorded beside the kernel-neutrality
+control: in float32 the reference (middle-dimension) softmax kernel is
+about 1,000x less accurate than the transposed fast kernel (1 × 10⁻⁴
+against 1 × 10⁻⁷ absolute on softmax weights), so the model docstring's
+"agree to 1e-6" is generous; no verdict changes.
+
 ## 2026-09-09 — Preregistered: QTDENS, does GeoTransolver-volume's eddy-viscosity lead come from reading the interior sample's density, and does an ISLA-native query-neighbour channel close the gap? {#sec-nb-qt-density-prereg}
 
 **Setting.** On the DrivAerML interior task ISLA's query-token
