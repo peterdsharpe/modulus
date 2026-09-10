@@ -17,15 +17,21 @@ ARMS = {
            "t40k": ["scale_isla_hl_t40k_seed42", "scale_isla_hl_t40k_seed43"],
            "t80k": ["scale_isla_hl_t80k_seed42", "scale_isla_hl_t80k_seed43"],
            "c384x40k": ["scale_isla_hl_c384x40k_seed42", "scale_isla_hl_c384x40k_seed43"],
-           "w384nw": ["scale_isla_hl_w384nw_seed42", "scale_isla_hl_w384nw_seed43"]},
+           "w384nw": ["scale_isla_hl_w384nw_seed42", "scale_isla_hl_w384nw_seed43"],
+           "c512x80k": ["scale_isla_hl_c512x80k_seed42", "scale_isla_hl_c512x80k_seed43"]},
     "dr": {"ref": ["iw_mt2_lr1e3_seed42", "iw_mt2_lr1e3_seed43"],
            "w384": ["scale_isla_dr_w384_seed42", "scale_isla_dr_w384_seed43"],
            "w512": ["scale_isla_dr_w512_seed42", "scale_isla_dr_w512_seed43"],
            "t40k": ["scale_isla_dr_t40k_seed42", "scale_isla_dr_t40k_seed43"],
            "t80k": ["scale_isla_dr_t80k_seed42", "scale_isla_dr_t80k_seed43"],
            "c384x40k": ["scale_isla_dr_c384x40k_seed42", "scale_isla_dr_c384x40k_seed43"],
-           "w384nw": ["scale_isla_dr_w384nw_seed42", "scale_isla_dr_w384nw_seed43"]},
+           "w384nw": ["scale_isla_dr_w384nw_seed42", "scale_isla_dr_w384nw_seed43"],
+           "c512x80k": ["scale_isla_dr_c512x80k_seed42", "scale_isla_dr_c512x80k_seed43"],
+           "kernelctrl": ["scale_isla_dr_kernelctrl_seed42", "scale_isla_dr_kernelctrl_seed43"]},
 }
+# Numerics families (coordinator amendment): t80k, c512x80k and kernelctrl were trained from code_perf (fast
+# point-softmax kernel; bf16-roundoff-level differences from the reference checkpoints); everything else from code_isla5.
+FAST_KERNEL = {"t80k", "c512x80k", "kernelctrl"}
 STEP = re.compile(r"Epoch (\d+) \[(\d+)/(\d+)\] Loss: ([0-9.eE+-]+|nan) Step: ([0-9.]+)s Mem: ([0-9.]+)GB")
 
 
@@ -70,6 +76,7 @@ for ds, arms in ARMS.items():
             for k in ("params", "peak_mem_gb", "median_step_s", "gpu_hours"):
                 v = [t[k] for _, t in per if t and t.get(k) is not None]
                 a[k] = st.mean(v) if v else None
+            a["numerics"] = "fast point-softmax (code_perf)" if arm in FAST_KERNEL else "reference kernel (code_isla5 / reference lanes)"
             out["arms"][f"{ds}_{arm}"] = a
 for ds in ARMS:
     ref = out["arms"].get(f"{ds}_ref")
