@@ -112,6 +112,48 @@ everywhere else in the preregistration and within the canonical ISLA's own
 3.8% seed spread, and the pose transform's covariance is unit-tested to
 roundoff, so the posed numbers stand with that caveat.
 
+## Interior carriers at matched parameters (campaign D) {#sec-campaigns-interior}
+
+In float32 the reference ISLA query-token configuration (hidden 256, about
+15M parameters) trails the unit-drive GeoTransolver-volume (27.6M) on
+interior pressure by 6% and on eddy viscosity by 27% while leading on
+velocity by 27%. Campaign D asked what carries each gap: ISLA at hidden
+344, matching GeoTransolver-volume's parameter count, and
+GeoTransolver-volume without its six-radius local features
+(@sec-nb-campd-verdict; bars in @sec-nb-campaign).
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/computational_support/campaign_d_verdict_2026-09-10.json").read_text())["per_arm"]
+rows = [("ISLA query tokens + SDF, hidden 256 (reference, 15M)", "isla_qtsdfval"), ("ISLA query tokens + SDF, hidden 344 (27.6M)", "isla_qtsdf_h344"),
+        ("GeoTransolver-volume, unit drive (reference, 27.6M)", "udrv_gt_vol"), ("GeoTransolver-volume, unit drive, no local features", "gt_vol_nolocal")]
+print("| arm | seeds | pressure | velocity | eddy viscosity |")
+print("|---|---|---|---|---|")
+for n, k in rows:
+    m = d[k]["mean"]
+    print(f"| {n} | {len(d[k]['seeds'])} | {m['pressure_l2']:.4f} | {m['velocity_l2']:.4f} | {m['nut_l2']:.4f} |")
+print()
+print(": Interior relative L2 on the 48 DrivAerML validation cars, float32 inference, same sampled points, two-seed means. Data: studies/computational_support/campaign_d_verdict_2026-09-10.json. {#tbl-campaigns-interior}")
+```
+
+Width does most of the work on ISLA's side: at matched parameters ISLA
+leads GeoTransolver-volume on pressure (0.0497 against 0.0513) and on
+velocity (0.0729 against 0.1070), and its eddy-viscosity gap narrows from
+27% to 18%, between the preregistered "parameters carry the deficit" bar
+(within 10%) and its falsifier (25% or worse). So the program book's
+interior-pressure ordering is a parameter-budget statement: ISLA is behind
+at 15M and ahead at 27.6M, for about 1.3x the step time. On
+GeoTransolver's side the local features are a general 4–7% carrier and not
+the source of its eddy-viscosity lead (removing them costs 5% on that
+field against a 10% bar), nor of its bf16 inflation, which is unchanged
+without them. The remaining eddy-viscosity gap is unexplained by either
+arm; under the program's principle the next candidate is a physically
+meaningful per-point geometric input for ISLA's interior queries (the
+signed-distance gradient, which GeoTransolver's per-point channels
+effectively carry), not more width.
+
 ## Matched-count diversity on the fastback shift (campaign C, T2) {#sec-campaigns-diversity}
 
 With the training set held at 435 cases, replacing half of the DrivAerML

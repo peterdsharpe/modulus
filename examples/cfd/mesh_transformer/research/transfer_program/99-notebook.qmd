@@ -1397,3 +1397,135 @@ double GeoTransolver's), the same direction as every other reading of this
 campaign. The one-seed conditioning preview (T1, verdict pending)
 shows the mixing cost growing with the foreign share: 435 DrivAerML + 794
 estate costs ISLA 18% in-family with no halving at all.
+
+## 2026-09-10 — Instrument note: the density-bias probe hands the model an importance-corrected area measure, so its degradation factors are model dependence, not estimator bias {#sec-nb-probe-convention}
+
+Asked by the main session as the probe's author: are the measure weights
+under the 10:1 biased draw the raw areas of the sampled cells (a biased
+quadrature, which would degrade even a perfectly measure-consistent model)
+or importance-corrected? Verified in the code path the surface model sees.
+The model receives `interior.point_data._target_quadrature_measure`,
+materialized at the mesh-to-domain boundary as `cell_measures(mesh) =
+cell_areas × cell_data._measure_weights` (`physicsnemo/mesh/calculus/measure.py`,
+called from `datapipes/transforms/mesh/transforms.py`). The weights field is
+a multiplicative inclusion ratio composed by every sampling stage: the
+reader's uniform 40,000-cell draw contributes N/40,000, a uniform second
+stage contributes n_before/n_cells, and the biased second stage
+(`PoissonBiasedSubsampleMesh`) contributes exactly 1/π_i per kept cell,
+π_i = min(1, c·w_i) with w = 10 on the front half of the car. The saved
+artifacts confirm it: under the uniform draw every cell carries the ratio
+1,703 (= 17.03M / 10,000); under the biased draw the dense half carries 937
+and the sparse half 9,366 (1,703 × 11/20 and × 11/2, the two-region Poisson
+design), with totals preserved within Poisson noise. So an exactly
+measure-consistent model sees an unbiased Horvitz–Thompson quadrature of
+each region; the constant-gauge ISLA's 12x and the weights-off ISLA's 19x
+(@sec-nb-campe-verdict) are model dependence on the sampling, the
+similarity gauge's 1.21x is the residual of estimator variance plus model.
+Two clauses now attach to every density-robustness statement in this
+companion: "biased" means biased inclusion with exact importance
+correction, and the base measure is the true triangle area, so the probe
+is area-consistent and reusable as is for the consistency benchmark (an
+area-proportional draw would compose π_i ∝ area_i through the same call).
+Also measured for the cross-family study (float32, zero-shot fastback,
+under `code`): the similarity-gauge ISLA 0.945 (1.038 / 0.851), the
+2,560-anchor query-independent variant 0.850 (0.800 / 0.900), weights off
+0.806 (0.802 / 0.811), against the reference 0.788; none of the existing
+variants transfers better than the reference, and the gauge's two seeds
+differ by 0.19 on this readout (artifacts
+`$T/transfer/fastback_zeroshot_fp32/<run>/fastback/`, launcher
+`studies/campaign_c_transfer/fastback_zeroshot_variants_aga.sbatch`).
+
+**Mechanism of the constant-gauge collapse, checked against the frozen code
+(addendum to @sec-nb-probe-convention).** The main session's derivation
+names the unweighted centroid as the one sampling-dependent quantity in the
+reference forward pass; verified in the snapshot that trained the reference
+(`code/physicsnemo/experimental/nn/mt2/model.py`): the constant-gauge branch
+centers by the plain mean of the sampled points (line 513) while the
+similarity gauge centers by the measure-weighted mean and scales by the
+weighted RMS radius (507–511); slice attention is a softmax over points of
+logits plus log measure weights (94, 124, 524), a Horvitz–Thompson
+weighting that is unbiased under spatially varying inclusion; the point-to-
+slice readback is a softmax over slices with no measure (127, 184); local
+features and virtual tokens are off in the reference. The centroid enters
+through the per-point seed features (r̂·d̂, r̂·n̂, |r|, lines 533–535) and the
+anchor directions; the relational terms r − z are translation-invariant.
+Two points added to the main session's preregistered test (weighted
+centering at evaluation should recover most of the 12x; falsifier ≥ 6x):
+the weighted attention's effective sample size in the sparse half drops
+about tenfold under the bias, so a variance residual of the gauge arm's
+size (1.21x) remains by construction; and with per-cell area weights the
+weighted centroid differs from the plain mean even on the uniform draw, so
+the clean comparison is uniform and biased both evaluated with weighted
+centering, with the uniform-plain number beside them as the cost of the
+frame change. The weights-off arm's 19x adds the loss of the HT weighting
+in the attention (log weights zero, line 521) and should not be recovered by
+weighted centering alone, a second prediction with a sign.
+
+**Evaluation snapshot (addendum to @sec-nb-snapshot-resolved).** The main
+session designated `$T/code_eval` (its scaling branch at 0e41b9ee1: the
+raising loader, a legacy class-name search so `MeshTransformer2.*.mdlus`
+loads with a warning, the fast kernel as opt-in) as the program-wide
+evaluation snapshot after an identity check against `code` (ISLA 1.3 × 10⁻⁶
+mean relative difference per case, GeoTransolver and Transolver bitwise).
+Every evaluation launcher of this program now sets its PYTHONPATH to
+`code_eval` (D1, campaign D, campaigns A, B, C, E, the variant zero-shot
+launcher); `code_support` is used for training only; the CLAIMS rule "an
+evaluation log containing 'skipping load' voids the run" applies, and an
+audit of every evaluation log of this program is running. The hidden-344
+evaluation that a watcher had submitted seconds before the edit was
+cancelled and resubmitted under the new snapshot (job 700501).
+
+## 2026-09-10 — Verdict, campaign D interior carriers (float32): width closes ISLA's pressure gap and overtakes GeoTransolver-volume at matched parameters (0.0497 vs 0.0513), narrows the eddy-viscosity gap to 18% ("between"); GeoTransolver's local features are worth 4–7%, not its ν_t lead {#sec-nb-campd-verdict}
+
+**Setting.** Campaign D (@sec-nb-campaign) asked the interior
+eddy-viscosity question from both sides. In float32 the reference ISLA
+query-token + SDF configuration (hidden 256, about 15M parameters) trails
+the unit-drive GeoTransolver-volume (27.6M) on pressure by 6% and on eddy
+viscosity by 27% while leading on velocity by 27%
+(@sec-nb-fp32-interior). Arm one: ISLA at hidden 344, matching
+GeoTransolver-volume's parameter count, with exact activation recompute.
+Arm two: GeoTransolver-volume without its six-radius local features (unit
+drive). Two seeds each, frozen V0 protocol, 48 validation cars, float32,
+same-snapshot references; evaluations under the program's evaluation
+snapshot (`code_eval`) with no skipped loads.
+
+**Readout (interior relative L2, two-seed means; artifact
+`studies/computational_support/campaign_d_verdict_2026-09-10.json`).**
+
+| arm | parameters | pressure | velocity | eddy viscosity | step time [s] (memory) |
+|---|---|---|---|---|---|
+| ISLA QT+SDF, hidden 256 (reference) | 15M | 0.0547 | 0.0796 | 0.1116 | 0.28 pinned (6.1 GB) |
+| ISLA QT+SDF, hidden 344 | 27.6M | **0.0497** (0.0497, 0.0498) | **0.0729** (0.0736, 0.0721) | 0.1033 (0.1058, 0.1008) | 0.49–0.52 unpinned, recompute (5.1 GB) |
+| GeoTransolver-volume, unit drive (reference) | 27.6M | 0.0513 | 0.1070 | **0.0879** | 0.23 pinned (8.8 GB) |
+| GeoTransolver-volume, unit drive, no local features | 27.6M | 0.0551 (0.0553, 0.0549) | 0.1111 (0.1122, 0.1100) | 0.0924 (0.0933, 0.0914) | 0.33–0.36 unpinned (6.5 GB) |
+
+: Step times are per optimizer step on one GB300 node at 10,000 + 10,000 tokens; the campaign arms ran with `dataloader.pin_memory=false` (a +35% penalty measured in @sec-nb-ops-pin) and the hidden-344 arm with exact activation recompute, so the reference times are not directly comparable; a matched-setting ratio for hidden 344 is about 1.3x the reference. {#tbl-campd}
+
+**Verdicts against the preregistered bars.** *Parameters carry ISLA's
+eddy-viscosity deficit*: hidden 344 reaches ν_t 0.1033 = 1.18x
+GeoTransolver-volume's 0.0879, between the 1.10 "supported" and 1.25
+"falsified" bars, so **between**: width closes a third of the 27% gap
+(0.1116 → 0.1033) and leaves 18%. *Local features carry the lead*:
+GeoTransolver-volume without them scores ν_t 0.0924 = 1.05x its full
+value, between the 3% and 10% bars, so **they do not**; the features are a
+general 4–7% carrier (pressure +7%, velocity +4%, ν_t +5%), and their
+removal leaves the bf16 inflation unchanged (1.20x pressure, 1.23x
+velocity, against 1.20x / 1.23x with them), so they are not the source of
+GeoTransolver-volume's bf16 penalty either.
+
+**The result beyond the bars.** At matched parameter count the float32
+interior ordering reverses again on pressure: ISLA hidden 344 leads
+GeoTransolver-volume by 3% (0.0497 vs 0.0513) and on velocity by 32%
+(0.0729 vs 0.1070); GeoTransolver keeps eddy viscosity by 15%. Width buys
+ISLA 9% on pressure, 8% on velocity and 7% on eddy viscosity for 1.8x the
+parameters, with the changes above the preregistered 5% reporting
+threshold on every field, so the "interior pressure" statement of the
+program book depends on the parameter budget: behind at 15M, ahead at
+27.6M. The eddy-viscosity gap that remains is not explained by
+GeoTransolver's local features (5%) or by ISLA's width (a third); the
+remaining candidates are GeoTransolver's per-point functional channels
+(the wall-distance and normal inputs at each interior point) and the
+targets' near-wall structure, which is where ν_t lives; a per-point SDF
+gradient channel for ISLA would be the principled next arm under the
+2026-09-10 ruling (a physically meaningful geometric input). Cost: hidden
+344 at about 1.3x the step time and less activation memory (recompute).
