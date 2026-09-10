@@ -433,6 +433,45 @@ The columns are:
 - **Peak memory at 10k tokens**: peak training memory at 10,000 tokens
   per case (@sec-cost).
 
+The frontier is stated as a matrix, not a column: every accuracy number
+below sits beside the same checkpoint's behaviour when the sampling, the
+pose or the vehicle family changes (@sec-principle). The matrix is the
+current float32, unit-drive standing; the bfloat16 table that follows it is
+the earlier instrument kept for the rows it alone covers.
+
+```{python}
+#| label: tbl-consistency-matrix
+#| output: asis
+#| code-fold: true
+import json
+from pathlib import Path
+M = json.load(open(Path("..") / "results" / "accuracy_consistency_matrix_2026-09-10.json"))
+def f(v, fmt):
+    return "not measured" if v is None else fmt.format(v)
+out = ("| configuration | in-family error | density 10:1 (x) | pose, random SO(3) (x) "
+       "| zero-shot fastback | few-shot gain from pretraining |\n|---|---:|---:|---:|---:|---:|\n")
+for key in ("geotransolver_unit", "transolver_unit", "isla_reference_constant_gauge",
+            "isla_similarity_gauge", "isla_weights_off_ablation"):
+    r = M["rows"][key]
+    pose = f(r["pose_factor"], "{:.2f}") + (" (augmented)" if r.get("pose_note") else "")
+    out += (f"| {r['label']} | {r['in_family']:.4f} | {r['density_factor']:.1f} | {pose} "
+            f"| {f(r['zero_shot_fastback'], '{:.2f}')} | {f(r['few_shot_gain'], '{:.0%}')} |\n")
+print(out)
+print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-drive "
+      "inputs for every architecture. In-family: pressure rel-L2 on 48 validation cars "
+      "at 10,000 cells. Density: error under 10:1 front/back biased sampling with exact "
+      "measure weights over the same model's error under uniform sampling (campaign E). "
+      "Pose: error with every case in an arbitrary SO(3) pose over the architecture's "
+      "canonical-pose error; the baselines were trained with SO(3) augmentation, ISLA "
+      "without (POSE-BENCH). Zero-shot fastback: error on 99 SHIFT-SUV fastback cases "
+      "never trained on (1.0 is the mean predictor). Few-shot gain: improvement over "
+      "training from scratch after fine-tuning on 20 fastback cases at matched learning "
+      "rate. A configuration that reads the sampling distribution shows it in the "
+      "density column; the weights-off ablation is the extreme case and is not adopted. "
+      "Data: results/accuracy_consistency_matrix_2026-09-10.json (provenance per cell "
+      "inside). {#tbl-consistency-matrix}")
+```
+
 ```{python}
 #| label: frontier-table
 #| output: asis

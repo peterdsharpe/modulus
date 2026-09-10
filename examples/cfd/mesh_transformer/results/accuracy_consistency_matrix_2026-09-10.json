@@ -1,0 +1,102 @@
+{
+ "date": "2026-09-10",
+ "instrument": "float32 inference; unit-drive baselines; DrivAerML surface pressure rel-L2, 48 validation cars, 10,000 cells; seed means",
+ "columns": {
+  "in_family": "pressure rel-L2 on the 48 validation cars (sampling uniform over cells, 10k)",
+  "density_factor": "pressure rel-L2 under 10:1 front/back Poisson-biased sampling (exact HT measure weights) \u00f7 uniform, 10k cells (campaign E, research/transfer_program/studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json)",
+  "pose_factor": "pressure rel-L2 with every training and validation case in its own random SO(3) pose \u00f7 canonical-pose error of the same architecture (POSE-BENCH, research/transfer_program/studies/campaign_b_pose/campaign_b_fp32_2026-09-10.json); baselines trained with SO(3) augmentation",
+  "zero_shot_fastback": "pressure rel-L2 on the 99 SHIFT-SUV fastback validation cases, no fastback training data (1.0 = predicting the mean; transfer session float32 evaluations under snapshot code)",
+  "few_shot_gain": "fine-tuned on 20 fastback cases for 1,000 steps at matched learning rate: error from scratch \u00f7 error fine-tuned \u2212 1 (campaign C T3, #sec-nb-campc-t3-verdict)"
+ },
+ "rows": {
+  "isla_reference_constant_gauge": {
+   "label": "ISLA, constant gauge (reference)",
+   "runs": "iw_mt2_lr1e3_seed{42,43}",
+   "in_family": 0.0558,
+   "density_factor": 12.1,
+   "density_seeds": [
+    12.5,
+    11.7
+   ],
+   "pose_factor": 1.01,
+   "zero_shot_fastback": 0.788,
+   "zero_shot_seeds": [
+    0.7824,
+    0.794
+   ],
+   "few_shot_gain": 0.06
+  },
+  "isla_similarity_gauge": {
+   "label": "ISLA, similarity gauge",
+   "runs": "iw_mt2_gauge_seed{42,43}",
+   "in_family": 0.0616,
+   "density_factor": 1.21,
+   "density_seeds": [
+    1.208,
+    1.214
+   ],
+   "pose_factor": null,
+   "zero_shot_fastback": 0.945,
+   "zero_shot_seeds": [
+    1.0384,
+    0.8514
+   ],
+   "few_shot_gain": null
+  },
+  "isla_weights_off_ablation": {
+   "label": "ISLA, measure weights off (ablation, not adopted)",
+   "runs": "now_mt2_lr1e3_seed{42,43}",
+   "in_family": 0.0544,
+   "density_factor": 19.1,
+   "density_seeds": [
+    23.1,
+    15.2
+   ],
+   "pose_factor": null,
+   "zero_shot_fastback": 0.806,
+   "zero_shot_seeds": [
+    0.8018,
+    0.8105
+   ],
+   "few_shot_gain": null
+  },
+  "geotransolver_unit": {
+   "label": "GeoTransolver, unit drive",
+   "runs": "uw_gt_unit_lr1e3_seed{42,43,44}",
+   "in_family": 0.0503,
+   "density_factor": 9.5,
+   "density_seeds": [
+    11.8,
+    7.9,
+    8.8
+   ],
+   "pose_factor": 1.2,
+   "pose_note": "with SO(3) augmentation; unaugmented degrades far more",
+   "zero_shot_fastback": 0.612,
+   "zero_shot_seeds": [
+    0.6086,
+    0.6153
+   ],
+   "few_shot_gain": 0.31
+  },
+  "transolver_unit": {
+   "label": "Transolver, unit drive (lr 3e-3)",
+   "runs": "uw_transolver_unit_lr3e3_seed{42,43}",
+   "in_family": 0.0517,
+   "density_factor": 3.9,
+   "density_seeds": [
+    2.2,
+    5.5
+   ],
+   "pose_factor": 1.31,
+   "pose_note": "with SO(3) augmentation",
+   "zero_shot_fastback": null,
+   "few_shot_gain": null
+  }
+ },
+ "hilift_pending": "HiLift density and area-resampling factors come from the consistency benchmark (#sec-nb-bench-prereg); until it lands the HiLift rows carry accuracy only",
+ "notes": [
+  "The ISLA pose factor is 1.01 by construction (exact SE(3) covariance) and measured; the similarity gauge and weights-off rows inherit it.",
+  "Few-shot gain: GeoTransolver 0.186 \u2192 0.128 (31%); ISLA 0.198 \u2192 0.187 (6%)."
+ ]
+}
