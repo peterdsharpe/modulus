@@ -10108,3 +10108,50 @@ difference; either way, the numbers a checkpoint produces depend on the
 evaluation snapshot at the 6% level, which is larger than several of the
 book's stated margins, and needs its own instrument before any
 cross-snapshot comparison is read.
+
+## 2026-09-09 — WAVE-3 arm 5 verdict: on DrivAerML the unit drive does not help GeoTransolver (0.0556 against 0.0548, null); unit-drive GeoTransolver, Transolver and ISLA are at parity within 4% at 435 cars, within 1% with ISLA's weights off {#sec-nb-uw-verdict}
+
+**Setting and bars** (@sec-nb-wave3-prereg, arm 5). DrivAerML surface
+pressure, 435 training cars, 48 validation cars, frozen protocol, every
+architecture fed the unit freestream direction:
+`uw_gt_unit_lr1e3_seed{42,43,44}`, `uw_transolver_unit_lr{1e3,3e3}_seed{42,43}`
+(Transolver's first DrivAerML lanes, both rates because it had no prior on
+this dataset). References: physical-drive GeoTransolver 0.0548
+(`iw_gt_lr1e3_seed{42,43}`), ISLA 0.0577 (weights on), ISLA 0.0561 (weights
+off, @sec-nb-noweights-drivaer-verdict). Bars: GeoTransolver confound
+present if ≤ 0.0521, null within 3% of 0.0548; Transolver at its better
+rate against ISLA with the UDRV-L bands (advantage ≥ 1.10 with two thirds
+of cases; parity 0.95–1.05; baseline ahead ≤ 0.90). All arms scored on
+bit-identical sampled points (results/eval_points_identity_2026-09-09.md).
+
+**Readout** (results/uw_reduction_2026-09-09.json):
+
+| arm | pressure (seeds → mean) | ÷ ISLA (0.0577) | ÷ ISLA weights off (0.0561) | cars where the arm is lower than ISLA (weighted) |
+|---|---|---|---|---|
+| GeoTransolver, physical velocity | 0.0546 / 0.0550 → 0.0548 | 0.95 | 0.98 | — |
+| GeoTransolver, unit direction | 0.0553 / 0.0561 / 0.0554 → **0.0556** | **0.96** | **0.99** | 36 of 48 (median 1.07) |
+| Transolver, unit direction, lr 1e-3 | 0.0589 / 0.0597 → 0.0593 | 1.03 | 1.06 | 18 of 48 |
+| Transolver, unit direction, lr 3e-3 | 0.0561 / 0.0564 → **0.0563** | **0.98** | **1.00** | 36 of 48 (median 1.03) |
+| ISLA, weights on (reference) | 0.0587 / 0.0567 → 0.0577 | 1.00 | 1.03 | — |
+| ISLA, weights off | 0.0569 / 0.0553 → 0.0561 | 0.97 | 1.00 | — |
+
+Paired, physical- against unit-drive GeoTransolver: the unit-drive model is
+lower on 18 of 48 cars (median ratio 0.99, sign test p = 0.11): no effect.
+Unit-drive GeoTransolver against ISLA weights off: lower on 32 of 48
+(median 1.02); Transolver (3e-3) against ISLA weights off: 23 of 48
+(median 1.00).
+
+**Verdict.** GeoTransolver: null (+1.5%, inside the 3% band). On DrivAerML,
+where the freestream magnitude is 38.9 m/s and constant across cars, the
+physical-velocity input was not a handicap, so the DrivAerML numbers in
+the book stand as fair measurements and the "lower bound" qualifier is
+retired. Transolver: 0.0563 at its better rate, parity with ISLA (0.98x,
+inside 0.95–1.05). The full-data DrivAerML picture is therefore three
+architectures within 4% of one another, and within 1% once ISLA drops its
+measure weights: GeoTransolver 0.0556, ISLA (weights off) 0.0561, Transolver
+0.0563, ISLA (weights on) 0.0577. Chapter 6's full-data paragraph, chapter
+12's limits and recommendation, chapter 5's DrivAerML ladder note, the index
+paragraph and the verdict table's DrivAerML rows are rewritten; "8.5%
+behind" is retired. ISLA's third DrivAerML seed (`iw_mt2_lr1e3_seed44`,
+training) is added to the reference when it lands. Tech-tree change: WAVE-3
+arm 5 measured.

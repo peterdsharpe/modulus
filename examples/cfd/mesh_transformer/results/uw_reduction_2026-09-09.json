@@ -1,0 +1,174 @@
+{
+ "runs": {
+  "iw_mt2_lr1e3_seed42": {
+   "pressure_l2": 0.05874508301106592,
+   "n": 48
+  },
+  "iw_mt2_lr1e3_seed43": {
+   "pressure_l2": 0.05672003515064716,
+   "n": 48
+  },
+  "iw_mt2_lr1e3_seed44": null,
+  "now_mt2_lr1e3_seed42": {
+   "pressure_l2": 0.05689293146133423,
+   "n": 48
+  },
+  "now_mt2_lr1e3_seed43": {
+   "pressure_l2": 0.05533433829744657,
+   "n": 48
+  },
+  "iw_gt_lr1e3_seed42": {
+   "pressure_l2": 0.05461960992154976,
+   "n": 48
+  },
+  "iw_gt_lr1e3_seed43": {
+   "pressure_l2": 0.055013413773849607,
+   "n": 48
+  },
+  "uw_gt_unit_lr1e3_seed42": {
+   "pressure_l2": 0.05532941548153758,
+   "n": 48
+  },
+  "uw_gt_unit_lr1e3_seed43": {
+   "pressure_l2": 0.05614980643925568,
+   "n": 48
+  },
+  "uw_gt_unit_lr1e3_seed44": {
+   "pressure_l2": 0.05536517330134908,
+   "n": 48
+  },
+  "uw_transolver_unit_lr1e3_seed42": {
+   "pressure_l2": 0.058923958567902446,
+   "n": 48
+  },
+  "uw_transolver_unit_lr1e3_seed43": {
+   "pressure_l2": 0.05967064465706547,
+   "n": 48
+  },
+  "uw_transolver_unit_lr3e3_seed42": {
+   "pressure_l2": 0.05608987257195016,
+   "n": 48
+  },
+  "uw_transolver_unit_lr3e3_seed43": {
+   "pressure_l2": 0.05644874041900039,
+   "n": 48
+  }
+ },
+ "arms": {
+  "isla_weighted": {
+   "pressure_l2": 0.057732559080856546,
+   "n_seeds": 2,
+   "seed_pressure": [
+    0.05874508301106592,
+    0.05672003515064716
+   ]
+  },
+  "isla_noweights": {
+   "pressure_l2": 0.0561136348793904,
+   "n_seeds": 2,
+   "seed_pressure": [
+    0.05689293146133423,
+    0.05533433829744657
+   ]
+  },
+  "gt_physical": {
+   "pressure_l2": 0.05481651184769969,
+   "n_seeds": 2,
+   "seed_pressure": [
+    0.05461960992154976,
+    0.055013413773849607
+   ]
+  },
+  "gt_unit": {
+   "pressure_l2": 0.05561479840738078,
+   "n_seeds": 3,
+   "seed_pressure": [
+    0.05532941548153758,
+    0.05614980643925568,
+    0.05536517330134908
+   ]
+  },
+  "transolver_unit_lr1e3": {
+   "pressure_l2": 0.05929730161248396,
+   "n_seeds": 2,
+   "seed_pressure": [
+    0.058923958567902446,
+    0.05967064465706547
+   ]
+  },
+  "transolver_unit_lr3e3": {
+   "pressure_l2": 0.05626930649547528,
+   "n_seeds": 2,
+   "seed_pressure": [
+    0.05608987257195016,
+    0.05644874041900039
+   ]
+  }
+ },
+ "paired": {
+  "gt_physical_vs_gt_unit": {
+   "n": 48,
+   "second_lower": 18,
+   "sign_p": 0.11140289106101875,
+   "median_first_over_second": 0.9856114568676759,
+   "q10": 0.9479139859124117,
+   "q90": 1.020984323909832
+  },
+  "isla_weighted_vs_gt_unit": {
+   "n": 48,
+   "second_lower": 36,
+   "sign_p": 0.0007172696733945827,
+   "median_first_over_second": 1.066951061177388,
+   "q10": 0.9335600675910639,
+   "q90": 1.1064459790888415
+  },
+  "isla_noweights_vs_gt_unit": {
+   "n": 48,
+   "second_lower": 32,
+   "sign_p": 0.0293049467205293,
+   "median_first_over_second": 1.0220008850231004,
+   "q10": 0.9154520216561951,
+   "q90": 1.092553170902257
+  },
+  "isla_weighted_vs_transolver_unit_lr1e3": {
+   "n": 48,
+   "second_lower": 18,
+   "sign_p": 0.11140289106101875,
+   "median_first_over_second": 0.9905043597199295,
+   "q10": 0.8792015263241859,
+   "q90": 1.0296198005262878
+  },
+  "isla_weighted_vs_transolver_unit_lr3e3": {
+   "n": 48,
+   "second_lower": 36,
+   "sign_p": 0.0007172696733945827,
+   "median_first_over_second": 1.0276609140275683,
+   "q10": 0.9429192337002325,
+   "q90": 1.089581766611865
+  },
+  "isla_noweights_vs_transolver_unit_lr1e3": {
+   "n": 48,
+   "second_lower": 5,
+   "sign_p": 1.3680484300948592e-08,
+   "median_first_over_second": 0.9538088177127558,
+   "q10": 0.8653177228112855,
+   "q90": 1.0025117398926944
+  },
+  "isla_noweights_vs_transolver_unit_lr3e3": {
+   "n": 48,
+   "second_lower": 23,
+   "sign_p": 0.8854334972865132,
+   "median_first_over_second": 0.9994809080468754,
+   "q10": 0.9115009030664606,
+   "q90": 1.0657898016069491
+  },
+  "gt_unit_vs_transolver_unit_lr1e3": {
+   "n": 48,
+   "second_lower": 5,
+   "sign_p": 1.3680484300948592e-08,
+   "median_first_over_second": 0.9324128656243047,
+   "q10": 0.8940100439827999,
+   "q90": 1.0150543443508968
+  }
+ }
+}

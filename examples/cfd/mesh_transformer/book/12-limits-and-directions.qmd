@@ -7,8 +7,9 @@ freestream velocity, ISLA was several times more accurate at a few dozen
 HiLiftAeroML training cases; against the same baselines fed the unit
 direction that ISLA receives, it is 1.1–1.2x *less* accurate at 35 cases
 (@sec-part-baseline), and the rungs above 35 are not yet re-measured. What
-stands is parity with GeoTransolver at full HiLiftAeroML data and 8.5%
-behind on DrivAerML at each architecture's best learning rate, a lead on
+stands is parity with GeoTransolver at full HiLiftAeroML data and parity
+within 4% with the unit-drive GeoTransolver and Transolver at full
+DrivAerML data (within 1% with ISLA's measure weights off), a lead on
 interior pressure and velocity that awaits its own input-scale control, and
 a set of contracts that GeoTransolver does not have. This chapter states
 the boundary of each claim as a fact about the evidence, lists the open
@@ -277,10 +278,11 @@ the same ladder protocol at a frozen learning rate of 3e-3 for both
 architectures gives GeoTransolver the lead: the two are tied at 14 cases
 (GeoTransolver/ISLA 0.99) and GeoTransolver is 1.2–1.3x more accurate than
 ISLA at every rung from 27 to 218 cases (@tbl-drivaerml-dataeff-ladder in
-@sec-data-efficiency), with the physical velocity (38.9 m/s) as its input,
-so that lead is a lower bound. With the input matched, the two datasets
-agree in direction at the one HiLiftAeroML rung where the matched
-comparison exists.
+@sec-data-efficiency), with the physical velocity (38.9 m/s) as its input. At
+435 cars the unit-drive rerun changes nothing (0.0556 against 0.0548,
+inside the null band; @sec-nb-uw-verdict), so on DrivAerML the physical
+input was not a handicap and the small-data ladder's ordering is expected
+to stand; the ladder's unit-drive reruns are not scheduled.
 
 Every other mechanism measurement that compared ISLA with a baseline on
 HiLiftAeroML compared it with a physical-drive baseline, and each is a
@@ -684,8 +686,11 @@ cases, GeoTransolver and Transolver fed the unit direction are 1.1–1.2x
 more accurate, and at every other rung the comparison is a physical-drive
 measurement awaiting its rerun (@sec-part-baseline). On smooth single-body
 families such as DrivAerML, GeoTransolver is 1.2–1.3x more accurate on the
-surface at every training-set size and 8.5% at full data, and that is the
-recommendation there. What ISLA offers on the surface is its contracts:
+surface below full data (physical drive, which on this dataset is not a
+handicap) and at parity within 4% at full data with either baseline, within
+1% once ISLA drops its measure weights; there is no accuracy reason to
+prefer any of the three at full data, and GeoTransolver or Transolver below
+it. What ISLA offers on the surface is its contracts:
 exact rotation and translation covariance without a frame estimate or a
 freestream direction at inference, which a canonicalized GeoTransolver
 matches only where a frame can be estimated (@sec-pose); a

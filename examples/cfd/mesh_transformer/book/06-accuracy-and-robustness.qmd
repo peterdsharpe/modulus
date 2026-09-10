@@ -75,9 +75,18 @@ GeoTransolver scores 0.0548 (0.0546/0.0550) against ISLA's 0.0577, 1.05x
 ahead, and best-vs-best it is 1.085x ahead (0.0532 at 3e-3 against
 0.0577). GeoTransolver's DrivAerML lanes received the physical freestream
 velocity (38.9 m/s), the input scale that cost the baselines a factor of
-three at 35 HiLiftAeroML cases (@sec-part-baseline), so its lead on
-DrivAerML is a lower bound: matching the input can only move the ordering
-further in GeoTransolver's favour.
+three at 35 HiLiftAeroML cases (@sec-part-baseline). Rerun with the unit
+direction at 435 cars, GeoTransolver scores 0.0556 (three seeds 0.0553 /
+0.0561 / 0.0554), 1.5% *worse* than its physical-drive lane and inside the
+preregistered null band, so on DrivAerML the input scale was not a
+handicap; plain Transolver, run on DrivAerML for the first time with the
+unit direction, scores 0.0563 at its better rate (3e-3; 0.0593 at 1e-3).
+Against ISLA's 0.0577 both baselines are within the parity band (0.96x and
+0.98x; GeoTransolver lower on 36 of 48 cars, median per-car ratio 1.07),
+and against ISLA without measure weights (0.0561, @sec-mechanism) they are
+within 1% (32 and 23 of 48 cars; results/uw_reduction_2026-09-09.json,
+@sec-nb-uw-verdict). At full DrivAerML data the three architectures are at
+parity within 4%, within 1% with ISLA's weights off.
 
 The HiLift parity holds case by case, not only on average. Scoring each
 of the 180 validation cases by each architecture's two-seed mean error

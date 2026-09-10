@@ -932,3 +932,10 @@ interior control @sec-nb-udrv-int-prereg.
   same-checkpoint discrepancy lives in evaluation under the newly merged code + recipe
   (`code_perf`); no book number uses it. Rule: a new snapshot's evaluations may be compared with
   existing ones only after an identity check of sampled points against a frozen-snapshot artifact.
+
+- **DrivAerML unit-drive baselines (2026-09-09, WAVE-3 arm 5).** Unit-drive GT 0.0556
+  (0.0553/0.0561/0.0554) vs physical 0.0548: null (+1.5%). Transolver (first DrivAerML lanes)
+  0.0563 at lr 3e-3 (0.0593 at 1e-3). vs ISLA weighted 0.0577: 0.96x / 0.98x (parity band; GT
+  lower on 36/48 cars). vs ISLA weights-off 0.0561: 0.99x / 1.00x. Write "parity within 4% at
+  full DrivAerML data, within 1% with ISLA's weights off"; retire "8.5% behind" and "lower
+  bound". The 27–218-car ladder stays physical-drive and stands (not a handicap here).
