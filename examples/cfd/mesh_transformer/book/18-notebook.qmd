@@ -12360,3 +12360,26 @@ rediscovered.
 training numerics: the reference kernel's 1e-4 floor was present in every
 pre-2026-09-10 ISLA training run and is part of what the kernel-neutrality
 control (@sec-nb-fast-kernel-default) measured as +1.8%.
+
+**Resolution (same day).** The ISLA track's brackets closed the question
+within two hours: under the program's evaluation snapshot `code_eval` the
+10k-trained constant-gauge reference scores 0.0545 / 0.0530 / 0.0529 /
+0.0529 / 0.0529 / 0.0528 at 20k / 40k / 60k / 65k / 70k / 80k cells, and
+the 80k-trained corner scores its native 0.0427 at 80,000 cells on the
+reference kernel as well. The two collapsed readings (0.814 / 0.892, job
+700105) were evaluations of the same checkpoints on the same datasets under
+the *legacy* `code` snapshot, which that launcher still imported for the
+`iw_*` lanes at the time; they are struck in the track's entry as a defect
+of the legacy snapshot's evaluation path at 80,000 cells (mechanism not
+pursued: nothing evaluates under `code` any more, and the program-wide
+rule since @sec-nb-code-eval-adopted is that every evaluation imports
+`code_eval`). Reading (1) above therefore resolves to "the snapshot", and
+the kernel attribution the hypothesis rested on was itself wrong: infer.py
+instantiates the model from the recipe's model config, not from the
+checkpoint's stored arguments, so every `code_eval` evaluation of a legacy
+checkpoint runs the class default, the fast kernel; a checkpoint written
+before the `fast_point_softmax` argument existed carries no record of its
+training kernel. Evaluation logs now state the instantiated kernel, and the
+lane tables' "numerics" column is a training label only. Reading (2), the
+1e-4 float32 floor of the middle-dimension kernel, stands and is noted in
+the helper's docstring.
