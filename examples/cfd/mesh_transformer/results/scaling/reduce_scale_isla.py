@@ -133,10 +133,16 @@ for ds in ARMS:
 PROBE = {"dr_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
          "dr_c512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
          "dr_w512": [f"{T}/scale_probe_fp32/scale_isla_dr_w512_seed{s}" for s in (42, 43)],
-         # the same probe at 80,000 cells: resolution-generalization test (the 80k-trained model at its own density,
-         # and the 10k-trained reference queried 8x denser)
+         # resolution-generalization test. "@40k": the first mirror run, which asked for 80,000 cells from probe datasets
+         # whose reader pools only 40,000 (both samplers then keep the whole pool, so biased == uniform and the count is
+         # 40,000; only the uniform column is meaningful). "@80k": the true 80,000-cell probe on the *_80k dataset variants
+         # (160,000-cell pool). The similarity-gauge reference (iw_mt2_gauge, campaign E at 10k) is the principled control.
+         "dr_ref@40k": [f"{T}/scale_probe_fp32_40k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_c512x80k@40k": [f"{T}/scale_probe_fp32_40k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
          "dr_ref@80k": [f"{T}/scale_probe_fp32_80k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
          "dr_c512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@80k": [f"{T}/scale_probe_fp32_80k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
          "dr_g512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)],
          "dr_g512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)]}
 
@@ -166,13 +172,19 @@ for arm, dirs in PROBE.items():
 # uniform-sampling error and the biased/uniform ratio at 10,000 and 80,000 evaluation cells. Error falling with count is
 # fine; a sampling-distribution dependence that does not vanish with refinement is the failure the redirect names.
 out["convergence"] = {}
-for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@80k")), ("c512x80k_80k_trained", ("dr_c512x80k", "dr_c512x80k@80k")),
-                    ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", "dr_g512x80k@80k"))):
+for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@40k", "dr_ref@80k")),
+                    ("c512x80k_80k_trained", ("dr_c512x80k", "dr_c512x80k@40k", "dr_c512x80k@80k")),
+                    ("gauge_reference_10k_trained", ("dr_gauge_ref", None, "dr_gauge_ref@80k")),
+                    ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", None, "dr_g512x80k@80k"))):
     curve = {}
-    for cells, key in zip((10000, 80000), keys):
+    for cells, key in zip((10000, 40000, 80000), keys):
+        if key is None:
+            continue
         pr = out["density_probe"].get(key)
         if pr:
             curve[str(cells)] = {"uniform": pr["uniform"], "biased": pr["biased"], "biased_over_uniform": pr["biased_over_uniform"]}
+            if cells == 40000:
+                curve[str(cells)]["note"] = "40,000-cell pool exhausted: biased == uniform; only the uniform column is meaningful"
     if curve:
         out["convergence"][model] = curve
 json.dump(out, open(sys.argv[1], "w"), indent=1)

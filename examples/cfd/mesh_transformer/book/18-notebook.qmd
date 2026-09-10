@@ -9909,3 +9909,33 @@ biased ÷ uniform ratio at 80,000 cells is ≤ 1.5; *gauge fails at scale* if
 that ratio is ≥ 3; *gauge costs accuracy* if the ratio is ≤ 1.5 but the
 error exceeds 0.0470 (5% worse than the constant corner). The DrivAerML
 verdict waits for this pair (about a day at 0.29 s per step).
+
+**Mirror probe, first run: an instrument fact and a 40,000-cell reading.**
+Both probe datasets read a 40,000-cell pool from each mesh before
+subsampling to the requested count, so a request for 80,000 cells returns
+the whole pool from both the biased and the uniform sampler: the two columns
+are identical (ratio exactly 1.0) and the count is 40,000, not 80,000. The
+uniform column is still a valid convergence reading at 40,000 cells; the
+biased column is not. Relabelled as such (results key `@40k`), and the true
+80,000-cell probe relaunched on dataset variants with a 160,000-cell pool
+(`drivaer_probe_{biased3,unif2}_80k.yaml`), now including the
+similarity-gauge reference `iw_mt2_gauge_seed{42,43}` as the principled
+control (job 699993).
+
+| model (float32, uniform sampling) | 10,000 cells | 40,000 cells |
+|---|---|---|
+| reference, trained at 10,000 (constant gauge) | 0.0558 | **1.567** |
+| width 512 × 80,000, trained at 80,000 (constant gauge) | 0.0663 | 0.0447 |
+
+The 10k-trained constant-gauge reference collapses when queried at four
+times its training density (28x its own error); the 80k-trained model
+degrades 1.5x when queried at an eighth of its density and improves toward
+its native error as the count rises. Under the redirect this is the failure
+named: the constant-gauge configuration's accuracy is bound to the sampling
+density it was trained at, in both directions, and the 80k arm's
+in-distribution gain inherits that dependence. The mirror-test bar of the
+previous entry resolves as *resolution-bound* (the 80k model's 10k error
+0.0663 exceeds the reference's 0.0558, and the reference degrades by far more
+than 5% when queried denser). Whether the similarity gauge removes the
+dependence is exactly what the gauge reference's 80k probe and the
+`g512x80k` corner measure.
