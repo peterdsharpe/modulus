@@ -11174,3 +11174,27 @@ training precision.
 geometries and 1,260 cases (UDRV-L, when their bfloat16 evaluations exist)
 and for the interior density and neighbour arms (their float32 launcher is
 in place); the interior clones need `dataloader.pin_memory=false`.
+
+## 2026-09-10 — 4-geometry rung, final in float32: unit-drive GeoTransolver 0.188 and Transolver 0.193 against ISLA 0.250 (0.208 with weights off); every number agrees with bfloat16 to three decimals {#sec-nb-geo40-final}
+
+**Source.** FP32-EVAL (results/fp32_reeval/fp32_shift_2026-09-09.json) for the
+ten checkpoints of the `geometry_super_scarce` split (4 training
+geometries, 40 cases; 18 held-out geometries, 180 validation cases), points
+bit-identical. This closes the interim entry @sec-nb-geo40-arms-interim.
+
+| arm | bf16 | float32 (seeds) | ÷ ISLA (fp32) | ÷ ISLA weights off (fp32) |
+|---|---|---|---|---|
+| ISLA, weights on | 0.2498 | **0.2496** (0.2478 / 0.2513) | 1.00 | 1.20 |
+| ISLA, weights off | 0.2079 | **0.2078** (0.2036 / 0.2119) | **0.833** | 1.00 |
+| GeoTransolver, unit direction | 0.1888 | **0.1884** (0.1885 / 0.1883) | **0.755** | **0.907** |
+| Transolver, unit direction, lr 3e-3 | 0.1930 | **0.1928** (0.1876 / 0.1981) | **0.773** | **0.928** |
+| GeoTransolver, physical velocity | 0.4494 | 0.4528 (0.4063 / 0.4992) | 1.81 | 2.18 |
+
+**Verdict (final).** Baselines ahead by the mean (0.755 and 0.773 against
+weighted ISLA; 0.907 and 0.928 against ISLA's best fair configuration); the
+per-geometry split remains even for GeoTransolver (9 of 18) and 10 of 18
+for Transolver (@sec-nb-udrvl-geo40-verdict, @sec-nb-geo40-arms-interim, bf16
+counts, which the float32 per-case maxima on this rung do not disturb at
+the geometry level). Weights off persists at this rung (−17%). NOW-L tally
+unchanged: persists at 35 cases and 4 geometries, fades on DrivAerML;
+210 cases, 21 geometries, 1,260 cases, fixed angle and deflection pending.

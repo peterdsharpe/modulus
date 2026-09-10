@@ -504,7 +504,18 @@ data** (@tbl-frontier in @sec-full-data). The failure is not identical across
 the two architectures — on the held-out fastback family GeoTransolver trained
 on DrivAerML alone scores 0.59 where ISLA scores 0.95–0.99 (1.0 is the mean
 predictor) — but neither is usable, and a second training family moves both
-to 0.11–0.13. The similarity
+to 0.11–0.13. Few-shot adaptation separates them further: fine-tuned on 20
+labelled fastback cases for 1,000 steps, the unit-drive GeoTransolver
+reaches 0.128 against 0.186 trained from scratch on those cases, while ISLA
+reaches 0.187 against 0.198 (float32; research/transfer_program,
+#sec-nb-campc-t3-verdict), so what GeoTransolver learns on DrivAerML is a
+better starting point for a new family than what ISLA learns there (the two
+source checkpoints differ in drive input and learning rate as well as
+architecture, a caveat stated with the result), and the mixed-family ISLA
+that does transfer (0.129 on the fastback) pays 33% in-family (0.074 against
+0.056 on one seed). With the zero-shot force error of 1.6x and the
+constant-gauge density collapse, this is the third independent sign that
+ISLA's learned representation is family-specific. The similarity
 gauge, which fixes the constant-gauge configuration's sampling-density
 failure (@sec-robustness-density), leaves zero-shot transfer unchanged. A claim of family-portable surface physics from any of these
 architectures would need a corpus in which geometry, pose, scale and regime

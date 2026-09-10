@@ -1017,3 +1017,15 @@ interior control @sec-nb-udrv-int-prereg.
   the error falls across the campaign, largest for Transolver's physical-drive HiLift checkpoints);
   every close comparison moved toward the baselines (max counter-move 0.01); per-case maxima
   5–25% for the baselines → per-case statistics from fp32 everywhere.
+
+- **4-geometry rung, float32 final (2026-09-10).** ISLA 0.2496, ISLA weights off 0.2078 (0.833),
+  unit GT 0.1884 (0.755; 0.907 vs weights off), unit Transolver 0.1928 (0.773; 0.928), physical GT
+  0.4528. Write "baselines ahead by the mean, even by geometry"; weights off −17% persists here.
+- **Few-shot transfer (2026-09-10, transfer session campaign C T3, float32; research/transfer_program
+  #sec-nb-campc-t3-verdict).** Fine-tuning on 20 labelled fastback cases (1,000 steps, lr 1e-3):
+  GeoTransolver from the unit-drive DrivAerML checkpoint 0.128 vs 0.186 from scratch (31% better);
+  ISLA from mt2_v3c (lr 3e-3 checkpoint) 0.187 vs 0.198 (6%). Write "ISLA's DrivAerML
+  representation transfers less than GeoTransolver's" and name the checkpoint asymmetry
+  (different drive and learning rate) as a caveat; the mixed-435 ISLA pays 33% in-family (T2
+  preview, one seed). Third independent sign of family-specific learning (with the 1.6x zero-shot
+  force error and the constant-gauge density collapse).
