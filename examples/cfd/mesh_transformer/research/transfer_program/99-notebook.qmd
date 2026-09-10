@@ -744,3 +744,31 @@ stall and is now with the cluster team through the main session; it also
 says the cost of each stall is bounded by the watchdog's twenty minutes
 plus a restart, and that recycling onto the same sample is harmless once
 the file is readable again.
+
+## 2026-09-09 — Campaign C taken over: fine-tune lane's crash loop stopped (missing config key), fourteen remaining lanes submitted, evaluations moved to float32 {#sec-nb-campc-takeover}
+
+The campaign C agent (fastback transfer: conditioning, matched-count
+diversity, few-shot adaptation; `studies/campaign_c_transfer/PREREG.md`)
+ended after its acceptance pass with six of twenty lanes submitted; its
+branch is merged (5f66a7d61; one textual conflict with campaign B's
+transform, both kept). State on takeover: the two 435-case ISLA arms (mixed
+and single-family control) and the 20-case scratch arm had finished; the
+three conditioning lanes were at epochs 238–324 of 500; and the ISLA
+fine-tune lane (`campC_ft20_isla_seed42`) was in a crash loop, eleven
+failed links in seventeen minutes, each resubmitted by its own chain: the
+Sisyphus pattern the ops rules warn about, invisible to the agent's
+first-step acceptance because the lane could not start until its
+initialization checkpoint's run existed. Cause: the agent added the
+`training.init_from` hook to the recipe copy's `train.py` and `utils.py`
+but not the key to the copy's `conf/train.yaml`, so Hydra's struct check
+rejected the override before any Python ran. Fix: `init_from: null` added
+under `training` in `$T/recipe_campc/conf/train.yaml` (the repository
+version has it); the loop was cancelled first. Submitted with the fix: the
+four `init_from` lanes (ISLA fine-tune seeds 42/43; unit-drive
+GeoTransolver fine-tune seeds 42/43, whose source checkpoint
+`uw_gt_unit_lr1e3_seed42` has completed) and the ten remaining lanes (seed
+43 of every ISLA arm, all GeoTransolver arms), twenty lanes in all, job
+names camp-c-0..19. The eval launcher now runs in float32
+(`$T/campc_evals_fp32/<run>/{fastback,drivaer}`), per the reporting rule,
+and the watcher submits it on completion and flags any lane with four or
+more failures in an hour.
