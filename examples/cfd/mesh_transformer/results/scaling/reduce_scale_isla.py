@@ -152,7 +152,15 @@ PROBE = {"dr_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_lr1e3_seed{s}" for s i
          "dr_ref@80k": [f"{T}/scale_probe_fp32_80k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
          "dr_c512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
          "dr_gauge_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@40k": [f"{T}/scale_probe_fp32_40k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
          "dr_gauge_ref@80k": [f"{T}/scale_probe_fp32_80k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         # count-curve points for the two 10k-trained references: 20k (base 40k pool), 40k and 60k on the 320k-pool variant
+         "dr_ref@20k": [f"{T}/scale_probe_fp32_20k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_ref@40kv80": [f"{T}/scale_probe_fp32_40kv80/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_ref@60k": [f"{T}/scale_probe_fp32_60k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@20k": [f"{T}/scale_probe_fp32_20k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@40kv80": [f"{T}/scale_probe_fp32_40kv80/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@60k": [f"{T}/scale_probe_fp32_60k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
          "dr_g512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)],
          "dr_g512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)]}
 
@@ -186,12 +194,13 @@ for arm, dirs in PROBE.items():
 # uniform-sampling error and the biased/uniform ratio at 10,000 and 80,000 evaluation cells. Error falling with count is
 # fine; a sampling-distribution dependence that does not vanish with refinement is the failure the redirect names.
 out["convergence"] = {}
-for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@40k", "dr_ref@80k")),
-                    ("c512x80k_80k_trained", ("dr_c512x80k", "dr_c512x80k@40k", "dr_c512x80k@80k")),
-                    ("gauge_reference_10k_trained", ("dr_gauge_ref", None, "dr_gauge_ref@80k")),
-                    ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", None, "dr_g512x80k@80k"))):
+CELLS = (10000, 20000, 40000, "40000v80", 60000, 80000)
+for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@20k", "dr_ref@40k", "dr_ref@40kv80", "dr_ref@60k", "dr_ref@80k")),
+                    ("c512x80k_80k_trained", ("dr_c512x80k", None, "dr_c512x80k@40k", None, None, "dr_c512x80k@80k")),
+                    ("gauge_reference_10k_trained", ("dr_gauge_ref", "dr_gauge_ref@20k", "dr_gauge_ref@40k", "dr_gauge_ref@40kv80", "dr_gauge_ref@60k", "dr_gauge_ref@80k")),
+                    ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", None, None, None, None, "dr_g512x80k@80k"))):
     curve = {}
-    for cells, key in zip((10000, 40000, 80000), keys):
+    for cells, key in zip(CELLS, keys):
         if key is None:
             continue
         pr = out["density_probe"].get(key)
@@ -199,6 +208,8 @@ for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@40k", "dr_ref@8
             curve[str(cells)] = {"uniform": pr["uniform"], "biased": pr["biased"], "biased_over_uniform": pr["biased_over_uniform"]}
             if cells == 40000:
                 curve[str(cells)]["note"] = "40,000-cell pool exhausted: biased == uniform; only the uniform column is meaningful"
+            if cells == "40000v80":
+                curve[str(cells)]["note"] = "40,000 cells drawn from the 320,000-cell pool variant (dataset-variant control for the 40k point)"
     if curve:
         out["convergence"][model] = curve
 json.dump(out, open(sys.argv[1], "w"), indent=1)
