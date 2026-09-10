@@ -1008,7 +1008,18 @@ is not. Two caveats: single source checkpoint per architecture (the ISLA
 reference `mt2_v3c_seed42` and `uw_gt_unit_lr1e3_seed42`), and a
 learning-rate grid of two points; a fine-tune at 3e-3 or with a warm-up
 could move either number, but not the sign of the difference between the
-architectures at matched rate.
+architectures at matched rate. Two facts the book should quote with the
+finding: the source checkpoints differ in more than architecture, since
+`mt2_v3c_seed42` is the ISLA trained at lr 3e-3 (its own reference rate on
+this dataset at the time; the program's later ISLA reference `iw_mt2_lr1e3`
+is at 1e-3) and `uw_gt_unit_lr1e3_seed42` is the unit-drive GeoTransolver
+at 1e-3, so "the ISLA representation" here is that checkpoint's; and the
+number that turns the mixed-family "transfer" into a trade is T2's
+in-family cost, already visible on the first seed: the 435-case mixed ISLA
+(218 DrivAerML + 217 estate) reaches 0.129 on the fastback family but
+0.0742 on the DrivAerML validation cars against 0.0558 for the 435-case
+single-family ISLA in float32, a 33% in-family cost for the coverage
+(T2's full readout follows with its second seed and the GeoTransolver arms).
 
 **Cost of the credible route, for the record.** GeoTransolver fine-tuned
 on 20 + 10 labelled fastback cases for 1,000 steps at lr 1e-3 (about five
