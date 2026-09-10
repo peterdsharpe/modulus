@@ -772,3 +772,63 @@ names camp-c-0..19. The eval launcher now runs in float32
 (`$T/campc_evals_fp32/<run>/{fastback,drivaer}`), per the reporting rule,
 and the watcher submits it on completion and flags any lane with four or
 more failures in an hour.
+
+## 2026-09-09 — Verdict, H1 pressure-by-constraint-solve: STOPS at the instrument gates; the 10,000-point interior sample does not resolve the velocity field (discrete divergence 35% of the gradient norm), so the constraint cannot be evaluated on saved predictions {#sec-nb-h1-verdict}
+
+**Setting.** Hypothesis 1 of @sec-classical-solvers says a solver enforces
+the pressure constraint globally while a surrogate predicts pressure
+pointwise, and asks whether the pressure recovered by solving the
+constraint from a surrogate's predicted velocity beats the directly
+predicted pressure. The study (`studies/poisson_pressure/PREREG.md`, run by
+a delegated agent whose branch and result files are merged) works on the
+saved DrivAerML interior predictions: 10,000 scattered points per car, a
+fraction 6 × 10⁻⁵ of the CFD mesh, nearest-neighbour spacing 0.6 mm to
+0.1 m, with meshfree RBF-FD derivatives (cubic polyharmonic splines plus
+quadratics, 40 or 60 neighbours). Two instrument gates were preregistered
+before any prediction was read: G0, the operator must differentiate
+analytic fields to 10%; G1, the pressure recovered from the TRUE velocity
+must be within 0.10 relative L2 of the true pressure for at least one
+model-free wall condition. Only then would G2 compare recovered with
+directly predicted pressure for ISLA query tokens + SDF and
+GeoTransolver-volume.
+
+**Readout (48 validation cars; artifact
+`$T/transfer/poisson_pressure/poisson_pressure_2026-09-09.json`, 494 s per
+car on 16 CPU workers; post-hoc subset diagnostic
+`studies/poisson_pressure/posthoc_subsets_2026-09-09.{json,png}`).**
+
+- G0, on the near-wall band holding 90% of the points (SDF < 0.05 L) with
+  the 1 m analytic field: gradient error median 1.3% but mean 14% over
+  cars; Laplacian error median 12.3%, mean 124% (k = 40, degree 2); k = 60
+  gives 11.3% / 565% and degree 3 gives 3.8% / 340%. The Laplacian fails
+  the 10% bar in every configuration by the mean and marginally by the
+  median: the cloud has stencils whose second derivatives are unusable.
+- G1, recovery from the TRUE velocity: momentum least squares (the most
+  robust formulation) reaches a relative L2 of 7.7 by the median and 2,500
+  by the mean; the Poisson forms with Dirichlet, homogeneous Neumann or
+  momentum-Neumann wall rows are 10³ to 10¹¹. Nothing is near 0.10. The
+  direct predictions on the same cars are 0.057 (ISLA) and 0.062
+  (GeoTransolver-volume).
+- Why: the discrete divergence of the true velocity is 35% of its gradient
+  norm on the full sample (a resolved incompressible field would give a few
+  percent), and the discrete momentum source |(u·∇)u| is 2.8x |∇p| where
+  the balance would give about 1; both worsen, not improve, on
+  wall-distance-filtered subsets (divergence 26–35%, source ratio up to 7x,
+  Laplacian test error rising to 65% as the spacing grows from 2.7 to
+  16 cm). The velocity field is simply not resolved by the saved sample:
+  neighbours 3–16 cm apart cannot represent a boundary layer whose true
+  scales are millimetres.
+
+**Verdict: STOPS at G0/G1, as the preregistration provided.** The
+hypothesis is untestable on saved 10,000-point predictions; G2 was not
+run as a test (the recovered-from-predicted numbers exist in the artifact
+and are equally meaningless, 134 and 163 by the mean). Testing it requires
+either the full mesh (150M cells) or a re-sampled evaluation dense enough
+to pass G0 on the Laplacian, which is a data-plumbing node, not a
+modelling one, and its cost (a solve per car on millions of points) is the
+question's real price. The negative is informative for the program in one
+way: any "physics residual" diagnostic on the saved interior samples
+(divergence, momentum residual) is dominated by discretization error of
+the sample itself, so residual-as-triage (hypothesis 4 of the same
+chapter) cannot be run on these artifacts either without the same
+re-sampling.

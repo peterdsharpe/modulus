@@ -123,8 +123,21 @@ information per unit cost.
 
 ## Priority and what runs first {#sec-classical-priority}
 
-Hypotheses 1 and 4 are eval-only on artifacts that exist and are queued
-behind the controls. Hypothesis 2 is a two-lane component evaluation and a
+Hypothesis 1 was run as an eval-only study on the saved DrivAerML interior
+predictions and **stops at its instrument gates** (@sec-nb-h1-verdict;
+`studies/poisson_pressure/`): the 10,000 scattered interior points per car
+(6 × 10⁻⁵ of the CFD mesh, neighbours 3–16 cm apart) do not resolve the
+velocity field. The discrete divergence of the *true* velocity is 35% of
+its gradient norm, the meshfree Laplacian misses a 1 m analytic field by
+12% (median over cars) to 124% (mean), and the pressure recovered from the
+true velocity by momentum least squares is off by a factor 7.7 (median)
+against a bar of 0.10, so the recovered-from-predicted comparison was never
+meaningful and was not graded. The same fact closes hypothesis 4 on these
+artifacts: any physics residual computed on the saved samples is dominated
+by the sample's own discretization error. Both hypotheses now wait on a
+data-plumbing node (dense re-sampled evaluations, or the full mesh), whose
+cost is the real price of "global constraint by solve" for surrogates
+evaluated on sparse samples. Hypothesis 2 is a two-lane component evaluation and a
 natural companion to the program's eddy-viscosity work. Hypothesis 3 rides on
 the composition study's exterior variant. Hypotheses 5 through 7 are gated
 on prerequisites (a failing classical hierarchy; neighbouring-condition
