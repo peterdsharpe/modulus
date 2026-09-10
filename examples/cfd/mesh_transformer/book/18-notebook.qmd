@@ -10773,3 +10773,122 @@ hung submission (cancelled after the pin-memory prefetch hang of
 @sec-nb-interior-pin-stall); the resubmitted evaluations with
 `dataloader.pin_memory=false` completed in 2–4 minutes each, and their
 complete metrics are the ones reduced.
+
+## 2026-09-10 — FP32-REEVAL verdict, all groups: 209 checkpoints re-evaluated in float32 on bit-identical points; the bf16 offset is small where errors are large and grows to 8–18% where errors are small, always more for the baselines than for ISLA {#sec-nb-fp32-reeval-verdict-all}
+
+**Scope.** Every reported checkpoint with a completed bf16 evaluation was
+re-evaluated once under `precision=float32` with its own code snapshot and
+launcher overrides (@sec-nb-fp32-reeval-prereg): 153 HiLiftAeroML surface
+runs, 43 DrivAerML surface runs, 34 interior runs; the transfer session's
+runs and the scaling grid excluded. The sampled validation points are
+bit-identical between the bf16 and float32 artifacts for all 209 runs.
+154 of 209 fail the reporting-equivalence bar, almost all of them on
+the per-case criterion (a per-case change above 5% somewhere in the 48 or
+180 cases) rather than the 1% mean criterion. Per-rung verdicts:
+@sec-nb-fp32-reeval-verdict-35 (35 cases), @sec-nb-fp32-reeval-verdict-drivaer
+(DrivAerML surface), @sec-nb-fp32-reeval-verdict-interior (interior).
+Artifact: results/fp32_reeval/fp32_shift_2026-09-09.json.
+
+**Shift of the pressure mean, float32 ÷ bf16 − 1, by architecture and dataset.**
+
+| architecture | dataset | runs | median shift | range | median per-case max | runs failing the bar |
+|---|---|---|---|---|---|---|
+| ISLA | HiLiftAeroML | 42 | -0.67% | -5.5% to -0.0% | 6% | 24 |
+| GeoTransolver | HiLiftAeroML | 57 | -0.37% | -10.7% to +1.5% | 9% | 37 |
+| Transolver | HiLiftAeroML | 39 | -8.19% | -23.7% to +0.2% | 15% | 30 |
+| ISLA | DrivAerML (surface and interior) | 49 | -3.14% | -4.4% to +0.1% | 7% | 45 |
+| GeoTransolver | DrivAerML (surface and interior) | 15 | -9.55% | -17.2% to -0.3% | 18% | 14 |
+| Transolver | DrivAerML (surface and interior) | 4 | -7.83% | -8.3% to -7.6% | 16% | 4 |
+| MeshTransformer (exact kernel) | DrivAerML (surface and interior) | 2 | +0.02% | -0.1% to +0.1% | 3% | 0 |
+
+**By rung** (median shift, number of runs; a rung's baselines are the
+unit-drive ones where they exist):
+
+| rung | ISLA | GeoTransolver | Transolver |
+|---|---|---|---|
+| HiLift 35 cases | -0.1% (3) | -0.0% (12) | -0.3% (10) |
+| HiLift 210 | -0.7% (3) | -0.2% (7) | -11.7% (5) |
+| HiLift 510 | -1.4% (2) | -1.9% (2) | -11.5% (4) |
+| HiLift 1,260 | -2.0% (2) | -3.4% (2) | — |
+| HiLift 4 geometries | -0.1% (4) | -0.2% (4) | -0.1% (2) |
+| HiLift 21 geometries | -0.3% (2) | -0.3% (2) | — |
+| HiLift fixed angle | -3.0% (2) | -0.3% (6) | -13.5% (4) |
+| HiLift angle test | -4.2% (2) | -4.9% (2) | — |
+| HiLift stall test | -4.7% (2) | -5.7% (2) | — |
+| DrivAerML surface 435 | -3.2% (25) | -9.1% (7) | -7.8% (4) |
+| DrivAerML interior 54 | -1.8% (4) | -7.8% (2) | — |
+| DrivAerML interior 109 | -2.3% (4) | -12.1% (2) | — |
+| DrivAerML interior 435 | -3.5% (14) | -16.8% (4) | — |
+
+**The book's remaining pressure ratios under float32** (arm means bf16 →
+float32; ratio = baseline ÷ ISLA, above 1 favours ISLA):
+
+| comparison | bf16 → float32 |
+|---|---|
+| Fixed angle: GeoTransolver-unit ÷ ISLA | 0.0358 → 0.0348 vs 0.0291 → 0.0270; ratio 0.813 → 0.776 |
+| Fixed angle: Transolver-unit ÷ ISLA | 0.0358 → 0.0348 vs 0.0317 → 0.0298; ratio 0.884 → 0.857 |
+| 4 geometries: GeoTransolver-unit ÷ ISLA | 0.2498 → 0.2496 vs 0.1888 → 0.1884; ratio 0.756 → 0.755 |
+| 4 geometries: Transolver-unit ÷ ISLA | 0.2498 → 0.2496 vs 0.1930 → 0.1928; ratio 0.773 → 0.773 |
+| 21 geometries: GeoTransolver-physical ÷ ISLA | 0.1017 → 0.1014 vs 0.1427 → 0.1422; ratio 1.403 → 1.402 |
+| 1,260 cases: GeoTransolver-physical ÷ ISLA | 0.0413 → 0.0405 vs 0.0422 → 0.0408; ratio 1.021 → 1.007 |
+| 510 cases: GeoTransolver-physical ÷ ISLA | 0.0495 → 0.0488 vs 0.0568 → 0.0557; ratio 1.146 → 1.140 |
+| 510 cases: Transolver-physical (3e-3) ÷ ISLA | 0.0495 → 0.0488 vs 0.0666 → 0.0586; ratio 1.344 → 1.200 |
+| 210 cases: GeoTransolver-physical ÷ ISLA (three seeds) | 0.0648 → 0.0643 vs 0.1414 → 0.1410; ratio 2.181 → 2.192 |
+| 210 cases: Transolver-physical (3e-3) ÷ ISLA (three seeds) | 0.0648 → 0.0643 vs 0.0866 → 0.0771; ratio 1.337 → 1.198 |
+| 210 cases: GeoTransolver-unit ÷ ISLA | — (one arm not yet evaluated under float32) |
+| 1,260 cases: GeoTransolver-unit ÷ ISLA | — (one arm not yet evaluated under float32) |
+
+**Is the offset additive?** Median bf16 excess (bf16 − float32, in units of
+10⁻³ relative L2) on the HiLift surface rungs, split by the bf16 error level:
+
+| architecture | runs with error ≥ 0.08 | excess (×10⁻³) | runs with error < 0.08 | excess (×10⁻³) |
+|---|---|---|---|---|
+| GeoTransolver | 23 | 0.2 | 6 | 1.4 |
+| Transolver | 17 | 3.3 | 6 | 7.2 |
+| ISLA | 3 | 0.2 | 9 | 0.8 |
+
+**Verdict.** (1) The bf16 evaluation offset is real, negative on almost
+every run (float32 is the lower error), and its size is set by the error
+level rather than the dataset: on HiLift it is within 0.7% at 35, 210, 4 and
+21 geometries where errors are 0.1–0.4, and grows to 2–5% for ISLA and 3–6%
+for GeoTransolver at 1,260 cases and on the angle and stall tests where
+errors are 0.02–0.05; on DrivAerML, whose errors are 0.05–0.06, it is 3% for
+ISLA and 8–10% for the surface baselines; on the interior task 17–18% for
+GeoTransolver-volume. Transolver's physical-drive checkpoints at 210, 510
+and the fixed angle carry the largest surface offsets (9–24%). (2) The
+offset is architecture-dependent wherever it is large (the bar fires on
+DrivAerML surface, on the interior task and on the 210/510 HiLift rungs
+where Transolver's checkpoints inflate 11–12% against ISLA's 0.7–1.4%), and
+it is always larger for the baselines than for ISLA: every comparison in
+the book that bf16 called close or favourable to ISLA moves toward the
+baselines under float32, by 0.01–0.14 in ratio on the HiLift rungs (the
+largest for the physical-drive Transolver at 210 and 510 cases, 1.34 →
+1.20) and 0.05–0.15 on DrivAerML; the only movement the other way is the
+210-case physical-drive GeoTransolver ratio, by 0.01. The interior
+pressure ordering flips to GeoTransolver-volume; the HiLift orderings do
+not change sign. (3) Within ISLA, the offset is nearly configuration-
+independent (weights on or off, gauge, second-moment channel, query
+tokens: 3–4% on DrivAerML, 0.1–0.7% on small HiLift rungs), so every
+within-ISLA statement in the book survives unchanged; the passive decoders'
+offset is smallest (0.5–2%), the exact-kernel MeshTransformer's zero. (4)
+The per-case picture is worse than the means: single cases move by 5–25%
+for the baselines and 5–17% for ISLA, so per-case paired statistics
+computed under bf16 (win counts, medians of per-case ratios) are not
+reproducible to the stated precision and must be recomputed from the
+float32 artifacts before they are quoted again.
+
+**What follows.** Precision is stated beside every number from here on, the
+float32 artifacts under `hl_evals_fp32`, `iw_evals_fp32` and
+`v0_evals_fp32` are the reporting record, and the scaling grid is evaluated
+in float32 from the start. Three float32 evaluations are still owed:
+the unit-drive GeoTransolver at 210 cases, at 21 geometries and at 1,260
+cases (their bf16 evaluations had not completed when this campaign ran), and
+the interior density and neighbour arms; each is one launcher clone away.
+The offset is not a constant additive floor: the bf16 excess grows as the
+error falls (GeoTransolver 0.2 → 1.4 × 10⁻³ and Transolver 3.3 → 7.2 × 10⁻³
+from the high-error to the low-error HiLift rungs, ISLA 0.2 → 0.8 × 10⁻³),
+so it scales more than proportionally with accuracy, and it is largest for
+Transolver's physical-drive checkpoints. Why the two slice-attention
+baselines round harder than ISLA's routing at the same error level is a
+question for a numerics study of one block under bf16, not for this
+instrument.
