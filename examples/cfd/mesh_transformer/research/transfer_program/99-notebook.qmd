@@ -1529,3 +1529,83 @@ targets' near-wall structure, which is where ν_t lives; a per-point SDF
 gradient channel for ISLA would be the principled next arm under the
 2026-09-10 ruling (a physically meaningful geometric input). Cost: hidden
 344 at about 1.3x the step time and less activation memory (recompute).
+
+**Correction to the "next arm" of @sec-nb-campd-verdict.** The signed-
+distance gradient is already an input of ISLA's interior configuration:
+the resolved config of the hidden-344 run passes
+`query_normals = interior.point_data.sdf_normals` and `query_scalars =
+interior.point_data.sdf`, and GeoTransolver-volume's per-point channels are
+position, signed distance and the same gradient (functional dimension 7)
+plus its six radii. At matched parameters the two models therefore see the
+same per-point geometry, and the 18% eddy-viscosity gap is not an input
+difference but a difference in how the query consumes it (raw channels
+through a per-point network against invariant products with anchors and
+drive). The principled next step is diagnostic: a wall-distance band
+decomposition of the saved float32 predictions
+(`studies/computational_support/band_decomposition.py`; bands SDF < 0.01 L,
+0.01–0.05 L, ≥ 0.05 L; per-band relative L2 and share of squared error for
+eddy viscosity, pressure and velocity; hidden 344, hidden 256, unit-drive
+GeoTransolver-volume, and the no-local-features arm) to locate the gap
+before any architecture change is preregistered. Also recorded: the
+skipped-load audit of every evaluation log of this program (382 logs)
+found the string only in the four snapshot-probe runs that were meant to
+fail; every reported number had its checkpoint loaded.
+
+## 2026-09-10 — Diagnostic: ISLA's remaining eddy-viscosity deficit is a far-field effect, not a near-wall one; near the wall ISLA and GeoTransolver-volume are equal on ν_t and ISLA leads on pressure and velocity {#sec-nb-bands}
+
+**Instrument.** Wall-distance band decomposition of the saved float32
+interior predictions (`studies/computational_support/band_decomposition.py`;
+artifact `band_decomposition_2026-09-10.json`): for every one of the 48
+validation cars and each arm, relative L2 over the points in three
+signed-distance bands, SDF < 0.01 L (77% of the 10,000 sampled points, the
+boundary layer and near wake), 0.01–0.05 L (11.5%), ≥ 0.05 L (10%, the
+outer wake and far field), with L the case's reference length, and the
+share of each field's squared error carried by each band; two-seed means.
+The pooled "all" values here are per-case raw-field relative L2 averaged
+over cars and differ by a constant factor from the recipe's standardized
+metric (ν_t 0.092 here against 0.1033 there for hidden 344); the ratios
+between arms agree (1.18x both ways).
+
+| field, band (share of points) | ISLA h256 | ISLA h344 | GeoTransolver-volume (unit) | GT, no local features |
+|---|---|---|---|---|
+| ν_t, SDF < 0.01 L (77%) | 0.084 | 0.081 | 0.080 | 0.083 |
+| ν_t, 0.01–0.05 L (11%) | 0.066 | 0.062 | 0.077 | 0.077 |
+| ν_t, ≥ 0.05 L (10%) | 0.101 | 0.093 | 0.068 | 0.071 |
+| ν_t, share of squared error in the far band | 46% | 46% | 36% | 36% |
+| pressure, SDF < 0.01 L | 0.054 | 0.049 | 0.051 | 0.055 |
+| pressure, 0.01–0.05 L | 0.051 | 0.047 | 0.037 | 0.042 |
+| pressure, ≥ 0.05 L | 0.094 | 0.082 | 0.067 | 0.077 |
+| velocity, SDF < 0.01 L | 0.094 | 0.086 | 0.128 | 0.133 |
+| velocity, 0.01–0.05 L | 0.036 | 0.033 | 0.041 | 0.041 |
+| velocity, ≥ 0.05 L | 0.042 | 0.040 | 0.033 | 0.035 |
+
+: Pressure and velocity squared errors are 90–94% near-wall for every arm, so their totals are set by the first band; eddy viscosity splits about half and half between the near-wall and far bands for ISLA, 53/36 for GeoTransolver. {#tbl-bands}
+
+**Reading.** The near-wall closure hypothesis is refuted: in the band
+where the closure's wall-distance scaling lives, ISLA at matched
+parameters and GeoTransolver-volume are equal on eddy viscosity (0.081
+against 0.080), and ISLA leads in the intermediate band by 20%. **The whole
+18% deficit comes from the far field**: at SDF ≥ 0.05 L ISLA's ν_t error is
+0.093 against 0.068, and that band carries 46% of ISLA's squared error
+against 36% of GeoTransolver's. Width helped there least (0.101 → 0.093,
+against 0.084 → 0.081 near the wall). The same far-field pattern appears
+on pressure (0.082 against 0.067) and velocity (0.040 against 0.033), where
+it is invisible in the totals because those fields' errors are 90–94%
+near-wall. So the picture at matched parameters is: ISLA wins wherever the
+surface is close, GeoTransolver wins where it is far. The mechanism this
+points at is geometric, not a closure input: far from the body every
+surface anchor is at nearly the same distance and direction, so ISLA's
+relational invariants to the anchors lose resolution exactly where
+GeoTransolver's per-point network on raw position keeps it; the wake is a
+far-field structure organized by the drive direction, not by the surface.
+The principled candidate under the 2026-09-10 ruling is therefore not a
+new closure input but far-field anchors organized by the flow: ISLA already
+has an option for latent volume tokens at downstream offsets along the
+drive (`latent_volume_tokens`, offsets 0.5, 1.0, 2.0 body lengths), which
+is a physically meaningful, discretization-invariant construction (the
+wake axis), and its test has a sharp readout: the far-band ν_t error.
+Proposed bars for whoever preregisters it, in this table's units at hidden
+344: supported if far-band ν_t ≤ 0.074 (within 10% of GeoTransolver's
+0.068) with the near-wall band unchanged within 3%; falsified if ≥ 0.085
+(no better than the two seeds' 0.087–0.099 range). Not launched by this
+track.
