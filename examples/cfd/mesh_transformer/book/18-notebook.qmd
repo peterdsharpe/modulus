@@ -10803,3 +10803,119 @@ GeoTransolver-volume (UDRV-INT) needs the same float32 pass before the
 interior column is final. The interior recommendation is now
 GeoTransolver-volume where pressure or eddy viscosity is the target and
 ISLA where velocity is.
+
+## 2026-09-10 — FP32-REEVAL verdict, DrivAerML interior: per-field bf16 → float32 shifts of GeoTransolver-volume and the ISLA interior arms, and the book's interior ratios under float32 {#sec-nb-fp32-reeval-verdict-interior}
+
+**Readout** (@sec-nb-fp32-reeval-prereg, group 4; 48 validation cars;
+sampled interior and boundary points bit-identical between the bf16 and
+float32 artifacts for every run listed;
+results/fp32_reeval/fp32_shift_interior_2026-09-09.json). Each cell gives
+the seed-mean bf16 → float32 relative L2 with the shift of the mean and the
+largest per-case change in any seed.
+
+| arm | seeds | pressure | velocity | eddy viscosity |
+|---|---|---|---|---|
+| GeoTransolver-volume, physical velocity | 2 | 0.0620 → 0.0514 (-17.0%, max 25%) | 0.1334 → 0.1088 (-18.4%, max 25%) | 0.0939 → 0.0879 (-6.4%, max 18%) |
+| GeoTransolver-volume, unit direction | 2 | 0.0617 → 0.0513 (-16.8%, max 25%) | 0.1310 → 0.1070 (-18.3%, max 24%) | 0.0936 → 0.0879 (-6.1%, max 17%) |
+| ISLA query tokens + SDF (~365 cells) | 2 | 0.0567 → 0.0547 (-3.5%, max 9%) | 0.0853 → 0.0796 (-6.6%, max 11%) | 0.1215 → 0.1116 (-8.2%, max 56%) |
+| ISLA query tokens + SDF, 10,000 cells | 2 | 0.0572 → 0.0550 (-3.8%, max 15%) | 0.0848 → 0.0789 (-7.0%, max 11%) | 0.1187 → 0.1142 (-3.8%, max 100%) |
+| ISLA query tokens + SDF, hidden 256 | 2 | 0.0547 → 0.0525 (-4.1%, max 17%) | 0.0835 → 0.0771 (-7.6%, max 12%) | 0.1179 → 0.1031 (-12.5%, max 61%) |
+| ISLA query tokens + SDF + surface local features | 2 | 0.0574 → 0.0558 (-2.8%, max 11%) | 0.0855 → 0.0800 (-6.4%, max 11%) | 0.1274 → 0.1193 (-6.4%, max 70%) |
+| ISLA query tokens + SDF + query density | — | not evaluated under float32 yet | | |
+| ISLA query tokens + SDF + query neighbours | — | not evaluated under float32 yet | | |
+| ISLA query tokens (no SDF scalar) | 2 | 0.0639 → 0.0615 (-3.8%, max 8%) | 0.1552 → 0.1390 (-10.4%, max 14%) | 0.1604 → 0.1416 (-11.7%, max 51%) |
+| ISLA passive decode | 2 | 0.1928 → 0.1895 (-1.7%, max 6%) | 0.3371 → 0.3318 (-1.6%, max 4%) | 0.4181 → 0.3977 (-4.9%, max 16%) |
+| ISLA passive decode + SDF normals | 2 | 0.1596 → 0.1572 (-1.5%, max 14%) | 0.3075 → 0.3052 (-0.7%, max 5%) | 0.3719 → 0.3736 (+0.5%, max 26%) |
+| MeshTransformer exact kernel | 2 | 0.4958 → 0.4959 (+0.0%, max 5%) | 0.5490 → 0.5486 (-0.1%, max 3%) | 0.7271 → 0.7270 (-0.0%, max 2%) |
+| ladder 54 cars: GeoTransolver-volume | 2 | 0.1041 → 0.0960 (-7.8%, max 15%) | 0.2020 → 0.1756 (-13.1%, max 17%) | 0.1901 → 0.1701 (-10.5%, max 28%) |
+| ladder 54 cars: ISLA QT+SDF | 2 | 0.1159 → 0.1139 (-1.8%, max 4%) | 0.1685 → 0.1649 (-2.1%, max 3%) | 0.2743 → 0.2606 (-5.0%, max 32%) |
+| ladder 54 cars: ISLA QT (no SDF) | 2 | 0.1263 → 0.1240 (-1.8%, max 4%) | 0.2542 → 0.2465 (-3.1%, max 5%) | 0.3293 → 0.3121 (-5.2%, max 18%) |
+| ladder 109 cars: GeoTransolver-volume | 2 | 0.0780 → 0.0685 (-12.1%, max 18%) | 0.1629 → 0.1366 (-16.2%, max 21%) | 0.1418 → 0.1294 (-8.7%, max 24%) |
+| ladder 109 cars: ISLA QT+SDF | 2 | 0.0826 → 0.0810 (-1.9%, max 5%) | 0.1186 → 0.1140 (-3.9%, max 7%) | 0.2114 → 0.1932 (-8.7%, max 73%) |
+| ladder 109 cars: ISLA QT (no SDF) | 2 | 0.0940 → 0.0915 (-2.6%, max 6%) | 0.2067 → 0.1962 (-5.0%, max 7%) | 0.2542 → 0.2357 (-7.3%, max 36%) |
+
+By configuration (pressure):
+
+| configuration | runs | median shift | range |
+|---|---|---|---|
+| geotransolver_physical_drive | 6 | -12.15% | -17.19% to -7.47% |
+| geotransolver_unit_drive | 2 | -16.81% | -16.83% to -16.80% |
+| isla_passive_interior | 4 | -1.74% | -2.51% to -0.51% |
+| isla_query_tokens_sdf | 20 | -2.70% | -4.32% to -1.28% |
+| mesh_transformer | 2 | +0.02% | -0.11% to +0.15% |
+
+Per-architecture pressure medians: GeoTransolver-volume -14.50%, ISLA -2.52%.
+
+**The book's interior ratios under float32** (arm ÷ GeoTransolver-volume,
+pressure / velocity / eddy viscosity, bf16 → float32; below 1 favours the
+arm):
+
+| comparison | bf16 → float32 |
+|---|---|
+| ISLA QT+SDF (~365) ÷ GT-volume physical | 0.91 → 1.06 / 0.64 → 0.73 / 1.29 → 1.27 |
+| ISLA QT+SDF (~365) ÷ GT-volume unit | 0.92 → 1.07 / 0.65 → 0.74 / 1.30 → 1.27 |
+| ISLA QT+SDF 10k cells ÷ GT-volume unit | 0.93 → 1.07 / 0.65 → 0.74 / 1.27 → 1.30 |
+| ISLA h256 ÷ GT-volume unit | 0.89 → 1.02 / 0.64 → 0.72 / 1.26 → 1.17 |
+| ISLA + surface local features ÷ GT-volume unit | 0.93 → 1.09 / 0.65 → 0.75 / 1.36 → 1.36 |
+| ISLA + query density ÷ GT-volume unit | — |
+| ISLA + query neighbours ÷ GT-volume unit | — |
+| ISLA QT (no SDF) ÷ GT-volume physical | 1.03 → 1.19 / 1.16 → 1.28 / 1.71 → 1.61 |
+| ISLA passive ÷ GT-volume physical | 3.11 → 3.68 / 2.53 → 3.05 / 4.45 → 4.53 |
+| ISLA passive + SDF normals ÷ GT-volume physical | 2.57 → 3.06 / 2.31 → 2.81 / 3.96 → 4.25 |
+| 54 cars: ISLA QT+SDF ÷ GT-volume | 1.11 → 1.19 / 0.83 → 0.94 / 1.44 → 1.53 |
+| 54 cars: ISLA QT (no SDF) ÷ GT-volume | 1.21 → 1.29 / 1.26 → 1.40 / 1.73 → 1.84 |
+| 109 cars: ISLA QT+SDF ÷ GT-volume | 1.06 → 1.18 / 0.73 → 0.83 / 1.49 → 1.49 |
+| 109 cars: ISLA QT (no SDF) ÷ GT-volume | 1.20 → 1.34 / 1.27 → 1.44 / 1.79 → 1.82 |
+
+**Reproduction.** The four runs the transfer session re-evaluated in
+float32 (#sec-nb-fp32-interior-regrade) reproduce here to the last digit:
+ISLA query tokens + SDF 0.0547 / 0.0796 / 0.1116, GeoTransolver-volume
+0.0514 / 0.1088 / 0.0879.
+
+**Verdict.** No interior arm is reporting-equivalent by the mean bar, and
+the architecture-dependence bar fires by a wide margin: bf16 inflated
+GeoTransolver-volume's pressure and velocity errors by 17–18% and its eddy
+viscosity by 6%, the ISLA query-token arms by 3–4% (pressure), 6–10%
+(velocity) and 4–12% (eddy viscosity), the passive ISLA arms by 0.5–2%,
+and the exact-kernel MeshTransformer not at all. Under float32 the
+book's interior ordering changes on pressure and stands on the other two
+fields: GeoTransolver-volume leads on pressure (ISLA ÷ GT 1.06–1.07 against
+0.91–0.93 under bf16), ISLA leads on velocity (0.73–0.74 against 0.64–0.65),
+GeoTransolver-volume leads on eddy viscosity (1.27–1.30, unchanged). The
+width-256 arm is the only ISLA configuration within 2% of
+GeoTransolver-volume on pressure under float32 (1.02) and it narrows the
+eddy-viscosity gap to 1.17 (from 1.26); the surface-local-feature arm stays
+falsified (1.36 on eddy viscosity either way); the query-token arm without
+the SDF scalar trails on every field (1.19 / 1.28 / 1.61). The passive
+decoders' deficit widens (pressure 3.7x and 3.1x against 3.1x and 2.6x),
+so the "2.6x passive" figure becomes 3.1x under float32. On the ladder the
+GeoTransolver-volume inflation grows with training-set size (pressure
+−7.8% at 54 cars, −12.1% at 109, −17% at 435) while ISLA's stays at 2–4%,
+so every ladder ratio moves against ISLA by 0.08–0.14 on pressure and
+0.10–0.17 on velocity; the pressure crossover the bf16 ladder placed between
+109 and 435 cars does not occur under float32 (ISLA ÷ GT 1.19, 1.18, 1.06 at
+54, 109, 435 cars). The density and neighbour arms have no bf16 evaluation
+yet (their lanes were still training); their float32 evaluation is queued
+with the same launcher and is reported when it lands.
+
+**Mechanism, as far as the shifts show it.** The hypothesis that
+GeoTransolver-volume's inflation is specific to its six-radius ball-query
+local features is not what the field pattern shows: the field most tied to
+local geometry, eddy viscosity, shifts least (−6%), while pressure and
+velocity shift most (−17 to −18%). In absolute terms GeoTransolver-volume's
+bf16 excess is nearly constant across the ladder (0.008, 0.010 and 0.011
+in pressure relative L2 at 54, 109 and 435 cars), which is the signature
+of an additive rounding floor in its graph rather than a multiplicative
+one, and its surface configuration, which has no local features, inflates
+by 9% on DrivAerML surface pressure; the volume configuration's extra
+inflation may come from the local features, from its interior inputs
+(signed distance and its gradient over a 3D domain), or from both. The
+direct test is the transfer session's `v0_gt_vol_nolocal_seed{42,43}`
+(GeoTransolver-volume without local features): those runs have trained but
+have no bf16 evaluation yet, so the bf16/float32 pair that would decide it
+is not available in this reduction and is noted as the next step. Four of
+the ladder GeoTransolver-volume logs carry a "FAILED" line from the first,
+hung submission (cancelled after the pin-memory prefetch hang of
+@sec-nb-interior-pin-stall); the resubmitted evaluations with
+`dataloader.pin_memory=false` completed in 2–4 minutes each, and their
+complete metrics are the ones reduced.
