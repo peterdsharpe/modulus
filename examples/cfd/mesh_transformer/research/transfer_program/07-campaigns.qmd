@@ -3,12 +3,72 @@
 **Of five configurations scored under a ten-fold sampling-density skew on
 DrivAerML, only the similarity-gauge ISLA keeps its accuracy (1.21x); the
 input-matched unit-drive GeoTransolver degrades 9.5x, Transolver 3.9x, and
-the two other ISLA configurations 12x and 19x.** This chapter collects the
-verdicts of the node-budget campaigns (@sec-nb-campaign) as they close; each
-section states the question, the preregistered bar, the float32 readout and
-what it changes. Campaigns A (data-draw variance), B (random poses), C
-(fastback transfer) and D (interior carriers) are still training and are
-absent here by design.
+the two other ISLA configurations 12x and 19x. And on the one real transfer
+setting, fine-tuning from DrivAerML on 20 fastback labels is worth 31% for
+GeoTransolver and nothing for ISLA.** This chapter collects the verdicts of
+the node-budget campaigns (@sec-nb-campaign) as they close; each section
+states the question, the preregistered bar, the float32 readout and what it
+changes. Campaigns A (data-draw variance), B (random poses), D (interior
+carriers) and the conditioning and diversity parts of C are still training
+and are absent here by design.
+
+## Few-shot adaptation on the fastback shift (campaign C, T3) {#sec-campaigns-fewshot}
+
+The DrivAerML → SHIFT-SUV fastback shift is the program's one real
+transfer setting: both architectures fail zero-shot (@sec-controls), and
+the only known repair was training on the full 794-case estate family
+(0.11–0.13 on the 99 fastback validation cases). T3 asks the practical
+question: given 20 labelled fastback cases, does a source-only DrivAerML
+checkpoint adapt better than a model trained from scratch on the same 20
+cases for the same 1,000 optimizer steps? The preregistered fine-tuning
+rate was 1e-4 against 1e-3 for scratch; a sensitivity arm at the matched
+rate 1e-3 was added, with its bars, after the first readout showed the
+1e-4 fine-tune under-adapted (@sec-nb-campc-t3, @sec-nb-campc-t3-verdict).
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/campaign_c_transfer/campaign_c_t3_2026-09-10.json").read_text())["arms"]
+rows = [("ISLA, fine-tuned from the DrivAerML reference, lr 1e-4 (preregistered)", "ft20_isla"),
+        ("ISLA, fine-tuned, lr 1e-3 (matched to scratch)", "ft20lr3_isla"),
+        ("ISLA, from scratch on the 20 cases, lr 1e-3", "scratch20_isla"),
+        ("GeoTransolver (unit drive), fine-tuned, lr 1e-4 (preregistered)", "ft20_gt"),
+        ("GeoTransolver, fine-tuned, lr 1e-3 (matched to scratch)", "ft20lr3_gt"),
+        ("GeoTransolver, from scratch on the 20 cases, lr 1e-3", "scratch20_gt")]
+print("| arm | seeds | fastback pressure | fastback wall shear | drag-coefficient relative MAE |")
+print("|---|---|---|---|---|")
+for n, k in rows:
+    a = d[k]; f = a["fastback"]
+    print(f"| {n} | {a['n_seeds']} | {f['pressure_l2']:.3f} | {f['wss_l2']:.3f} | {f['CD_rel_mae']:.3f} |")
+print()
+print(": Relative L2 on the 99 SHIFT-SUV fastback validation cases (never used for adaptation), float32 inference, seed means over two fine-tuning seeds; every arm trains 1,000 optimizer steps at batch four on the same 20 cases. The drag coefficient is the recipe's integrated surface traction, mean absolute error over the reference mean (0.75). Data: studies/campaign_c_transfer/campaign_c_t3_2026-09-10.json. {#tbl-campaigns-fewshot}")
+```
+
+At the matched learning rate the two architectures separate cleanly.
+GeoTransolver's DrivAerML pretraining is worth 31% (0.128 fine-tuned
+against 0.186 from scratch), and the adapted model reaches the level the
+program had only reached by retraining on 1,229 mixed cases, from 20 + 10
+labels in about five minutes on one node. ISLA's pretraining is worth
+nothing: 0.187 fine-tuned against 0.198 from scratch, inside the 5%
+"worth nothing" clause of the sensitivity arm's bars up to rounding. The
+scratch arms agree (0.19–0.20), so the architectures learn the same amount
+from the target data and differ only in what they carry over from
+DrivAerML. The preregistered "credible fallback" bar (≤ 0.15 and ≥ 2x
+over scratch) is met by no arm, GeoTransolver passing the level and
+missing the ratio; the preregistered 1e-4 fine-tunes were under-adapted
+(ISLA 2.3x worse than scratch), which is why the sensitivity arm exists.
+
+This is the third independent measurement in this program pointing the
+same way: ISLA's zero-shot fastback force error of 1.6x
+(@sec-controls-offset), the constant-gauge ISLA's collapse under density
+skew (@sec-campaigns-density), and now a transfer value of zero for its
+DrivAerML pretraining. What ISLA learns on DrivAerML is specific to
+DrivAerML's conventions in a way GeoTransolver's representation is not,
+and that is the concrete target for the architectural directions of this
+program. Caveats: one source checkpoint per architecture and a two-point
+learning-rate grid; a different rate or a warm-up could move either number
+but not the sign of the difference at matched rate.
 
 ## Density robustness against fair baselines (campaign E) {#sec-campaigns-density}
 

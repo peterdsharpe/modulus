@@ -956,3 +956,61 @@ to the physical drive, and campaign D's eddy-viscosity bars at this
 reference read: local features carry the lead if GeoTransolver-volume
 without them reaches ≥ 0.0967; the hidden-344 ISLA is supported at
 ν_t ≤ 0.0967 and falsified at ≥ 0.1099. Artifact updated in place.
+
+## 2026-09-10 — Verdict, campaign C T3 few-shot: with the learning rate matched, pretraining is worth nothing for ISLA (0.187 vs 0.198 from scratch) and worth 31% for GeoTransolver (0.128 vs 0.186), which reaches the 794-case mixed-family level from 20 labels {#sec-nb-campc-t3-verdict}
+
+**Readout (float32, 99 fastback validation cases never used for
+adaptation, seed means over two fine-tuning seeds; 1,000 optimizer steps
+at batch four for every arm; artifact
+`$T/campc_evals_fp32/campC_{ft20,ft20lr3,scratch20}_{isla,gt}_seed{42,43}/fastback/`,
+reducer `studies/campaign_c_transfer/reduce_campaign_c.py`).**
+
+| arm | learning rate | pressure | wall shear | drag-coefficient relative MAE |
+|---|---|---|---|---|
+| ISLA fine-tuned from the DrivAerML reference | 1e-4 (preregistered) | 0.450 | 0.575 | 0.113 |
+| ISLA fine-tuned from the DrivAerML reference | 1e-3 (sensitivity, @sec-nb-campc-t3) | 0.187 | 0.273 | 0.052 |
+| ISLA from scratch | 1e-3 | 0.198 | 0.309 | 0.063 |
+| GeoTransolver fine-tuned from the unit-drive DrivAerML checkpoint | 1e-4 (preregistered) | 0.202 | 0.230 | 0.053 |
+| GeoTransolver fine-tuned from the unit-drive DrivAerML checkpoint | 1e-3 (sensitivity) | 0.128 | 0.177 | 0.048 |
+| GeoTransolver from scratch | 1e-3 | 0.186 | 0.242 | 0.052 |
+
+: The drag coefficient is the recipe's integrated surface traction over the 99 cases, reported as mean absolute error divided by the reference mean (0.75); the lift coefficient's reference mean is near zero (−0.12) so its relative error is not informative and is omitted. Historical mixed-family training (DrivAerML + 794 estate cases) reaches 0.11–0.13 on this readout. {#tbl-campc-t3}
+
+**Verdict.** By the preregistered bars (fine-tune ≤ 0.15 AND ≥ 2x over
+scratch), no arm is "credible": the GeoTransolver fine-tune at lr 1e-3
+passes the 0.15 bar (0.128) but beats scratch by 1.45x, not 2x. The
+sensitivity arm's own bars, written before it ran, give the informative
+reading: **for ISLA the pretraining is worth nothing at this budget** (the
+matched-rate fine-tune is 6% better than scratch, at the 5% edge of the
+"worth nothing" clause; the preregistered 1e-4 fine-tune was simply
+under-adapted, 2.3x worse than scratch); **for GeoTransolver the
+pretraining is worth 31%** (0.128 against 0.186, past the 20% "helps"
+clause), and the adapted model reaches the level that the program had only
+reached by training on the full 794-case estate family. Both scratch arms
+land at 0.19–0.20 from 20 cases, so the architectures do not differ in
+what they learn from the target data; they differ in what they carry over
+from DrivAerML. The drag error follows the pressure ranking (GeoTransolver
+fine-tuned 4.8%, scratch 5.2%; ISLA matched-rate fine-tune 5.2%, scratch
+6.3%; the under-adapted ISLA fine-tune 11.3%).
+
+**Reading.** The DrivAerML → fastback shift changes the ground and wheel
+conditions, the freestream speed and the solver (@sec-controls); a model
+whose DrivAerML representation transfers should need only the target's
+new conventions from a few labels. GeoTransolver's does; ISLA's, in its
+current configuration, does not carry anything that 20 fastback cases do
+not supply on their own. This is the third independent reading pointing
+the same way in this program (the zero-shot force error of 1.6x in
+@sec-nb-c1-verdict, the constant-gauge ISLA's density collapse in
+@sec-nb-campe-verdict, and now a zero transfer value of its pretraining),
+and it is the concrete target for the architectural work: what ISLA learns
+on DrivAerML is specific to DrivAerML's conventions in a way GeoTransolver's
+is not. Two caveats: single source checkpoint per architecture (the ISLA
+reference `mt2_v3c_seed42` and `uw_gt_unit_lr1e3_seed42`), and a
+learning-rate grid of two points; a fine-tune at 3e-3 or with a warm-up
+could move either number, but not the sign of the difference between the
+architectures at matched rate.
+
+**Cost of the credible route, for the record.** GeoTransolver fine-tuned
+on 20 + 10 labelled fastback cases for 1,000 steps at lr 1e-3 (about five
+minutes on one GB300 node) reaches 0.128, against 0.11–0.13 for retraining
+on 1,229 mixed cases.
