@@ -904,3 +904,45 @@ normals and measure weights but not the predicted and true pressure
 fields, so the integrated pressure-force error promised for every arm
 cannot be computed from them; the inference option that saves the fields
 is being located and the final arms will be re-evaluated with it.
+
+## 2026-09-10 — Float32 interior references: GeoTransolver-volume overtakes ISLA on pressure (0.0515 vs 0.0547); ISLA keeps velocity (0.0796 vs 0.1088); D1 bars translated {#sec-nb-fp32-interior}
+
+**Setting.** The float32 reporting rule (@sec-nb-campe-bf16) requires D1
+and campaign D to be compared with references evaluated in float32. The
+four V0 reference checkpoints were re-evaluated under the D1 snapshot in
+float32 (job 696540, `$T/v0_evals_support_fp32/`), on the same 48 cars and
+identical sampled points as the bf16 same-snapshot evaluation of
+@sec-nb-evalpoints-verdict.
+
+| checkpoint (two-seed mean) | pressure fp32 / bf16 | velocity fp32 / bf16 | eddy viscosity fp32 / bf16 |
+|---|---|---|---|
+| ISLA query tokens + SDF (`v0_isla_qtsdfval`) | 0.0547 / 0.0567 | 0.0796 / 0.0853 | 0.1116 / 0.1215 |
+| GeoTransolver-volume, physical drive (`v0_gt_vol`) | 0.0515 / 0.0620 | 0.1088 / 0.1334 | 0.0879 / 0.0939 |
+
+: Artifact `studies/computational_support/ref_reeval_fp32_2026-09-10.json`. {#tbl-fp32-interior}
+
+**What changes.** The bf16 penalty is again architecture-dependent and
+larger for the baseline: GeoTransolver-volume's errors were inflated 20%
+(pressure) and 23% (velocity) by bf16 evaluation, ISLA's 4% and 7%. In
+float32 the interior ordering the program book has carried since V0
+reverses on pressure: **GeoTransolver-volume 0.0515 against ISLA 0.0547
+(ISLA 6% behind)**, while ISLA keeps its velocity lead (0.0796 against
+0.1088, 27% ahead) and GeoTransolver-volume keeps eddy viscosity (0.0879
+against 0.1116). The main session owns the program book's interior
+re-grade (its float32 group 4) and has these numbers; the physical-drive
+GeoTransolver-volume is the checkpoint re-evaluated here, the unit-drive
+one follows from the main session.
+
+**D1 bars, translated.** The preregistration states the D1 bars as ratios
+to the reference ("each within 3%"; "pressure 10% worse") and evaluated
+them at the bf16 reference (0.0584 / 0.0879 / 0.1251; falsified ≥ 0.0624).
+At the float32 reference they read: supported if SUPPORT-12 ≤ 0.0563 /
+0.0820 / 0.1149, falsified if pressure ≥ 0.0602. The clause "no better than
+GeoTransolver-volume's 0.0620" no longer coincides with the 10% mark, since
+GeoTransolver-volume is now the more accurate pressure model; the 10% ratio
+is kept as the falsifier and the GeoTransolver comparison is reported
+beside it. The grading script derives the bars from the float32 reference
+at run time rather than from constants. Campaign D's eddy-viscosity bars
+(≥ 1.10x and ≥ 1.25x the unit-drive GeoTransolver-volume) are likewise
+ratios and will be evaluated against the float32 unit-drive reference when
+the main session's group 4 lands.
