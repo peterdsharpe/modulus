@@ -10210,3 +10210,10 @@ unit-drive table, the index verdict table and sentence, and chapter 12's
 limits carry the three-seed and steel-man numbers. The fair 35-case
 ordering on HiLiftAeroML is therefore GeoTransolver (0.111) < Transolver
 (0.115) < ISLA weights off (0.123) < ISLA weights on (0.138).
+
+**Addendum: ISLA's third DrivAerML seed.** `iw_mt2_lr1e3_seed44` scores
+0.0578, so ISLA's weighted three-seed mean is 0.0578 (0.0587 / 0.0567 /
+0.0578), unchanged from the two-seed 0.0577 to the third decimal; the
+unit-drive GeoTransolver is lower on 33 of 48 cars against the three-seed
+ISLA (median 1.06), Transolver at 3e-3 on 33 of 48 (median 1.03). The book
+keeps 0.0577 as ISLA's DrivAerML reference (results/uw_reduction_2026-09-09.json).

@@ -8,7 +8,10 @@
    "pressure_l2": 0.05672003515064716,
    "n": 48
   },
-  "iw_mt2_lr1e3_seed44": null,
+  "iw_mt2_lr1e3_seed44": {
+   "pressure_l2": 0.05784916256864866,
+   "n": 48
+  },
   "now_mt2_lr1e3_seed42": {
    "pressure_l2": 0.05689293146133423,
    "n": 48
@@ -56,11 +59,12 @@
  },
  "arms": {
   "isla_weighted": {
-   "pressure_l2": 0.057732559080856546,
-   "n_seeds": 2,
+   "pressure_l2": 0.057771426910120584,
+   "n_seeds": 3,
    "seed_pressure": [
     0.05874508301106592,
-    0.05672003515064716
+    0.05672003515064716,
+    0.05784916256864866
    ]
   },
   "isla_noweights": {
@@ -116,11 +120,11 @@
   },
   "isla_weighted_vs_gt_unit": {
    "n": 48,
-   "second_lower": 36,
-   "sign_p": 0.0007172696733945827,
-   "median_first_over_second": 1.066951061177388,
-   "q10": 0.9335600675910639,
-   "q90": 1.1064459790888415
+   "second_lower": 33,
+   "sign_p": 0.013283281562245008,
+   "median_first_over_second": 1.063138775297114,
+   "q10": 0.9547104163240152,
+   "q90": 1.111768065905825
   },
   "isla_noweights_vs_gt_unit": {
    "n": 48,
@@ -132,19 +136,19 @@
   },
   "isla_weighted_vs_transolver_unit_lr1e3": {
    "n": 48,
-   "second_lower": 18,
-   "sign_p": 0.11140289106101875,
-   "median_first_over_second": 0.9905043597199295,
-   "q10": 0.8792015263241859,
-   "q90": 1.0296198005262878
+   "second_lower": 19,
+   "sign_p": 0.19341265286193732,
+   "median_first_over_second": 0.9832543949916908,
+   "q10": 0.8934733929183962,
+   "q90": 1.0395936345553565
   },
   "isla_weighted_vs_transolver_unit_lr3e3": {
    "n": 48,
-   "second_lower": 36,
-   "sign_p": 0.0007172696733945827,
-   "median_first_over_second": 1.0276609140275683,
-   "q10": 0.9429192337002325,
-   "q90": 1.089581766611865
+   "second_lower": 33,
+   "sign_p": 0.013283281562245008,
+   "median_first_over_second": 1.034107701155687,
+   "q10": 0.9448943380160376,
+   "q90": 1.0987547768222314
   },
   "isla_noweights_vs_transolver_unit_lr1e3": {
    "n": 48,

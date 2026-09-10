@@ -947,3 +947,6 @@ interior control @sec-nb-udrv-int-prereg.
   weights off **0.1225** (0.1210/0.1231/0.1236). Write "baselines 1.1–1.25x more accurate than
   ISLA at 35 cases; 1.07–1.11x more accurate than ISLA's best fair configuration". Paired
   (weights-off ISLA vs GT 1e-3, three seeds): GT lower on 109/180 (median 1.03).
+- **ISLA DrivAerML third seed (2026-09-09).** iw_mt2_lr1e3_seed44 = 0.0578; three-seed mean 0.0578
+  (0.0587/0.0567/0.0578). Keep 0.0577 as the quoted reference; say "three seeds" where the seed
+  count is stated.
