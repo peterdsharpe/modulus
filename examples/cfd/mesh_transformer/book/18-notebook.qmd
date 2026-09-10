@@ -13711,8 +13711,14 @@ DrivAerML-fitted centroid.
 
 ## 2026-09-10 — Addendum to the MW verdict: the weighted baselines' 1.02x was the pipeline's frame, not the pooling; with the frame taken from the biased sample they collapse 14–16x, worse than their unweighted twins {#sec-nb-mw-postcenter}
 
-The MW verdict (@sec-nb-mw-verdict) flagged a structural asymmetry in the
-density probe: the datapipe centres every architecture's coordinates by the
+**With like-for-like frames every configuration that centres on a sample
+statistic collapses 10–17x under the 10:1 bias (unweighted baselines
+10–13x, measure-weighted baselines 14–16x, constant-gauge ISLA 12–17x), and
+only the frames that do not read the sample survive (ISLA's similarity gauge
+and measure-weighted centring at about 1.2x, RELFRAME by construction):
+measure weighting repairs the aggregation, the frame is a separate defect,
+and both must be fixed.** The MW verdict (@sec-nb-mw-verdict) flagged a
+structural asymmetry in the density probe: the datapipe centres every architecture's coordinates by the
 plain mean of the reader's 40,000-cell uniform pool before the 10:1 biased
 draw, so GeoTransolver and Transolver, which consume absolute centred
 coordinates, received an unbiased frame from the pipeline while ISLA

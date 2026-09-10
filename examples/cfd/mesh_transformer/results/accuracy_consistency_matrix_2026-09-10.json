@@ -193,19 +193,22 @@
     "density_seeds": [
      6.5,
      1.9
-    ]
+    ],
+    "density_frame": "pool frame (pipeline centring before the biased draw); sample-frame value pending"
    },
    "isla_constant_gauge_512x80k": {
     "label": "ISLA, constant gauge, 512 \u00d7 80k (fast kernel)",
     "in_family": 0.0428,
     "density_factor": 16.7,
-    "gpu_hours": 22.5
+    "gpu_hours": 22.5,
+    "density_frame": "sample frame (ISLA centres in the model on the sampled points)"
    },
    "transolver_unit_512x80k": {
     "label": "Transolver, unit drive, 512 \u00d7 80k",
     "in_family": 0.0431,
     "density_factor": 4.6,
-    "gpu_hours": 6.6
+    "gpu_hours": 6.6,
+    "density_frame": "pool frame (pipeline centring before the biased draw); sample-frame value pending"
    },
    "isla_similarity_gauge_512x80k": {
     "label": "ISLA, similarity gauge, 512 \u00d7 80k (fast kernel)",
@@ -218,7 +221,8 @@
     "gpu_hours": 20.2,
     "step_s": 0.281,
     "peak_memory_gb": 22.9,
-    "note": "the only scaled configuration whose accuracy survives the density bias; adopted at scale under the principle (scaling synthesis, psharpe/mesh-transformer 15ee3df40)"
+    "note": "the only scaled configuration whose accuracy survives the density bias; adopted at scale under the principle (scaling synthesis, psharpe/mesh-transformer 15ee3df40)",
+    "density_frame": "sample frame (ISLA centres in the model on the sampled points)"
    }
   }
  }

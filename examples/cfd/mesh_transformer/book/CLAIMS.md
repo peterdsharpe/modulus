@@ -1377,3 +1377,13 @@ interior control @sec-nb-udrv-int-prereg.
   1.17–1.21x". The published 9.5x / 3.9x baseline collapses were pipeline-frame numbers (under-estimates;
   12x with the sample frame). Accuracy half of MW STANDS (lead survives). Matrix mw rows carry both
   factors with the sample-frame one as headline.
+- **Frame convention for density probes (2026-09-10).** Every density-probe ratio must state its frame
+  convention: "pool frame" (pipeline CenterMesh on the uniform reader pool before the biased draw; what
+  the baselines received in campaign E, the scaling corners and BENCH) or "sample frame" (centring after
+  the draw; what a biased mesher delivers; what ISLA computes in-model). The SAMPLE frame is the default
+  for all future probes and for headline comparisons. Pool-frame numbers on file: GT 9.5x, Transolver
+  3.9x (campaign E); GT 4.2x, Transolver 4.6x (512×80k corner); the BENCH biased/area columns for the
+  baselines. Sample-frame: GT 12.0x, Transolver 10–13x, mw GT 14.4x, mw Transolver 15.6x (10k, DrivAerML).
+  Lead sentence to reuse: "with like-for-like frames every configuration that centres on a sample statistic
+  collapses 10–17x; only frames that do not read the sample survive; measure weighting repairs the
+  aggregation, the frame is a separate defect, both must be fixed".

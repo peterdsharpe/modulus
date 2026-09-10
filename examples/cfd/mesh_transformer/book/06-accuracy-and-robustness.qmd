@@ -339,7 +339,13 @@ rel-L2 (48 cars) with 10,000 uniformly sampled points; the same with a
 ratio (biased / uniform; 1.0 means sampling-independent predictions).
 All models are trained on the 435-car split under the frozen protocol at
 learning rate 3e-3; the two ISLA rows differ only in the gauge setting
-and are seed-matched. Data:
+and are seed-matched. Frame convention: in this probe the datapipe centres
+every architecture's coordinates on the plain mean of the reader's uniform
+pool *before* the biased draw, so the GeoTransolver row carries an unbiased
+frame from the pipeline while the ISLA rows re-centre in the model on the
+biased sample; with the frame taken from the biased sample, as a biased
+mesher would deliver it, the unit-drive GeoTransolver reads 12x and
+Transolver 10–13x (@sec-nb-mw-postcenter). Data:
 results/s1_similarity_gauge_2026-09-03.json (ISLA rows);
 results/mixedres_training_2026-07-31/sweep/round3_reduction.json
 (uniform column) and p3v3_reduction.json (biased column) for
@@ -352,10 +358,15 @@ cases it costs 8% (0.149 against 0.138 in the single-factor ablation of
 @sec-mechanism), which is why no accuracy result in this book uses it.
 It also does nothing for zero-shot transfer to a held-out vehicle family, which
 stays at mean-predictor level with or without it (@sec-limits), so
-absolute geometric size was not what limited cross-family transfer. GeoTransolver's 3.6x is the cost of geometry-adaptive
-statistics computed from the sample rather than from the surface. The
-scope is one probe geometry (one bias pattern at one ratio) on one
-dataset, and the GeoTransolver figure is a single seed.
+absolute geometric size was not what limited cross-family transfer.
+GeoTransolver's 3.6x here, and the 9.5x and 3.9x of the float32 unit-drive
+baselines in @tbl-consistency-matrix's source (campaign E), are pool-frame
+numbers: the pipeline handed the baselines a frame the bias could not
+move. Under the sample frame the baselines collapse as the constant-gauge
+ISLA does (12x; measure-weighted baselines 14–16x), because all of them
+centre absolute coordinates on a plain sample mean; only the frames that do
+not read the sample survive (@sec-nb-mw-postcenter). The scope is one probe
+geometry (one bias pattern at one ratio) on one dataset.
 
 ## Consistency under refinement and across samplers {#sec-consistency-bench}
 
@@ -669,7 +680,8 @@ print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-dr
       "density column; the weights-off ablation is the extreme case and is not adopted. "
       "The scale-corner rows (width 512, 80,000 cells, evaluated at 80,000 cells) show the three "
       "architectures within 3% of one another in-family; only the similarity-gauge ISLA corner "
-      "(0.0431, 1.08x under the bias at 80,000 cells) keeps its accuracy when the sampling changes: "
+      "(0.0431, 1.08x under the bias at 80,000 cells) keeps its accuracy when the sampling changes "
+      "(the corner rows' baseline factors are pool-frame values; their sample-frame values are pending): "
       "it demonstrates the frame class (a frame that does not read the sampling distribution costs nothing "
       "at scale and removes the sensitivity); the single reference configuration is decided by the "
       "relative-position frame (RELFRAME). The last column is training cost in GPU-hours. "
