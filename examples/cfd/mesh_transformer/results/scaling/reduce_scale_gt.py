@@ -66,14 +66,22 @@ def load_failed(run):
     """Guard (ISLA track, 2026-09-10): the checkpoint loader can skip a missing/mismatched weights file and
     evaluate the seeded initialization, logging "skipping load". Any evaluation log carrying that string
     invalidates the run's metrics."""
-    logs = glob.glob(f"{T}/hl_evals/{run}.log") + glob.glob(f"{T}/hl_evals_fp32/{run}.log") + glob.glob(f"{T}/hl_evals*/{run}/*.log") + glob.glob(f"{T}/hl_evals_probe_fp32/{run}/*.log")
+    logs = sorted(set(glob.glob(f"{T}/hl_evals/{run}.log") + glob.glob(f"{T}/hl_evals_fp32/{run}.log") + glob.glob(f"{T}/hl_evals*/{run}/*.log")
+                      + glob.glob(f"{T}/hl_evals*/{run}/**/*.log", recursive=True) + glob.glob(f"{T}/hl_evals_probe_fp32/{run}/**/*.log", recursive=True)
+                      + glob.glob(f"{T}/hl_evals_probe_fp32/{run}/*.log") + glob.glob(f"{T}/transfer/campaign_e_fp32/{run}/*.log")))
+    LOG_CHECK["checked"] += len(logs)
     for lg in logs:
         try:
-            if "skipping load" in open(lg, errors="ignore").read():
-                return lg
+            txt = open(lg, errors="ignore").read()
         except OSError:
-            pass
+            continue
+        if "skipping load" in txt or "Could not find valid model file" in txt:
+            LOG_CHECK["hits"].append(lg)
+            return lg
     return None
+
+
+LOG_CHECK = {"checked": 0, "hits": []}  # provenance: evaluation/probe logs scanned for a silently skipped checkpoint load
 
 
 def eval_pair(run):
@@ -154,6 +162,9 @@ out = {"instrument": "float32 inference headline; bf16 alongside; shift = (fp32 
 for r in PROBE:
     pr = probe(r)
     if pr:
+        bad = load_failed(r)
+        if bad:
+            pr["INVALID_EVAL_skipping_load"] = bad
         out["probe"][r] = pr
 for ds in ("hl", "dr"):
     for kind, runs in REF[ds].items():
@@ -194,7 +205,10 @@ for ds in ("hl", "dr"):
             rec["params"] = next((t["params"] for t in tr if t.get("params")), None)
             rec["gpu_hours_500_epochs"] = 500 * STEPS_PER_EPOCH[ds] * rec["median_step_s"] * 4 / 3600
         out["arms"][f"{ds}_{arm}"] = rec
+out["provenance"] = {"eval_logs_checked_for_skipped_load": LOG_CHECK["checked"], "eval_logs_with_skipped_load": LOG_CHECK["hits"],
+                     "evaluation_snapshot": "code (same snapshot that trained the runs); switch to the guarded program-wide evaluation snapshot when confirmed"}
 json.dump(out, open(f"{T}/hl_evals/scale_gt_reduction.json", "w"), indent=1)
+print("PROVENANCE", out["provenance"])
 for k, v in out["references"].items():
     print("REF", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk not in ("runs", "per_run")})
 for k, v in out["arms"].items():
