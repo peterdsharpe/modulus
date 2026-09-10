@@ -84,7 +84,7 @@ peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
 
 | Setting | Standing | Measured |
 |---|---|---|
-| HiLift surface, 35 cases, unit-drive baselines | ISLA behind | GeoTransolver 0.111 (best rate; 0.124 at 1e-3) and Transolver 0.115 vs ISLA 0.138 (weights on) / 0.123 (weights off): 0.80–0.83x, or 0.90–0.93x of ISLA's best configuration; three seeds each, spreads under 2% |
+| HiLift surface, 35 cases, unit-drive baselines | ISLA behind | GeoTransolver 0.111 (best rate; 0.124 at 1e-3) and Transolver 0.115 vs ISLA 0.138 (weights on) / 0.123 (weights off): 0.80–0.83x, or 0.90–0.93x of ISLA's best configuration; three seeds each, spreads under 2%; float32-confirmed |
 | HiLift surface, 35 cases, physical-drive baselines | Protocol artifact | 2.8x "advantage"; baselines 3.4–3.8x worse than their unit-drive selves on 180/180 cases |
 | HiLift surface, fixed angle (126 geometries at 12°, 18 never-seen) | ISLA behind | unit-drive GeoTransolver 0.81x, Transolver 0.89x; 18 of 18 geometries |
 | HiLift, 4 never-seen training geometries (18 held out) | ISLA behind by the mean; even by geometry | unit-drive GeoTransolver 0.76x by the mean; 9 of 18 geometries each way |

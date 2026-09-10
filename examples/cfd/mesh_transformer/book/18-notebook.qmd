@@ -10526,3 +10526,37 @@ property of the trained checkpoint and its data, not of the architecture
 alone, and the remaining groups decide where it is large. One run
 (`udrv_hl_gt_super_scarce_lr3e3_seed43`) exited with status 135 at process
 teardown after writing all 180 cases; its metrics are complete and were used.
+
+## 2026-09-09 — Float32 re-grade of the 35-case rung: every verdict stands; means move by at most 0.3%, ratios are unchanged to the third digit, and the bf16 offset seen on DrivAerML does not appear at HiLift 35 cases {#sec-nb-fp32-35-regrade}
+
+**Source.** FP32-EVAL group 1 (scaling session, #sec-nb-fp32-reeval-verdict-35,
+results/fp32_reeval/fp32_shift_35_2026-09-09.json): the 22 checkpoints of
+the 35-case HiLift rung re-evaluated in float32 on bit-identical points.
+
+| arm | bf16 | float32 | shift |
+|---|---|---|---|
+| ISLA, weights on (three seeds) | 0.1379 | **0.1377** | −0.13% |
+| ISLA, weights off (three seeds) | 0.1225 | **0.1224** | −0.1% |
+| GeoTransolver, unit, lr 1e-3 (three seeds) | 0.1235 | **0.1232** | −0.18% |
+| GeoTransolver, unit, lr 3e-3 (two seeds) | 0.1105 | **0.1102** | −0.3% |
+| Transolver, unit, lr 3e-3 (three seeds) | 0.1145 | **0.1142** | −0.29% |
+| Transolver, unit, lr 1e-3 (two seeds) | 0.1269 | **0.1266** | −0.2% |
+| GeoTransolver, physical velocity (three seeds) | 0.3809 | **0.3810** | +0.03% |
+| Transolver, physical velocity (three seeds) | 0.4040 | **0.4009** | −0.77% |
+
+Architecture medians of the shift: GeoTransolver −0.10%, ISLA −0.14%,
+Transolver −0.30%, so the campaign's architecture-dependence bar (medians
+differing by more than 1%) does not fire at this rung; the −9% baseline
+offset seen on DrivAerML surface (@sec-nb-fp32-first-look) is therefore
+dataset- or size-dependent, which groups 3–5 will resolve. Per-case maxima
+differ: 1.5–3.1% for ISLA against 4.6–11.7% for the unit-drive baselines
+(nine of 22 runs above the 5% per-case bar, all baselines), so per-case
+paired statistics at this rung are quoted from the float32 artifacts.
+
+**Re-grade.** Unchanged: GeoTransolver-unit ÷ ISLA 0.895 at lr 1e-3 and
+0.80 at 3e-3 (the steel-man's 10.5% gain is past the 5% bar, so 3e-3 is
+GeoTransolver's rate at this rung), Transolver-unit ÷ ISLA 0.829, weights-off
+÷ weights-on 0.888. The fair 35-case ordering GeoTransolver 0.110 <
+Transolver 0.114 < ISLA weights off 0.122 < ISLA weights on 0.138 stands
+in float32. The 35-case numbers in chapter 5 and the index may be quoted
+without a precision label; the table caption and the verdict row say so.

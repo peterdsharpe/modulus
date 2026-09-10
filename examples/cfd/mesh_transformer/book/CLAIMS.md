@@ -969,3 +969,12 @@ interior control @sec-nb-udrv-int-prereg.
   35% of its gradient norm, and pressure recovered from the TRUE velocity misses by 7.7x. Never
   quote a divergence or momentum-residual diagnostic computed on these artifacts; such diagnostics
   need dense re-sampled evaluations or the full mesh.
+
+- **35-case rung, float32 re-grade (2026-09-09).** fp32 means: ISLA 0.1377 (bf16 0.1379), ISLA
+  weights off 0.1224, unit GT 1e-3 0.1232, unit GT 3e-3 0.1102, unit Transolver 3e-3 0.1142,
+  Transolver 1e-3 0.1266, physical GT 0.3810, physical Transolver 0.4009. Ratios unchanged
+  (GT-unit÷ISLA 0.895 at 1e-3, 0.80 at 3e-3; Transolver÷ISLA 0.829; weights-off÷on 0.888). All
+  35-case verdicts stand; the 35-case numbers may be quoted without a precision label (bf16 and
+  fp32 agree to the third decimal). Per-case paired counts at this rung: quote from fp32
+  (baseline per-case bf16 error up to 11.7%). The DrivAerML offset (−9% for baselines) is
+  dataset/size-dependent, not universal.

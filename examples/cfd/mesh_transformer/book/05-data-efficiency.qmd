@@ -98,7 +98,9 @@ measure weights off (@sec-mechanism), scores 0.123 on three seeds.
 | ISLA | unit direction, measure weights off (three seeds: 0.121, 0.123, 0.124) | **0.123** | **0.152** | **0.234** | — | — |
 
 : The unit-drive control at 35 training cases. Relative L2 on the 180
-shared validation cases, seed means; the paired counts use seed-mean errors
+shared validation cases, seed means (bfloat16 evaluation; the float32
+re-evaluation of all 22 checkpoints agrees with every entry to the third
+decimal and leaves every ratio unchanged, @sec-nb-fp32-35-regrade); the paired counts use seed-mean errors
 per case (sign test p = 2 × 10⁻⁹ for GeoTransolver, 8 × 10⁻²² for
 Transolver; median ISLA ÷ baseline ratio 1.09 and 1.17). Each unit-drive
 baseline beats its physical-drive self on 180 of 180 cases (median 3.4x and
