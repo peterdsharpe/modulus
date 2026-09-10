@@ -1,0 +1,37 @@
+{
+ "n_cases": 48,
+ "reference_path": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/iw_evals/snapladder_code/iw_mt2_lr1e3_seed42_shadow/metrics.jsonl",
+ "test_path": "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0/iw_evals/snapladder_fp32_code/iw_mt2_lr1e3_seed42_shadow/metrics.jsonl",
+ "metrics": {
+  "pressure_l2": {
+   "reference": 0.05874508301106592,
+   "test": 0.05681824932495753,
+   "relative_change_of_mean": -0.032799914262533834,
+   "max_per_case_relative_change": 0.06309201256823739
+  },
+  "wss_l2": {
+   "reference": 0.0858033187687397,
+   "test": 0.08300406920413177,
+   "relative_change_of_mean": -0.03262402439412134,
+   "max_per_case_relative_change": 0.06233121497334708
+  },
+  "wss_x_l2": {
+   "reference": 0.06485921532536547,
+   "test": 0.06273180261875193,
+   "relative_change_of_mean": -0.032800469384981004,
+   "max_per_case_relative_change": 0.0782039969210789
+  },
+  "wss_y_l2": {
+   "reference": 0.14834025145197907,
+   "test": 0.14270702252785364,
+   "relative_change_of_mean": -0.03797505308900619,
+   "max_per_case_relative_change": 0.10864990478489897
+  },
+  "wss_z_l2": {
+   "reference": 0.12633162830024958,
+   "test": 0.12287128064781427,
+   "relative_change_of_mean": -0.027390984340130337,
+   "max_per_case_relative_change": 0.061468673462979635
+  }
+ }
+}
