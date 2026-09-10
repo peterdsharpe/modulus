@@ -17,13 +17,13 @@ import numpy as np
 
 T = "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0"
 F = ("pressure_l2", "velocity_l2", "tau_wall_l2", "wss_x_l2", "wss_y_l2", "wss_z_l2")  # HiLift: pressure/velocity/tau_wall; DrivAerML surface: pressure + wss components
-ARMS = ("w384", "w512", "t40k", "t80k", "c384x40k")
+ARMS = ("w384", "w512", "t40k", "t80k", "c384x40k", "c512x80k")  # c512x80k: DrivAerML only (coordinator amendment 2026-09-10)
 REF = {  # unit-drive references (main session) with the physical-drive fallbacks
     "hl": {"unit": ["udrv_hl_gt_full_seed42", "udrv_hl_gt_full_seed43"], "physical": ["gt_hl_lr1_seed42", "gt_hl_lr1_seed43"]},
     "dr": {"unit": ["uw_gt_unit_lr1e3_seed42", "uw_gt_unit_lr1e3_seed43", "uw_gt_unit_lr1e3_seed44"], "physical": ["iw_gt_lr1e3_seed42", "iw_gt_lr1e3_seed43"]},
 }
-TOKENS = {"w384": 10000, "w512": 10000, "t40k": 40000, "t80k": 80000, "c384x40k": 40000, "ref": 10000}
-WIDTH = {"w384": 384, "w512": 512, "t40k": 256, "t80k": 256, "c384x40k": 384, "ref": 256}
+TOKENS = {"w384": 10000, "w512": 10000, "t40k": 40000, "t80k": 80000, "c384x40k": 40000, "c512x80k": 80000, "ref": 10000}
+WIDTH = {"w384": 384, "w512": 512, "t40k": 256, "t80k": 256, "c384x40k": 384, "c512x80k": 512, "ref": 256}
 STEPS_PER_EPOCH = {"hl": 1260 // 4, "dr": 435 // 4}
 
 
@@ -62,6 +62,28 @@ def points_identical(path_a, path_b):
     return {"cases_checked": n_checked, "cases_with_different_points": n_bad}
 
 
+def load_failed(run):
+    """Guard (ISLA track, 2026-09-10): the checkpoint loader can skip a missing/mismatched weights file and
+    evaluate the seeded initialization, logging "skipping load". Any evaluation log carrying that string
+    invalidates the run's metrics."""
+    logs = sorted(set(glob.glob(f"{T}/hl_evals/{run}.log") + glob.glob(f"{T}/hl_evals_fp32/{run}.log") + glob.glob(f"{T}/hl_evals*/{run}/*.log")
+                      + glob.glob(f"{T}/hl_evals*/{run}/**/*.log", recursive=True) + glob.glob(f"{T}/hl_evals_probe_fp32/{run}/**/*.log", recursive=True)
+                      + glob.glob(f"{T}/hl_evals_probe_fp32/{run}/*.log") + glob.glob(f"{T}/transfer/campaign_e_fp32/{run}/*.log")))
+    LOG_CHECK["checked"] += len(logs)
+    for lg in logs:
+        try:
+            txt = open(lg, errors="ignore").read()
+        except OSError:
+            continue
+        if "skipping load" in txt or "Could not find valid model file" in txt:
+            LOG_CHECK["hits"].append(lg)
+            return lg
+    return None
+
+
+LOG_CHECK = {"checked": 0, "hits": []}  # provenance: evaluation/probe logs scanned for a silently skipped checkpoint load
+
+
 def eval_pair(run):
     """fp32 headline, bf16 alongside, per-run shift (mean and per-case max of |fp32 - bf16| / bf16 on pressure)."""
     p32, r32 = find_metrics(run, ("hl_evals_fp32", "iw_evals_fp32"))
@@ -80,6 +102,10 @@ def eval_pair(run):
                                                   "mean_ratio": rec["fp32"]["pressure_l2"] / rec["bf16"]["pressure_l2"]}
         rec["points_identity"] = points_identical(p32, p16)
     rec["headline"] = "fp32" if pc32 else ("bf16" if pc16 else None)
+    bad = load_failed(run)
+    if bad:
+        rec["INVALID_EVAL_skipping_load"] = bad
+        rec["headline"] = None
     return rec
 
 
@@ -113,7 +139,33 @@ def headline_value(ev, f="pressure_l2"):
     return (ev[h][f], h) if h and f in ev[h] else (None, None)
 
 
-out = {"instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure", "runs": {}, "arms": {}, "references": {}}
+PROBE = {  # density-bias probe (10:1 biased vs uniform control), float32: run -> (unif dir, biased dir)
+    "uw_gt_unit_lr1e3_seed42": "transfer/campaign_e_fp32", "uw_gt_unit_lr1e3_seed43": "transfer/campaign_e_fp32", "uw_gt_unit_lr1e3_seed44": "transfer/campaign_e_fp32",
+    "scale_gt_dr_c512x80k_seed42": "hl_evals_probe_fp32", "scale_gt_dr_c512x80k_seed43": "hl_evals_probe_fp32",
+}
+
+
+def probe(run):
+    root = PROBE.get(run)
+    if not root:
+        return None
+    vals = {}
+    for k in ("unif", "biased"):
+        ps = glob.glob(f"{T}/{root}/{run}/{k}/**/metrics.jsonl", recursive=True)
+        if not ps:
+            return None
+        pc = per_case(ps[0]); vals[k] = st.mean(v["pressure_l2"] for v in pc.values())
+    return {"unif_pressure_l2": vals["unif"], "biased_pressure_l2": vals["biased"], "biased_over_unif": vals["biased"] / vals["unif"], "root": root}
+
+
+out = {"instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure; density-bias probe biased/unif in fp32 where run", "runs": {}, "arms": {}, "references": {}, "probe": {}}
+for r in PROBE:
+    pr = probe(r)
+    if pr:
+        bad = load_failed(r)
+        if bad:
+            pr["INVALID_EVAL_skipping_load"] = bad
+        out["probe"][r] = pr
 for ds in ("hl", "dr"):
     for kind, runs in REF[ds].items():
         evs = {r: eval_pair(r) for r in runs}
@@ -153,7 +205,10 @@ for ds in ("hl", "dr"):
             rec["params"] = next((t["params"] for t in tr if t.get("params")), None)
             rec["gpu_hours_500_epochs"] = 500 * STEPS_PER_EPOCH[ds] * rec["median_step_s"] * 4 / 3600
         out["arms"][f"{ds}_{arm}"] = rec
+out["provenance"] = {"eval_logs_checked_for_skipped_load": LOG_CHECK["checked"], "eval_logs_with_skipped_load": LOG_CHECK["hits"],
+                     "evaluation_snapshot": "the ten DrivAerML lanes and the references were evaluated under the training snapshot code; from 2026-09-10 the eval, fp32 and probe launchers import the program-wide evaluation snapshot code_eval, identity-checked by the main session (uw_gt_unit_lr1e3_seed42 under code vs code_eval: bitwise identical in float32, zero skipped loads), so both sets are the same function"}
 json.dump(out, open(f"{T}/hl_evals/scale_gt_reduction.json", "w"), indent=1)
+print("PROVENANCE", out["provenance"])
 for k, v in out["references"].items():
     print("REF", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk not in ("runs", "per_run")})
 for k, v in out["arms"].items():

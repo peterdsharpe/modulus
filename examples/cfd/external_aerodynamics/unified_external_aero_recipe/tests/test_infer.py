@@ -233,6 +233,42 @@ def test_allreduce_sums_single_process_is_copy():
 
 
 ### ---------------------------------------------------------------------------
+### _check_summary_in_range
+### ---------------------------------------------------------------------------
+
+
+def test_check_summary_in_range_accepts_a_true_mean():
+    """A summary that is the mean of its samples lies inside their range."""
+    samples = [0.0608, 0.0711, 0.0807]
+    averages = {"pressure_l2": sum(samples) / len(samples)}
+    infer._check_summary_in_range(
+        averages, {"pressure_l2": min(samples)}, {"pressure_l2": max(samples)}, 3, "cpu"
+    )
+    # A single sample: mean == min == max, roundoff-free.
+    infer._check_summary_in_range({"k": 0.5}, {"k": 0.5}, {"k": 0.5}, 1, "cpu")
+    # Nothing evaluated: nothing to check.
+    infer._check_summary_in_range({"k": 0.0}, {"k": float("inf")}, {"k": float("-inf")}, 0, "cpu")
+
+
+def test_check_summary_in_range_refuses_an_impossible_mean():
+    """The 2026-09-10 failure shape: per-case values 0.05-0.08, summary 0.814.
+
+    A mean cannot exceed the largest per-sample value, so the aggregation
+    (not the model) is wrong and the summary must not be written.
+    """
+    import pytest
+
+    with pytest.raises(RuntimeError, match="pressure_l2: summary 0.814 outside"):
+        infer._check_summary_in_range(
+            {"pressure_l2": 0.814, "wss_x_l2": 0.06},
+            {"pressure_l2": 0.0528, "wss_x_l2": 0.05},
+            {"pressure_l2": 0.0807, "wss_x_l2": 0.07},
+            48,
+            "cpu",
+        )
+
+
+### ---------------------------------------------------------------------------
 ### attach_and_save (round-trip)
 ### ---------------------------------------------------------------------------
 

@@ -68,7 +68,14 @@ def _softmax_over_points(x: Float[torch.Tensor, "batch tokens slices"], fast: bo
     dimension instead uses the row-parallel kernel. Same arithmetic; the
     floating-point summation order differs (roundoff). ``fast=False`` keeps
     the original kernel for bitwise reproduction of checkpoints trained before
-    2026-09-10 (bf16 outputs differ 1-1.5% between kernels; float32 agree to 1e-6).
+    2026-09-10 (bf16 outputs differ 1-1.5% between kernels; float32 model outputs
+    agree to 1e-6). On raw softmax weights the two kernels are not equally
+    precise: against a float64 reference the middle-dimension kernel carries a
+    ~1e-4 absolute float32 floor at every N from 40k to 100k, the row-parallel
+    kernel ~1e-7 (measured on a GB300, 2026-09-10; no defect at any N, including
+    across 2^16 points). Which kernel a model runs is decided by this flag at
+    instantiation, not by the checkpoint: a checkpoint written before the flag
+    existed takes the current default when loaded.
     """
     if not fast:
         return torch.softmax(x, dim=1)

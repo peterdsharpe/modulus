@@ -31,18 +31,29 @@ ARMS = {
            "c384x40k": ["scale_isla_dr_c384x40k_seed42", "scale_isla_dr_c384x40k_seed43"],
            "w384nw": ["scale_isla_dr_w384nw_seed42", "scale_isla_dr_w384nw_seed43"],
            "c512x80k": ["scale_isla_dr_c512x80k_seed42", "scale_isla_dr_c512x80k_seed43"],
-           "kernelctrl": ["scale_isla_dr_kernelctrl_seed42", "scale_isla_dr_kernelctrl_seed43"]},
+           "kernelctrl": ["scale_isla_dr_kernelctrl_seed42", "scale_isla_dr_kernelctrl_seed43"],
+           "g512x80k": ["scale_isla_dr_g512x80k_seed42", "scale_isla_dr_g512x80k_seed43"]},
 }
 # Numerics families (coordinator amendment): t80k, c512x80k and kernelctrl were trained from code_perf (fast
 # point-softmax kernel; bf16-roundoff-level differences from the reference checkpoints); everything else from code_isla5.
-FAST_KERNEL = {"t80k", "c512x80k", "kernelctrl"}
+FAST_KERNEL = {"t80k", "c512x80k", "kernelctrl", "g512x80k"}
 STEP = re.compile(r"Epoch (\d+) \[(\d+)/(\d+)\] Loss: ([0-9.eE+-]+|nan) Step: ([0-9.]+)s Mem: ([0-9.]+)GB")
+
+
+def _log_clean(root, run):
+    """Refuse a run whose evaluation log records a skipped checkpoint load (the evaluation would be of the seeded init)."""
+    for lg in glob.glob(f"{T}/{root}/{run}.log") + glob.glob(f"{T}/{root}/{run}/*.log"):
+        txt = open(lg, errors="ignore").read()
+        if "skipping load" in txt or "Could not find valid model file" in txt:
+            raise AssertionError(f"{root}/{run}: evaluation log records a skipped checkpoint load ({lg}); number struck")
+    return True
 
 
 def _metrics_in(root, run):
     ps = glob.glob(f"{T}/{root}/{run}/*/metrics.jsonl") or glob.glob(f"{T}/{root}/{run}/metrics.jsonl")
     if not ps:
         return None
+    _log_clean(root, run)
     rows = [json.loads(l) for l in open(ps[0])]
     rows = [r["metrics"] for r in rows if r.get("phase") == "infer_step"]
     return {f: st.mean(r[f] for r in rows) for f in F if f in rows[0]} | {"n_cases": len(rows)}
@@ -116,6 +127,8 @@ for ds, arms in ARMS.items():
                 v = [t[k] for _, t in per if t and t.get(k) is not None]
                 a[k] = st.mean(v) if v else None
             a["numerics"] = "fast point-softmax (code_perf)" if arm in FAST_KERNEL else "reference kernel (code_isla5 / reference lanes)"
+            if arm == "w384nw":
+                a["label"] = "ablation (discretization-dependent; never a reference configuration)"
             out["arms"][f"{ds}_{arm}"] = a
 for ds in ARMS:
     ref = out["arms"].get(f"{ds}_ref")
@@ -124,6 +137,102 @@ for ds in ARMS:
             a = out["arms"].get(f"{ds}_{arm}")
             if a:
                 a["pressure_over_ref"] = a["pressure_l2"] / ref["pressure_l2"]
+# Density-bias probe (float32; 10:1 biased sampling vs the uniform control, both at 10,000 cells): biased / uniform
+# pressure error per arm. The reference arm's probe comes from the transfer session's campaign E; the SCALE arms from
+# highlift/hl_scale_isla_probe_fp32_aga.sbatch.
+PROBE = {"dr_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_c512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
+         "dr_w512": [f"{T}/scale_probe_fp32/scale_isla_dr_w512_seed{s}" for s in (42, 43)],
+         # resolution-generalization test. "@40k": the first mirror run, which asked for 80,000 cells from probe datasets
+         # whose reader pools only 40,000 (both samplers then keep the whole pool, so biased == uniform and the count is
+         # 40,000; only the uniform column is meaningful). "@80k": the true 80,000-cell probe on the *_80k dataset variants
+         # (160,000-cell pool). The similarity-gauge reference (iw_mt2_gauge, campaign E at 10k) is the principled control.
+         "dr_ref@40k": [f"{T}/scale_probe_fp32_40k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_c512x80k@40k": [f"{T}/scale_probe_fp32_40k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
+         "dr_ref@80k": [f"{T}/scale_probe_fp32_80k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_c512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@40k": [f"{T}/scale_probe_fp32_40k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@80k": [f"{T}/scale_probe_fp32_80k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         # count-curve points for the two 10k-trained references: 20k (base 40k pool), 40k and 60k on the 320k-pool variant
+         "dr_ref@20k": [f"{T}/scale_probe_fp32_20k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_ref@40kv80": [f"{T}/scale_probe_fp32_40kv80/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_ref@60k": [f"{T}/scale_probe_fp32_60k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@20k": [f"{T}/scale_probe_fp32_20k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@40kv80": [f"{T}/scale_probe_fp32_40kv80/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@60k": [f"{T}/scale_probe_fp32_60k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         # bracket of the 80k cliff (65,536 hypothesis) and the kernel swap at 80k
+         "dr_ref@65k": [f"{T}/scale_probe_fp32_65k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_ref@70k": [f"{T}/scale_probe_fp32_70k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@65k": [f"{T}/scale_probe_fp32_65k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@70k": [f"{T}/scale_probe_fp32_70k/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_ref@80k_fastkernel": [f"{T}/scale_probe_fp32_80kx/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_c512x80k@80k_refkernel": [f"{T}/scale_probe_fp32_80kx/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
+         "dr_gauge_ref@80k_codeeval": [f"{T}/scale_probe_fp32_80kx/iw_mt2_gauge_seed{s}" for s in (42, 43)],
+         "dr_g512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)],
+         "dr_g512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)]}
+
+
+def _probe_metric(d):
+    ps = glob.glob(f"{d}/*/metrics.jsonl") + glob.glob(f"{d}/*/*/metrics.jsonl")
+    if not ps:
+        return None
+    for lg in glob.glob(f"{d}.log"):
+        txt = open(lg, errors="ignore").read()
+        if "skipping load" in txt or "Could not find valid model file" in txt:
+            return None  # skipped checkpoint load: the probe evaluated the seeded initialization; struck
+    rows = [json.loads(l) for l in open(ps[0])]
+    rows = [r["metrics"]["pressure_l2"] for r in rows if r.get("phase") == "infer_step"]
+    return st.mean(rows) if rows else None
+
+
+out["density_probe"] = {}
+for arm, dirs in PROBE.items():
+    per = []
+    for d in dirs:
+        u, b = _probe_metric(f"{d}/unif"), _probe_metric(f"{d}/biased")
+        if u and b:
+            per.append({"uniform": u, "biased": b, "biased_over_uniform": b / u})
+    if per:
+        out["density_probe"][arm] = {"n_seeds": len(per), "uniform": st.mean(x["uniform"] for x in per), "biased": st.mean(x["biased"] for x in per),
+                                     "biased_over_uniform": st.mean(x["biased_over_uniform"] for x in per), "per_seed": per}
+        if arm in out["arms"]:
+            out["arms"][arm]["density_biased_over_uniform"] = out["density_probe"][arm]["biased_over_uniform"]
+# Convergence curves (coordinator addition): for the 10k-trained reference and the 80k-trained models, the float32
+# uniform-sampling error and the biased/uniform ratio at 10,000 and 80,000 evaluation cells. Error falling with count is
+# fine; a sampling-distribution dependence that does not vanish with refinement is the failure the redirect names.
+out["convergence"] = {}
+# STRUCK: the 80,000-cell evaluations of the two legacy references run under the legacy code snapshot (job 700105) collapsed
+# (0.814 / 0.892) while the same checkpoints under code_eval are healthy at 65k, 70k and 80k; the cause is that snapshot's
+# evaluation path at 80,000 cells (not the softmax kernel: micro-test, CPU control and kernel swap all clean). Kept in the
+# probe block with this label; excluded from the convergence curves, whose 80k point is the code_eval evaluation.
+STRUCK = {"dr_ref@80k": "legacy code snapshot at 80,000 cells; struck (see notebook)",
+          "dr_gauge_ref@80k": "legacy code snapshot at 80,000 cells; struck (see notebook)"}
+for k, why in STRUCK.items():
+    if k in out["density_probe"]:
+        out["density_probe"][k]["struck"] = why
+CELLS = (10000, 20000, 40000, "40000v80", 60000, 65000, 70000, 80000, "80000_kernelswap")
+for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@20k", "dr_ref@40k", "dr_ref@40kv80", "dr_ref@60k", "dr_ref@65k", "dr_ref@70k", "dr_ref@80k_fastkernel", None)),
+                    ("c512x80k_80k_trained", ("dr_c512x80k", None, "dr_c512x80k@40k", None, None, None, None, "dr_c512x80k@80k", "dr_c512x80k@80k_refkernel")),
+                    ("gauge_reference_10k_trained", ("dr_gauge_ref", "dr_gauge_ref@20k", "dr_gauge_ref@40k", "dr_gauge_ref@40kv80", "dr_gauge_ref@60k", "dr_gauge_ref@65k", "dr_gauge_ref@70k", "dr_gauge_ref@80k_codeeval", None)),
+                    ("g512x80k_80k_trained_similarity_gauge", ("dr_g512x80k", None, None, None, None, None, None, "dr_g512x80k@80k", None))):
+    curve = {}
+    for cells, key in zip(CELLS, keys):
+        if key is None:
+            continue
+        pr = out["density_probe"].get(key)
+        if pr:
+            curve[str(cells)] = {"uniform": pr["uniform"], "biased": pr["biased"], "biased_over_uniform": pr["biased_over_uniform"]}
+            if cells == 40000:
+                curve[str(cells)]["note"] = "40,000-cell pool exhausted: biased == uniform; only the uniform column is meaningful"
+            if cells == "40000v80":
+                curve[str(cells)]["note"] = "40,000 cells drawn from the 320,000-cell pool variant (dataset-variant control for the 40k point)"
+    if curve:
+        out["convergence"][model] = curve
 json.dump(out, open(sys.argv[1], "w"), indent=1)
+for k, v in out["convergence"].items():
+    print("convergence", k, {c: {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in d.items()} for c, d in v.items()})
+for k, v in out["density_probe"].items():
+    print("probe", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk != "per_seed"})
 for k, v in out["arms"].items():
     print(k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk != "seed_pressure"})
