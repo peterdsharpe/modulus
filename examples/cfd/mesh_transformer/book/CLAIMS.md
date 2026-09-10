@@ -1033,9 +1033,18 @@ interior control @sec-nb-udrv-int-prereg.
   pays 33% in-family (T2 preview, one seed).
 - **Snapshot hazard for legacy surface ISLA checkpoints (2026-09-10; transfer session probe job
   699026, float32, 48 cars).** iw_mt2_lr1e3_seed42 and mt2_v3c_seed42 evaluate to 0.0568 / 0.0620
-  under `code` but to an identical 1.5667 (wss 1.8713) under `code_support`: the legacy `.pt`
-  state dict no longer matches the ISLA module there and the non-strict load leaves the seeded
-  init. GeoTransolver unaffected. RULES: evaluate legacy surface ISLA checkpoints only under the
+  under `code` but to an identical 1.5667 (wss 1.8713) under `code_support`. Mechanism (confirmed
+  from code and eval log): weights live in `<ClassName>.0.<epoch>.mdlus`, optimizer state in
+  `checkpoint.0.<epoch>.pt`; `physicsnemo.utils.checkpoint.load_checkpoint` derives the weights
+  filename from the model's class name, and under `code_support` MeshTransformer2 is an alias of
+  ISLA, so it looks for `ISLA.0.500.mdlus`, misses the legacy `MeshTransformer2.0.500.mdlus`, logs
+  "Could not find valid model file ..., skipping load" and continues; infer.py then loads the
+  optimizer file, prints "Loaded checkpoint (epoch 500)" and evaluates the seeded init. The T3
+  fine-tune's init went through the campaign hook (explicit .mdlus glob, `Module.load(strict=True)`,
+  succeeded), so it most likely started from the trained weights; frozen-init lane camp-c-28
+  settles it. GeoTransolver unaffected. Fix in flight (transfer session): `load_checkpoint` raises
+  FileNotFoundError when a requested model's weights file is absent (cluster `code_support` +
+  repository; commit to be cited here). RULES: evaluate legacy surface ISLA checkpoints only under the
   snapshot that trained them (`code`, `code_isla*`); the fp32 campaign used `code` for these and
   stands; any legacy-ISLA number produced through `code_support` or later is invalid; an identical
   error from two different checkpoints is a load failure, never a result; make the state-dict load
