@@ -62,8 +62,20 @@ def main():
         if runs:
             per_arm[arm] = {"label": label, "seeds": sorted(runs), "per_seed": runs,
                             "mean": {k: statistics.mean(r[k] for r in runs.values()) for k in KEYS if all(k in r for r in runs.values())}}
+    # bf16 side (same runs, same points; v0_evals/ for the arms, v0_evals_support/ for the references) for the
+    # per-architecture offset table and the direct test of whether GeoTransolver-volume's bf16 inflation comes
+    # from its local features (compare gt_vol_nolocal's inflation with gt_vol's / udrv_gt_vol's).
+    bf16 = {}
+    for arm, (root, _) in ARMS.items():
+        prefix = "" if arm.startswith("udrv_") else "v0_"
+        broot = root.replace("_fp32", "")
+        runs = {s: run_metrics(broot, f"{prefix}{arm}_seed{s}") for s in (42, 43)}
+        runs = {s: r for s, r in runs.items() if r}
+        if runs and arm in per_arm:
+            bmean = {k: statistics.mean(r[k] for r in runs.values()) for k in KEYS if all(k in r for r in runs.values())}
+            bf16[arm] = {"mean": bmean, "bf16_over_fp32": {k: bmean[k] / per_arm[arm]["mean"][k] for k in bmean if k in per_arm[arm]["mean"]}}
     ref = per_arm.get("isla_qtsdfval", {}).get("mean")
-    v = {"d1": {}, "campaign_d": {}, "precision": "float32"}
+    v = {"d1": {}, "campaign_d": {}, "precision": "float32", "bf16_offset": bf16}
     if ref:
         v["d1"]["bars_at_reference"] = {"supported_max": {k: 1.03 * ref[k] for k in KEYS}, "falsified_pressure_min": 1.10 * ref["pressure_l2"]}
     s12 = per_arm.get("isla_support12")
