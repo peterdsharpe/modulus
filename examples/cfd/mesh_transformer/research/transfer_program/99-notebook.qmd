@@ -1460,3 +1460,17 @@ centering, with the uniform-plain number beside them as the cost of the
 frame change. The weights-off arm's 19x adds the loss of the HT weighting
 in the attention (log weights zero, line 521) and should not be recovered by
 weighted centering alone, a second prediction with a sign.
+
+**Evaluation snapshot (addendum to @sec-nb-snapshot-resolved).** The main
+session designated `$T/code_eval` (its scaling branch at 0e41b9ee1: the
+raising loader, a legacy class-name search so `MeshTransformer2.*.mdlus`
+loads with a warning, the fast kernel as opt-in) as the program-wide
+evaluation snapshot after an identity check against `code` (ISLA 1.3 × 10⁻⁶
+mean relative difference per case, GeoTransolver and Transolver bitwise).
+Every evaluation launcher of this program now sets its PYTHONPATH to
+`code_eval` (D1, campaign D, campaigns A, B, C, E, the variant zero-shot
+launcher); `code_support` is used for training only; the CLAIMS rule "an
+evaluation log containing 'skipping load' voids the run" applies, and an
+audit of every evaluation log of this program is running. The hidden-344
+evaluation that a watcher had submitted seconds before the edit was
+cancelled and resubmitted under the new snapshot (job 700501).
