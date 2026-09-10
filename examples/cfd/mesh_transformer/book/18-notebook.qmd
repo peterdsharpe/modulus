@@ -12339,7 +12339,7 @@ same picture (0.0938 against 0.1017).
 
 Two caveats. The 180 validation cases are 18 geometries at ten angles, so
 the case count is descriptive and the geometry is the independent unit
-(@sec-nb-geostat); and the unit-drive GeoTransolver's seed spread here is
+(@sec-nb-audit-geometry-stats); and the unit-drive GeoTransolver's seed spread here is
 7% (0.0965 against 0.0900), the largest of any arm on this rung, so the
 0.92 carries roughly ±0.03 from seeds alone before the training-draw
 uncertainty of @sec-nb-campa-35-merged is considered. The ladder tally is
