@@ -1029,3 +1029,13 @@ interior control @sec-nb-udrv-int-prereg.
   (different drive and learning rate) as a caveat; the mixed-435 ISLA pays 33% in-family (T2
   preview, one seed). Third independent sign of family-specific learning (with the 1.6x zero-shot
   force error and the constant-gauge density collapse).
+
+- **POSE-BENCH (2026-09-10, transfer session campaign B, float32; studies/campaign_b_pose/campaign_b_fp32_2026-09-10.json).**
+  Every case in its own random SO(3) pose, DrivAerML 435 cars: ISLA (no augmentation) 0.0566
+  (0.0571/0.0562; 1.01x canonical 0.0558); GeoTransolver + SO(3) augmentation 0.0602 (1.20x
+  canonical 0.0503); Transolver + augmentation 0.0676 (1.31x canonical 0.0517); GT without
+  augmentation 0.0631; ISLA with augmentation 0.0578. Write "ISLA's first measured accuracy lead
+  over input-matched baselines: 6% over GeoTransolver and 19% over Transolver when geometries
+  arrive in arbitrary poses; the value of exact equivariance is conditional on that setting".
+  Caveat to carry: the augmented-ISLA contract clause landed 1.2% above the unaugmented seeds'
+  range (miscalibrated clause, within 3%). Verdict sentence now names this lead.
