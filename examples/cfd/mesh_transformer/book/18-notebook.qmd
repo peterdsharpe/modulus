@@ -10177,3 +10177,14 @@ predictions were never used. It does sharpen the guard: the reducer's
 snapshot field names the metric path a number came from, and any future
 aggregate at 65,536 points or more from a pre-`code_eval` snapshot is
 refused by construction.
+
+**Aggregation guard in the recipe (coordinating session).** The cluster's
+`recipe/src/infer.py` now refuses to write a summary whose value lies
+outside the range of its own per-sample metrics (a mean cannot leave that
+range, so a violation is an aggregation defect, never a measurement),
+raising after the per-sample rows are written; the struck 0.814 aggregate
+(per-car values 0.05–0.08) would have failed it. This track's reducer
+computes every headline from the per-sample rows, never from the summary
+line, so it is unaffected by a missing summary and would have been immune to
+the wrong one had it read per-sample values under the legacy snapshot; the
+guard closes the path for every launcher that reads the summary.
