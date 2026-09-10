@@ -1250,3 +1250,14 @@ interior control @sec-nb-udrv-int-prereg.
   Caveats: 180 cases = 18 geometries (case count descriptive); GT seed spread 7%. UDRV-L tally: 4
   geometries baseline ahead (0.76x), fixed angle baseline ahead (0.78x), 21 geometries between (0.92x);
   210 and 1,260 pending.
+- **Interior error by wall-distance band (2026-09-10, fp32 saved predictions, 48 cars, 2 seeds; research/transfer_program/studies/computational_support/band_decomposition_2026-09-10.json).**
+  ν_t: SDF < 0.01 L (77% of points) ISLA h344 0.081 = GT-unit 0.080 (h256 0.084, GT no-local 0.083);
+  0.01–0.05 L (11%) 0.062 vs 0.077 (ISLA leads); ≥ 0.05 L (10%) 0.093 vs 0.068 (h256 0.101) — far band =
+  46% of ISLA's squared ν_t error vs 36% of GT's. Pressure ≥0.05 L 0.082 vs 0.067; velocity 0.040 vs
+  0.033; near-wall ISLA leads both (0.049 vs 0.051; 0.086 vs 0.128). Near-wall closure hypothesis
+  REFUTED; the 18% deficit is the OUTER WAKE. Write "at matched parameters ISLA wins where the surface is
+  close and GeoTransolver-volume where it is far". Band 'all' values differ from the recipe metric by a
+  constant factor (0.092 vs 0.1033); quote ratios or the recipe metric, never mix. Candidate (prereg
+  pending): flow-organized far-field anchors (latent_volume_tokens, offsets 0.5/1.0/2.0 L along the
+  drive) — NOTE the option currently requires query_independent=True (model.py ~596), so the QT+SDF
+  configuration needs a flag-gated relaxation first.
