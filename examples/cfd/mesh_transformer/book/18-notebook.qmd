@@ -9377,3 +9377,20 @@ logged failure instead of an hour of idle GPUs per link and is the
 datapipe follow-up to file. Diagnostic tools left in the task directory:
 highlift/qtdens_thread_dump.sh, qtdens_probe_files.sh,
 qtdens_probe_stripes.sh, code_qtdens/sitecustomize.py, tools/pyspy.
+
+**Correction, two hours later: pinning was the site, not the cause.** With
+pinning off the probe lane advanced from epoch 310 to about 389 and stalled
+twice more; the new dumps place the stuck rank (rank 2) inside
+`TensorDict.to(device)` (physicsnemo/mesh/domain_mesh.py:1686 →
+tensordict/base.py:16188), the host-to-device copy of the loaded sample, with
+the other three ranks in the step barrier. One rank's CUDA context stops
+completing host-side operations at a random point, first pinning and then
+the copy: a device- or driver-level hang on the node, not the datapipe, the
+model or Lustre. It affects every DrivAerML interior lane since 12:14 and no
+HiLiftAeroML lane; the mechanism is not established from user space. What
+holds: the chains progress between stalls, so the collective timeout on the
+QTDENS lanes was cut to 600 s (a stalled link dies and resumes in ten
+minutes instead of sixty) and links idle for more than fifteen minutes are
+recycled; `pin_memory=false` is kept because it removes one hang site at a
+35% step-time cost. Expected loss: one stall per thirty to sixty minutes
+per lane, each costing ten minutes plus up to ten epochs of replay.
