@@ -1116,3 +1116,12 @@ interior control @sec-nb-udrv-int-prereg.
   reproduced the 1.5301 / 1.5667 pair verbatim. When an evaluation is declared invalid (snapshot
   hazard, wrong kernel flag, wrong precision), delete its output directory before resubmitting;
   reducers must treat a repeated identical error across checkpoints as an artifact, never a value.
+- **Campaign C T2, matched-count diversity (2026-09-10, float32, seed means; `research/transfer_program/studies/campaign_c_transfer/campaign_c_t2_2026-09-10.json`).**
+  435 cases = 218 DrivAerML + 217 estate vs all-DrivAerML: ISLA fastback zero-shot 0.788 → 0.128
+  (−84%), DrivAerML in-family 0.0557 → 0.0737 (+32%); unit-drive GeoTransolver fastback 0.612 →
+  0.115 (−81%), DrivAerML 0.0504 → 0.0598 (+19%); fastback drag rel. MAE >150% → 16% / 13%. Bar
+  (≥30% drop at ≤10% in-family cost) NOT met on cost for either → write "a trade: half the label
+  budget on the sibling family buys the target family almost entirely and costs a fifth to a
+  third of the source family's accuracy"; never "diversity is free". Part of the cost is the
+  218-car rung of each ladder, not the mixing (decomposition pending). Supersedes the one-seed
+  "pays 33% (0.074 vs 0.056)" preview.
