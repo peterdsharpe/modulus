@@ -45,9 +45,11 @@ find it.
 
 What stands, and what waits. On DrivAerML, where GeoTransolver also received
 the physical velocity (38.9 m/s), the unit-drive rerun at 435 cars changes
-nothing (0.0556 against 0.0548), and the unit-drive GeoTransolver and
-Transolver sit at parity with ISLA within 4% (within 1% with ISLA's measure
-weights off); below full data GeoTransolver's 1.2–1.3x lead stands. The fixed-angle
+nothing (0.0503 against 0.0498 in float32), and in float32, the reporting
+instrument, ISLA is 10% behind the unit-drive GeoTransolver (0.0558 against
+0.0503) and 8% behind Transolver (0.0517), or 7% and 5% behind with its
+measure weights off (0.0542); below full data GeoTransolver's 1.2–1.3x lead
+stands. The fixed-angle
 split has been re-measured: the unit-drive GeoTransolver and Transolver
 beat ISLA there too (0.029 and 0.032 against 0.036, on 18 of 18 held-out
 geometries), so the 5.0x figure is gone as a comparison. The HiLift rungs
@@ -89,7 +91,7 @@ peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
 | HiLift surface, fixed angle (126 geometries at 12°, 18 never-seen) | ISLA behind | unit-drive GeoTransolver 0.81x, Transolver 0.89x; 18 of 18 geometries |
 | HiLift, 4 never-seen training geometries (18 held out) | ISLA behind by the mean; even by geometry | unit-drive GeoTransolver 0.76x by the mean; 9 of 18 geometries each way |
 | HiLift surface, 210 and 1,260 cases; 21 training geometries | Not yet compared | 2.2x, parity and 1.4x against physical-drive baselines only; unit-drive reruns training |
-| DrivAerML surface, 435 cars | Parity | unit-drive GeoTransolver 0.96x and Transolver 0.98x of ISLA (0.0556, 0.0563 vs 0.0577); within 1% of ISLA with measure weights off (0.0561) |
+| DrivAerML surface, 435 cars | ISLA behind | float32: unit-drive GeoTransolver 0.90x and Transolver 0.93x of ISLA (0.0503, 0.0517 vs 0.0558); 0.93x and 0.95x of ISLA with measure weights off (0.0542) |
 | DrivAerML surface, 27–218 cars | ISLA behind | GeoTransolver 1.2–1.3x ahead (physical drive, which is not a handicap on this dataset) |
 | DrivAerML interior, 435 cars | ISLA ahead on pressure, velocity; behind on eddy viscosity | 0.91x / 0.64x / 1.29x at a third of the parameters; only at ≥10,000 queries together; 365 or 10,000 surface tokens alike; unit-drive GeoTransolver-volume within 2% of the physical-drive one |
 | DrivAerML interior, 54–109 cars | Mixed, same conditions | pressure 1.06–1.11x behind, velocity ahead, eddy viscosity 1.45x behind |

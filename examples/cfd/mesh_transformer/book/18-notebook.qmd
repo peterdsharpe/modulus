@@ -10622,3 +10622,38 @@ baselines' 256-slice attention over 10,000 tokens at DrivAerML's tighter
 error levels (0.05) mattering where at 0.12–0.40 it did not. The transfer
 session's first look (float32 8.5–9.7% below bf16 for the baselines, 2.8–4.0%
 for ISLA) is reproduced here on the program's own evaluations.
+
+## 2026-09-09 — Float32 re-grade of the DrivAerML surface family: the bf16 offset is architecture-dependent here (baselines −9%, ISLA −3%), so "parity within 4%" becomes ISLA 10% behind GeoTransolver and 8% behind Transolver {#sec-nb-fp32-drivaer-regrade}
+
+**Source.** FP32-EVAL group 3 (scaling session, #sec-nb-fp32-reeval-verdict-drivaer,
+results/fp32_reeval/fp32_shift_drivaer_2026-09-09.json): 37 DrivAerML surface
+checkpoints re-evaluated in float32 on bit-identical points. Architecture
+medians of the bf16 → float32 shift: GeoTransolver −9.1%, Transolver −7.8%,
+ISLA −3.2%; the campaign's architecture-dependence bar fires on this dataset
+where it did not at HiLift 35 cases (@sec-nb-fp32-35-regrade).
+
+| arm (435 cars) | bf16 | float32 | ÷ ISLA (fp32) | ÷ ISLA weights off (fp32) |
+|---|---|---|---|---|
+| ISLA, weights on (three seeds) | 0.0578 | **0.0558** | 1.00 | 1.03 |
+| ISLA, weights off | 0.0561 | **0.0542** | 0.971 | 1.00 |
+| ISLA, similarity gauge | 0.0634 | 0.0616 | 1.103 | 1.137 |
+| ISLA, second-moment channel | 0.0583 | 0.0559 | 1.002 | 1.031 |
+| GeoTransolver, unit direction (three seeds) | 0.0556 | **0.0503** | **0.902** | **0.928** |
+| GeoTransolver, physical velocity | 0.0548 | 0.0498 | 0.893 | 0.919 |
+| Transolver, unit direction, lr 3e-3 | 0.0563 | **0.0517** | **0.925** | **0.954** |
+| Transolver, unit direction, lr 1e-3 | 0.0593 | 0.0548 | 0.981 | 1.011 |
+
+**Re-grade.** Two verdicts are unchanged: NOW-L on DrivAerML (weights off
+0.971 of weights on, 2.9% better, still inside the "fades" band) and MOM2-T
+(the second-moment channel at 1.002, free). Two statements change. The
+WAVE-3 arm-5 reading of "parity within 4%, within 1% with weights off" was a
+bfloat16 artifact: in float32 ISLA is 10% behind the unit-drive
+GeoTransolver and 8% behind Transolver (7% and 5% with its weights off), and
+the physical-drive GeoTransolver's lead becomes 12% rather than 5%. The
+unit-drive null for GeoTransolver stands (0.0503 against 0.0498). Chapter 6's
+full-data paragraph, chapter 12's limits and recommendation, chapter 5's
+ladder note, the index paragraph and verdict row are rewritten in float32;
+the book's DrivAerML surface recommendation is GeoTransolver or Transolver
+at every training-set size. Per-case bf16 maxima here are 17–21% for the
+baselines and 5–12% for ISLA, so per-case counts on DrivAerML are quoted
+from the float32 artifacts.

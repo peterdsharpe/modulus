@@ -978,3 +978,12 @@ interior control @sec-nb-udrv-int-prereg.
   fp32 agree to the third decimal). Per-case paired counts at this rung: quote from fp32
   (baseline per-case bf16 error up to 11.7%). The DrivAerML offset (−9% for baselines) is
   dataset/size-dependent, not universal.
+
+- **DrivAerML surface, float32 re-grade (2026-09-09; results/fp32_reeval/fp32_shift_drivaer_2026-09-09.json).**
+  fp32 means: ISLA 0.0558 (bf16 0.0578), ISLA weights off 0.0542, gauge 0.0616, second-moment
+  0.0559, unit GT 0.0503 (3 seeds), physical GT 0.0498, unit Transolver 3e-3 0.0517 (1e-3
+  0.0548). Ratios ÷ ISLA: GT-unit 0.902, GT-physical 0.893, Transolver 0.925; weights-off 0.971
+  (NOW-L DrivAerML stays "fades"); second-moment 1.002 (MOM2-T stays free); gauge 1.103. Write
+  "ISLA 10% behind GeoTransolver and 8% behind Transolver at full DrivAerML data (float32); 7%
+  and 5% with weights off". RETIRE "parity within 4%" and "within 1% with weights off" (bf16
+  artifacts). Per-case bf16 error up to 17–21% for baselines here: quote per-case counts from fp32.

@@ -81,12 +81,15 @@ direction at 435 cars, GeoTransolver scores 0.0556 (three seeds 0.0553 /
 preregistered null band, so on DrivAerML the input scale was not a
 handicap; plain Transolver, run on DrivAerML for the first time with the
 unit direction, scores 0.0563 at its better rate (3e-3; 0.0593 at 1e-3).
-Against ISLA's 0.0577 both baselines are within the parity band (0.96x and
-0.98x; GeoTransolver lower on 36 of 48 cars, median per-car ratio 1.07),
-and against ISLA without measure weights (0.0561, @sec-mechanism) they are
-within 1% (32 and 23 of 48 cars; results/uw_reduction_2026-09-09.json,
-@sec-nb-uw-verdict). At full DrivAerML data the three architectures are at
-parity within 4%, within 1% with ISLA's weights off.
+Those are bfloat16 numbers, and on this dataset the bfloat16 evaluation
+offset is architecture-dependent (baselines about 9% high, ISLA about 3%;
+@sec-nb-fp32-instrument), so the reporting numbers are the float32 ones:
+GeoTransolver 0.0503 with the unit direction (0.0498 with the physical
+velocity), Transolver 0.0517, ISLA 0.0558 with measure weights on and 0.0542
+with them off (results/fp32_reeval/fp32_shift_drivaer_2026-09-09.json,
+@sec-nb-fp32-drivaer-regrade). At full DrivAerML data ISLA is therefore 10%
+behind GeoTransolver and 8% behind Transolver, or 7% and 5% behind with its
+weights off, with GeoTransolver lower than ISLA on 36 of 48 cars.
 
 The HiLift parity holds case by case, not only on average. Scoring each
 of the 180 validation cases by each architecture's two-seed mean error

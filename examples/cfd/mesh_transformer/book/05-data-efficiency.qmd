@@ -853,10 +853,11 @@ subsets of the 435-car training split — 14, 27, 54, 109 and 218 cars —
 under the frozen protocol of that ladder, learning rate 3e-3 for both, 500
 epochs, 10,000 tokens, two seeds, scored on the 48-car validation split.
 GeoTransolver's DrivAerML lanes also received the freestream as a physical
-velocity, 38.9 m/s; at 435 cars the unit-drive rerun scores 0.0556 against
-0.0548, inside the null band, so on this dataset the input scale is not a
-handicap and the table's ladder ordering is read as it stands
-(@sec-nb-uw-verdict).
+velocity, 38.9 m/s; at 435 cars the unit-drive rerun scores 0.0503 against
+0.0498 in float32 (0.0556 against 0.0548 in bfloat16), inside the null
+band, so on this dataset the input scale is not a handicap and the table's
+ladder ordering is read as it stands (@sec-nb-uw-verdict,
+@sec-nb-fp32-drivaer-regrade).
 
 ```{python}
 #| label: tbl-drivaerml-dataeff-ladder
