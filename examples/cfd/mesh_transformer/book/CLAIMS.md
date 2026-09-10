@@ -1299,3 +1299,10 @@ interior control @sec-nb-udrv-int-prereg.
   queries provide computation at the requested points, not geometric context; the passive route is closed
   for ISLA at matched depth and inputs; the deployment repair for query-set dependence is query-count
   augmentation (QCOUNT), not architecture". PASSIVE2 closed by this result.
+- **Campaign C T1, conditioning (2026-09-10, fp32, code_eval, 99 fastback + 48 DrivAerML cars, two seeds; research/transfer_program/studies/campaign_c_transfer/campaign_c_t1_2026-09-10.json).** NULL: per-case
+  family flag (0 DrivAerML / 1 estate; boundary scalar for ISLA, 7th functional channel for GT) — fastback ISLA 0.1197 → 0.1211,
+  GT 0.1052 → 0.1107; in-family 0.0652 → 0.0662, 0.0525 → 0.0529 (1.5% / 0.8%, inside the 5% clause); seed spreads 0.007 / 0.003
+  cover the differences. Write "the estate family buys coverage, not identification". Mixing at 65% share (source not halved):
+  ISLA 0.0557 → 0.0652 (1.171), GT 0.0504 → 0.0525 (1.042) vs 1.078 / 1.043 at 50%: ISLA's mixing cost grows with the foreign
+  share, GT's does not. Extra 577 estate cars buy fastback 6% (ISLA) / 9% (GT) over the 217-car mix → coverage saturates within
+  a few hundred sibling cars. Campaign C CLOSED (T1 null, T2 trade, T3 GT-only).
