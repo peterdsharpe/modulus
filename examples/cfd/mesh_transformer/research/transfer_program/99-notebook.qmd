@@ -558,3 +558,26 @@ plus one partial epoch per lane; at roughly one stall per 30–60 minutes per
 lane this is a 10–25% throughput loss on the interior campaigns, tolerable,
 and the reader hand-off's bounded wait remains a robustness fix worth
 carrying upstream independently.
+
+## 2026-09-09 — Campaign E launched: density-bias probe on the canonical unit-drive baselines (job 695840) {#sec-nb-campe-launch}
+
+The main session's canonical unit-drive DrivAerML surface baselines have
+trained and evaluated (GeoTransolver 0.0553 / 0.0561 / 0.0554 on seeds 42,
+43, 44, mean 0.0556; Transolver at learning rate 3e-3 0.0561 / 0.0564; both
+in `$T/iw_evals/uw_reduction.json`), which unblocks the eval-only campaign
+E. Preregistration `studies/campaign_e_evalonly/PREREG.md`, written before
+any probe evaluation: the 10:1 Poisson-biased sampling probe
+(`drivaer_probe_biased3`) against its uniform two-stage control
+(`drivaer_probe_unif2`), both at 10,000 cells on the 48 validation cars,
+scored for seven runs (the three unit-drive GeoTransolver seeds, the two
+Transolver seeds, and the ISLA reference `iw_mt2_lr1e3_seed{42,43}` so that
+ISLA's factor comes from the same protocol and code as the baselines; the
+existing ISLA number, 1.20, is from the similarity-gauge arm). Readout is
+the degradation factor, biased ÷ uniform pressure relative L2, per run and
+as a seed mean, with the absolute levels beside it. Bars: ISLA's density
+robustness holds against a fair baseline if GeoTransolver's factor is
+≥ 1.32 and ISLA's stays ≤ 1.24; it does not hold if GeoTransolver's factor
+is ≤ 1.24. Launcher `transfer/campaign_e_density_aga.sbatch` (tracked copy
+beside the preregistration), one run per array task, code snapshot `code`
+and the frozen recipe exactly as the main session's `uw_eval_aga.sbatch`;
+outputs `$T/transfer/campaign_e/<run>/{unif,biased}`.
