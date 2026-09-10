@@ -9705,3 +9705,18 @@ DrivAerML `uw_gt_unit_lr1e3_seed{42,43,44}` (WAVE-3, training) with
 (results/scaling/reduce_scale_gt.py) writes hl_evals/scale_gt_reduction.json
 with per-run metrics, parameters, peak memory, median step time and
 GPU-hours. Verdict entry to follow as @sec-nb-scale-gt-verdict.
+
+**Instrument amendment (program-wide, adopted before any lane is
+evaluated).** Float32 inference is the reporting instrument: bf16
+evaluation moves a trained ISLA checkpoint's error by several percent, and
+whether GeoTransolver carries a comparable offset is one of the things
+these lanes measure. Every GeoTransolver SCALE lane is evaluated twice, with
+the bf16 launcher (hl_evals/<run>/) and with
+highlift/hl_scale_gt_eval_fp32_aga.sbatch, which adds `precision=float32`
+to the inference command and writes hl_evals_fp32/<run>/. The reducer
+asserts per case that the two artifacts sampled bit-identical points,
+reports fp32 as the headline with bf16 alongside and the per-run shift
+(mean and per-case maximum of the relative pressure difference), and uses
+the unit-drive references' fp32 re-evaluations (hl_evals_fp32/,
+iw_evals_fp32/) when the re-evaluation campaign has produced them,
+otherwise labels the comparison fp32-versus-bf16 explicitly.
