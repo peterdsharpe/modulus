@@ -581,3 +581,73 @@ is ≤ 1.24. Launcher `transfer/campaign_e_density_aga.sbatch` (tracked copy
 beside the preregistration), one run per array task, code snapshot `code`
 and the frozen recipe exactly as the main session's `uw_eval_aga.sbatch`;
 outputs `$T/transfer/campaign_e/<run>/{unif,biased}`.
+
+## 2026-09-09 — Campaign E, bf16 preview: only the similarity-gauge ISLA survives the 10:1 density bias; every input-matched baseline and both other ISLA configurations collapse; float32 rerun launched under the new reporting rule {#sec-nb-campe-bf16}
+
+**Protocol change first.** The main session's snapshot ladder found that
+the same checkpoint scores 0.0568 in float32 inference and 0.0588 or
+0.0624 under two different bf16 graphs (per car up to 31%), so bf16
+evaluation is not a stable instrument; float32 inference is now the
+reporting instrument for every comparative number in both programs (CLAIMS
+rule 31a069280, notebook #sec-nb-fp32-instrument in the program book), and
+bf16 numbers are kept only for a per-architecture offset table. Applied
+here: the campaign A eval launcher writes float32 to `hl_evals_fp32/` (its
+first five bf16 evaluations stay for the offset table and are redone in
+float32); the campaign B, D1 and campaign-D eval launchers evaluate each
+run in float32 (`*_evals_fp32/`) and bf16 side by side; D1 and campaign D
+will compare only with float32 references (`$T/v0_evals_fp32/`, main
+session), not with the bf16 0.0567 / 0.0853 / 0.1215 and 0.0620 / 0.1334 /
+0.0939, so the same-snapshot identity of @sec-nb-evalpoints-verdict is a
+bf16 statement and will be repeated in float32. The bf16 numbers below are
+therefore a preview; the float32 rerun of all eleven campaign-E runs is job
+696011 (`transfer/campaign_e_density_fp32_aga.sbatch`, outputs
+`$T/transfer/campaign_e_fp32/`).
+
+**Setting.** The density probe (@sec-nb-campe-launch) scores each
+checkpoint on the 48 DrivAerML validation cars twice: on a uniform draw of
+10,000 cells through the same two-stage 40,000 → 10,000 pipeline, and on a
+Poisson-biased draw whose inclusion probability is ten times higher on the
+front half of the car than on the back (exact Horvitz–Thompson weights,
+937 to 9,366 per cell, total measure preserved within 3%, centroid of the
+sample shifted 0.2 body lengths forward). The similarity-gauge ISLA's
+factor of 1.20 is the program book's density-robustness claim; the probe
+had never been run on an input-matched baseline.
+
+**Readout (bf16, 48 cars, pressure relative L2; factor = biased ÷ uniform).**
+
+| arm | seeds | uniform | biased | factor (per seed) |
+|---|---|---|---|---|
+| GeoTransolver, unit drive (`uw_gt_unit_lr1e3`) | 3 | 0.0554 | 0.480 | 8.7 (10.8, 7.2, 8.1) |
+| Transolver, unit drive, lr 3e-3 (`uw_transolver_unit_lr3e3`) | 2 | 0.0561 | 0.201 | 3.6 (2.1, 5.1) |
+| ISLA reference, constant gauge (`iw_mt2_lr1e3`) | 2 | 0.0579 | 0.675 | 11.6 (12.0, 11.3) |
+| ISLA similarity gauge (`iw_mt2_gauge`) | 2 | 0.0633 | 0.0762 | 1.203 (1.204, 1.202) |
+| ISLA weights off (`now_mt2_lr1e3`) | 2 | 0.0566 | 1.041 | 18.3 (22.0, 14.7) |
+
+: Every car is worse under the bias for every run of the first three arms and the weights-off arm; the gauge arm is worse on 44 and 46 of 48 cars. Artifact `$T/transfer/campaign_e/campaign_e_density.json` (reducer `studies/campaign_e_evalonly/reduce_campaign_e.py`). {#tbl-campe-bf16}
+
+**Instrument checks.** The gauge pair under this launcher reproduces the
+book's 0.063 / 0.076 (factor 1.203 against 1.20), and the constant-gauge
+ISLA at 11.6 sits in the book's recorded 13–14.5 band within seed
+variation, so the probe behaves as it did on 2026-09-02; the biased
+artifacts have the expected cell counts (9,969–10,094) and weights.
+
+**Reading, pending float32.** The preregistered "holds" clause named the
+ISLA reference configuration and required its factor ≤ 1.24; that
+configuration degrades 11.6x, so the clause is unmet by construction, a
+miscalibration recorded rather than rewritten: the book's 1.20 belongs to
+the gauge arm alone. Graded with the gauge arm as "ISLA", the claim holds
+by a wide margin: the input-matched unit-drive GeoTransolver degrades 8.7x
+(against 3.6x for the physical-drive GeoTransolver recorded in the book;
+a different trained model, so no contradiction, but the unit drive makes
+GeoTransolver less density-robust), Transolver 3.6x, and the two other ISLA
+configurations are the least robust of all, weights-off reaching an error
+above 1.0 (worse than predicting zero). Mechanism, stated as a hypothesis
+for the float32 verdict: the similarity gauge normalizes ISLA's kernel by
+the local measure so the HT weights are consumed correctly, whereas the
+constant-gauge ISLA's measure-weighted sums see a ten-fold weight range
+they were never trained on, the weights-off ISLA has no measure to correct
+the density at all, and GeoTransolver's radius-based local features are
+density statistics by construction. For the NOW-L decision (weights off as
+the best fair configuration) this is the cost side: weights off buys 2.8%
+on DrivAerML and loses all density robustness. Verdict and chapter text
+after job 696011.
