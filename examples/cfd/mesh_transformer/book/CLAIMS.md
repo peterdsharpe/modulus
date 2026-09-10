@@ -1408,3 +1408,10 @@ interior control @sec-nb-udrv-int-prereg.
   10.5x (GeoTransolver), 14.9x (Transolver), 16.6x (ISLA constant gauge) against 1.09x for ISLA's similarity gauge at
   the same cost; the earlier 4.2x / 4.6x were pool-frame readings and are superseded". No baseline configuration is less
   sensitive than its reference; Transolver's corner is more so. SCALE DrivAerML half COMPLETE; HiLift half 1–2 weeks.
+- **Campaign E re-evaluated in the SAMPLE FRAME (2026-09-10, transfer session, fp32, code_eval, 10k, val; canonical _sf
+  yamls; artifact studies/campaign_e_evalonly/campaign_e_density_fp32_sampleframe_2026-09-10.json).** Biased ÷ uniform
+  [pool frame]: unit GT 12.14 (12.00/11.93/12.50) [9.5]; Transolver 3e-3 11.61 (10.18/13.04) [3.9]; constant-gauge ISLA
+  11.99 (12.39/11.58) [12.1]; gauge ISLA 1.207 (1.195/1.218) [1.21]; weights-off ISLA 19.23 (23.40/15.06) [19.1]. Uniform
+  levels agree between frames to 0.0002; ISLA rows move ≤ 1% (internal centring). SUPERSEDED: "Transolver degrades more
+  gracefully" (3.9x) was a frame artifact. Quote 12.1x / 11.6x / 12.0x / 1.21x / 19.2x as the reference-size density
+  sensitivities.

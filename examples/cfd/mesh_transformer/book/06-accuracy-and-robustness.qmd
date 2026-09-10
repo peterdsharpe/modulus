@@ -347,8 +347,12 @@ every architecture's coordinates on the plain mean of the reader's uniform
 pool *before* the biased draw, so the GeoTransolver row carries an unbiased
 frame from the pipeline while the ISLA rows re-centre in the model on the
 biased sample; with the frame taken from the biased sample, as a biased
-mesher would deliver it, the unit-drive GeoTransolver reads 12x and
-Transolver 10–13x (@sec-nb-mw-postcenter). Data:
+mesher would deliver it, the unit-drive GeoTransolver reads 12.1x (three
+seeds 12.0 / 11.9 / 12.5), Transolver 11.6x (10.2 / 13.0), the constant-gauge
+ISLA 12.0x, the similarity-gauge ISLA 1.21x and the weights-off ablation
+19.2x, with every uniform level unchanged between frames to 0.0002
+(campaign E re-evaluated in the sample frame, @sec-nb-mw-postcenter;
+`research/transfer_program/studies/campaign_e_evalonly/campaign_e_density_fp32_sampleframe_2026-09-10.json`). Data:
 results/s1_similarity_gauge_2026-09-03.json (ISLA rows);
 results/mixedres_training_2026-07-31/sweep/round3_reduction.json
 (uniform column) and p3v3_reduction.json (biased column) for
@@ -366,7 +370,9 @@ GeoTransolver's 3.6x here, and the 9.5x and 3.9x of the float32 unit-drive
 baselines in @tbl-consistency-matrix's source (campaign E), are pool-frame
 numbers: the pipeline handed the baselines a frame the bias could not
 move. Under the sample frame the baselines collapse as the constant-gauge
-ISLA does (12x; measure-weighted baselines 14–16x), because all of them
+ISLA does (12.1x and 11.6x against 12.0x; measure-weighted baselines
+14–16x), so Transolver's apparent grace under the bias was the frame, and
+all of them
 centre absolute coordinates on a plain sample mean; only the frames that do
 not read the sample survive (@sec-nb-mw-postcenter). The scope is one probe
 geometry (one bias pattern at one ratio) on one dataset.
