@@ -832,3 +832,14 @@ way: any "physics residual" diagnostic on the saved interior samples
 the sample itself, so residual-as-triage (hypothesis 4 of the same
 chapter) cannot be run on these artifacts either without the same
 re-sampling.
+
+**Checkpoint cadence (addendum to @sec-nb-ops-watchdog).** The recipe's
+default writes a checkpoint every ten epochs, so with a stall every 10–30
+minutes each recycle replays up to ten epochs and a lane can be
+net-stationary (the main session saw one go from epoch 389 to 382 over two
+cycles). Both interior launchers now pass `training.save_interval=2` (a
+checkpoint write costs about a second), and since a launcher edit reaches
+only links submitted after it, all ten chains were cancelled, running and
+pending links alike, and re-seeded with one fresh link each (jobs
+696433–696442, verified to carry the setting); the chains self-extend from
+there. One-time cost: a replay of up to ten epochs per lane.
