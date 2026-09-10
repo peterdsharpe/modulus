@@ -13568,3 +13568,24 @@ of the six is answered by adding them back one at a time), and the price is
 then a stated cost of the principle, not a reason to reinstate a sample
 statistic. The reference stays "under decision" in every chapter until
 RELFRAME reads out.
+**Ruling received after this entry (2026-09-10, Peter via the main
+session).** Three decisions bear on the reading above. (1) The HiLift reader
+contention is accepted for now and fixed later, so the HiLift half keeps its
+full protocol and its one-to-two-week projection. (2) No dataset-dependent
+reference configurations: one flagship configuration across datasets, so
+the gauge corner's DrivAerML result cannot by itself make the similarity
+gauge the reference while it costs 8% at 35 HiLift cases; that decision
+belongs to the centering lanes and to Peter. (3) Sample-statistic frames,
+which is what the similarity gauge is (centering by the sampled cloud's
+measure-weighted mean, scaling by its measure-weighted RMS radius), are to
+be replaced by translation invariance from relative positions with a length
+scale taken from an integral of the geometry (for example the total surface
+measure) or a stated physical reference length. The gauge corner's numbers
+stand as measured, and the mechanism they demonstrate stands: at scale, a
+frame that does not read the sampling density costs nothing in accuracy and
+removes the density sensitivity. What changes is the configuration that
+carries that mechanism into the program: when the relative-position arm
+exists, the same 512 × 80,000 corner is run with it and its row replaces the
+gauge row as the adoptable one; until then "the configuration the program
+can adopt" above should be read as "the frame class the program adopts,
+measured here through its similarity-gauge instance".
