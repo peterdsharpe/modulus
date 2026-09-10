@@ -85,3 +85,17 @@ Reduction: per-arm two-seed mean pressure (and wall-shear) relative L2 on the 48
 posed validation cars against the canonical references (ISLA 0.0577; unit-drive
 GeoTransolver and Transolver from the main session's `uw_*` runs when they land),
 judged against the bars in PREREG.md.
+
+## 2026-09-09 — Taken over by the coordinating session; eval launcher mapping repaired
+
+The campaign agent finished while the lanes were at epochs 270–360 of 500; the
+coordinating session merged its branch (358a7166d) and re-armed the completion
+watcher (`watch_campb_done.sh`). Reviewing the pair found a mismatch that would have
+lost six of the eight evaluations: the watcher submits `--array=<run index>` (0–7)
+per trained run, while the eval launcher (cloned from the instrument-wave launcher)
+mapped array task t to runs 4t … 4t+3, so tasks 2–7 would have evaluated nothing and
+tasks 0–1 would have evaluated only the runs trained at submission time, with the
+per-run submission marker then preventing a retry. Fix (cluster file
+`transfer/campaign_b_eval_aga.sbatch`, backup `.bak_4per`): one run per array task
+on GPU 0 (`idx = SLURM_ARRAY_TASK_ID`), default array 0–7. No evaluation had been
+submitted yet (no `.eval_submitted_*` markers), so nothing needs re-running.

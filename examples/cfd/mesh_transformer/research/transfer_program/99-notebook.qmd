@@ -466,7 +466,10 @@ already rolled over to a post-edit script (hidden-344 carrier, seed 42,
 across nine nodes says the trigger is a shared event (a Lustre or fabric
 hiccup) that the pinned-memory hand-off cannot recover from, while the
 unpinned reader rides through it; that is consistent with the stack dumps
-in @sec-nb-ops-pin. At 18:14 the nine stalled links were cancelled so their
+in @sec-nb-ops-pin. It is not strictly cluster-wide: the main session
+reports that its two pinned interior links on the same cluster kept
+stepping through 17:34, so the hang is intermittent and pinned links are
+exposed to it while no unpinned link has shown it yet. At 18:14 the nine stalled links were cancelled so their
 successors (all verified to contain the override and the 1,200 s timeout)
 start at once; each chain link resubmits its successor, so no top-up is
 needed. Cost: one partial epoch per lane (checkpoints are per epoch) plus

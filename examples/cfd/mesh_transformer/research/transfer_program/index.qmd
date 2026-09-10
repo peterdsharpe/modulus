@@ -49,7 +49,7 @@ flowchart LR
   SOLV["D4 solver correction-space transfer<br/>(2D FEM, nonlearned probe)<br/>DONE - stops: geometric coarse grid wins everywhere"]:::done
   CLASS["L classical-solver review → new hypotheses<br/>DONE - inventory of 13 ingredients, 7 hypotheses with falsifiers"]:::done
   CAMPA["Campaign A: data-draw variance, HiLift 35/210 × 3 draws × 3 seeds × 4 arms<br/>RUNNING - 72 lanes"]:::running
-  CAMPB["Campaign B: POSE-BENCH, DrivAerML random SO(3) poses<br/>RUNNING - 6-8 lanes"]:::running
+  CAMPB["Campaign B: POSE-BENCH, DrivAerML random SO(3) poses<br/>RUNNING - 8 lanes training"]:::running
   CAMPC["Campaign C: fastback transfer (conditioning, diversity, few-shot)<br/>RUNNING - ~20 lanes"]:::running
   CAMPD["Campaign D: interior carriers (ISLA h344; GT-volume without local features)<br/>RUNNING - 4 lanes"]:::running
   CAMPE["Campaign E: eval-only (unit-drive GT density probe; Poisson pressure)<br/>READY - waits for uw_* checkpoints"]:::ready
