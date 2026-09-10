@@ -7,10 +7,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 45,
+    "epochs_seen": 43,
     "peak_mem_gb": 5.41,
-    "median_step_s": 1.55,
-    "n_logged_steps": 16621,
+    "median_step_s": 1.5385,
+    "n_logged_steps": 17506,
     "params": null
    }
   },
@@ -20,10 +20,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 45,
+    "epochs_seen": 43,
     "peak_mem_gb": 5.41,
     "median_step_s": 1.566,
-    "n_logged_steps": 16349,
+    "n_logged_steps": 17200,
     "params": null
    }
   },
@@ -33,10 +33,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 45,
+    "epochs_seen": 43,
     "peak_mem_gb": 6.16,
-    "median_step_s": 1.545,
-    "n_logged_steps": 16736,
+    "median_step_s": 1.537,
+    "n_logged_steps": 17523,
     "params": null
    }
   },
@@ -46,10 +46,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 45,
+    "epochs_seen": 44,
     "peak_mem_gb": 6.18,
-    "median_step_s": 1.763,
-    "n_logged_steps": 16254,
+    "median_step_s": 1.771,
+    "n_logged_steps": 17188,
     "params": null
    }
   },
@@ -59,10 +59,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 26,
+    "epochs_seen": 28,
     "peak_mem_gb": 16.4,
-    "median_step_s": 2.456,
-    "n_logged_steps": 11507,
+    "median_step_s": 2.445,
+    "n_logged_steps": 12081,
     "params": null
    }
   },
@@ -72,10 +72,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 25,
+    "epochs_seen": 22,
     "peak_mem_gb": 16.55,
-    "median_step_s": 2.4305,
-    "n_logged_steps": 11491,
+    "median_step_s": 2.4325,
+    "n_logged_steps": 12006,
     "params": null
    }
   },
@@ -85,10 +85,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 25,
+    "epochs_seen": 23,
     "peak_mem_gb": 32.23,
-    "median_step_s": 2.5505,
-    "n_logged_steps": 11702,
+    "median_step_s": 2.547,
+    "n_logged_steps": 12154,
     "params": null
    }
   },
@@ -98,10 +98,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 26,
+    "epochs_seen": 23,
     "peak_mem_gb": 32.25,
-    "median_step_s": 2.297,
-    "n_logged_steps": 11407,
+    "median_step_s": 2.266,
+    "n_logged_steps": 12007,
     "params": null
    }
   },
@@ -111,10 +111,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 25,
+    "epochs_seen": 23,
     "peak_mem_gb": 18.97,
-    "median_step_s": 2.585,
-    "n_logged_steps": 11377,
+    "median_step_s": 2.576,
+    "n_logged_steps": 11852,
     "params": null
    }
   },
@@ -124,10 +124,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 25,
+    "epochs_seen": 22,
     "peak_mem_gb": 18.91,
-    "median_step_s": 2.497,
-    "n_logged_steps": 11383,
+    "median_step_s": 2.489,
+    "n_logged_steps": 11897,
     "params": null
    }
   },
@@ -535,27 +535,79 @@
   },
   "scale_gt_dr_c512x80k_seed42": {
    "eval": {
-    "headline": null
+    "fp32": {
+     "pressure_l2": 0.041946479973072805,
+     "wss_x_l2": 0.05037577939219773,
+     "wss_y_l2": 0.11566651721174519,
+     "wss_z_l2": 0.09672084776684642,
+     "n_cases": 48,
+     "root": "hl_evals_fp32"
+    },
+    "bf16": {
+     "pressure_l2": 0.04605357667120794,
+     "wss_x_l2": 0.05489882306816677,
+     "wss_y_l2": 0.12629872964074215,
+     "wss_z_l2": 0.10449863939235608,
+     "n_cases": 48,
+     "root": "hl_evals"
+    },
+    "shift_fp32_minus_bf16_pressure": {
+     "mean_rel": -0.0921976400690917,
+     "max_abs_rel_per_case": 0.16315892836182727,
+     "n_cases": 48,
+     "mean_ratio": 0.9108191590100138
+    },
+    "points_identity": {
+     "cases_checked": 48,
+     "cases_with_different_points": 0
+    },
+    "headline": "fp32"
    },
    "train": {
-    "completed": false,
-    "epochs_seen": 457,
+    "completed": true,
+    "epochs_seen": 500,
     "peak_mem_gb": 41.46,
-    "median_step_s": 0.205,
-    "n_logged_steps": 49384,
+    "median_step_s": 0.208,
+    "n_logged_steps": 54079,
     "params": null
    }
   },
   "scale_gt_dr_c512x80k_seed43": {
    "eval": {
-    "headline": null
+    "fp32": {
+     "pressure_l2": 0.041880897556742035,
+     "wss_x_l2": 0.05031442199833691,
+     "wss_y_l2": 0.11560961650684476,
+     "wss_z_l2": 0.0965981421371301,
+     "n_cases": 48,
+     "root": "hl_evals_fp32"
+    },
+    "bf16": {
+     "pressure_l2": 0.045885659366225205,
+     "wss_x_l2": 0.05484406533651054,
+     "wss_y_l2": 0.12673530525838336,
+     "wss_z_l2": 0.10418305623655517,
+     "n_cases": 48,
+     "root": "hl_evals"
+    },
+    "shift_fp32_minus_bf16_pressure": {
+     "mean_rel": -0.09047568925071095,
+     "max_abs_rel_per_case": 0.14331978353843558,
+     "n_cases": 48,
+     "mean_ratio": 0.9127230192439834
+    },
+    "points_identity": {
+     "cases_checked": 48,
+     "cases_with_different_points": 0
+    },
+    "headline": "fp32"
    },
    "train": {
-    "completed": false,
-    "epochs_seen": 451,
+    "completed": true,
+    "epochs_seen": 500,
     "peak_mem_gb": 41.46,
-    "median_step_s": 0.209,
-    "n_logged_steps": 48671,
+    "median_step_s": 0.214,
+    "n_logged_steps": 54064,
     "params": null
    }
   }
@@ -570,9 +622,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 5.41,
-   "median_step_s": 1.558,
+   "median_step_s": 1.55225,
    "params": null,
-   "gpu_hours_500_epochs": 272.65
+   "gpu_hours_500_epochs": 271.64375
   },
   "hl_w512": {
    "width": 512,
@@ -596,9 +648,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 16.55,
-   "median_step_s": 2.44325,
+   "median_step_s": 2.4387499999999998,
    "params": null,
-   "gpu_hours_500_epochs": 427.56875
+   "gpu_hours_500_epochs": 426.78124999999994
   },
   "hl_t80k": {
    "width": 256,
@@ -609,9 +661,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 32.25,
-   "median_step_s": 2.42375,
+   "median_step_s": 2.4065000000000003,
    "params": null,
-   "gpu_hours_500_epochs": 424.15625
+   "gpu_hours_500_epochs": 421.13750000000005
   },
   "hl_c384x40k": {
    "width": 384,
@@ -622,9 +674,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 18.97,
-   "median_step_s": 2.541,
+   "median_step_s": 2.5324999999999998,
    "params": null,
-   "gpu_hours_500_epochs": 444.675
+   "gpu_hours_500_epochs": 443.18749999999994
   },
   "hl_c512x80k": {
    "width": 512,
@@ -827,11 +879,35 @@
     "scale_gt_dr_c512x80k_seed42",
     "scale_gt_dr_c512x80k_seed43"
    ],
-   "headline": null,
+   "fp32": {
+    "pressure_l2": 0.04191368876490742,
+    "wss_x_l2": 0.05034510069526732,
+    "wss_y_l2": 0.11563806685929498,
+    "wss_z_l2": 0.09665949495198825,
+    "n_seeds": 2
+   },
+   "bf16": {
+    "pressure_l2": 0.045969618018716574,
+    "wss_x_l2": 0.05487144420233865,
+    "wss_y_l2": 0.12651701744956276,
+    "wss_z_l2": 0.10434084781445563,
+    "n_seeds": 2
+   },
+   "shift_fp32_minus_bf16_pressure": {
+    "mean_rel": -0.09133666465990133,
+    "max_abs_rel_per_case": 0.16315892836182727
+   },
+   "points_identity": {
+    "cases_with_different_points": 0
+   },
+   "headline": "fp32",
+   "reference_used": "unit",
+   "pressure_over_reference": 0.8325300577827943,
+   "comparison_instruments": "arm fp32 vs reference fp32",
    "peak_mem_gb": 41.46,
-   "median_step_s": 0.207,
+   "median_step_s": 0.211,
    "params": null,
-   "gpu_hours_500_epochs": 12.42
+   "gpu_hours_500_epochs": 12.66
   }
  },
  "references": {
@@ -1102,10 +1178,22 @@
    "biased_pressure_l2": 0.44516767747700214,
    "biased_over_unif": 8.837879194044918,
    "root": "transfer/campaign_e_fp32"
+  },
+  "scale_gt_dr_c512x80k_seed42": {
+   "unif_pressure_l2": 0.04188584974811723,
+   "biased_pressure_l2": 0.27379424776881933,
+   "biased_over_unif": 6.536676453152927,
+   "root": "hl_evals_probe_fp32"
+  },
+  "scale_gt_dr_c512x80k_seed43": {
+   "unif_pressure_l2": 0.04182803832615415,
+   "biased_pressure_l2": 0.07925177086144686,
+   "biased_over_unif": 1.894704462195457,
+   "root": "hl_evals_probe_fp32"
   }
  },
  "provenance": {
-  "eval_logs_checked_for_skipped_load": 36,
+  "eval_logs_checked_for_skipped_load": 52,
   "eval_logs_with_skipped_load": [],
   "evaluation_snapshot": "the ten DrivAerML lanes and the references were evaluated under the training snapshot code; from 2026-09-10 the eval, fp32 and probe launchers import the program-wide evaluation snapshot code_eval, identity-checked by the main session (uw_gt_unit_lr1e3_seed42 under code vs code_eval: bitwise identical in float32, zero skipped loads), so both sets are the same function"
  }
