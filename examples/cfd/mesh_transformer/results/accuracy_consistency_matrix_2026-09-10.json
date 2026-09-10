@@ -181,34 +181,41 @@
   "Few-shot gain: GeoTransolver 0.186 \u2192 0.128 (31%); ISLA 0.198 \u2192 0.187 (6%)."
  ],
  "scale_corner": {
-  "description": "the 512-wide, 80,000-cell corner of the scaling study (SCALE), float32, unit drive, DrivAerML 48 cars evaluated at 80,000 cells; density factor = biased \u00f7 uniform at the corner's own cell count (results/scaling/*_scale_reduction_2026-09-09.json, scaling synthesis a6c8a6058)",
+  "description": "the 512-wide, 80,000-cell corner of the scaling study (SCALE), float32, unit drive, DrivAerML 48 cars evaluated at 80,000 cells; density factor = biased \u00f7 uniform at the corner's own cell count (results/scaling/*_scale_reduction_2026-09-09.json, scaling synthesis a6c8a6058); density factors are sample-frame values at the corner's own count (scaling synthesis #sec-nb-scale-drivaer-synthesis; ISLA translation invariance checked, results/scaling/isla_translation_check_2026-09-10.json)",
   "rows": {
    "geotransolver_unit_512x80k": {
     "label": "GeoTransolver, unit drive, 512 \u00d7 80k",
     "in_family": 0.0419,
-    "density_factor": 4.2,
+    "density_factor": 10.5,
     "gpu_hours": 12.7,
     "step_s": 0.211,
     "peak_memory_gb": 41.5,
     "density_seeds": [
-     6.5,
-     1.9
+     9.3,
+     11.6
     ],
-    "density_frame": "pool frame (pipeline centring before the biased draw); sample-frame value pending"
+    "density_frame": "sample frame (headline; probe drivaer_probe_*_sf_80k, float32, code_eval); pool-frame value kept as density_factor_pipeline_frame",
+    "density_factor_pipeline_frame": 4.2
    },
    "isla_constant_gauge_512x80k": {
     "label": "ISLA, constant gauge, 512 \u00d7 80k (fast kernel)",
     "in_family": 0.0428,
-    "density_factor": 16.7,
+    "density_factor": 16.6,
     "gpu_hours": 22.5,
-    "density_frame": "sample frame (ISLA centres in the model on the sampled points)"
+    "density_frame": "sample frame (headline; probe drivaer_probe_*_sf_80k, float32, code_eval); pool-frame value kept as density_factor_pipeline_frame",
+    "density_factor_pipeline_frame": 16.7
    },
    "transolver_unit_512x80k": {
     "label": "Transolver, unit drive, 512 \u00d7 80k",
     "in_family": 0.0431,
-    "density_factor": 4.6,
+    "density_factor": 14.9,
     "gpu_hours": 6.6,
-    "density_frame": "pool frame (pipeline centring before the biased draw); sample-frame value pending"
+    "density_frame": "sample frame (headline; probe drivaer_probe_*_sf_80k, float32, code_eval); pool-frame value kept as density_factor_pipeline_frame",
+    "density_factor_pipeline_frame": 4.6,
+    "density_seeds": [
+     13.0,
+     16.8
+    ]
    },
    "isla_similarity_gauge_512x80k": {
     "label": "ISLA, similarity gauge, 512 \u00d7 80k (fast kernel)",
@@ -217,12 +224,13 @@
      0.0425,
      0.0437
     ],
-    "density_factor": 1.08,
+    "density_factor": 1.09,
     "gpu_hours": 20.2,
     "step_s": 0.281,
     "peak_memory_gb": 22.9,
     "note": "the only scaled configuration whose accuracy survives the density bias; adopted at scale under the principle (scaling synthesis, psharpe/mesh-transformer 15ee3df40)",
-    "density_frame": "sample frame (ISLA centres in the model on the sampled points)"
+    "density_frame": "sample frame (headline; probe drivaer_probe_*_sf_80k, float32, code_eval); pool-frame value kept as density_factor_pipeline_frame",
+    "density_factor_pipeline_frame": 1.08
    }
   }
  }
