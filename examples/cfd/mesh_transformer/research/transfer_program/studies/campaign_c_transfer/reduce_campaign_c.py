@@ -36,6 +36,9 @@ ARMS = {
     # by the same eval launcher (lane-table rows 24-27); the bf16 book value for ISLA was 0.99 (three seeds).
     "ref_single_isla": ["iw_mt2_lr1e3_seed42", "iw_mt2_lr1e3_seed43"],
     "ref_single_gt": ["uw_gt_unit_lr1e3_seed42", "uw_gt_unit_lr1e3_seed43"],
+    # T2 decomposition: 218 DrivAerML cars alone at the campaign protocol (rows 29-32)
+    "dr218_isla": ["campC_dr218_isla_seed42", "campC_dr218_isla_seed43"],
+    "dr218_gt": ["campC_dr218_gt_seed42", "campC_dr218_gt_seed43"],
 }
 
 
@@ -100,6 +103,11 @@ for a in ("isla", "gt"):
                               "drivaer_mix435": dr(f"mix435_{a}"), "drivaer_reference": dref, "infamily_cost": cost, "verdict": v}
     elif m:
         verdict[f"T2_{a}"] = {"fastback_mix435": m, "fastback_reference_zeroshot": None, "note": "reference pending"}
+    # decomposition of the in-family cost: rung (218 DrivAerML alone / 435 DrivAerML) x mixing (218 + 217 estate / 218 alone)
+    d218 = dr(f"dr218_{a}")
+    if d218 and dref and dr(f"mix435_{a}") and f"T2_{a}" in verdict:
+        verdict[f"T2_{a}"]["infamily_decomposition"] = {"drivaer_218_alone": d218, "rung_factor": d218 / dref,
+                                                        "mixing_factor": dr(f"mix435_{a}") / d218, "fastback_218_alone": fb(f"dr218_{a}")}
 # T3: credible if fine-tune <= 0.15 and >= 2x better than scratch; pretraining adds nothing if scratch <= 0.15.
 for a in ("isla", "gt"):
     s = fb(f"scratch20_{a}")

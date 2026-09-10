@@ -54,9 +54,12 @@ print(": Ratios of seed-mean errors per draw; the interval is the two-sided 90% 
 
 Both "ISLA behind" orderings stand: the intervals lie below 1.0 and the
 curated draw's ratios sit inside them, so the book's 35-case statements
-gain a data-draw interval and lose nothing. The weights-off gain is
-draw-dependent, real on average (0.91) but 0.95 on the hardest draw, so it
-is a 5–10% gain whose size depends on the draw. The number that changes
+gain a data-draw interval and lose nothing. The measure-weights-off
+ablation's in-distribution gain is draw-dependent, real on average (0.91)
+but 0.95 on the hardest draw, so the measure semantics cost 5–10% on
+canonical HiLift data depending on the draw; the ablation reads sampling
+density and is not a candidate configuration (@sec-nb-redirect). The
+number that changes
 practice is the variance decomposition: the between-draw standard deviation
 of an arm's error is 3 to 11 times its seed standard deviation, and the
 hardest draw is 24% harder than the easiest for GeoTransolver, so the
@@ -256,11 +259,14 @@ The cost of the robustness is visible in the first column: the gauge arm is
 (0.0558) and the unit-drive GeoTransolver (0.0505), so the trade is a fifth
 of the accuracy on a well-sampled surface for an eight- to fifteen-fold
 smaller error under the skew. The two non-gauge ISLA configurations are the
-least robust of the five, and the weights-off configuration, which is the
-program's best fair ISLA on canonical data (2.8% ahead of weights on),
-reaches an error above 1.0 under the bias, worse than predicting zero. That
-is the cost side of the weights-off decision: weights off is a canonical-
-benchmark configuration, not a deployable one.
+least robust of the five, and the measure-weights-off ablation, which reads
+the mesher's sampling density in place of the surface measure and is 2.8%
+more accurate on canonical data for it, reaches an error above 1.0 under
+the bias, worse than predicting zero. That is the discretization dependence
+of a density-reading model made visible: the ablation measures what the
+measure semantics cost in-distribution and what they buy under a
+discretization change, and it is a diagnostic, not a candidate
+configuration (program ruling of 2026-09-10, @sec-nb-redirect).
 
 The mechanism, stated as the reading the numbers support rather than as a
 separately tested result: the gauge normalizes ISLA's kernel by the local

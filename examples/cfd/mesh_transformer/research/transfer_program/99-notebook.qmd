@@ -1328,3 +1328,44 @@ model if only the source does. The remaining T1 arms (complete
 conditioning, four lanes still training) ask whether a per-case condition
 input recovers part of that in-family cost by letting the model tell the
 two conventions apart.
+
+## 2026-09-10 — Program redirect (Peter): principled generalization over in-distribution accuracy; the measure-weights-off configuration is an ablation, never a reference; earlier wording superseded {#sec-nb-redirect}
+
+Peter's ruling, binding for every session of the program: the goal is an
+accurate model reached by physically principled means, because those
+principles are what generalize to novel problems; accuracy can be bought
+later with size, generalization cannot. Concretely, ISLA with its measure
+weights off reads the mesher's sampling density in place of the surface
+measure, a discretization-dependent signal that would give a different
+answer on a uniformly generated point cloud or another mesher, so it stays
+an ablation ("what does the measure semantics cost in-distribution, and
+what does it buy under a discretization change?") and is never ISLA's
+reference or flagship configuration. Every proposed architecture change
+must state its mechanism, be physically principled, and pass
+discretization-invariance tests (biased resampling, uniform or
+area-proportional resampling, a different mesher) before adoption.
+
+Consequences in this companion. The phrases "the program's best fair
+configuration" and "recommended for canonical benchmarks" applied to the
+weights-off arm in @sec-nb-campe-bf16 and @sec-nb-campe-verdict are
+superseded: those entries stand as dated records, and the weights-off row
+in their tables is read as the ablation it always was, whose 19x collapse
+under the density skew is the discretization dependence made visible.
+Campaign A's weights-off arm (@sec-nb-campa-n35) and its pending 210-case
+rung are ablations measuring the in-distribution cost of the measure
+semantics across draws, not candidates. Chapter 7 is reworded in the same
+pass. Audit of this program's own proposals against the ruling: the D1
+support set and passive readout are measure-consistent by construction
+(the support carries positions, normals and signed distance; the readout
+is a measure-normalized kernel; the support's total mass is a learned
+fraction of the source measure, not a count) and were tested for
+measure-scale and source-refinement invariance before launch; campaign D's
+carriers (width; GeoTransolver-volume's radius-based local features) are
+capacity questions, and the local-features arm is itself a density-dependent
+input whose removal is what the arm measures; the campaign E result is the
+ruling's own evidence, since the only density-robust configuration is the
+one with the measure-consistent gauge; nothing in this program reads the
+query or sample density as a signal. The welcome directions named
+(signed distance, signed heat or geodesic distance, curvature, invariances,
+measure-consistent operators) are the ones the D1 support set already uses
+and the ones the boundary-response and composition gates were built for.
