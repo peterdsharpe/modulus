@@ -536,27 +536,52 @@ class PoissonBiasedSubsampleMesh(MeshTransform):
     r"""Biased cell subsampling with EXACT per-cell HT weights (probe P3 v3).
 
     Independent (Poisson) sampling: cell i is kept with probability
-    pi_i = min(1, c * w_i) where w_i is the 10:1 front/back bias and c is
-    set so the expected kept count is ``n_cells_expected``. Inclusion
+    pi_i = min(1, c * w_i) where w_i is the sampling weight and c is set so
+    the expected kept count is ``n_cells_expected``. Inclusion
     probabilities are exact by construction (no with-replacement
     approximation), at the cost of a variable per-sample cell count.
+
+    ``weight_mode`` selects the weight:
+
+    - ``"front_back"`` (default): the 10:1 (``bias``:1) front/back split
+      on centroid x, the P3 density-bias probe.
+    - ``"area"``: w_i = cell area (``mesh.cell_areas``), so before clamping
+      pi_i is proportional to area -- the inclusion law a uniform
+      point-cloud generator over the *surface* would produce, as opposed
+      to the uniform-over-cells law that reads the mesher's refinement
+      pattern (consistency benchmark, 2026-09-10). ``bias`` is unused.
     """
 
+    _WEIGHT_MODES = ("front_back", "area")
+
     def __init__(self, n_cells_expected: int, bias: float = 10.0,
-                 compact: bool = True) -> None:
+                 compact: bool = True, weight_mode: str = "front_back") -> None:
         super().__init__()
         self.n_cells_expected = int(n_cells_expected)
         self.bias = float(bias)
         self.compact = compact
+        if weight_mode not in self._WEIGHT_MODES:
+            raise ValueError(
+                f"weight_mode must be one of {self._WEIGHT_MODES}, got {weight_mode!r}"
+            )
+        self.weight_mode = weight_mode
         self._generator: torch.Generator | None = None
+
+    def _weights(self, mesh: Mesh) -> torch.Tensor:
+        if self.weight_mode == "area":
+            ### Degenerate (zero / non-finite) areas get weight 0: never
+            ### drawn, so no 1/pi is ever formed for them.
+            areas = mesh.cell_areas
+            return torch.where(torch.isfinite(areas), areas, torch.zeros_like(areas)).clamp_min(0.0)
+        x = mesh.cell_centroids[:, 0]
+        return torch.where(x < x.median(), torch.full_like(x, self.bias),
+                           torch.ones_like(x))
 
     def __call__(self, mesh: Mesh) -> Mesh:
         n = mesh.n_cells
         if n <= self.n_cells_expected:
             return mesh
-        x = mesh.cell_centroids[:, 0]
-        w = torch.where(x < x.median(), torch.full_like(x, self.bias),
-                        torch.ones_like(x))
+        w = self._weights(mesh)
         c = self.n_cells_expected / w.sum()
         pi = (c * w).clamp(max=1.0)
         ### One renormalization pass restores the expected count lost to
