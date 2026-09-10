@@ -61,6 +61,23 @@ def points_identical(root_a, root_b, run):
     return {"checked": len(pa), "identical": n_same}
 
 
+LOADER_HAZARD = ("skipping load", "Could not find valid model file")
+HAZARD = {"logs_checked": 0, "hits": []}
+
+
+def log_ok(path):
+    """Interim loader-hazard rule (coordinator, 2026-09-10): refuse a run whose evaluation or probe log shows a
+    skipped or missing checkpoint load. Counts every log it reads so the verdict can report the tally."""
+    if not os.path.exists(path):
+        return True
+    HAZARD["logs_checked"] += 1
+    txt = open(path, errors="replace").read()
+    if any(h in txt for h in LOADER_HAZARD):
+        HAZARD["hits"].append(path.replace(T + "/", ""))
+        return False
+    return True
+
+
 def cost(run):
     try:
         log = open(f"{T}/runs/{run}/train.log").read()
@@ -82,7 +99,8 @@ def cost(run):
 
 def instrument_pair(root, run):
     """Metrics under bf16 (root) and fp32 (root_fp32) plus the shift; fp32 is the headline when present."""
-    b = rows(root, run); f32 = rows(root + "_fp32", run)
+    b = rows(root, run) if log_ok(f"{T}/{root}/{run}.log") else None
+    f32 = rows(root + "_fp32", run) if log_ok(f"{T}/{root}_fp32/{run}.log") else None
     rec = {"bf16": means(b) if b else None, "fp32": means(f32) if f32 else None}
     if b and f32:
         ks = sorted(set(b) & set(f32))
@@ -144,6 +162,8 @@ out["density_probe"] = {}
 for name, (root, runs) in PROBES.items():
     per = []
     for r in runs:
+        if not (log_ok(f"{T}/{root}/{r}/unif.log") and log_ok(f"{T}/{root}/{r}/biased.log")):
+            continue
         u = rows(f"{root}/{r}/unif", ""); b = rows(f"{root}/{r}/biased", "")
         if u and b:
             mu, mb = means(u)["pressure_l2"], means(b)["pressure_l2"]
@@ -151,7 +171,9 @@ for name, (root, runs) in PROBES.items():
     out["density_probe"][name] = {"runs": per, "ratio_mean": st.mean(x["ratio"] for x in per) if per else None,
                                   "uniform_mean": st.mean(x["uniform"] for x in per) if per else None,
                                   "biased_mean": st.mean(x["biased"] for x in per) if per else None}
+out["loader_hazard_check"] = HAZARD
 json.dump(out, open(f"{T}/hl_evals/transolver_scale_reduction.json", "w"), indent=1)
+print("LOADER_HAZARD", HAZARD)
 for k, v in out["density_probe"].items():
     print("PROBE", k, json.dumps(v)[:300])
 for k, v in out["refs"].items():
