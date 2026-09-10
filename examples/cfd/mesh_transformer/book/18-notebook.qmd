@@ -9793,3 +9793,20 @@ rows 20–21 of highlift/scale_lanes_gt.tsv, arm `c512x80k`
 evaluated in both precisions on completion and added to the table above
 against the same reference; the cross-architecture reading is the
 coordinator's. HiLift rows are unchanged.
+
+**Addendum (2026-09-10, program redirect: discretization invariance).**
+Every adopted configuration must pass the program's density-bias probe, so
+the GeoTransolver corner arm (`scale_gt_dr_c512x80k_seed{42,43}`) and its
+reference (`uw_gt_unit_lr1e3_seed{42,43,44}`) are evaluated in float32 on
+DrivAerML with a 10:1 biased sampling density (`drivaer_probe_biased3`) and
+its uniform control (`drivaer_probe_unif2`); for the 80,000-cell arm the two
+variants are copied with a 4x pool (`*_80k.yaml`, `subsample_n_cells`
+320,000) and the launcher highlift/hl_scale_gt_probe_fp32_aga.sbatch is
+cloned from the transfer session's campaign-E fp32 launcher with the arm's
+width override. Readout: biased ÷ uniform pressure error per arm, reported
+beside the accuracy row so the frontier carries the invariance property.
+The reference already has its probe (transfer/campaign_e_fp32): uniform
+0.0503 / 0.0510 / 0.0504 against biased 0.592 / 0.401 / 0.445, a ratio of
+**11.8 / 7.9 / 8.8** — the unit-drive GeoTransolver at 9M parameters and
+10,000 cells loses an order of magnitude under a 10:1 density bias. The
+corner arm's probe runs when its chains finish; the reducer carries both.

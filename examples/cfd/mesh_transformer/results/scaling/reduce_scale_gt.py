@@ -113,7 +113,30 @@ def headline_value(ev, f="pressure_l2"):
     return (ev[h][f], h) if h and f in ev[h] else (None, None)
 
 
-out = {"instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure", "runs": {}, "arms": {}, "references": {}}
+PROBE = {  # density-bias probe (10:1 biased vs uniform control), float32: run -> (unif dir, biased dir)
+    "uw_gt_unit_lr1e3_seed42": "transfer/campaign_e_fp32", "uw_gt_unit_lr1e3_seed43": "transfer/campaign_e_fp32", "uw_gt_unit_lr1e3_seed44": "transfer/campaign_e_fp32",
+    "scale_gt_dr_c512x80k_seed42": "hl_evals_probe_fp32", "scale_gt_dr_c512x80k_seed43": "hl_evals_probe_fp32",
+}
+
+
+def probe(run):
+    root = PROBE.get(run)
+    if not root:
+        return None
+    vals = {}
+    for k in ("unif", "biased"):
+        ps = glob.glob(f"{T}/{root}/{run}/{k}/**/metrics.jsonl", recursive=True)
+        if not ps:
+            return None
+        pc = per_case(ps[0]); vals[k] = st.mean(v["pressure_l2"] for v in pc.values())
+    return {"unif_pressure_l2": vals["unif"], "biased_pressure_l2": vals["biased"], "biased_over_unif": vals["biased"] / vals["unif"], "root": root}
+
+
+out = {"instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure; density-bias probe biased/unif in fp32 where run", "runs": {}, "arms": {}, "references": {}, "probe": {}}
+for r in PROBE:
+    pr = probe(r)
+    if pr:
+        out["probe"][r] = pr
 for ds in ("hl", "dr"):
     for kind, runs in REF[ds].items():
         evs = {r: eval_pair(r) for r in runs}
