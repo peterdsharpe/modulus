@@ -1397,3 +1397,40 @@ double GeoTransolver's), the same direction as every other reading of this
 campaign. The one-seed conditioning preview (T1, verdict pending)
 shows the mixing cost growing with the foreign share: 435 DrivAerML + 794
 estate costs ISLA 18% in-family with no halving at all.
+
+## 2026-09-10 — Instrument note: the density-bias probe hands the model an importance-corrected area measure, so its degradation factors are model dependence, not estimator bias {#sec-nb-probe-convention}
+
+Asked by the main session as the probe's author: are the measure weights
+under the 10:1 biased draw the raw areas of the sampled cells (a biased
+quadrature, which would degrade even a perfectly measure-consistent model)
+or importance-corrected? Verified in the code path the surface model sees.
+The model receives `interior.point_data._target_quadrature_measure`,
+materialized at the mesh-to-domain boundary as `cell_measures(mesh) =
+cell_areas × cell_data._measure_weights` (`physicsnemo/mesh/calculus/measure.py`,
+called from `datapipes/transforms/mesh/transforms.py`). The weights field is
+a multiplicative inclusion ratio composed by every sampling stage: the
+reader's uniform 40,000-cell draw contributes N/40,000, a uniform second
+stage contributes n_before/n_cells, and the biased second stage
+(`PoissonBiasedSubsampleMesh`) contributes exactly 1/π_i per kept cell,
+π_i = min(1, c·w_i) with w = 10 on the front half of the car. The saved
+artifacts confirm it: under the uniform draw every cell carries the ratio
+1,703 (= 17.03M / 10,000); under the biased draw the dense half carries 937
+and the sparse half 9,366 (1,703 × 11/20 and × 11/2, the two-region Poisson
+design), with totals preserved within Poisson noise. So an exactly
+measure-consistent model sees an unbiased Horvitz–Thompson quadrature of
+each region; the constant-gauge ISLA's 12x and the weights-off ISLA's 19x
+(@sec-nb-campe-verdict) are model dependence on the sampling, the
+similarity gauge's 1.21x is the residual of estimator variance plus model.
+Two clauses now attach to every density-robustness statement in this
+companion: "biased" means biased inclusion with exact importance
+correction, and the base measure is the true triangle area, so the probe
+is area-consistent and reusable as is for the consistency benchmark (an
+area-proportional draw would compose π_i ∝ area_i through the same call).
+Also measured for the cross-family study (float32, zero-shot fastback,
+under `code`): the similarity-gauge ISLA 0.945 (1.038 / 0.851), the
+2,560-anchor query-independent variant 0.850 (0.800 / 0.900), weights off
+0.806 (0.802 / 0.811), against the reference 0.788; none of the existing
+variants transfers better than the reference, and the gauge's two seeds
+differ by 0.19 on this readout (artifacts
+`$T/transfer/fastback_zeroshot_fp32/<run>/fastback/`, launcher
+`studies/campaign_c_transfer/fastback_zeroshot_variants_aga.sbatch`).
