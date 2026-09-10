@@ -12286,6 +12286,33 @@ density-bias tables are therefore the same in either frame, and the
 finding that motivated the canonical sample-frame datasets (the baselines
 had been handed the pool's unbiased mean) is a baseline-only correction.
 
+**HiLift density probes: sample frame from the start (program instruction,
+ISLA Main, 2026-09-10).** Every HiLiftAeroML density probe of the SCALE
+study, for all three architectures, runs on one canonical pair of
+sample-frame datasets built by this track while the HiLift lanes train:
+`highlift_probe_{biased3,unif2}_sf.yaml` (reader pool 40,000 cells, for
+10,000-cell probes) and `highlift_probe_{biased3,unif2}_sf_80k.yaml`
+(320,000-cell pool, for 80,000-cell probes), in `$T/recipe/datasets`. They
+derive from `highlift_surface.yaml` (the dataset the lanes train on) exactly
+as `drivaer_probe_*_sf{,_80k}.yaml` derive from `drivaer_ml_surface.yaml`:
+the reader's cut becomes a fixed 4x pool; a sampler is inserted after the
+field transforms (`PoissonBiasedSubsampleMesh`, bias 10 on centroid x below
+the per-sample median with exact inverse-inclusion weights composed into the
+measure, for the biased column; `SubsampleMesh` for the uniform control);
+`CenterMesh` moves from its training position to directly after the
+sampler; `DropDegenerateCells` follows it. Reader, pattern, manifest,
+global-data merge, augmentations, freestream direction, normals,
+nondimensionalization, normalization and targets are unchanged; each file's
+header states the derivation. Smoke test on the ISLA HiLift reference
+`mt2_hl_lr1_seed42` (legacy checkpoint, resolved by `code_eval`, float32,
+10,000 cells, both columns, 180 validation cases): loads at epoch 500,
+samples 9,994 (uniform, after degenerate-cell drops) and 10,030 (biased,
+Poisson count) cells on the first case, writes per-sample rows and a summary
+equal to their mean (range guard satisfied): pressure 0.0400 uniform against
+0.542 biased, a 13.6x ratio for the constant-gauge reference at a single
+seed, of the same size as its DrivAerML ratio (12x). HiLift probe results
+enter the HiLift half of this entry when the lanes land.
+
 ## 2026-09-09 — Preregistered: QTDENS, does GeoTransolver-volume's eddy-viscosity lead come from reading the interior sample's density, and does an ISLA-native query-neighbour channel close the gap? {#sec-nb-qt-density-prereg}
 
 **Setting.** On the DrivAerML interior task ISLA's query-token
