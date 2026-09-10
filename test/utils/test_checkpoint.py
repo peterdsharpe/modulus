@@ -311,3 +311,56 @@ def test_compiled_model_checkpointing(
     new_output = uncompiled_model(sample_input).detach().cpu()
 
     assert torch.allclose(original_output, new_output, rtol=rtol, atol=atol)
+
+
+def test_load_checkpoint_finds_legacy_class_name(tmp_path):
+    """A checkpoint written under a class's former name loads into the renamed class
+    when the class declares that name, instead of being refused; the loaded weights
+    are the saved ones and the epoch is restored."""
+    from physicsnemo.utils import load_checkpoint, save_checkpoint
+
+    if not DistributedManager.is_initialized():
+        DistributedManager.initialize()
+
+    class RenamedFC(FullyConnected):
+        _legacy_class_names = ("FullyConnected",)
+
+    model = FullyConnected(in_features=8, out_features=8, num_layers=2, layer_size=8)
+    ckpt_dir = tmp_path / "run"
+    save_checkpoint(str(ckpt_dir), models=model, optimizer=torch.optim.Adam(model.parameters()), epoch=3)
+    assert len(list(ckpt_dir.glob("FullyConnected.0.3.mdlus"))) == 1
+
+    renamed = RenamedFC(in_features=8, out_features=8, num_layers=2, layer_size=8)
+    assert load_checkpoint(str(ckpt_dir), models=renamed) == 3
+    x = torch.randn(4, 8)
+    with torch.no_grad():
+        assert torch.equal(renamed(x), model(x))
+
+    # Without the declaration the same directory is still refused (not silently skipped).
+    fresh = type("UnrelatedFC", (FullyConnected,), {})(in_features=8, out_features=8, num_layers=2, layer_size=8)
+    with pytest.raises(FileNotFoundError, match="uninitialized"):
+        load_checkpoint(str(ckpt_dir), models=fresh)
+
+
+def test_isla_declares_its_legacy_name(tmp_path):
+    """ISLA checkpoints written before the rename (MeshTransformer2.*.mdlus) load into ISLA."""
+    from physicsnemo.experimental.nn.isla import ISLA
+    from physicsnemo.utils import load_checkpoint, save_checkpoint
+
+    if not DistributedManager.is_initialized():
+        DistributedManager.initialize()
+    assert ISLA._legacy_class_names == ("MeshTransformer2",)
+
+    torch.manual_seed(0)
+    model = ISLA(hidden=16, n_layers=1, n_slices=4)
+    ckpt_dir = tmp_path / "isla"
+    save_checkpoint(str(ckpt_dir), models=model, epoch=1)
+    (ckpt_dir / "ISLA.0.1.mdlus").rename(ckpt_dir / "MeshTransformer2.0.1.mdlus")
+
+    torch.manual_seed(1)
+    fresh = ISLA(hidden=16, n_layers=1, n_slices=4)
+    assert load_checkpoint(str(ckpt_dir), models=fresh) == 1
+    pts = torch.randn(1, 20, 3); nrm = torch.nn.functional.normalize(torch.randn(1, 20, 3), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3), dim=-1); w = torch.rand(1, 20) + 0.5
+    with torch.no_grad():
+        assert torch.allclose(fresh(pts, nrm, drv, w), model(pts, nrm, drv, w), atol=1e-6)
