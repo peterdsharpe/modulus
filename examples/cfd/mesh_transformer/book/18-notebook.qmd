@@ -9760,3 +9760,18 @@ reference kernel.
 The point-over-slices softmax was the step, not the invariants: with it
 replaced, an 80,000-token ISLA at width 512 costs a tenth more per step
 than the reference configuration did, at 22 GB of the 288 available.
+
+**Third amendment: float32 as the reporting instrument.** Following the
+program-wide protocol change (@sec-nb-snapshot-ladder-verdict: bf16
+evaluation moves a trained ISLA checkpoint's error by several percent with
+the rounding pattern), every SCALE lane is evaluated twice: with the
+existing bf16 launcher (hl_evals/<run>/) and with a float32 clone
+(highlift/hl_scale_isla_eval_fp32_aga.sbatch and its code_perf twin,
+`precision=float32`, hl_evals_fp32/<run>/). The reducer asserts per case
+that the two artifacts sampled bit-identical points, reports the float32
+numbers as the headline with the bf16 numbers and the per-run shift
+alongside, and takes the reference arms' float32 re-evaluations from the
+re-evaluation campaign when they exist, otherwise their bf16 numbers with
+that label. Reference-kernel lanes are evaluated with the fast kernel off;
+code_perf lanes with it on, as trained (under float32 the two kernels agree
+to 1e-6).
