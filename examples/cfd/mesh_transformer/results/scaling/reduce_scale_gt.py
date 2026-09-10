@@ -62,6 +62,20 @@ def points_identical(path_a, path_b):
     return {"cases_checked": n_checked, "cases_with_different_points": n_bad}
 
 
+def load_failed(run):
+    """Guard (ISLA track, 2026-09-10): the checkpoint loader can skip a missing/mismatched weights file and
+    evaluate the seeded initialization, logging "skipping load". Any evaluation log carrying that string
+    invalidates the run's metrics."""
+    logs = glob.glob(f"{T}/hl_evals/{run}.log") + glob.glob(f"{T}/hl_evals_fp32/{run}.log") + glob.glob(f"{T}/hl_evals*/{run}/*.log") + glob.glob(f"{T}/hl_evals_probe_fp32/{run}/*.log")
+    for lg in logs:
+        try:
+            if "skipping load" in open(lg, errors="ignore").read():
+                return lg
+        except OSError:
+            pass
+    return None
+
+
 def eval_pair(run):
     """fp32 headline, bf16 alongside, per-run shift (mean and per-case max of |fp32 - bf16| / bf16 on pressure)."""
     p32, r32 = find_metrics(run, ("hl_evals_fp32", "iw_evals_fp32"))
@@ -80,6 +94,10 @@ def eval_pair(run):
                                                   "mean_ratio": rec["fp32"]["pressure_l2"] / rec["bf16"]["pressure_l2"]}
         rec["points_identity"] = points_identical(p32, p16)
     rec["headline"] = "fp32" if pc32 else ("bf16" if pc16 else None)
+    bad = load_failed(run)
+    if bad:
+        rec["INVALID_EVAL_skipping_load"] = bad
+        rec["headline"] = None
     return rec
 
 

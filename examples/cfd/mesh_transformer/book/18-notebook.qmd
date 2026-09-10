@@ -9800,9 +9800,9 @@ the GeoTransolver corner arm (`scale_gt_dr_c512x80k_seed{42,43}`) and its
 reference (`uw_gt_unit_lr1e3_seed{42,43,44}`) are evaluated in float32 on
 DrivAerML with a 10:1 biased sampling density (`drivaer_probe_biased3`) and
 its uniform control (`drivaer_probe_unif2`); for the 80,000-cell arm the two
-variants are copied as `*_80k.yaml` with a 160,000-cell pool (2x the
-80,000-cell resolution; one definition shared with the ISLA track, which
-wrote the same files) and the launcher highlift/hl_scale_gt_probe_fp32_aga.sbatch is
+variants are copied as `*_80k.yaml` with a 320,000-cell pool (4x the
+80,000-cell resolution, the base probe's ratio; one definition shared with
+the ISLA track, which wrote the same files) and the launcher highlift/hl_scale_gt_probe_fp32_aga.sbatch is
 cloned from the transfer session's campaign-E fp32 launcher with the arm's
 width override. Readout: biased ÷ uniform pressure error per arm, reported
 beside the accuracy row so the frontier carries the invariance property.
