@@ -8,7 +8,7 @@
 #SBATCH --gpus-per-node=4
 #SBATCH --segment=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --array=0-6%7
+#SBATCH --array=0-10%11
 #SBATCH -o sbatch_logs/campe_%A_%a.log
 #SBATCH -e sbatch_logs/campe_%A_%a.log
 #SBATCH --open-mode=append
@@ -28,12 +28,14 @@ export PHYSICSNEMO_DIST_TIMEOUT_S=600
 export PYTHONPATH="${TASK}/code:${TASK}/recipe/src"
 trap 'rc=$?; printf "rc=%s\n" "$rc" > "${TASK}/STATUS_CAMPE_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"' EXIT
 
-RUNS=(uw_gt_unit_lr1e3_seed42 uw_gt_unit_lr1e3_seed43 uw_gt_unit_lr1e3_seed44 uw_transolver_unit_lr3e3_seed42 uw_transolver_unit_lr3e3_seed43 iw_mt2_lr1e3_seed42 iw_mt2_lr1e3_seed43)
+RUNS=(uw_gt_unit_lr1e3_seed42 uw_gt_unit_lr1e3_seed43 uw_gt_unit_lr1e3_seed44 uw_transolver_unit_lr3e3_seed42 uw_transolver_unit_lr3e3_seed43 iw_mt2_lr1e3_seed42 iw_mt2_lr1e3_seed43 iw_mt2_gauge_seed42 iw_mt2_gauge_seed43 now_mt2_lr1e3_seed42 now_mt2_lr1e3_seed43)
 RUN="${RUNS[${SLURM_ARRAY_TASK_ID}]}"
 case "$RUN" in
   uw_gt_*)         MODEL=geotransolver_surface; EXTRA="forward_kwargs.global_embedding=global_data.U_inf_dir" ;;
   uw_transolver_*) MODEL=transolver_surface;    EXTRA="forward_kwargs.fx.source=global_data.U_inf_dir" ;;
   iw_mt2_lr1e3_*)  MODEL=mt2_surface;           EXTRA="" ;;
+  iw_mt2_gauge_*)  MODEL=mt2_surface;           EXTRA="+model.similarity_gauge=true" ;;
+  now_mt2_*)       MODEL=mt2_surface;           EXTRA="+model.use_measure_weights=false" ;;
   *) echo "unknown run ${RUN}" >&2; exit 1 ;;
 esac
 grep -q "Training completed" "${TASK}/runs/${RUN}/train.log" || { echo "${RUN} not trained"; exit 1; }
