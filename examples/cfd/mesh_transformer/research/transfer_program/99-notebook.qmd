@@ -448,3 +448,28 @@ compared with the reference arm's step time only after the same penalty is
 applied to it (or the reference is re-measured under the same setting); the
 root cause of the hang inside `TensorDict.pin_memory` in the reader's
 prefetch thread stays open.
+
+## 2026-09-09 — Ops: the released links still carried pinned memory and hung again at 17:34; nine cancelled, chain-ahead links carry the workaround {#sec-nb-ops-recancel}
+
+Releasing a held Slurm job does not re-read its batch script. The ten
+interior chains released in the addendum to @sec-nb-ops-pin therefore
+started their held links with the original script (`pin_memory: true` in
+each run's printed configuration, collective timeout 3,600 s), while only
+the links submitted after the edit carry `dataloader.pin_memory=false`.
+Nine of the ten held links stepped normally for about 35 minutes (D1
+support-12 arms to epochs 42–43, support-4 to 44–45, passive-12 to 35, the
+hidden-344 query-token carrier to 31, GeoTransolver-volume without local
+features to 33–35) and then all stopped logging within the same minute,
+17:33–17:34, and stayed silent for 40 minutes; the one link that had
+already rolled over to a post-edit script (hidden-344 carrier, seed 42,
+`pin_memory: false`) kept stepping at 0.48–0.51 s. The synchronized onset
+across nine nodes says the trigger is a shared event (a Lustre or fabric
+hiccup) that the pinned-memory hand-off cannot recover from, while the
+unpinned reader rides through it; that is consistent with the stack dumps
+in @sec-nb-ops-pin. At 18:14 the nine stalled links were cancelled so their
+successors (all verified to contain the override and the 1,200 s timeout)
+start at once; each chain link resubmits its successor, so no top-up is
+needed. Cost: one partial epoch per lane (checkpoints are per epoch) plus
+the 40 idle minutes on nine nodes. Lesson for the ops record: after editing
+a chain's script, cancel-and-resubmit the held links rather than releasing
+them.
