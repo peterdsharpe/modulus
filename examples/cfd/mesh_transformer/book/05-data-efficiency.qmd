@@ -98,7 +98,9 @@ measure weights off (@sec-mechanism), scores 0.123 on three seeds.
 | ISLA | unit direction, measure weights off (three seeds: 0.121, 0.123, 0.124) | **0.123** | **0.152** | **0.234** | — | — |
 
 : The unit-drive control at 35 training cases. Relative L2 on the 180
-shared validation cases, seed means; the paired counts use seed-mean errors
+shared validation cases, seed means (bfloat16 evaluation; the float32
+re-evaluation of all 22 checkpoints agrees with every entry to the third
+decimal and leaves every ratio unchanged, @sec-nb-fp32-35-regrade); the paired counts use seed-mean errors
 per case (sign test p = 2 × 10⁻⁹ for GeoTransolver, 8 × 10⁻²² for
 Transolver; median ISLA ÷ baseline ratio 1.09 and 1.17). Each unit-drive
 baseline beats its physical-drive self on 180 of 180 cases (median 3.4x and
@@ -737,7 +739,8 @@ at one angle of attack (12°) and validates on 18 geometries never seen at
 any angle. Against the physical-drive GeoTransolver (0.175 / 0.183) ISLA's
 0.035 / 0.036 had read as a 5.0x advantage on 18 of 18 held-out geometries;
 against the same GeoTransolver fed the unit freestream direction, and
-nothing else changed, the figure is **0.81x**: the unit-drive
+nothing else changed, the figure is **0.81x** in bfloat16 and 0.78x in
+float32 (@sec-nb-fp32-all-regrade): the unit-drive
 GeoTransolver scores 0.029 / 0.029 (mean 0.0291) and is more accurate than
 ISLA on 18 of 18 geometries (median per-geometry ISLA ÷ GeoTransolver 1.24,
 10–90% range 1.06–1.36; exact sign test on 18 geometries p = 8 × 10⁻⁶), and
@@ -851,10 +854,11 @@ subsets of the 435-car training split — 14, 27, 54, 109 and 218 cars —
 under the frozen protocol of that ladder, learning rate 3e-3 for both, 500
 epochs, 10,000 tokens, two seeds, scored on the 48-car validation split.
 GeoTransolver's DrivAerML lanes also received the freestream as a physical
-velocity, 38.9 m/s; at 435 cars the unit-drive rerun scores 0.0556 against
-0.0548, inside the null band, so on this dataset the input scale is not a
-handicap and the table's ladder ordering is read as it stands
-(@sec-nb-uw-verdict).
+velocity, 38.9 m/s; at 435 cars the unit-drive rerun scores 0.0503 against
+0.0498 in float32 (0.0556 against 0.0548 in bfloat16), inside the null
+band, so on this dataset the input scale is not a handicap and the table's
+ladder ordering is read as it stands (@sec-nb-uw-verdict,
+@sec-nb-fp32-drivaer-regrade).
 
 ```{python}
 #| label: tbl-drivaerml-dataeff-ladder

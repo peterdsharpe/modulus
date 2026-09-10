@@ -4,16 +4,20 @@
 how an architecture treats an interior point decides the result. Let the
 interior queries interact as tokens and give them the signed distance to
 the wall, the input GeoTransolver's volume configuration receives, and
-ISLA is more accurate than that configuration on interior pressure (0.057
-against 0.062) and velocity (0.085 against 0.133) at a third of the
-parameters, trailing only on eddy viscosity (0.122 against 0.094, on the
-recipe's normalized viscosity metric); decode
+ISLA at a third of the parameters is 27% more accurate than that
+configuration on interior velocity (0.080 against 0.109, float32), 6% less
+accurate on interior pressure (0.055 against 0.052) and 27% less accurate on
+eddy viscosity (0.112 against 0.088, on the recipe's normalized viscosity
+metric); in bfloat16 the pressure ordering read the other way (0.057 against
+0.062), because bfloat16 inflates GeoTransolver-volume's errors by 20–23% and
+ISLA's by 4–7% (@sec-nb-fp32-interior-regrade); decode
 the queries passively, so that a prediction at one point never depends on
-which other points are asked for, and ISLA is 2.6x behind on pressure.**
+which other points are asked for, and ISLA is 3.1x behind on pressure
+(float32; 2.6x in bfloat16).**
 That passive contract is worth keeping for a surrogate queried on
 arbitrary probe sets, and on DrivAerML the complete passive configuration
 as built (a separate four-block read decoder, no signed-distance input)
-costs 2.6x in interior pressure error; what query independence alone would
+costs 3.1x in interior pressure error in float32; what query independence alone would
 cost, at matched decoder depth and inputs, is not yet measured. The
 interacting configuration's advantage is tied to its training query count:
 on the trained query-token model the pressure error at fixed points is 0.062
@@ -28,12 +32,14 @@ off-surface
 latent tokens along anchor normals make ISLA worse, and the exact-kernel
 MeshTransformer's boundary-integral decoder is 8x behind (0.76M parameters
 against 27.6M) because potential flow is the wrong prior for a separated
-wake. Interaction among the queries closes the gap: the query-token
-configuration closes the pressure gap (1.03x) and leaves velocity (1.16x)
-and eddy viscosity (1.71x) behind, the two fields most tied to wall
-distance; adding the signed distance as a query input, so that the two
-models see the same inputs, moves ISLA ahead on pressure (0.91x) and
-velocity (0.64x) and halves the eddy-viscosity deficit (1.29x).
+wake. Interaction among the queries narrows the gap: the query-token
+configuration takes pressure from 3.1x to 1.19x behind in float32 (1.03x in
+bfloat16) and leaves velocity (1.28x) and eddy viscosity (1.61x) behind, the
+two fields most tied to wall distance; adding the signed distance as a query input, so that the two
+models see the same inputs, moves ISLA to 0.91x on pressure and 0.64x on
+velocity in bfloat16 and halves the eddy-viscosity deficit (1.29x); in
+float32 the same two checkpoints stand at 1.06x, 0.73x and 1.27x, so the
+pressure lead was a bfloat16 artifact and the velocity lead is real.
 
 ## The task {#sec-interior-task}
 
@@ -253,14 +259,19 @@ input, no local features.
 ## Results {#sec-interior-results}
 
 **With its interior queries admitted as interacting tokens and given the
-signed distance to the wall, ISLA is more accurate than GeoTransolver's
-volume configuration on interior pressure (0.057 against 0.062, a ratio of
-0.91) and velocity (0.085 against 0.133, 0.64) and less accurate on eddy
-viscosity (0.122 against 0.094, 1.29), at a third of the parameters and
-with the two models' inputs matched; without the signed distance the
-query tokens match GeoTransolver on pressure (1.03) and trail on the other
-two fields; the passive, query-independent decode is 2.6x behind, and no
-passive construction tried closes that gap.** @tbl-interior gives the
+signed distance to the wall, ISLA is 27% more accurate than GeoTransolver's
+volume configuration on interior velocity (0.080 against 0.109 in float32,
+a ratio of 0.73), 6% less accurate on interior pressure (0.055 against
+0.052, 1.06) and 27% less accurate on eddy viscosity (0.112 against 0.088,
+1.27), at a third of the parameters and with the two models' inputs
+matched; the bfloat16 numbers that follow in this section (0.057 against
+0.062 on pressure, 0.91x) inflate GeoTransolver-volume's errors by 20–23%
+and ISLA's by 4–7% (@sec-nb-fp32-interior-regrade), and every ratio in the
+tables below is a bfloat16 ratio until its float32 re-evaluation lands; without the signed distance the
+query tokens trail GeoTransolver-volume on every field (1.19 / 1.28 / 1.61
+in float32; 1.03 on pressure in bfloat16); the passive, query-independent
+decode is 3.1x behind in float32 (2.6x in bfloat16), and no passive
+construction tried closes that gap.** @tbl-interior gives the
 arithmetic-mean relative L2 over the 48 validation cars for each arm, both
 seeds, and the ratio to GeoTransolver; @fig-interior-arms draws the
 pressure column.
@@ -359,14 +370,15 @@ plt.show()
 ```
 
 Three things in the table carry the section. First, the query-token row:
-the same ISLA, with its interior queries allowed to interact, matches
-GeoTransolver on pressure (1.03x, seeds within 1%) and trails on velocity
-(1.16x) and eddy viscosity (1.71x). Second, the ordering of the two
+the same ISLA, with its interior queries allowed to interact, comes within
+1.19x of GeoTransolver-volume on pressure in float32 (1.03x in bfloat16,
+seeds within 1%) and trails on velocity (1.28x) and eddy viscosity (1.61x). Second, the ordering of the two
 passive constructions: the SDF-gradient normal beats the proxy normal by
 1.2x on pressure and on every field, so a true wall normal at the query is
 better information than a covariant blend of anchor normals. Third, the
 size of what the passive decode leaves: even with the better normal it is
-2.6x behind on pressure, 2.3x on velocity and 4.0x on eddy viscosity, and
+3.1x behind on pressure in float32 (2.6x in bfloat16; 2.3x on velocity and
+4.0x on eddy viscosity in bfloat16), and
 the query-token row shows that this remainder is interaction, not the
 normal. The exact-kernel decoder at 8.0x is taken up in
 @sec-interior-negatives.
@@ -378,7 +390,7 @@ each other where ISLA's queries only read what the surface-centred slices
 hold; GeoTransolver receives the signed distance to the wall at every
 query where ISLA receives at most the wall normal; and GeoTransolver's
 volume configuration has 2.8x the parameters, with local features ISLA
-lacks. The 2.6x bounds the price of ISLA's contracts as ISLA is built; it
+lacks. The 3.1x bounds the price of ISLA's contracts as ISLA is built; it
 does not say which difference carries it. The first is measured directly
 by the query-token row of @tbl-interior: ISLA with its interior queries
 admitted as interacting tokens on the same slice routing as the surface
@@ -399,7 +411,7 @@ price query independence itself; it is not yet measured
 (@sec-program-status). What the interacting configuration pays is measured
 (@sec-interior-companion): its prediction at a point depends on how many
 other points are queried with it. What
-interaction does not close is velocity (1.16x) and eddy viscosity (1.71x),
+interaction does not close is velocity (1.28x) and eddy viscosity (1.61x),
 the two fields most tied to distance from the wall, which is the second
 difference. The row above it measures that difference: with the signed
 distance added as a query input, pressure error falls 11% (to 0.91x
@@ -682,14 +694,15 @@ three-dimensional aerodynamics on every readout in this book.
 
 ## Standing and open designs {#sec-interior-open}
 
-**One architecture now covers the surface and the interior. ISLA with
-query tokens and the signed distance as an input is more accurate than
-GeoTransolver's volume configuration on interior pressure (0.91x) and
-velocity (0.64x) at 8.9M parameters and 6.0 GB against 27.6M and 8.8 GB,
-with the two models' inputs matched, keeps exact SE(3) covariance, and
-trails on eddy viscosity (1.29x); ISLA's passive decode is the configuration to use when
+**One architecture covers the surface and the interior, and on the interior
+it leads on one field of three. ISLA with query tokens and the signed
+distance as an input is 27% more accurate than GeoTransolver's volume
+configuration on interior velocity (0.73x in float32) at 8.9M parameters and
+6.0 GB against 27.6M and 8.8 GB, with the two models' inputs matched, keeps
+exact SE(3) covariance, and trails on pressure (1.06x) and eddy viscosity
+(1.27x); ISLA's passive decode is the configuration to use when
 interior query independence is contractual, at 9.9M parameters, 4.9 GB
-and a 2.6x price in interior pressure error on DrivAerML.** The parity is
+and a 3.1x price in interior pressure error on DrivAerML (float32).** The parity is
 mostly a full-data statement. Without the signed distance, trained on 54 or
 109 cars, GeoTransolver-volume leads the query-token configuration by a
 constant 1.2x on interior pressure (0.104 against 0.126 at 54 cars, 0.078
@@ -697,26 +710,29 @@ against 0.094 at 109; velocity 1.26–1.27x, eddy viscosity 1.7–1.8x), the
 same 1.2x by which it leads ISLA on the DrivAerML surface at every size
 below full data (@sec-de-drivaerml); the two curves are parallel from 54 to
 109 cars and converge above 109, where GeoTransolver's slope halves. With
-the signed distance, the small-data pressure deficit halves (1.11x at 54
-cars, 1.06x at 109), velocity turns into an ISLA advantage at every size
-(0.83x at 54, 0.73x at 109, 0.64x at 435), and eddy viscosity stays
-1.3–1.5x in GeoTransolver's favour throughout; the pressure curves cross
-between 109 and 435 cars (results/v0l_reduction_2026-09-08b.json). The
+the signed distance, in float32 the pressure deficit is 1.19x at 54 cars,
+1.18x at 109 and 1.06x at 435, velocity moves from parity to an ISLA
+advantage (0.94x at 54, 0.83x at 109, 0.73x at 435), and eddy viscosity
+stays 1.3–1.5x in GeoTransolver's favour throughout; the pressure
+crossover that the bfloat16 numbers showed between 109 and 435 cars does
+not occur in float32 (results/v0l_reduction_2026-09-08b.json for bfloat16;
+results/fp32_reeval/fp32_shift_interior_2026-09-09.json). The
 eddy-viscosity gap, flat across an eightfold change in data with the inputs
 matched, is what GeoTransolver's local features and 2.8x parameters still
 buy. The ISLA-native reading of "local features", measure-weighted
 surface-patch integrals at three radii around each query, was tested and
-does not close it: eddy viscosity 0.127 against 0.122 without the channel
-(1.36x GeoTransolver, past the preregistered 1.25 falsifier), pressure and
-velocity unchanged within 1%
+does not close it: eddy viscosity 1.36x GeoTransolver-volume in float32
+(bfloat16 0.127 against 0.122 without the channel, also 1.36x; past the
+preregistered 1.25 falsifier), pressure and velocity unchanged within 1%
 (results/a35_v0_reduction_2026-09-08b.json). What GeoTransolver aggregates
 locally is the neighbouring interior points, not the surface; that, or its
-parameters, is where the last 1.29x lives. A width increase does not
-close it either: the same configuration at hidden width 256 (about 15.7M
-parameters) scores 0.118 on eddy viscosity against 0.122 at width 192,
-1.26x GeoTransolver-volume and at the preregistered 1.25 falsifier, with
-pressure and velocity 2–4% better (0.055 and 0.084; 0.88x and 0.63x
-GeoTransolver-volume; results/a35_v0_reduction_2026-09-08c.json). This is a
+parameters, is where the last 1.27x lives. A width increase narrows it
+without closing it: the same configuration at hidden width 256 (about 15.7M
+parameters) stands at 1.17x GeoTransolver-volume on eddy viscosity in
+float32 (1.26x in bfloat16), inside the preregistered inconclusive band
+(1.10–1.25), with pressure 4% better (1.02x GeoTransolver-volume) and
+velocity 0.72x (results/a35_v0_reduction_2026-09-08c.json for bfloat16;
+results/fp32_reeval/fp32_shift_interior_2026-09-09.json). This is a
 width *increase*, not a matched width: GeoTransolver-volume's blocks run at
 an effective width of 448 once its six 32-channel local features are
 appended to the 256-wide token, so the null leaves capacity as a candidate

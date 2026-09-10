@@ -969,3 +969,63 @@ interior control @sec-nb-udrv-int-prereg.
   35% of its gradient norm, and pressure recovered from the TRUE velocity misses by 7.7x. Never
   quote a divergence or momentum-residual diagnostic computed on these artifacts; such diagnostics
   need dense re-sampled evaluations or the full mesh.
+
+- **35-case rung, float32 re-grade (2026-09-09).** fp32 means: ISLA 0.1377 (bf16 0.1379), ISLA
+  weights off 0.1224, unit GT 1e-3 0.1232, unit GT 3e-3 0.1102, unit Transolver 3e-3 0.1142,
+  Transolver 1e-3 0.1266, physical GT 0.3810, physical Transolver 0.4009. Ratios unchanged
+  (GT-unit÷ISLA 0.895 at 1e-3, 0.80 at 3e-3; Transolver÷ISLA 0.829; weights-off÷on 0.888). All
+  35-case verdicts stand; the 35-case numbers may be quoted without a precision label (bf16 and
+  fp32 agree to the third decimal). Per-case paired counts at this rung: quote from fp32
+  (baseline per-case bf16 error up to 11.7%). The DrivAerML offset (−9% for baselines) is
+  dataset/size-dependent, not universal.
+
+- **DrivAerML surface, float32 re-grade (2026-09-09; results/fp32_reeval/fp32_shift_drivaer_2026-09-09.json).**
+  fp32 means: ISLA 0.0558 (bf16 0.0578), ISLA weights off 0.0542, gauge 0.0616, second-moment
+  0.0559, unit GT 0.0503 (3 seeds), physical GT 0.0498, unit Transolver 3e-3 0.0517 (1e-3
+  0.0548). Ratios ÷ ISLA: GT-unit 0.902, GT-physical 0.893, Transolver 0.925; weights-off 0.971
+  (NOW-L DrivAerML stays "fades"); second-moment 1.002 (MOM2-T stays free); gauge 1.103. Write
+  "ISLA 10% behind GeoTransolver and 8% behind Transolver at full DrivAerML data (float32); 7%
+  and 5% with weights off". RETIRE "parity within 4%" and "within 1% with weights off" (bf16
+  artifacts). Per-case bf16 error up to 17–21% for baselines here: quote per-case counts from fp32.
+
+- **INTERIOR, float32 re-grade (2026-09-10; transfer session same-snapshot fp32 re-eval,
+  research/transfer_program/studies/computational_support/ref_reeval_fp32_2026-09-10.json; FP32-EVAL
+  group 4 to confirm).** ISLA QT+SDF 0.0547 / 0.0796 / 0.1116; GT-volume (physical drive) 0.0515 /
+  0.1088 / 0.0879 → ISLA ÷ GT 1.06 / 0.73 / 1.27. bf16 inflated GT-volume 20–23% and ISLA 4–7%.
+  Write "ISLA leads on interior velocity (27%) and trails on pressure (6%) and eddy viscosity
+  (27%)"; RETIRE "leads on pressure and velocity" and the 0.91x pressure figure except as a labelled
+  bf16 number. Interior ladder, h256, surf10k, density ratios stay bf16-labelled until group 4.
+
+- **Interior family, float32 (2026-09-10; results/fp32_reeval/fp32_shift_interior_2026-09-09.json;
+  unit-drive GT-volume from the transfer session's same-snapshot re-eval).** Reference row:
+  GeoTransolver-volume 0.0513 / 0.1070 / 0.0879 (unit drive; physical 0.0514 / 0.1088 / 0.0879).
+  ISLA ÷ GT-volume (p/u/ν_t): QT+SDF 1.06 / 0.73 / 1.27; surf10k 1.07 / 0.74 / 1.30; h256 1.02 /
+  0.72 / 1.17 (INCONCLUSIVE band, not falsified); +local features 1.09 / 0.75 / 1.36 (falsified);
+  QT no-SDF 1.19 / 1.28 / 1.61; passive 3.68, passive+SDF 3.06 (write "3.1x", never "2.6x"
+  without "bf16"); ladder 54 cars 1.19 / 0.94 / 1.53, 109 cars 1.18 / 0.83 / 1.49 — NO pressure
+  crossover. bf16 shifts: GT-volume −17/−18/−6%; ISLA arms −2 to −12%. The local-feature
+  explanation of GT-volume's bf16 inflation is NOT supported (ν_t shifts least; surface GT
+  without local features inflates 9%; the excess is an additive floor across the ladder).
+
+- **FP32 campaign complete (2026-09-10; results/fp32_reeval/fp32_shift_2026-09-09.json).** Median
+  pressure shift fp32 ÷ bf16 − 1: ISLA HiLift −0.7%, GT HiLift −0.4%, Transolver HiLift −8.2%;
+  ISLA DrivAerML −3.1%, GT DrivAerML −9.6%, Transolver DrivAerML −7.8%. Other-rung ratio moves:
+  fixed angle GT-unit÷ISLA 0.813 → 0.776, Transolver-unit 0.884 → 0.857 (write 0.78x / 0.86x in
+  float32); 1,260 GT-physical÷ISLA 1.021 → 1.007 (parity stands); 210 and 510 Transolver-physical
+  1.34 → 1.20 (measurements only); geometry rungs unchanged. Protocol sentences: the offset is
+  neither a fixed percentage nor a fixed absolute (an additive floor within a dataset, growing as
+  the error falls across the campaign, largest for Transolver's physical-drive HiLift checkpoints);
+  every close comparison moved toward the baselines (max counter-move 0.01); per-case maxima
+  5–25% for the baselines → per-case statistics from fp32 everywhere.
+
+- **4-geometry rung, float32 final (2026-09-10).** ISLA 0.2496, ISLA weights off 0.2078 (0.833),
+  unit GT 0.1884 (0.755; 0.907 vs weights off), unit Transolver 0.1928 (0.773; 0.928), physical GT
+  0.4528. Write "baselines ahead by the mean, even by geometry"; weights off −17% persists here.
+- **Few-shot transfer (2026-09-10, transfer session campaign C T3, float32; research/transfer_program
+  #sec-nb-campc-t3-verdict).** Fine-tuning on 20 labelled fastback cases (1,000 steps, lr 1e-3):
+  GeoTransolver from the unit-drive DrivAerML checkpoint 0.128 vs 0.186 from scratch (31% better);
+  ISLA from mt2_v3c (lr 3e-3 checkpoint) 0.187 vs 0.198 (6%). Write "ISLA's DrivAerML
+  representation transfers less than GeoTransolver's" and name the checkpoint asymmetry
+  (different drive and learning rate) as a caveat; the mixed-435 ISLA pays 33% in-family (T2
+  preview, one seed). Third independent sign of family-specific learning (with the 1.6x zero-shot
+  force error and the constant-gauge density collapse).
