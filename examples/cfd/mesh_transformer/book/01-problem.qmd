@@ -594,9 +594,17 @@ are what carry a model to problems it was not trained on; accuracy can be
 bought later with model size, and generalization to genuinely novel
 problems cannot. The sharpest form of that rule concerns the
 discretization. The physics does not depend on how a surface was meshed,
-so a model's answer must not either: a uniformly generated point cloud, a
-different mesher, or a refinement of the same geometry must give the same
-prediction up to a discretization error that goes to zero. A CFD mesh is
+so a model's answer must not either, in the precise sense of numerical
+consistency rather than invariance: under uniform refinement of the
+sampling the prediction must converge to a single field, and two samplings
+of the same surface must converge to the same field, so that a uniformly
+generated point cloud or a different mesher differs from the training
+mesher's only by a discretization error that vanishes in the fine-mesh
+limit. Error that falls as the sample count grows is therefore expected,
+not a defect, whether it comes from averaging the metric over more points
+or, in an architecture that is not query-independent, from communication
+among the points; what fails the requirement is a dependence on the
+sampling distribution that does not vanish with refinement. A CFD mesh is
 refined where the engineer expected gradients, so point density is a
 signal about where the flow is hard; a model that reads it is borrowing the
 mesher's judgment, which is a non-physical input that will not be there in
@@ -605,10 +613,11 @@ as adoptable only when three questions have been answered in order: *why*
 should it work, stated as a mechanism; is that mechanism physically
 principled, in the sense that a CFD practitioner would accept it as a
 statement about the problem rather than about the dataset; and does the
-model still give the same answer under a biased resampling, an
-area-proportional resampling and, where a second mesh exists, a different
-mesher. In-distribution accuracy alone never justifies a change, and no
-result in this book adopts one that fails the third test. Configurations
+model converge to the same field under a biased resampling and an
+area-proportional resampling as the count grows and, where a second mesh
+exists, under a different mesher. In-distribution accuracy alone never
+justifies a change, and no result in this book adopts one that fails the
+third test. Configurations
 that fail it are still measured, as ablations that price the requirement:
 the routing without its measure weights is the standing example
 (@sec-mechanism, @sec-de-unit-drive), 5–17% more accurate on

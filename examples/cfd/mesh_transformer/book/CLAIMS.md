@@ -1146,3 +1146,10 @@ interior control @sec-nb-udrv-int-prereg.
   See @sec-principle.
 - **Interior GT-volume unit-drive, third seed (2026-09-10, fp32).** Seed 44: 0.0509 / 0.1061 / 0.0877;
   three-seed means 0.0513 / 0.1070 / 0.0876 (spreads 0.7% / 3.6% / 0.2%). Reference numbers unchanged.
+- **Consistency, not invariance (2026-09-10, Peter).** "Discretization invariance" means invariance in
+  the fine-mesh limit: under uniform refinement the prediction converges to a single field, and two
+  samplings of the same surface converge to the same field. Error DECREASING with sample count is
+  fine (metric averaging over more points; communication effects in a non-query-independent
+  architecture) and is never written as a defect. The failure is a sampling-distribution dependence
+  that does not vanish with refinement (the biased-resampling collapse). Write "consistent in the
+  fine-mesh limit" / "converges to the same field"; never "the error must not change with count".
