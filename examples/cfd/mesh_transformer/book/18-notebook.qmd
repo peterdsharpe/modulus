@@ -9836,3 +9836,14 @@ fix (@sec-nb-hilift-io-verdict). Nothing about the lanes' numerics is
 affected; only their wall-clock and the GPU-hours column, which for the
 HiLift arms measures the filesystem, not the model, and is reported with
 that label.
+
+**Decision on the HiLift half (coordinating session).** The week is
+accepted: the concurrent HiLift lanes are the program's fair-comparison
+ladder and are not thinned, and the SCALE arms are not held for the
+dataset-level read fix. The watcher's stall threshold on the HiLift lanes
+is raised from 20 to 45 minutes so that input-throttled links (a 10 s step
+at 315 steps per epoch is slow, not hung) are not cancelled as stalls; the
+DrivAerML lanes keep 20 minutes. The throttling above is the cost caveat
+for every HiLift row of this study; the DrivAerML half is the study's
+headline so far and its verdict is written when the 40,000-cell and
+384 × 40,000 arms land.
