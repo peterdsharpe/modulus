@@ -1144,3 +1144,5 @@ interior control @sec-nb-udrv-int-prereg.
   query-neighbour channel (read sample density). Baselines' density dependence (GT 9.5x, Transolver
   3.9x, GT-volume ball queries) is a first-class comparison axis, stated beside every accuracy claim.
   See @sec-principle.
+- **Interior GT-volume unit-drive, third seed (2026-09-10, fp32).** Seed 44: 0.0509 / 0.1061 / 0.0877;
+  three-seed means 0.0513 / 0.1070 / 0.0876 (spreads 0.7% / 3.6% / 0.2%). Reference numbers unchanged.

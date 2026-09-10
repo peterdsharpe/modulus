@@ -9336,6 +9336,15 @@ becomes weights-off and every ISLA accuracy number in the book is
 restated at the next full rerun; if it fades, the 35-case gain is recorded
 as a small-data effect and the configuration is unchanged.
 
+**Amended 2026-09-10 (@sec-nb-principle-redirect).** The consequence stated
+above, that the weights-off configuration becomes ISLA's reference at four
+or more of six rungs, is retired. Dropping the measure weights makes the
+slice aggregate a mean over the sampled points rather than an integral over
+the surface measure, so the model's answer depends on the mesher's sampling
+density; the ladder continues as an ablation that prices the measure
+semantics in distribution, and the bars above keep their meaning as
+"persists" or "fades" for that price only.
+
 ## 2026-09-09 — Planned: POSE-BENCH (the one setting where exact equivariance can show value) and QCOUNT (query-count robustness of the interior configuration) {#sec-nb-pose-qcount-plan}
 
 Two nodes scoped while the unit-drive ladder trains; neither is launched
@@ -9578,6 +9587,10 @@ increases the program to about 66 GPU nodes.
    fades if within 3%. If weights-off persists at ≥ 4 of 6 rungs, it becomes
    ISLA's reference configuration for accuracy and every ISLA-versus-baseline
    statement is made with it.
+   *Amended 2026-09-10:* the reference-configuration consequence is retired
+   (@sec-nb-principle-redirect); the arm is an ablation of the routing
+   measure and its gains are read as the in-distribution price of
+   discretization invariance.
 2. *Unit-drive Transolver on the rungs it lacks* (4 geometries, 21
    geometries, 1,260 cases; lr 3e-3; seeds 42/43). Bars: the UDRV-L bars
    (ISLA advantage only if baseline ÷ ISLA ≥ 1.10 with two thirds of cases;
@@ -11855,3 +11868,17 @@ frontier of bar 4 is stated with each configuration's discretization
 invariance beside its accuracy. An architecture change is adopted only if
 its physical rationale is stated and it passes such invariance tests;
 in-distribution accuracy alone never justifies it.
+
+## 2026-09-10 — Interior unit-drive GeoTransolver-volume, third seed: 0.0509 / 0.1061 / 0.0877 in float32; three-seed means 0.0513 / 0.1070 / 0.0876, spreads under 1% {#sec-nb-udrvint-seed44}
+
+The third seed (44) of the unit-drive GeoTransolver-volume interior arm
+(udrv_gt_vol_seed44; chain recycled by the idle watchdog through the
+host-copy stalls) finished and was evaluated in both precisions
+(v0_evals_fp32/udrv_gt_vol_seed44). Float32 pressure 0.0509, velocity
+0.1061, eddy viscosity 0.0877, against 0.0513 / 0.1094 / 0.0875 and 0.0516 /
+0.1055 / 0.0875 for seeds 42 and 43; the three-seed means are 0.0513 /
+0.1070 / 0.0876 with seed spreads of 0.7%, 3.6% and 0.2%. Bfloat16 gives
+0.0617 / 0.1307 / 0.0932 (the 20% pressure inflation of
+@sec-nb-fp32-interior-regrade, unchanged). The interior reference numbers
+used by the campaign D grading (0.0513 / 0.1070 / 0.0879) stand to the third
+decimal; nothing in chapter 8 changes.
