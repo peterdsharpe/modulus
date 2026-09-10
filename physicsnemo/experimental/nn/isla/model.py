@@ -394,6 +394,8 @@ class ISLA(Module):
         anchor_normal_rho: float = 0.25,
         latent_volume_tokens: bool = False,
         lvt_offsets: tuple = (0.5, 1.0, 2.0),
+        wake_tokens: bool = False,
+        wake_offsets: tuple = (1.0, 2.0, 4.0),
         seed_mode: str = "invariant",
         use_relational_geo: bool = True,
         scale_conditioning: bool = False,
@@ -561,11 +563,41 @@ class ISLA(Module):
         self.latent_volume_tokens = bool(latent_volume_tokens)
         self.lvt_offsets = tuple(float(c) for c in lvt_offsets)
         if self.latent_volume_tokens:
-            if not query_independent:
-                raise ValueError("latent_volume_tokens requires query_independent=True")
+            ### 2026-09-10 (transfer program, campaign D follow-up): the tokens
+            ### are wired into the encoder token set, so they are equally
+            ### meaningful with interacting query tokens; the constraint is that
+            ### some interior query path must exist to read off-surface context.
+            if not (query_independent or query_tokens):
+                raise ValueError("latent_volume_tokens requires query_independent=True or query_tokens=True")
             self.lvt_assign = nn.Linear(hidden, n_slices)
             self.lvt_logw = nn.Parameter(torch.zeros(1))
             self.lvt_embed = nn.Sequential(
+                nn.Linear(7, hidden), nn.GELU(), nn.Linear(hidden, hidden)
+            )
+        ### WAKE TOKENS (2026-09-10, transfer program). K = len(wake_offsets)
+        ### interacting tokens placed on the drive axis through the centering
+        ### point, downstream at c_k * ell, where ell is the measure-weighted RMS
+        ### extent of the surface along the drive (a body half-length that is
+        ### invariant to how the surface was sampled, by the Horvitz-Thompson
+        ### weights). Mechanism: far from the body every surface anchor is at
+        ### nearly the same distance and direction, so a query's relational
+        ### invariants lose resolution exactly in the outer wake, where the
+        ### band decomposition of 2026-09-10 locates ISLA's eddy-viscosity
+        ### deficit; wake tokens give the slices anchors whose relative geometry
+        ### varies along the wake. Their routing weight is a learned fraction of
+        ### the total surface measure (the "source_total" convention), so the
+        ### measure-scale and source-refinement contracts hold exactly. Built
+        ### from the drive and the weighted surface geometry alone: covariant,
+        ### query-independent, discretization-invariant. Off by default.
+        self.wake_tokens = bool(wake_tokens)
+        self.wake_offsets = tuple(float(c) for c in wake_offsets)
+        if self.wake_tokens:
+            if not (query_independent or query_tokens):
+                raise ValueError("wake_tokens requires query_independent=True or query_tokens=True")
+            if not self.wake_offsets:
+                raise ValueError("wake_tokens needs at least one offset")
+            self.wk_logw = nn.Parameter(torch.zeros(1))
+            self.wk_embed = nn.Sequential(
                 nn.Linear(7, hidden), nn.GELU(), nn.Linear(hidden, hidden)
             )
         ### QUERY TOKENS (boundary->interior exploration, 2026-09-07): interior
@@ -618,8 +650,8 @@ class ISLA(Module):
         if self.support_tokens:
             if not query_independent:
                 raise ValueError("support_tokens requires query_independent=True (passive read blocks decode the queries)")
-            if self.query_tokens or self.latent_volume_tokens or self.n_anchors:
-                raise ValueError("support_tokens excludes query_tokens, latent_volume_tokens and n_anchors")
+            if self.query_tokens or self.latent_volume_tokens or self.n_anchors or wake_tokens:
+                raise ValueError("support_tokens excludes query_tokens, latent_volume_tokens, wake_tokens and n_anchors")
             if use_local_features or raw_coord_channel or self.n_boundary_scalars or scale_conditioning or seed_mode != "invariant":
                 raise ValueError("support_tokens supports the plain invariant seed set only")
             self.sp_logw = nn.Parameter(torch.zeros(1))
@@ -869,7 +901,12 @@ class ISLA(Module):
             )
         h = self.embed(invariants)
 
-        if self.latent_volume_tokens and self.query_independent:
+        ### n_boundary counts the SURFACE tokens only: the surface measure
+        ### statistics that the support, query and wake tokens' routing
+        ### weights refer to, and the surface-only local invariants, must not
+        ### see the constructed context tokens appended below.
+        n_boundary = n
+        if self.latent_volume_tokens and (self.query_independent or self.query_tokens):
             ### pre-encoder geometric slice assignment -> anchors z0, m0, rho0
             a0 = _softmax_over_points(self.lvt_assign(h) + log_w, self.fast_point_softmax)  # (B,N,S)
             z0 = torch.einsum("bns,bnc->bsc", a0, r)
@@ -910,8 +947,52 @@ class ISLA(Module):
             r = torch.cat([r, p_l], dim=1)
             n_hat = torch.cat([n_hat, m_l], dim=1)
             d_hat = torch.cat([d_hat, d_l], dim=1)
-            log_w = torch.cat([log_w, self.lvt_logw.to(log_w.dtype).expand(b, K, 1)], dim=1)
+            lvt_w = self.lvt_logw.to(log_w.dtype)
+            if self.query_tokens:
+                ### Query-token mode (2026-09-10): the volume tokens' total weight
+                ### is a learned fraction of the total surface measure, so the
+                ### measure-scale and refinement contracts hold exactly. The
+                ### passive path keeps its original absolute weight so that
+                ### existing checkpoints evaluate unchanged.
+                lvt_w = lvt_w + torch.logsumexp(log_w[:, :n_boundary], dim=1, keepdim=True) - math.log(K)
+            log_w = torch.cat([log_w, lvt_w.expand(b, K, 1)], dim=1)
             n = n + K
+
+        if self.wake_tokens and (self.query_independent or self.query_tokens):
+            ### Wake tokens (see __init__): drive-aligned context downstream of
+            ### the body, built from the surface tokens' weighted geometry.
+            r_b, logw_b = r[:, :n_boundary], log_w[:, :n_boundary]
+            d_b = (drive / drive_mag)[:, None, :]  # (B,1,3)
+            s_b = (r_b * d_b).sum(-1, keepdim=True)  # (B,N,1) drive-aligned coordinate
+            w_b = torch.softmax(logw_b, dim=1)  # normalized measure, scale-free
+            s_mean = (w_b * s_b).sum(dim=1, keepdim=True)  # (B,1,1)
+            ell = ((w_b * (s_b - s_mean).square()).sum(dim=1, keepdim=True)).sqrt().clamp_min(self.eps)
+            Kw = len(self.wake_offsets)
+            c_w = torch.tensor(self.wake_offsets, dtype=r.dtype, device=r.device).view(1, Kw, 1)
+            p_w = (s_mean + c_w * ell) * d_b  # (B,Kw,3) on the drive axis
+            m_w = d_b.expand(b, Kw, 3)  # covariant placeholder normal
+            d_w = d_b.expand(b, Kw, 3)
+            p_mag_w = p_w.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+            p_hat_w = p_w / p_mag_w
+            inv_w = torch.cat(
+                [
+                    p_mag_w, torch.log(p_mag_w),
+                    (p_hat_w * d_w).sum(-1, keepdim=True),
+                    (p_hat_w * m_w).sum(-1, keepdim=True),
+                    (m_w * d_w).sum(-1, keepdim=True),
+                    c_w.expand(b, Kw, 1), ell.expand(b, Kw, 1),
+                ],
+                dim=-1,
+            )
+            h = torch.cat([h, self.wk_embed(inv_w.to(h.dtype))], dim=1)
+            r = torch.cat([r, p_w], dim=1)
+            n_hat = torch.cat([n_hat, m_w], dim=1)
+            d_hat = torch.cat([d_hat, d_w], dim=1)
+            ### total wake weight = learned fraction of the total surface measure
+            wk_logw = (self.wk_logw.to(log_w.dtype)
+                       + torch.logsumexp(logw_b, dim=1, keepdim=True) - math.log(Kw))
+            log_w = torch.cat([log_w, wk_logw.expand(b, Kw, 1)], dim=1)
+            n = n + Kw
 
         n_surface = n
         if self.support_tokens and support_points is not None:
@@ -949,9 +1030,9 @@ class ISLA(Module):
                 raise ValueError("support_scalars given but n_query_scalars == 0")
             if self.query_mass == "source_total":
                 s_logw = (self.sp_logw.to(log_w.dtype)
-                          + torch.logsumexp(log_w[:, :n_surface], dim=1, keepdim=True) - math.log(ns_))
+                          + torch.logsumexp(log_w[:, :n_boundary], dim=1, keepdim=True) - math.log(ns_))
             else:
-                s_logw = self.sp_logw.to(log_w.dtype) + log_w[:, :n_surface].mean(dim=1, keepdim=True)
+                s_logw = self.sp_logw.to(log_w.dtype) + log_w[:, :n_boundary].mean(dim=1, keepdim=True)
             h = torch.cat([h, h_s], dim=1)
             r = torch.cat([r, s_r], dim=1)
             n_hat = torch.cat([n_hat, s_nhat], dim=1)
@@ -995,7 +1076,7 @@ class ISLA(Module):
                 ### Patch integrals of the surface sample around each query
                 ### (surface tokens only: the first n_surface entries).
                 q_loc = self._local_invariants_at(
-                    q_r, q_nhat, q_d, r[:, :n_surface], n_hat[:, :n_surface], log_w[:, :n_surface],
+                    q_r, q_nhat, q_d, r[:, :n_boundary], n_hat[:, :n_boundary], log_w[:, :n_boundary],
                     radii=self.query_local_radii, normalize_weights=True,
                 )
                 h_q = h_q + self.qt_local_embed(q_loc.to(q_inv.dtype)).to(h_q.dtype)
@@ -1012,9 +1093,9 @@ class ISLA(Module):
             ### the total surface measure instead of the per-token mean.
             if self.query_mass == "source_total":
                 q_logw = (self.qt_logw.to(log_w.dtype)
-                          + torch.logsumexp(log_w[:, :n_surface], dim=1, keepdim=True) - math.log(nq))
+                          + torch.logsumexp(log_w[:, :n_boundary], dim=1, keepdim=True) - math.log(nq))
             else:
-                q_logw = self.qt_logw.to(log_w.dtype) + log_w[:, :n_surface].mean(dim=1, keepdim=True)
+                q_logw = self.qt_logw.to(log_w.dtype) + log_w[:, :n_boundary].mean(dim=1, keepdim=True)
             log_w = torch.cat([log_w, q_logw.expand(b, nq, 1)], dim=1)
             n = n + nq
 
