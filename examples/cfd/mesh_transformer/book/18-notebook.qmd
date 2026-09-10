@@ -9994,3 +9994,14 @@ keeps its accuracy at 10,000 (count generalization), not only whether it
 holds its 1.2x bias robustness. A 40,000-cell re-probe of the two references
 under the corrected snapshot is running to place the middle point of the
 count curve (the earlier 40k reference reading was a failed load).
+
+**HiLift half: training, input-bound, weeks.** Measured epoch rates under
+the fleet's reader contention (first link to 2026-09-10 06:00 PDT): width
+384 and 512 at 10,000 cells, and width 384 with weights off, about 65
+epochs per day (41–44 epochs in 15.5 hours; 500 epochs in about eight
+days); 40,000-cell arms about 32 per day (about 16 days); 80,000-cell arms
+(fast kernel) about 40 per day (about 12 days). The coordinating session's
+decision stands: full protocol, no hold, no epoch cut; the HiLift half of
+this study is reported when it lands, and the DrivAerML half is written as
+complete once the 40,000-cell arms (epoch 328 of 500 at this writing) and
+the similarity-gauge corner finish.
