@@ -22,6 +22,9 @@ RUNS = {
     "isla_h344": ("v0_evals_fp32", ["v0_isla_qtsdf_h344_seed42", "v0_isla_qtsdf_h344_seed43"]),
     "gt_unit": ("v0_evals_support_fp32", ["udrv_gt_vol_seed42", "udrv_gt_vol_seed43"]),
     "gt_nolocal": ("v0_evals_fp32", ["v0_gt_vol_nolocal_seed42", "v0_gt_vol_nolocal_seed43"]),
+    # far-field context arms (PREREG_WAKE.md): wake tokens on the drive axis; latent volume tokens with query tokens
+    "isla_h344_wake": ("v0_evals_fp32", ["v0_isla_qtsdf_h344_wake_seed42", "v0_isla_qtsdf_h344_wake_seed43"]),
+    "isla_h344_lvt": ("v0_evals_fp32", ["v0_isla_qtsdf_h344_lvt_seed42", "v0_isla_qtsdf_h344_lvt_seed43"]),
 }
 BANDS = [("sdf<0.01L", 0.0, 0.01), ("0.01-0.05L", 0.01, 0.05), ("sdf>=0.05L", 0.05, np.inf)]
 FIELDS = ("nut", "pressure", "velocity")
