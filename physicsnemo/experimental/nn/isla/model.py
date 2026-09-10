@@ -57,6 +57,23 @@ from physicsnemo.core.module import Module
 from physicsnemo.nn.functional.equivariant_ops import spherical_basis
 
 
+def _softmax_over_points(x: Float[torch.Tensor, "batch tokens slices"], fast: bool = True):
+    """Softmax over the point dimension (dim 1) of a (B, N, S) tensor.
+
+    ISLA-PERF (2026-09-09): PyTorch serves a softmax over a *middle* dimension
+    with its "spatial" kernel, which parallelizes over the B*S columns only and
+    walks the N points serially. On a GB300 that kernel was 85-95% of ISLA's
+    training step (203 of 238 ms at 10k tokens, 3.3 of 3.5 s at 80k) and the
+    source of the superlinear token scaling. Reducing along a contiguous last
+    dimension instead uses the row-parallel kernel. Same arithmetic; the
+    floating-point summation order differs (roundoff). ``fast=False`` keeps
+    the original kernel for bitwise reproduction of earlier checkpoints.
+    """
+    if not fast:
+        return torch.softmax(x, dim=1)
+    return torch.softmax(x.transpose(1, 2), dim=-1).transpose(1, 2)
+
+
 def _relational_invariants(
     r: Float[torch.Tensor, "batch tokens 3"],
     n_hat: Float[torch.Tensor, "batch tokens 3"],
@@ -159,9 +176,11 @@ class _SliceBlock(nn.Module):
 
     def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
                  use_relational_geo: bool = True, geo_checkpoint: bool = False,
-                 second_moment: bool = False, anchor_topk: int = 0) -> None:
+                 second_moment: bool = False, anchor_topk: int = 0,
+                 fast_point_softmax: bool = False) -> None:
         super().__init__()
         self.use_relational_geo = use_relational_geo
+        self.fast_point_softmax = bool(fast_point_softmax)
         ### SPARSE (2026-09-09): route each point to its anchor_topk nearest
         ### anchors only (0 = dense). The (B, N, S, geo) invariants and their
         ### (B, N, S, 3) intermediates, the dominant cost of a slice block,
@@ -218,7 +237,7 @@ class _SliceBlock(nn.Module):
         ### Soft assignment of points to slices; measure weights enter as a
         ### log-space bias so slice states are quadrature-weighted means.
         logits = self.assign(self.norm_assign(h))  # (B, N, S)
-        a = torch.softmax(logits + log_w, dim=1)  # normalized over points
+        a = _softmax_over_points(logits + log_w, self.fast_point_softmax)  # normalized over points
         ### Equivariant anchors: weighted mean position AND mean normal
         ### direction per slice (v3b) -- anchors gain orientation.
         z_pos = torch.einsum("bns,bnc->bsc", a, r)  # (B, S, 3)
@@ -251,7 +270,7 @@ class _SliceBlock(nn.Module):
             logits = logits + bias
         else:
             point_mix = torch.softmax(logits, dim=-1)  # normalized over slices
-        a = torch.softmax(logits + log_w, dim=1)
+        a = _softmax_over_points(logits + log_w, self.fast_point_softmax)
         z = torch.einsum("bns,bnh->bsh", a, h)  # slice states
         z = z + self.slice_mlp(z)
         back = torch.einsum("bns,bsh->bnh", point_mix, z)
@@ -361,6 +380,7 @@ class ISLA(Module):
         reference_length: float = 8.0,
         use_measure_weights: bool = True,
         measure_weight_power: float = 1.0,
+        fast_point_softmax: bool = False,
         use_local_features: bool = False,
         local_radii: tuple[float, ...] = (0.01, 0.03),
         n_boundary_scalars: int = 0,
@@ -403,6 +423,10 @@ class ISLA(Module):
         ### invariance is kept for every alpha (a common factor c^alpha cancels in
         ### the softmax); alpha = 0 reproduces use_measure_weights=False exactly.
         self.measure_weight_power = float(measure_weight_power)
+        ### ISLA-PERF (2026-09-09): point softmaxes reduce along a contiguous last
+        ### dimension (see _softmax_over_points); False reproduces the original
+        ### middle-dimension kernel bitwise (roundoff-level difference otherwise).
+        self.fast_point_softmax = bool(fast_point_softmax)
         self.out_scalars = out_scalars
         self.out_vectors = out_vectors
         self.reference_length = float(reference_length)
@@ -467,7 +491,8 @@ class ISLA(Module):
         self.blocks = nn.ModuleList(
             _SliceBlock(hidden, n_slices, mlp_ratio, use_relational_geo=use_relational_geo,
                         geo_checkpoint=geo_checkpoint, second_moment=self.second_moment_features,
-                        anchor_topk=self.anchor_topk)
+                        anchor_topk=self.anchor_topk,
+                        fast_point_softmax=self.fast_point_softmax)
             for _ in range(n_layers)
         )
         ### v5a EXPERIMENT (flag-gated, default off): encode/decode split.
@@ -846,7 +871,7 @@ class ISLA(Module):
 
         if self.latent_volume_tokens and self.query_independent:
             ### pre-encoder geometric slice assignment -> anchors z0, m0, rho0
-            a0 = torch.softmax(self.lvt_assign(h) + log_w, dim=1)  # (B,N,S)
+            a0 = _softmax_over_points(self.lvt_assign(h) + log_w, self.fast_point_softmax)  # (B,N,S)
             z0 = torch.einsum("bns,bnc->bsc", a0, r)
             m0 = torch.einsum("bns,bnc->bsc", a0, n_hat)
             m0 = m0 / m0.norm(dim=-1, keepdim=True).clamp_min(self.eps)
@@ -1029,7 +1054,7 @@ class ISLA(Module):
                 for block in self.blocks:
                     h = block(h, log_w_enc, r_enc, n_enc, d_enc, self.eps)
             logits = self.final_assign(h)
-            a = torch.softmax(logits + (log_w_enc if 0 < self.n_anchors < n else log_w), dim=1)
+            a = _softmax_over_points(logits + (log_w_enc if 0 < self.n_anchors < n else log_w), self.fast_point_softmax)
             r_src = r_enc if 0 < self.n_anchors < n else r
             n_src = n_enc if 0 < self.n_anchors < n else n_hat
             z_states = torch.einsum("bns,bnh->bsh", a, h)
@@ -1146,7 +1171,7 @@ class ISLA(Module):
         if self.odd_head and self.vector_basis == "globe7":
             ### per-point soft slice anchor (true vectors, equivariant)
             lg = self.odd_assign(h)
-            a_s = torch.softmax(lg + src_logw, dim=1)  # slices over source points
+            a_s = _softmax_over_points(lg + src_logw, self.fast_point_softmax)  # slices over source points
             z_s = torch.einsum("bns,bnc->bsc", a_s, src_r)
             m_s = torch.einsum("bns,bnc->bsc", a_s, src_n)
             b_q = torch.softmax(self.odd_assign(h_out), dim=-1)  # point over slices

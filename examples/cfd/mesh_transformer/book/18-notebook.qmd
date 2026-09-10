@@ -9830,3 +9830,179 @@ turns any producer fault into an hour of idle GPUs per link; a bounded wait
 that raises a named error (and the recipe's step-failure barrier reporting
 the *cause* rather than the collective) is a datapipe fix worth making
 independent of the pinning cause. Recorded as an upstream candidate.
+
+## 2026-09-09 — Preregistered: ISLA-PERF, profile the training step, then buy scale with the savings {#sec-nb-isla-perf-prereg}
+
+**Why.** The SCALE launch (@sec-nb-scale-launch) measured ISLA's step at
+0.23 s (hidden 192, 10,000 cells), 1.28 s (512, 10k) and 3.44 s (192, 80k
+with the exact geometry recompute) on GB300s, four GPUs per lane, against
+GeoTransolver's 0.15–0.19 s and Transolver's 0.08–0.10 s over the same grid.
+Peak memory never exceeded 13 GB of 288. Step time, not memory, is what
+stops ISLA from being trained at the scale the hardware allows, and the
+token scaling (15x for 8x cells) is superlinear where the arithmetic
+(points × slices × 8 invariants per layer) is linear; something in the
+implementation, not the model, is paying that. Earlier speed work: the
+exact recompute trades 1.16x step for 2.3x less incremental memory;
+compiling the geometry region gave 0.82x step with bf16 rounding
+differences (not adopted); sparse anchor routing was slower at every k
+(@sec-nb-sparse-routing-verdict).
+
+**Instrument, written before running.** One GB300, bf16 autocast, AdamW
+step, batch 1, synthetic anisotropic cloud (no data loading), the reference
+surface configuration (12 layers, 256 slices). Median step time over ten
+steps after three warm-ups, peak allocated and reserved memory, and a
+torch.profiler trace of three steps with CUDA kernel time bucketed by
+operator family (point softmax, slice softmax, slice einsums, geometry
+elementwise and cat, Linear/MLP GEMMs, LayerNorm and GELU, optimizer,
+other), at (192, 10k), (512, 10k), (192, 80k) and (512, 40k); plus the
+log-log slopes of step time in tokens (10k–80k at hidden 192) and in hidden
+(192–512 at 10k), with and without the recompute. Readout 1 is the ranked
+bucket table and the named term behind the superlinear token scaling.
+
+**Optimization rule.** Every change must reproduce the reference forward to
+bf16 roundoff (the observed maximum relative difference is stated) or
+bitwise; a change that is exactly equivalent in fp32 arithmetic may become
+the default with an exactness test; anything beyond roundoff is a flag-gated
+option with its own test, default off. Candidates to be measured, not
+assumed: never materializing the (B, N, S, 8) invariants (a fused region
+with recompute in backward), chunking over slices, avoiding (B, N, S)
+intermediates in bf16 copies, fp32 accumulation only where needed, removing
+the duplicated point softmax, contiguity and memory format, the passive
+readout's chunk size.
+
+**Bars, in readout units.** *Worthwhile for merge* if the step time at
+(192, 80k) or at (512, 10k) falls by ≥ 1.3x at equal outputs, or peak
+memory falls by ≥ 30% at ≤ 1.05x step time (quoted against both the plain
+path, 3.37 GiB incremental at (192, 10k), and the recompute path, 1.47 GiB).
+*Not worthwhile* if < 1.15x and < 15%. Between: reported, merged only if
+exact. Readout 3 is the largest (hidden, cells) configuration trainable in
+the reference lane's budget (500 epochs of HiLift's 1,260 cases on four
+GPUs in ≤ 3 days) before and after. If the gain is ≥ 1.5x, one scaled
+training pilot is proposed with its exact flags (not launched here).
+
+## 2026-09-09 — Verdict: ISLA-PERF — one kernel was 85–95% of the training step; reducing the point softmax along a contiguous dimension makes ISLA 3.6x faster at 10k cells and 18.7x at 80k, exactly {#sec-nb-isla-perf-verdict}
+
+**Profile readout** (@sec-nb-isla-perf-prereg; one GB300, bf16 autocast,
+AdamW step, batch 1, reference surface configuration with 12 layers and 256
+slices; CUDA kernel time per step from torch.profiler;
+results/isla_profile_2026-09-09.json). At every configuration one kernel
+dominated: PyTorch's `cunn_SpatialSoftMax`, which serves a softmax over a
+*middle* tensor dimension. ISLA normalizes its point-to-slice assignment
+over the points, `softmax(logits + log_w, dim=1)` on a (B, N, S) tensor,
+twice per slice block; the spatial kernel parallelizes over the B × S = 256
+columns only and walks the N points serially.
+
+| configuration (hidden, cells) | step | point softmax (fwd + bwd) | share of step | geometry elementwise | everything else |
+|---|---|---|---|---|---|
+| 192, 10,000 | 0.238 s | 203 ms | 85% | 35 ms | 27 ms |
+| 512, 10,000 | 0.243 s | 204 ms | 84% | 37 ms | 27 ms |
+| 512, 40,000 | 1.245 s | 1,128 ms | 91% | 121 ms | 85 ms |
+| 192, 80,000 | 3.507 s | 3,321 ms | 95% | 219 ms | 226 ms |
+
+Step time was independent of width (0.238 → 0.243 s from hidden 192 to 512,
+exponent 0.02) and superlinear in tokens (exponent 1.28), because the
+dominant kernel's cost grows with N at fixed, tiny parallelism. The model's
+arithmetic is a small fraction of the step: the Linear and MLP GEMMs total
+2–8 ms, the slice einsums 5–45 ms.
+
+**The fix** (commit 3abd0ff58; `fast_point_softmax`, default on): compute
+the point softmax on the transposed (B, S, N) tensor along its last,
+contiguous dimension and transpose the result back, at every point-softmax
+site (both in the slice block, the latent-token assignment, the passive
+decoder's final assignment, the odd head's source assignment). Same
+arithmetic, different floating-point summation order. `fast_point_softmax=False`
+reproduces the original kernel bitwise.
+
+**Exactness** (results/isla_perf_round2_2026-09-09.json, same weights, same
+inputs): in float64 the two paths agree to 10⁻¹¹ on every configuration that
+owns a point softmax (surface, gauge + recompute, passive decoder, latent
+tokens, odd head, query tokens; test/experimental/nn/test_isla_perf.py, 9
+tests; all 82 ISLA tests pass). Under bf16 autocast on the GPU the relative
+L2 difference between the fast and the original path is 1.05% (192, 10k),
+1.08% (192, 40k) and 1.49% (512, 10k), against 0.98%, 0.98% and 1.32% for
+the same model evaluated in bf16 versus fp32: the change is at bf16
+roundoff, as the bar requires, and not below it (a summation-order
+difference of 10⁻⁷ is amplified through twelve layers to ~5 × 10⁻⁴ in fp32
+with TF32 matmuls). Trained checkpoints therefore evaluate to within their
+own bf16 noise, not bitwise; `fast_point_softmax=False` is the switch for a
+bitwise reproduction.
+
+**Speed and memory after the fix** (results/isla_profile_fast_2026-09-09.json;
+median of 10 steps; incremental memory over the resident model and
+optimizer; plain path / exact geometry recompute):
+
+| configuration (hidden, cells) | step before | step after | speedup | tokens/s after | incremental memory (unchanged) |
+|---|---|---|---|---|---|
+| 192, 10,000 | 0.238 / 0.274 s | 0.065 / 0.115 s | **3.6x / 2.4x** | 153k / 87k | 3.20 / 1.37 GiB |
+| 192, 20,000 | 0.570 / 0.585 s | 0.086 / 0.117 s | 6.7x / 5.0x | 233k / 171k | 6.34 / 2.74 GiB |
+| 192, 40,000 | 1.233 / 1.262 s | 0.105 / 0.134 s | 11.7x / 9.4x | 381k / 297k | 12.6 / 5.5 GiB |
+| 192, 80,000 | 3.507 / 3.568 s | 0.188 / 0.245 s | **18.7x / 14.6x** | 427k / 327k | 25.2 / 11.0 GiB |
+| 256, 10,000 | 0.240 / 0.247 s | 0.085 / 0.115 s | 2.8x / 2.2x | 117k / 87k | 3.5 / 1.6 GiB |
+| 384, 10,000 | 0.242 / 0.249 s | 0.086 / 0.117 s | 2.8x / 2.1x | 117k / 85k | 4.0 / 2.1 GiB |
+| 512, 10,000 | 0.243 / 0.251 s | 0.085 / 0.116 s | **2.9x / 2.2x** | 118k / 86k | 4.5 / 2.5 GiB |
+| 512, 40,000 | 1.245 / 1.275 s | 0.118 / 0.147 s | 10.6x / 8.7x | 339k / 272k | 17.8 / 10.2 GiB |
+
+The token exponent falls from 1.28 to 0.49 (0.35 with recompute): at 10,000
+cells the step is now launch-bound (about 60 ms of CUDA time for roughly a
+thousand kernels), so tokens per second *rises* with the token count until
+about 80,000 cells. The remaining cost is the per-slice geometry (the eight
+invariants built from (B, N, S, 3) intermediates and concatenated) at about
+60% of the step, the slice einsums at about 12%, and kernel launches.
+
+**Bars.** Worthwhile for merge required ≥ 1.3x at (192, 80k) or (512, 10k)
+at equal outputs: measured 18.7x and 2.9x. Memory is unchanged (the fix
+touches no saved activation), so the memory bar is not claimed; the
+recompute option remains the memory lever (2.3x at 1.16x → now 1.8x step
+cost at 10k, converging to 1.3x at 80k).
+
+**Round 2, measured and not adopted.** Compiling the geometry region
+(`torch.compile` on `_geo_region`, dynamic=False) is *slower* at 40,000 and
+80,000 cells (0.56–0.72x) and 1.17–1.21x faster only at 10,000 cells with
+recompute, while changing outputs by 1–3% relative L2 in bf16; consistent
+with the earlier compile trial. It stays out. The next exact lever is
+building the invariants without (B, N, S, 3) intermediates (the dot products
+against the drive and the normals are bilinear and can come from small
+batched matrix products); it would remove most of the remaining 60% but
+introduces cancellation in the distance term for points near their anchor,
+so it belongs behind a flag with its own tolerance test, not in this pass.
+
+**What the savings buy.** The reference lane's budget (500 epochs of
+HiLiftAeroML's 1,260 cases on four GPUs in ≤ 3 days, about 157,500 steps)
+admits a step of about 1.6 s. Before: the SCALE grid's (192, 80k) arm did
+not fit (3.5 s, about 6 days) and (192, 40k) did (1.2 s, 2.3 days). After:
+every arm of the grid fits with a wide margin (the heaviest, (192, 80k),
+takes about 9 hours; (512, 40k) about 6 hours), and by the measured token
+exponent the budget reaches roughly (512, 320,000 cells) at about 0.35 s
+per step with 140 GB of memory on the plain path or 80 GB with recompute,
+an extrapolation to be confirmed by measurement. GPU-hours for the (192,
+80k) arm fall from about 610 to 33.
+
+**Proposed pilot (not launched here), as the bar's ≥ 1.5x clause asks.**
+One pair of lanes from a snapshot containing 3abd0ff58: HiLift 1,260 cases,
+`model.hidden=512`, `sampling_resolution=80000`, `+model.geo_checkpoint=true`
+(11 GB, about 0.3 s per step, about 13 hours), seeds 42/43, frozen protocol
+otherwise, graded with the SCALE bars against the (512, 10k) and (192, 80k)
+arms; and, for the SCALE ISLA lanes already training at the slow kernel,
+the coordinator's call whether to let the six-day 80k arm finish or restart
+it from the fast snapshot (a restart changes numerics at bf16 roundoff and
+must be declared in the arm's provenance).
+
+**Addendum (2026-09-09, coordinator).** Two amendments before the merge.
+*Default.* The fast kernel ships with `fast_point_softmax=False` as the
+default: under bf16 its outputs differ from the old kernel by 1.0–1.5%
+relative L2, the same order as several comparisons in the book (ISLA
+against the unit-drive GeoTransolver at 35 cases is 10%; the DrivAerML
+weights-off difference is 2.8%; interior seed spreads are about 1%), and
+every checkpoint and evaluation in the book used the old kernel. The scaled
+lanes and the neutrality control enable it explicitly
+(`+model.fast_point_softmax=true`). The default flips only after two checks
+land: the DrivAerML neutrality pair (`scale_isla_dr_kernelctrl_seed{42,43}`,
+within 3% of 0.0577) and an evaluation-only check of an existing trained
+checkpoint (`iw_mt2_lr1e3_seed42`) with both kernels showing the metric
+moves by ≤ 0.3%; both numbers are written here when they land.
+*Attribution.* The sparse-routing entry (@sec-nb-sparse-routing-verdict)
+attributed ISLA's step cost to the per-slice geometry tensors and concluded
+that routing to fewer anchors could not recover it; the profile shows the
+cost was the softmax kernel's launch geometry, not the invariant tensors, so
+that entry's mechanism was wrong while its verdict (sparse routing is not the
+lever) stands.

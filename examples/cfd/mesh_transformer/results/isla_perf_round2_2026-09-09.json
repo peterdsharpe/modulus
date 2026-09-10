@@ -1,0 +1,243 @@
+{
+ "gpu": "NVIDIA GB300",
+ "torch": "2.12.0+cu130",
+ "exactness_bf16": [
+  {
+   "hidden": 192,
+   "tokens": 10000,
+   "rel_l2_fast_vs_native_bf16": 0.010487205348908901,
+   "max_abs_bf16": 0.03515625,
+   "rel_l2_fast_vs_native_fp32": 0.000553854915779084,
+   "max_abs_fp32": 0.0017183423042297363,
+   "rel_l2_bf16_vs_fp32_same_model": 0.009843158535659313
+  },
+  {
+   "hidden": 192,
+   "tokens": 40000,
+   "rel_l2_fast_vs_native_bf16": 0.010845623910427094,
+   "max_abs_bf16": 0.0361328125,
+   "rel_l2_fast_vs_native_fp32": 0.0005655178683809936,
+   "max_abs_fp32": 0.0019016265869140625,
+   "rel_l2_bf16_vs_fp32_same_model": 0.009825792163610458
+  },
+  {
+   "hidden": 512,
+   "tokens": 10000,
+   "rel_l2_fast_vs_native_bf16": 0.014850103296339512,
+   "max_abs_bf16": 0.0390625,
+   "rel_l2_fast_vs_native_fp32": 0.0007800403400324285,
+   "max_abs_fp32": 0.002160310745239258,
+   "rel_l2_bf16_vs_fp32_same_model": 0.013152687810361385
+  }
+ ],
+ "compile": [
+  {
+   "hidden": 192,
+   "tokens": 10000,
+   "geo_checkpoint": false,
+   "eager": {
+    "hidden": 192,
+    "tokens": 10000,
+    "geo_checkpoint": false,
+    "compiled_geo": false,
+    "step_s_median": 0.06588550900050905,
+    "incremental_allocated_gib": 3.204434394836426,
+    "peak_allocated_gib": 3.401108741760254
+   },
+   "compiled": {
+    "hidden": 192,
+    "tokens": 10000,
+    "geo_checkpoint": false,
+    "compiled_geo": true,
+    "step_s_median": 0.0663535085041076,
+    "incremental_allocated_gib": 1.738253116607666,
+    "peak_allocated_gib": 1.9352631568908691
+   },
+   "speedup": 0.9929468762971354,
+   "rel_l2_compiled_vs_eager_bf16": 0.028341108933091164,
+   "max_abs": 0.0234375
+  },
+  {
+   "hidden": 512,
+   "tokens": 10000,
+   "geo_checkpoint": false,
+   "eager": {
+    "hidden": 512,
+    "tokens": 10000,
+    "geo_checkpoint": false,
+    "compiled_geo": false,
+    "step_s_median": 0.06699936400036677,
+    "incremental_allocated_gib": 4.508950710296631,
+    "peak_allocated_gib": 5.490479946136475
+   },
+   "compiled": {
+    "hidden": 512,
+    "tokens": 10000,
+    "geo_checkpoint": false,
+    "compiled_geo": true,
+    "step_s_median": 0.06936472050074372,
+    "incremental_allocated_gib": 3.0358667373657227,
+    "peak_allocated_gib": 4.013581275939941
+   },
+   "speedup": 0.9658997184260032,
+   "rel_l2_compiled_vs_eager_bf16": 0.013179700821638107,
+   "max_abs": 0.0146484375
+  },
+  {
+   "hidden": 192,
+   "tokens": 80000,
+   "geo_checkpoint": false,
+   "eager": {
+    "hidden": 192,
+    "tokens": 80000,
+    "geo_checkpoint": false,
+    "compiled_geo": false,
+    "step_s_median": 0.18697887899543275,
+    "incremental_allocated_gib": 25.183961391448975,
+    "peak_allocated_gib": 25.383131504058838
+   },
+   "compiled": {
+    "hidden": 192,
+    "tokens": 80000,
+    "geo_checkpoint": false,
+    "compiled_geo": true,
+    "step_s_median": 0.33509339499869384,
+    "incremental_allocated_gib": 13.709238529205322,
+    "peak_allocated_gib": 13.910755157470703
+   },
+   "speedup": 0.5579903447400435,
+   "rel_l2_compiled_vs_eager_bf16": 0.020595673471689224,
+   "max_abs": 0.0224609375
+  },
+  {
+   "hidden": 512,
+   "tokens": 40000,
+   "geo_checkpoint": false,
+   "eager": {
+    "hidden": 512,
+    "tokens": 40000,
+    "geo_checkpoint": false,
+    "compiled_geo": false,
+    "step_s_median": 0.11760812650027219,
+    "incremental_allocated_gib": 17.840540885925293,
+    "peak_allocated_gib": 18.814566612243652
+   },
+   "compiled": {
+    "hidden": 512,
+    "tokens": 40000,
+    "geo_checkpoint": false,
+    "compiled_geo": true,
+    "step_s_median": 0.19301163850104786,
+    "incremental_allocated_gib": 12.03917121887207,
+    "peak_allocated_gib": 13.01197624206543
+   },
+   "speedup": 0.6093317864851642,
+   "rel_l2_compiled_vs_eager_bf16": 0.010406147688627243,
+   "max_abs": 0.013916015625
+  },
+  {
+   "hidden": 192,
+   "tokens": 10000,
+   "geo_checkpoint": true,
+   "eager": {
+    "hidden": 192,
+    "tokens": 10000,
+    "geo_checkpoint": true,
+    "compiled_geo": false,
+    "step_s_median": 0.08738250399983372,
+    "incremental_allocated_gib": 1.3688716888427734,
+    "peak_allocated_gib": 1.5688419342041016
+   },
+   "compiled": {
+    "hidden": 192,
+    "tokens": 10000,
+    "geo_checkpoint": true,
+    "compiled_geo": true,
+    "step_s_median": 0.0744922015001066,
+    "incremental_allocated_gib": 1.236818790435791,
+    "peak_allocated_gib": 1.4353241920471191
+   },
+   "speedup": 1.1730423083241628,
+   "rel_l2_compiled_vs_eager_bf16": 0.028341108933091164,
+   "max_abs": 0.0234375
+  },
+  {
+   "hidden": 512,
+   "tokens": 10000,
+   "geo_checkpoint": true,
+   "eager": {
+    "hidden": 512,
+    "tokens": 10000,
+    "geo_checkpoint": true,
+    "compiled_geo": false,
+    "step_s_median": 0.09069955499944626,
+    "incremental_allocated_gib": 2.50338077545166,
+    "peak_allocated_gib": 3.4860544204711914
+   },
+   "compiled": {
+    "hidden": 512,
+    "tokens": 10000,
+    "geo_checkpoint": true,
+    "compiled_geo": true,
+    "step_s_median": 0.07492580050165998,
+    "incremental_allocated_gib": 2.50588321685791,
+    "peak_allocated_gib": 3.4896860122680664
+   },
+   "speedup": 1.210525004633575,
+   "rel_l2_compiled_vs_eager_bf16": 0.013179700821638107,
+   "max_abs": 0.0146484375
+  },
+  {
+   "hidden": 192,
+   "tokens": 80000,
+   "geo_checkpoint": true,
+   "eager": {
+    "hidden": 192,
+    "tokens": 80000,
+    "geo_checkpoint": true,
+    "compiled_geo": false,
+    "step_s_median": 0.24455967950052582,
+    "incremental_allocated_gib": 10.95518445968628,
+    "peak_allocated_gib": 11.154354572296143
+   },
+   "compiled": {
+    "hidden": 192,
+    "tokens": 80000,
+    "geo_checkpoint": true,
+    "compiled_geo": true,
+    "step_s_median": 0.3521857714986254,
+    "incremental_allocated_gib": 9.88642692565918,
+    "peak_allocated_gib": 10.08794355392456
+   },
+   "speedup": 0.6944053374441345,
+   "rel_l2_compiled_vs_eager_bf16": 0.020595673471689224,
+   "max_abs": 0.0224609375
+  },
+  {
+   "hidden": 512,
+   "tokens": 40000,
+   "geo_checkpoint": true,
+   "eager": {
+    "hidden": 512,
+    "tokens": 40000,
+    "geo_checkpoint": true,
+    "compiled_geo": false,
+    "step_s_median": 0.14684018199841375,
+    "incremental_allocated_gib": 10.188486576080322,
+    "peak_allocated_gib": 11.162420749664307
+   },
+   "compiled": {
+    "hidden": 512,
+    "tokens": 40000,
+    "geo_checkpoint": true,
+    "compiled_geo": true,
+    "step_s_median": 0.20412267949723173,
+    "incremental_allocated_gib": 9.97776985168457,
+    "peak_allocated_gib": 10.950544357299805
+   },
+   "speedup": 0.7193722047941525,
+   "rel_l2_compiled_vs_eager_bf16": 0.010406147688627243,
+   "max_abs": 0.013916015625
+  }
+ ]
+}
