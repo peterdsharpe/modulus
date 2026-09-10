@@ -544,7 +544,18 @@ mesher placed, and a uniformly generated point cloud or a different mesher
 would change the answer (@sec-principle). Turning the routing weights off
 gives 0.88x and turning the similarity gauge on gives 1.08x at 35 cases
 (@sec-mechanism); the first number is the in-distribution price of the
-requirement, measured as an ablation and never adopted. Under a
+requirement, measured as an ablation and never adopted. The constant-gauge
+configuration behind the accuracy results fails the sampling-density probe
+for a different and now identified reason: it centers the point cloud by
+the plain mean of the sampled points, the one quantity in its forward pass
+that depends on the sampling distribution rather than on the measure, while
+the similarity gauge centers by the measure-weighted mean. Evaluating the
+trained reference checkpoint with measure-weighted centering, and nothing
+else changed, takes its degradation under a 10:1 biased resampling from
+12.1x to 1.12x (@sec-nb-centroid-derivation, @sec-nb-center-probe-verdict;
+`results/center_probe_2026-09-10.json`); whether a model trained with that
+centering keeps the constant gauge's accuracy is the open lane that decides
+the reference configuration. Under a
 10:1 sampling-density bias on DrivAerML, ISLA *with the similarity gauge*
 degrades 1.20x; that configuration is not the one behind any accuracy
 number in this book and costs the 8% just stated. The constant-gauge

@@ -1369,3 +1369,31 @@ query or sample density as a signal. The welcome directions named
 (signed distance, signed heat or geodesic distance, curvature, invariances,
 measure-consistent operators) are the ones the D1 support set already uses
 and the ones the boundary-response and composition gates were built for.
+
+**T2 in-family cost decomposed (addendum to @sec-nb-campc-t2-verdict).**
+Four lanes trained on the campaign's own 218 DrivAerML cars alone at the
+campaign protocol (500 epochs, lr 1e-3, unit drive for GeoTransolver; two
+seeds each; the scaling ladder's existing 218-car checkpoints were not
+usable, being lr 3e-3, physical drive and 51 epochs) split the in-family
+cost of the mixed 435-case models into a data-rung factor (218 DrivAerML
+alone ÷ 435 DrivAerML alone) and a mixing factor (218 + 217 estate ÷ 218
+alone), float32, DrivAerML validation pressure:
+
+| architecture | 435 alone | 218 alone | 218 + 217 estate | rung factor | mixing factor | product (= in-family cost) |
+|---|---|---|---|---|---|---|
+| ISLA | 0.0557 | 0.0683 | 0.0737 | 1.226 | 1.078 | 1.322 |
+| GeoTransolver, unit drive | 0.0504 | 0.0573 | 0.0598 | 1.137 | 1.043 | 1.186 |
+
+: The 218-car single-family models score 0.848 (ISLA) and 0.670 (GeoTransolver) zero-shot on the fastback cases, worse than the 435-car ones (0.788, 0.612). Artifact `studies/campaign_c_transfer/campaign_c_t2_2026-09-10.json` (arms `dr218_isla`, `dr218_gt`). {#tbl-campc-t2-decomp}
+
+Most of the cost is the halved source data, not the foreign family: mixing
+217 estate cars into 218 DrivAerML cars costs 8% (ISLA) and 4%
+(GeoTransolver) in-family, the halving 23% and 14%. So the T2 sentence
+becomes: at a fixed label budget, spending half on the target's sibling
+family buys the target family almost entirely and costs the source family
+about what any halving of its data costs, plus 4–8% for the mixing. ISLA
+pays more on both factors (its 218-car rung is steeper and its mixing cost
+double GeoTransolver's), the same direction as every other reading of this
+campaign. The one-seed conditioning preview (T1, verdict pending)
+shows the mixing cost growing with the foreign share: 435 DrivAerML + 794
+estate costs ISLA 18% in-family with no halving at all.

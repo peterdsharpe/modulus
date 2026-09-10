@@ -370,6 +370,12 @@ class ISLA(Module):
         jit: bool = False
         amp: bool = True
 
+    #: Class names this architecture was saved under before it was renamed; the
+    #: checkpoint loader searches these when no file exists under the current
+    #: name (see physicsnemo.utils.checkpoint._legacy_checkpoint_filename), so
+    #: checkpoints written as ``MeshTransformer2.*.mdlus`` still load into ISLA.
+    _legacy_class_names: tuple[str, ...] = ("MeshTransformer2",)
+
     def __init__(
         self,
         out_scalars: int = 1,

@@ -1122,8 +1122,12 @@ interior control @sec-nb-udrv-int-prereg.
   0.115 (−81%), DrivAerML 0.0504 → 0.0598 (+19%); fastback drag rel. MAE >150% → 16% / 13%. Bar
   (≥30% drop at ≤10% in-family cost) NOT met on cost for either → write "a trade: half the label
   budget on the sibling family buys the target family almost entirely and costs a fifth to a
-  third of the source family's accuracy"; never "diversity is free". Part of the cost is the
-  218-car rung of each ladder, not the mixing (decomposition pending). Supersedes the one-seed
+  third of the source family's accuracy"; never "diversity is free". Decomposed (2026-09-10, four
+  protocol-matched 218-DrivAerML-only lanes, fp32): ISLA 0.0557 → 0.0683 (rung 1.226) → 0.0737 (mixing
+  1.078); GT 0.0504 → 0.0573 (1.137) → 0.0598 (1.043). Write "most of the cost is the halved source
+  data; the sibling family costs 4–8% at a 50% share; ISLA pays more on both factors". 218-alone
+  zero-shot fastback 0.848 / 0.670. One-seed T1 preview: 435 DrivAerML + 794 estate → ISLA in-family
+  +18% (0.0658): mixing cost grows with the foreign share. Supersedes the one-seed
   "pays 33% (0.074 vs 0.056)" preview.
 - **Weights-off fixed-angle rung (2026-09-10, float32, two seeds; results/now_single12_reduction_2026-09-10.json).**
   ISLA weights off 0.03106 (0.03164/0.03047) vs weights on 0.03476 → 0.894x, lower on 17/18
@@ -1167,3 +1171,52 @@ interior control @sec-nb-udrv-int-prereg.
   "at matched rate the gauges are at parity on DrivAerML (one constant-gauge seed at 3e-3)"; the 35-case
   1.08x is rate-matched and stands. Label the gauge row "lr 3e-3" wherever it sits beside 1e-3 rows.
   Rate-matched 1e-3 gauge pair added to WAVE-4 (w4_dr_mt2_gauge_lr1e3_seed{42,43}).
+- **Density probe convention (2026-09-10, verified by the transfer session in the code path the model
+  sees).** `drivaer_probe_biased3` = biased INCLUSION with exact importance correction
+  (PoissonBiasedSubsampleMesh composes 1/π_i into `_measure_weights`; cell_measures = true triangle
+  areas × weights; totals preserved within Poisson noise, ~3%). Dense-half ratio 937, sparse-half
+  9,366 (= 1,703 × 0.55 / × 5.5). So the probe is an unbiased Horvitz–Thompson quadrature of each
+  region; degradation ratios are MODEL properties (constant-gauge ISLA 12–14x, weights-off 19x,
+  unit GT 7.9–11.8x, Transolver 2.2–5.5x, similarity-gauge ISLA 1.21x = residual estimator variance +
+  model). Write "biased inclusion with exact measure weights", never "biased quadrature". Mechanism
+  derivation for the constant gauge's collapse (unweighted centroid): #sec-nb-centroid-derivation,
+  test owned by the generalization-plan session.
+- **Loader hazard: structural fix merged (2026-09-10; scaling 0e41b9ee1 + transfer c50b87e0a).**
+  `load_checkpoint` raises when a training checkpoint exists but the model's weights file is
+  missing, and searches a model's declared `_legacy_class_names` first (ISLA declares
+  "MeshTransformer2", so legacy MeshTransformer2.*.mdlus load with a warning naming both files);
+  undeclared renames are refused, never skipped. Tests: test_load_checkpoint_refuses_uninitialized_model,
+  test_load_checkpoint_finds_legacy_class_name, test_isla_declares_its_legacy_name. Hazard confirmed
+  on the cluster: both 40k mirror logs of iw_mt2_lr1e3 contain "skipping load", both seeds 1.566679
+  (seeded init) → the "28x density collapse" is STRUCK with cause; all other SCALE evaluations verified
+  loaded. RULES: an evaluation log containing "skipping load" VOIDS the run; the frozen snapshots
+  `code`, `code_isla2–5`, `code_perf`, `code_support` predate the guards, so every evaluation from them
+  must be grepped for "skipping load" before its number is used; a program-wide guarded evaluation
+  snapshot built from the merged head is the pending fix (identity check against `code` on one legacy
+  checkpoint in float32 before adoption).
+- **Program-wide evaluation snapshot = `$T/code_eval` (2026-09-10; identity check jobs 700122/700142).**
+  Float32, 48 DrivAerML cars, per-case comparison against the `code` evaluations: ISLA
+  iw_mt2_lr1e3_seed42 0.056818 vs 0.056818 (mean rel diff 1.3e-6, max per-case 6e-5; loaded via the
+  legacy class-name path with a warning), GeoTransolver uw_gt_unit_lr1e3_seed42 0.050043 identical
+  (0.0), Transolver uw_transolver_unit_lr3e3_seed42 0.05158 identical (0.0); zero "skipping load".
+  All fp32_eval/*.sbatch launchers now import code_eval (backups in fp32_eval/pre_codeeval_backup/).
+  RULE: every float32 or probe evaluation runs from code_eval; the training snapshots are for training
+  and bf16 reproduction only. code_eval = worktree-scaling-study 0e41b9ee1 package, evaluation-only
+  (SNAPSHOT file), fast kernel opt-in so the default forward is the bitwise reference.
+- **Interior ISLA QT+SDF third seed (2026-09-10, fp32, code_eval).** Seed 44: 0.0564 / 0.0809 / 0.1083;
+  three-seed means 0.0553 / 0.0804 / 0.1109 (spreads 1.7% / 0.6% / 6%). Three-seed ratios ISLA ÷
+  GT-volume: pressure 1.08x (was 1.06x), velocity 0.75x (was 0.73x), ν_t 1.27x (was 1.28x). Write
+  "8% behind on pressure, 25% ahead on velocity, 27% behind on eddy viscosity" once chapter 8 and the
+  index are refreshed to three seeds (pending the generalization session's index merge).
+- **Gauge learning-rate confound on DrivAerML (2026-09-10, generalization session).** iw_mt2_gauge_seed{42,43}
+  were trained at lr 3e-3 (instwave default), iw_mt2_lr1e3 at 1e-3, so "gauge 0.0616 vs reference
+  0.0558" is rate-confounded; rate-matched (3e-3 vs mt2_v3c_seed42 0.0620 fp32) the gauge is at PARITY
+  on DrivAerML. Never quote a DrivAerML gauge price; label every gauge row with its rate. The 35-case
+  1.08x gauge cost is rate-matched and stands; chapter 6 §density already states DrivAerML neutrality
+  (same seeds, same rate). Rate-matched 1e-3 pair w4_dr_mt2_gauge_lr1e3_seed{42,43} in WAVE-4.
+- **Skipped-load audit of the main program's evaluation logs (2026-09-10).** hl_evals 154, hl_evals_fp32
+  177, iw_evals 53, iw_evals_fp32 44, v0_evals 51, v0_evals_fp32 44, iw_evals_fp32_codeeval 3 logs:
+  ZERO contain "skipping load". Every number in the main book from these roots was produced with the
+  checkpoint loaded (evaluation snapshots matched the training snapshots by construction). The only
+  skipped loads in the program were the transfer session's two T2 reference passes and the 4-way probe
+  under code_support, all discarded and redone, and the scaling session's 40k mirror (struck).
