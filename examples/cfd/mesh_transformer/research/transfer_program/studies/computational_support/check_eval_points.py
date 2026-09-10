@@ -41,8 +41,8 @@ def per_case_metric(run_dir, key="pressure_l2"):
     out = {}
     for line in open(os.path.join(run_dir, "metrics.jsonl")):
         r = json.loads(line)
-        if r.get("phase") == "infer_step" and "case" in r:
-            out[r["case"]] = r["metrics"].get(key)
+        if r.get("phase") == "infer_step" and "sample_id" in r:
+            out[r["sample_id"]] = r["metrics"].get(key)
     return out
 
 
