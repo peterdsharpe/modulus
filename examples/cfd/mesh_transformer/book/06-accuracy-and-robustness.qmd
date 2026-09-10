@@ -393,7 +393,7 @@ measure-consistent model sees the same integral under all three.
 #|   weights span 1,000-37,000 (the bias probe's span exactly 10), so at small
 #|   counts the refined regions (mirrors, slat and flap gaps) are unsampled
 #|   and its fixed-count values carry information loss as well as variance;
-#|   only the trend with count is interpretable. Markers are seed means over
+#|   only the trend with count is interpretable. Legend: hue and marker identify the architecture and configuration. Markers are seed means over
 #|   two seeds (raw values in the artifact). Float32; each checkpoint under its
 #|   training snapshot. Data:
 #|   results/consistency_bench/consistency_bench_2026-09-10.json.
@@ -440,20 +440,24 @@ for i, (row_title, arms) in enumerate(ROWS):
             label, color, mk, ls = STYLE[key]
             ref = err(arm, "unif", "40000")
             y = [err(arm, sampler, c) / ref for c in COUNTS]
-            ax.plot(x, y, color=color, ls=ls, lw=1.6, marker=mk, ms=5, mfc="white", mec=color, mew=1.4, zorder=3)
-            ax.annotate(label, (x[-1], y[-1]), xytext=(4, 0), textcoords="offset points", fontsize=7.5,
-                        color=color, va="center", ha="left",
-                        bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.85))
+            ax.plot(x, y, color=color, ls=ls, lw=1.6, marker=mk, ms=5, mfc="white", mec=color, mew=1.4,
+                    zorder=3, label=label if (i == 0 and j == 0) else None)
         ax.axhline(1.0, color=BASELINE, lw=1.0, zorder=1)
         ax.set_xscale("log"); ax.set_yscale("log")
+        ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
+        ax.yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
         ax.set_xticks(x); ax.set_xticklabels(["2.5k", "5k", "10k", "20k", "40k"])
-        ax.set_xlim(2100, 1.6e5)
+        ax.set_xlim(2100, 4.8e4)
         if i == 0: ax.set_title(stitle, color=INK, fontsize=10, loc="left")
         if j == 0: ax.set_ylabel(f"{row_title}\nerror ÷ own uniform-40k error [-]", color=INK2)
         if i == len(ROWS) - 1: ax.set_xlabel("sampled cells per case [count]")
+handles, labels_ = [], []
+for ax in axs.flat:
+    h, l = ax.get_legend_handles_labels(); handles += h; labels_ += l
+fig.legend(handles, labels_, loc="upper left", ncol=5, fontsize=8.5, bbox_to_anchor=(0.01, 0.965), handlelength=2.2, columnspacing=1.4)
 fig.suptitle("Pressure rel-L2 relative to each architecture's uniform 40,000-cell error, by sampler and validation set",
-             color=INK, fontsize=10.5, x=0.01, ha="left")
-fig.tight_layout(rect=(0, 0, 1, 0.97))
+             color=INK, fontsize=10.5, x=0.01, y=0.995, ha="left")
+fig.tight_layout(rect=(0, 0, 1, 0.925))
 plt.show()
 ```
 
