@@ -10108,3 +10108,109 @@ difference; either way, the numbers a checkpoint produces depend on the
 evaluation snapshot at the 6% level, which is larger than several of the
 book's stated margins, and needs its own instrument before any
 cross-snapshot comparison is read.
+
+## 2026-09-09 — Preregistered: SNAPSHOT-LADDER, which code or recipe change moves the evaluation of a fixed checkpoint by 6%? {#sec-nb-snapshot-ladder-prereg}
+
+**Symptom.** The DrivAerML reference checkpoint `iw_mt2_lr1e3_seed42`
+scored a validation pressure relative L2 of 0.05875 at training time, from
+the code snapshot that trained it; evaluated through the recipe's inference
+path from the current snapshot with the same (reference) kernel it scores
+0.06235 (+6.1%; wall shear +6.1%; per-case changes up to 31–51%;
+@sec-nb-cost-matched-fast). Every comparison in the program that reads a
+checkpoint through a different snapshot than the one that trained it rests
+on knowing where that 6% comes from.
+
+**Instrument (eval-only).** The same checkpoint, the reference kernel, the
+same recipe copy ($T/recipe), dataset drivaer_ml_surface, validation split,
+10,000 sampled cells, evaluated under each cluster code snapshot in turn:
+`code` (trained it; produced 0.05875), `code_isla2`, `code_isla3`,
+`code_isla4`, `code_isla5`, `code_perf`; then, if $T/recipe_support (the
+transfer session's recipe copy) differs from $T/recipe, `code` with
+recipe_support. The checkpoint directory is exposed through a symlinked copy
+carrying both class-derived file names (`MeshTransformer2.0.500.mdlus`,
+`ISLA.0.500.mdlus`) so every snapshot loads the same weights, and each
+evaluation must log "Loaded model state dictionary". For two fixed
+validation cars the sampled point coordinates are read from each
+evaluation's prediction artifact and compared across snapshots (identical,
+a permutation, or a different sample).
+
+**Readouts.** Per snapshot: mean pressure, velocity and wall-shear relative
+L2 over the 48 cars; the largest per-case relative change against the
+`code` evaluation; identity of the sampled point sets. **Bars.** The
+discrepancy is *attributed to a snapshot step* if exactly one adjacent pair
+in the ladder moves the mean pressure error by ≥ 3% while every other
+adjacent pair moves it ≤ 0.3%. If the point sets differ across that pair,
+the attribution is *the validation sample changed*, and the change is named
+from the git history of physicsnemo/datapipes/readers/mesh.py and
+physicsnemo/mesh between the two snapshots' recorded commits. If all
+snapshots agree with one another (≤ 0.3%) but not with the 0.05875 recorded
+at training time, the discrepancy lies *between the training-time validation
+pass and infer.py*, and that is the finding. Anything else is reported as
+measured.
+
+## 2026-09-09 — Verdict: SNAPSHOT-LADDER — the +6% is bf16 evaluation rounding, not code, data or recipe: in float32 every snapshot scores the fixed checkpoint at 0.05682 to five digits, while bf16 gives 0.05875 under the training class and 0.06235 under every later one {#sec-nb-snapshot-ladder-verdict}
+
+**Ladder** (@sec-nb-snapshot-ladder-prereg; checkpoint `iw_mt2_lr1e3_seed42`,
+reference kernel, recipe $T/recipe, DrivAerML validation, 10,000 cells, bf16
+autocast unless stated; results/snapshot_ladder_2026-09-09.json):
+
+| evaluation | pressure | wall shear | wss x / y / z | largest per-case change vs `code` |
+|---|---|---|---|---|
+| training-time record (snapshot `code`) | 0.05875 | 0.08580 | 0.0649 / 0.1483 / 0.1263 | — |
+| `code` | 0.05875 | 0.08580 | 0.0649 / 0.1483 / 0.1263 | 0 (bitwise) |
+| `code` with recipe_support | 0.05875 | 0.08580 | 0.0649 / 0.1483 / 0.1263 | 0 |
+| `code_isla2` | 0.06235 | 0.09100 | 0.0684 / 0.1619 / 0.1307 | 31% |
+| `code_isla3`, `code_isla4`, `code_isla5`, `code_perf` | 0.06235 | 0.09100 | identical to `code_isla2` | 31% |
+| **float32**, `code` | **0.05682** | **0.08300** | 0.0627 / 0.1427 / 0.1229 | — |
+| **float32**, `code_perf` | **0.05682** | **0.08300** | identical to fp32 `code` (per case ≤ 0.001%) | — |
+
+Exactly one adjacent pair moves the mean (`code` → `code_isla2`, +6.1%);
+every other pair is bitwise identical; the recipe copy is exonerated. The
+sampled points, cells, normals, freestream and reference length saved by
+every evaluation are bit-identical across all snapshots for both fixed cars
+(results/snapshot_ladder_2026-09-09.json, `point_identity_ladder`), so the
+sample did not change.
+
+**What the step is.** With the training snapshot and the `code_isla2`
+snapshot grafted into one process and the same checkpoint weights loaded
+into both classes (no missing or unexpected keys), the old
+`MeshTransformer2` and the new `ISLA` agree in float32 to 3.6 × 10⁻⁶
+relative L2 with every one of the twelve blocks' hidden states bitwise
+identical, and disagree under bf16 autocast by 3.3% relative L2 (each
+class's own bf16-versus-fp32 difference is 2.5%;
+results/snapshot_model_diff_2026-09-09.json). The two forwards are the same
+arithmetic; the refactor pooled the eight relational invariants over slices
+before projecting them instead of after, an exact reordering in real
+arithmetic, which moves the bf16 rounding points. The float32 evaluation
+under both snapshots agrees per case to 0.001%
+(results/snapshot_ladder_fp32_code_vs_perf_2026-09-09.json).
+
+**Verdict.** The discrepancy is *bf16 evaluation rounding sensitivity of the
+trained model*, exposed by an exactly equivalent code reordering: the same
+weights on the same points score 0.0568 in float32, 0.0588 in bf16 under
+one rounding pattern and 0.0624 under another (+3.4% and +9.7% over the
+float32 value; per case up to 31%;
+results/snapshot_ladder_fp32_vs_bf16_2026-09-09.json). Neither bf16 number
+is "the" checkpoint's error. The same mechanism produced the earlier
+findings that a summation-order change (the fast point softmax,
+@sec-nb-cost-matched-fast) moves single cases by 20% and the means by
+under 1%.
+
+**Consequences.** (1) Within-family comparisons in the book are sound as
+long as every arm was evaluated by the same snapshot in the same precision,
+which the pair matrix confirms for every program comparison pair checked
+(points identical; results/snapshot_ladder_2026-09-09.json, `pair_matrix`),
+but their bf16 numbers carry a common rounding offset of several percent
+relative to the float32 error, of unknown sign per checkpoint. (2) Any
+number read across snapshots (a checkpoint evaluated by later code) is not
+comparable at the few-percent level in bf16. (3) The reproducible
+instrument is float32 inference (`precision=float32` in infer.py; the cost
+is inference-only and small): the recommendation is to re-evaluate every
+reported checkpoint in float32 once, eval-only, and to state evaluation
+precision alongside every number; whether GeoTransolver and Transolver
+checkpoints carry a comparable bf16 offset is untested here and is the
+first thing that pass would show. (4) Training with the fast kernel is
+unaffected (models trained and evaluated with one kernel are
+self-consistent); the `fast_point_softmax` default stays off for evaluating
+existing checkpoints, and would be moot under float32 evaluation, where the
+two kernels agree to 10⁻⁶.
