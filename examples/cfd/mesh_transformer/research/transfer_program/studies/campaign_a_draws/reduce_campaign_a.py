@@ -14,8 +14,13 @@ Bars (PREREG.md): ordering stands if the 90% interval of baseline/ISLA excludes 
 parity if it contains 1.0 with spread < 0.10; weights-off persists if nw/ISLA <= 0.93 on
 all draws, fades if any draw >= 0.97. Runs on the cluster login node with the recipe venv.
 """
-import glob, json, math, statistics as st, sys
+import glob, json, math, os, statistics as st, sys
 T = "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0"
+# float32 inference is the reporting instrument (CLAIMS 31a069280): campaign evals live in hl_evals_fp32/, the
+# curated-draw references in the main session's float32 re-evaluations in the same directory. EVAL_ROOT=hl_evals
+# reduces the bf16 side for the offset table.
+EVAL_ROOT = os.environ.get("EVAL_ROOT", "hl_evals_fp32")
+OUT = os.environ.get("OUT", f"{T}/transfer/campaign_a_reduction_{EVAL_ROOT}.json")
 F = ("pressure_l2", "velocity_l2", "tau_wall_l2")
 ARMS = ("gt", "transolver", "isla", "islanw")
 CURATED = {  # curated-draw run ids for the comparison "draw 0" (unit drive for the baselines)
@@ -32,7 +37,7 @@ T90 = {2: 2.920, 1: 6.314}  # two-sided 90% t quantile for n-1 degrees of freedo
 
 
 def load(run):
-    ps = glob.glob(f"{T}/hl_evals/{run}/*/metrics.jsonl")
+    ps = glob.glob(f"{T}/{EVAL_ROOT}/{run}/*/metrics.jsonl")
     if not ps:
         return None
     rows = [json.loads(l) for l in open(ps[0])]
@@ -101,7 +106,8 @@ for n in (35, 210):
                 summ["verdict"] = ("persists" if all(r <= 0.93 for r in camp) and len(camp) == 3 else
                                    "fades" if any(r >= 0.97 for r in camp) else "between")
         out["ratios"][f"{name}_n{n}"] = summ
-json.dump(out, open(f"{T}/transfer/campaign_a_reduction.json", "w"), indent=1)
+out["eval_root"] = EVAL_ROOT
+json.dump(out, open(OUT, "w"), indent=1)
 for k, v in out["arms"].items():
     print(k, {d: round(x["seed_mean"]["pressure_l2"], 4) for d, x in v["per_draw"].items()}, {kk: (round(vv, 4) if isinstance(vv, float) else vv) for kk, vv in v["pressure_decomposition"].items() if kk != "draw_means"})
 for k, v in out["ratios"].items():
