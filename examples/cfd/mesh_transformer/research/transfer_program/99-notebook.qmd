@@ -1255,3 +1255,19 @@ class case and the fresh-directory case. Commit c50b87e0a, standalone for
 lifting into an upstream PR; the same patch is applied to `code_support`
 on the cluster (`transfer/patch_code_support_checkpoint.py`), which the D1,
 campaign D and campaign C evaluation launchers share.
+
+**Correction to the first-batch losses quoted above (@sec-nb-snapshot-hazard,
+@sec-nb-snapshot-resolved).** The "0.105 against 0.080" figures were the
+second epoch's first batch (the training log numbers epochs from 0). The
+true first-batch training losses on the 20 fastback cases are: frozen-init
+probe 0.193751; ISLA fine-tune at lr 1e-3 **0.193751** and at lr 1e-4
+**0.193751** (identical to six digits with the probe: same loaded weights,
+same first batch); ISLA from scratch **0.477**; GeoTransolver fine-tune
+0.176, GeoTransolver from scratch 0.278. So the pretrained ISLA starts 2.5x
+better than a random initialization and the pretrained GeoTransolver 1.6x
+better, and after 1,000 matched-rate steps ISLA's head start has shrunk to
+6% while GeoTransolver's has grown to 31%: the two architectures' DrivAerML
+knowledge is worth about the same at step 0 and very different amounts
+after adaptation. That is a sharper statement of the T3 finding than the
+one in @sec-nb-campc-t3-verdict, and it removes the last doubt about the
+initialization.
