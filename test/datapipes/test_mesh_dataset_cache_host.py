@@ -63,3 +63,12 @@ def test_cache_host_off_rereads():
     assert reader.reads == {0: 2}
     assert ds.cache_host is False
     ds.close()
+
+
+def test_cache_host_views_reads_k_views_then_cycles():
+    reader = _CountingReader()
+    ds = MeshDataset(reader, cache_host=True, cache_host_views=3)
+    got = [ds[0][0].points[0, 0].item() for _ in range(7)]  # reader returns index-offset points; views identical here
+    assert reader.reads == {0: 3}  # three views read, then cycled
+    assert len(got) == 7 and all(g == 0.0 for g in got)
+    ds.close()
