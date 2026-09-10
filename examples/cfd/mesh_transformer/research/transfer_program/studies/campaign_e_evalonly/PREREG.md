@@ -1,5 +1,20 @@
 # Preregistration: campaign E, density-bias probe on the unit-drive baselines (written 2026-09-09 before any evaluation)
 
+> Convention note added 2026-09-10 (after the verdict; the preregistration
+> text below is unchanged). The probe yamls named here run CenterMesh
+> before the biased draw, so models that consume absolute centred
+> coordinates (GeoTransolver, Transolver) were probed in the unbiased pool's
+> frame while ISLA re-centres internally on the drawn sample. The
+> generalization session's like-for-like test showed the baselines degrade
+> more when the centering follows the draw (the frame a biased mesher would
+> deliver). The verdict's factors are therefore labelled "pool frame" and
+> the same eleven checkpoints are re-evaluated under the program's
+> canonical sample-frame probes `drivaer_probe_{unif2,biased3}_sf`
+> (`reduce_campaign_e.py --frame sample`); every density ratio in this
+> companion states its convention, sample frame being the default from
+> here on. No bar changes: the pool frame is the more favourable one for
+> the baselines, so the "holds" verdict can only strengthen.
+
 ## Question
 
 The program book's remaining robustness claim for ISLA is the 10:1

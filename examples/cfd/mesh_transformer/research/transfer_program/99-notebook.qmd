@@ -1802,3 +1802,81 @@ design (a constant one-bit scalar); a flag carrying the physical conditions
 that differ (ground clearance, wheel rotation) is a different experiment,
 but the T1 result says the model already reads those from the inputs.
 Chapter @sec-campaigns-conditioning is written from this entry.
+
+## 2026-09-10 — Convention correction, campaign E: the density probe centred the mesh before the biased draw; re-evaluated in the sample frame the baselines collapse 12x (GeoTransolver 9.5 → 12.1, Transolver 3.9 → 11.6) while the three ISLA rows move ≤ 1% {#sec-nb-campe-frame}
+
+**Setting.** Campaign E (@sec-nb-campe-verdict) scored five configurations
+on the 48 DrivAerML validation cars under a uniform draw and a 10:1
+Poisson-biased draw of the surface (dense front half, exact
+Horvitz–Thompson weights in the measure field), reporting the degradation
+factor biased ÷ uniform in float32. The probe yamls
+(`drivaer_probe_{unif2,biased3}`) apply `CenterMesh` before the draw: the
+coordinates handed to the model are centred on the unbiased 40,000-cell
+pool's mean. GeoTransolver and Transolver consume those absolute
+coordinates directly, so they were probed in a frame a biased mesher could
+not deliver (it would centre on the mean of the points it produced, which
+under a front-heavy draw sits well forward of the pool's). ISLA re-centres
+internally on the drawn sample's measure-weighted mean and is exactly
+invariant to a translation of the input, so its rows are unaffected. The
+generalization session found the effect in its like-for-like frame test;
+ISLA Main asked for the relabel and offered the rerun. The two conventions
+are named **pool frame** (centre before the draw, the original probe) and
+**sample frame** (centre after the draw, the program's canonical
+`drivaer_probe_{unif2,biased3}_sf` yamls, one file shared by the three
+sessions; the only change is the position of `CenterMesh`).
+
+**Instrument.** Eval-only: the same eleven checkpoints, float32, 10,000
+cells, validation split, code snapshot `code_eval`. Four baseline runs
+(unit-drive GeoTransolver seeds 42/43, Transolver seeds 42/43) had already
+been evaluated under the sample-frame yaml by the generalization session
+(`$T/mw_evals_probe_postcenter`, float32, no skipped loads) and are read
+from there; the seven others (GeoTransolver seed 44, the six ISLA runs)
+ran under `transfer/campaign_e_density_fp32_sf_aga.sbatch` (job 704919,
+two minutes each). The reducer takes `--frame {pool,sample}` and records
+the convention and each run's source path in the artifact
+(`studies/campaign_e_evalonly/campaign_e_density_fp32_sampleframe_2026-09-10.json`).
+No preregistered bar changes: the pool frame is the more favourable frame
+for the baselines, so the "holds" verdict can only strengthen. The ISLA
+rows are the control that the move is a pure translation for a model that
+centres internally.
+
+**Readout (float32; pressure relative L2; factor = biased ÷ uniform; seeds
+in parentheses).**
+
+| arm | uniform (sample frame) | biased, sample frame | factor, sample frame | factor, pool frame (@tbl-campe-fp32) |
+|---|---|---|---|---|
+| GeoTransolver, unit drive (3 seeds) | 0.0504 | 0.612 | 12.1 (12.0, 11.9, 12.5) | 9.5 (11.8, 7.9, 8.8) |
+| Transolver, unit drive, lr 3e-3 | 0.0518 | 0.601 | 11.6 (10.2, 13.0) | 3.9 (2.2, 5.5) |
+| ISLA reference, constant gauge | 0.0560 | 0.672 | 12.0 (12.4, 11.6) | 12.1 (12.5, 11.7) |
+| ISLA similarity gauge | 0.0624 | 0.0753 | 1.21 (1.20, 1.22) | 1.21 (1.21, 1.21) |
+| ISLA weights off (ablation) | 0.0539 | 1.038 | 19.2 (23.4, 15.1) | 19.1 (23.1, 15.2) |
+
+: Every car is worse under the bias for every run except the gauge arm's (47 of 48 for both seeds), in both frames. Uniform-draw levels agree between frames to 0.0002 for every arm. {#tbl-campe-frames}
+
+**What changed and what did not.** The baselines' factors rise from 9.5 to
+12.1 (GeoTransolver) and from 3.9 to 11.6 (Transolver); the three ISLA
+rows move by at most 1% (constant gauge 12.1 → 12.0, gauge 1.21 → 1.21,
+weights off 19.1 → 19.2), the residual being float32 roundoff on shifted
+coordinates plus the handful of degenerate cells dropped after centering.
+Two campaign E readings are revised. First, the ordering among the
+non-gauge arms in the pool frame (Transolver 3.9 < GeoTransolver 9.5 <
+constant-gauge ISLA 12.1 < weights-off 19.1) was partly a frame artefact:
+in the sample frame both baselines and the constant-gauge ISLA collapse to
+the same twelve-fold, and only the weights-off ablation is worse. The
+sentence in @sec-nb-campe-verdict that Transolver's learned routing
+"degrades more gracefully (2.2–5.5x) because its routing is by learned
+features rather than by counts" is **superseded**: given the centre a
+biased mesher would deliver, Transolver degrades as much as GeoTransolver
+(10.2–13.0x). Second, the verdict strengthens rather than changes: the
+gauge arm's 1.21 against 12.1 for the input-matched GeoTransolver, and the
+preregistration's "holds" clause (GeoTransolver ≥ 1.32, gauge ≤ 1.24) is
+met by a wider margin. The mechanism reading is sharpened: the two
+baselines fail through two density-dependent channels, neighbour
+statistics (GeoTransolver's local features) and the absolute coordinate
+frame (both), and only the second is removed by the pool-frame probe.
+
+**Convention rule for this companion.** Every density ratio states its
+frame; the sample frame is the default from here on, and the pool-frame
+values stand in @tbl-campe-fp32 and @tbl-campe-bf16 as dated records
+labelled as such. Chapter @sec-campaigns-density shows both columns and
+quotes the sample frame.

@@ -1,18 +1,23 @@
 # Campaign results {#sec-campaigns}
 
 **Of five configurations scored under a ten-fold sampling-density skew on
-DrivAerML, only the similarity-gauge ISLA keeps its accuracy (1.21x); the
-input-matched unit-drive GeoTransolver degrades 9.5x, Transolver 3.9x, and
-the two other ISLA configurations 12x and 19x. When every car arrives in a
-random pose, ISLA keeps its canonical accuracy (1.4% worse) while the
-augmented GeoTransolver and Transolver lose 20% and 31%, and ISLA leads
-both. And on the one real transfer setting, fine-tuning from DrivAerML on
-20 fastback labels is worth 31% for GeoTransolver and nothing for ISLA.**
-This chapter collects the verdicts of the node-budget campaigns
+DrivAerML, only the similarity-gauge ISLA keeps its accuracy (1.21x); in
+the frame a biased mesher would deliver, the input-matched unit-drive
+GeoTransolver, Transolver and the constant-gauge ISLA all collapse about
+twelve-fold and the measure-weights-off ablation nineteen-fold. When every
+car arrives in a random pose, ISLA keeps its canonical accuracy (1.4%
+worse) while the augmented GeoTransolver and Transolver lose 20% and 31%,
+and ISLA leads both. On the one real transfer setting, a few hundred cars
+of a sibling family buy the target family almost entirely, a convention
+flag buys nothing, and fine-tuning from DrivAerML on 20 fastback labels is
+worth 31% for GeoTransolver and nothing for ISLA. In the interior, width
+closes ISLA's pressure gap to GeoTransolver-volume at matched parameters
+and leaves an eddy-viscosity deficit that lives entirely in the far
+field.** This chapter collects the verdicts of the node-budget campaigns
 (@sec-nb-campaign) as they close; each section states the question, the
-preregistered bar, the float32 readout and what it changes. Campaign A
-(data-draw variance), campaign D (interior carriers) and the conditioning
-and diversity parts of C are still training and are absent here by design.
+preregistered bar, the float32 readout and what it changes. Campaign A's
+210-case rung and the far-field context arms for the interior are still
+training and are absent here by design.
 
 ## Data-draw variance of the HiLift comparisons (campaign A, 35-case rung) {#sec-campaigns-draws}
 
@@ -340,35 +345,51 @@ been run through the same probe. Campaign E ran it, in float32 inference
 the canonical unit-drive GeoTransolver and Transolver checkpoints and on
 three ISLA configurations.
 
+The probe has one convention that matters for models reading absolute
+coordinates. The original probe centred the mesh before the biased draw, so
+GeoTransolver and Transolver saw the unbiased pool's frame (the "pool
+frame"); a biased mesher would instead deliver the mean of the points it
+produced (the "sample frame", the program's canonical convention since
+2026-09-10, @sec-nb-campe-frame). ISLA centres internally on the drawn
+sample and is invariant to the choice. Both conventions are reported; the
+sample frame is the one to quote.
+
 ```{python}
 #| output: asis
 import json
 from pathlib import Path
 d = json.loads(Path("studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json").read_text())
+s = json.loads(Path("studies/campaign_e_evalonly/campaign_e_density_fp32_sampleframe_2026-09-10.json").read_text())
 b = json.loads(Path("studies/campaign_e_evalonly/campaign_e_density_bf16_2026-09-09.json").read_text())
 names = {"gt_unit": "GeoTransolver, unit drive", "transolver_unit": "Transolver, unit drive (lr 3e-3)",
          "isla_reference": "ISLA, constant gauge (reference configuration)", "isla_gauge": "ISLA, similarity gauge",
-         "isla_noweights": "ISLA, measure weights off"}
-print("| arm | seeds | uniform draw | 10:1 biased draw | degradation factor (per seed) | bf16 uniform draw |")
-print("|---|---|---|---|---|---|")
+         "isla_noweights": "ISLA, measure weights off (ablation)"}
+print("| arm | seeds | uniform draw | 10:1 biased draw, sample frame | factor, sample frame (per seed) | factor, pool frame (per seed) | bf16 uniform draw |")
+print("|---|---|---|---|---|---|---|")
 for k, n in names.items():
-    a = d["arms"][k]; ab = b["arms"][k]
-    seeds = ", ".join(f"{x:.2f}" for x in a["factor_seeds"])
-    print(f"| {n} | {a['n_seeds']} | {a['unif_pressure_mean']:.4f} | {a['biased_pressure_mean']:.3f} | {a['factor_mean']:.2f} ({seeds}) | {ab['unif_pressure_mean']:.4f} |")
+    a = d["arms"][k]; sa = s["arms"][k]; ab = b["arms"][k]
+    seeds = ", ".join(f"{x:.2f}" for x in a["factor_seeds"]); sseeds = ", ".join(f"{x:.2f}" for x in sa["factor_seeds"])
+    print(f"| {n} | {sa['n_seeds']} | {sa['unif_pressure_mean']:.4f} | {sa['biased_pressure_mean']:.3f} | {sa['factor_mean']:.2f} ({sseeds}) | {a['factor_mean']:.2f} ({seeds}) | {ab['unif_pressure_mean']:.4f} |")
 print()
-print(": Surface-pressure relative L2 on the 48 DrivAerML validation cars, float32 inference, seed means; the factor is the biased-draw error divided by the uniform-draw error. The last column is the same uniform-draw evaluation in bf16, kept for the program's per-architecture offset table. Data: studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json and campaign_e_density_bf16_2026-09-09.json. {#tbl-campaigns-density}")
+print(": Surface-pressure relative L2 on the 48 DrivAerML validation cars, float32 inference, seed means; the factor is the biased-draw error divided by the uniform-draw error. Sample frame: the mesh is centred after the biased draw (the program's canonical probes drivaer_probe_{unif2,biased3}_sf); pool frame: centred before it (the original probes). The uniform-draw levels agree between frames to 0.0002 and the sample-frame ones are shown. The last column is the pool-frame uniform-draw evaluation in bf16, kept for the program's per-architecture offset table. Data: studies/campaign_e_evalonly/campaign_e_density_fp32_sampleframe_2026-09-10.json (sample frame; four baseline runs read from the generalization session's evaluations of the same yaml), campaign_e_density_fp32_2026-09-09.json (pool frame) and campaign_e_density_bf16_2026-09-09.json. {#tbl-campaigns-density}")
 ```
 
 The claim holds against fair baselines, by a wide margin: the
 preregistered bar asked for a GeoTransolver factor of at least 1.32 with
-the gauge arm's factor at most 1.24, and the readout is 9.5 against 1.21.
-Every car is worse under the bias for every run of the four non-gauge arms.
-The cost of the robustness is visible in the first column: the gauge arm is
-10–20% less accurate on the uniform draw than the constant-gauge ISLA
-(0.0558) and the unit-drive GeoTransolver (0.0505), so the trade is a fifth
-of the accuracy on a well-sampled surface for an eight- to fifteen-fold
-smaller error under the skew. The two non-gauge ISLA configurations are the
-least robust of the five, and the measure-weights-off ablation, which reads
+the gauge arm's factor at most 1.24, and the sample-frame readout is 12.1
+against 1.21 (pool frame 9.5 against 1.21). Every car is worse under the
+bias for every run of the four non-gauge arms. In the sample frame the two
+baselines and the constant-gauge ISLA collapse alike, to roughly twelve
+times their uniform-draw error; the pool frame had flattered Transolver
+(3.9) and GeoTransolver (9.5) by handing them the unbiased pool's centre,
+a quantity a biased mesher cannot supply. The three ISLA configurations
+move by at most 1% between frames, the internal centering being exactly
+what makes them frame-independent. The cost of the robustness is visible
+in the first column: the gauge arm is 10–20% less accurate on the uniform
+draw than the constant-gauge ISLA (0.0560) and the unit-drive
+GeoTransolver (0.0504), so the trade is a fifth of the accuracy on a
+well-sampled surface for a ten-fold smaller error under the skew. The
+measure-weights-off ablation is the least robust of the five, and, reading
 the mesher's sampling density in place of the surface measure and is 2.8%
 more accurate on canonical data for it, reaches an error above 1.0 under
 the bias, worse than predicting zero. That is the discretization dependence
@@ -385,9 +406,13 @@ dense half; the constant-gauge ISLA meets weights far outside its training
 range in every measure-weighted sum; the weights-off ISLA has no measure
 and reads the front-heavy token cloud as geometry; GeoTransolver's
 radius-based local features are neighbour statistics that shift ten-fold
-with density; Transolver's learned slice routing degrades more gracefully.
-A gauge arm with weights off would test whether the gauge alone suffices;
-it is not scheduled.
+with density, and both it and Transolver read absolute coordinates whose
+origin moves with the sample's centre of mass under the bias. The
+pool-frame reading that Transolver's routing "degrades more gracefully"
+(3.9 against 9.5) was an artefact of that frame: given the centre a biased
+mesher would deliver, Transolver degrades as much as GeoTransolver. A gauge
+arm with weights off would test whether the gauge alone suffices; it is
+not scheduled.
 
 One preregistration miscalibration is recorded rather than rewritten: the
 "holds" clause named the ISLA reference configuration as the arm whose
