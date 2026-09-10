@@ -145,9 +145,13 @@ label budget, half the labels spent on the target convention's sibling
 family buy the target family almost entirely (the mixed 435-case models
 match the program's earlier DrivAerML + 794-estate training on the
 fastback cases) and cost a fifth to a third of the source family's
-accuracy. Part of that cost is each architecture's own 218-car data-ladder
-rung rather than the mixing, and the asymmetry (ISLA 32%, GeoTransolver
-19%) points the same way as the few-shot result below.
+accuracy. Four control lanes trained on the same 218 DrivAerML cars alone
+split that cost: the halving of the source data accounts for a factor 1.23
+(ISLA) and 1.14 (GeoTransolver), the mixing itself for 1.08 and 1.04
+(products 1.32 and 1.19, the measured costs). So the foreign family costs
+the source family only 4–8% at this share; the rest is the data ladder.
+ISLA pays more on both factors, the same direction as the few-shot result
+below.
 
 ## Few-shot adaptation on the fastback shift (campaign C, T3) {#sec-campaigns-fewshot}
 
