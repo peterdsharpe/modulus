@@ -76,12 +76,14 @@ Caveats:
   trained.
 """
 
+import math
 import os
 from pathlib import Path
 from typing import Any
 
 import hydra
 import torch
+import torch.distributed as dist
 from datasets import build_dataloaders, find_normalizer, load_dataset_config
 from forces import ForceAccumulator, ForceContext
 from metrics import MetricCalculator, resolve_metrics
@@ -362,6 +364,45 @@ def _allreduce_sums(
     )
 
 
+def _check_summary_in_range(
+    averages: dict[str, float],
+    minima: dict[str, float],
+    maxima: dict[str, float],
+    count: int,
+    device: torch.device | str,
+) -> None:
+    """Refuse a summary that lies outside the range of its own per-sample values.
+
+    Every summary metric is the mean of per-sample values, so it must fall
+    between the smallest and largest per-sample value seen on any rank (up to
+    float roundoff). The per-rank extrema are reduced with ``MIN`` / ``MAX``
+    collectives and the check raises instead of writing a number that looks
+    like a measurement: an aggregate outside its own samples' range can only
+    come from the aggregation (a miscounted or mis-reduced sum), never from
+    the model, and a silent one propagates into every downstream table.
+    """
+    if count == 0:
+        return
+    keys = sorted(averages)
+    lo = fused_all_reduce(
+        {k: torch.tensor(minima[k]) for k in keys}, op=dist.ReduceOp.MIN, device=device
+    )
+    hi = fused_all_reduce(
+        {k: torch.tensor(maxima[k]) for k in keys}, op=dist.ReduceOp.MAX, device=device
+    )
+    bad = []
+    for k in keys:
+        lo_k, hi_k, mean_k = lo[k].item(), hi[k].item(), averages[k]
+        tol = 1e-5 * (abs(lo_k) + abs(hi_k) + 1.0)
+        if not (lo_k - tol <= mean_k <= hi_k + tol):
+            bad.append(f"{k}: summary {mean_k:.6g} outside per-sample range [{lo_k:.6g}, {hi_k:.6g}]")
+    if bad:
+        raise RuntimeError(
+            "Inference summary is inconsistent with its own per-sample metrics "
+            f"(count={count}); refusing to write it. " + "; ".join(bad)
+        )
+
+
 ### ---------------------------------------------------------------------------
 ### Driver
 ### ---------------------------------------------------------------------------
@@ -575,6 +616,14 @@ def main(cfg: DictConfig) -> None:
     ### when world_size exceeds the split size). ForceAccumulator does the
     ### same for the force sums.
     totals: dict[str, float] = {k: 0.0 for k in metric_calculator.expected_keys()}
+    ### Per-key running extrema of the per-sample metrics. The summary is a
+    ### mean of per-sample values, so it can never lie outside their range;
+    ### `_check_summary_in_range` turns a violation into an error instead of a
+    ### plausible-looking number (2026-09-10: a legacy snapshot's evaluation at
+    ### 80,000 cells wrote an aggregate of 0.814 over per-case values of
+    ### 0.05-0.08, and only a later re-evaluation exposed it).
+    minima: dict[str, float] = {k: math.inf for k in totals}
+    maxima: dict[str, float] = {k: -math.inf for k in totals}
     count = 0
     sampling_cap = cfg.get("sampling_resolution", None)
     subsampling_warned = False
@@ -598,6 +647,8 @@ def main(cfg: DictConfig) -> None:
         sample_metrics = {key: value.item() for key, value in metric_td.cpu().items()}
         for k, v in sample_metrics.items():
             totals[k] += v
+            minima[k] = min(minima[k], v)
+            maxima[k] = max(maxima[k], v)
         count += 1
 
         pred_pts = _to_pointwise(pred_td, output_type)
@@ -695,6 +746,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     averages = {k: totals[k] / max(count, 1) for k in sorted(totals)}
+    _check_summary_in_range(averages, minima, maxima, count, device)
     if is_rank0:
         table = tabulate(
             [[k, f"{v:.6f}"] for k, v in averages.items()],
