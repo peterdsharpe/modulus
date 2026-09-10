@@ -75,6 +75,53 @@ def arch_of(run):
     return "other"
 
 
+def config_of(run):
+    """ISLA configuration (the bf16 offset may depend on it) or the baseline's drive variant."""
+    a = arch_of(run)
+    if a == "isla":
+        if "noweights" in run or run.startswith("now_"):
+            return "isla_weights_off"
+        if "gauge" in run:
+            return "isla_similarity_gauge"
+        if "rawcoord" in run or "rawseed" in run or "nogeo" in run or "parity" in run or "true5" in run or "true7" in run or "oddhead" in run or "v5a4" in run:
+            return "isla_variant"
+        if "qtsdf" in run or "qt_sdf" in run:
+            return "isla_query_tokens_sdf"
+        if "mt2_int" in run:
+            return "isla_passive_interior"
+        if "mom2" in run:
+            return "isla_second_moment"
+        return "isla_reference"
+    if a in ("geotransolver", "transolver"):
+        return f"{a}_unit_drive" if (run.startswith(("udrv_", "uw_")) or "unit" in run) else f"{a}_physical_drive"
+    return a
+
+
+def dataset_of(run):
+    if run.startswith(("iw_", "uw_", "now_mt2", "mom2_", "v0_", "v0l_", "v0p_", "udrv_gt_vol")):
+        return "drivaerml"
+    return "hilift"
+
+
+def rung_of(run):
+    for key, tag in (("super_scarce", "35"), ("_scarce", "210"), ("medium", "510"), ("geometry_super_scarce", "geo40"), ("geometry_scarce", "geo210"),
+                     ("single_aoa_12", "single12"), ("mixed126", "mixed126"), ("deflection", "deflection"), ("20k", "20k_tokens"), ("_aoa_", "aoa_test"), ("stall", "stall_test"),
+                     ("n54", "interior_54"), ("n109", "interior_109")):
+        if key in run:
+            if key == "_scarce" and "geometry" in run:
+                continue
+            if key == "super_scarce" and "geometry" in run:
+                return "geo40"
+            return tag
+    if run.startswith(("v0_", "udrv_gt_vol")):
+        return "interior_435"
+    if run.startswith(("iw_", "uw_", "now_mt2", "mom2_")):
+        return "drivaerml_435"
+    if "_hl_lr1" in run or "full" in run:
+        return "1260"
+    return "other"
+
+
 def family_of(run):
     for pre in ("lad_hl_", "a35_hl_", "a35b_hl_", "udrv_hl_", "t1_hl_", "mech_hl_", "geo_hl_", "floor_hl_", "defl_hl_", "now_hl_", "ctrl_hl_",
                 "iw_", "uw_", "now_mt2", "mom2_", "v0l_", "v0_", "udrv_gt_vol", "mt2_hl_", "gt_hl_", "inv_hl_", "b1_hl_"):
@@ -95,7 +142,8 @@ for root in ROOTS:
         if not b16 or not f32:
             continue
         shared = sorted(set(b16) & set(f32))
-        rec = {"root": root, "arch": arch_of(run), "family": family_of(run), "n_cases": len(shared), "fields": {}}
+        rec = {"root": root, "arch": arch_of(run), "config": config_of(run), "dataset": dataset_of(run), "rung": rung_of(run),
+               "family": family_of(run), "n_cases": len(shared), "fields": {}}
         for f in FIELDS:
             if not all(f in b16[k] and f in f32[k] for k in shared):
                 continue
@@ -112,19 +160,23 @@ for root in ROOTS:
         print(f"{run:55s} p bf16 {p['bf16_mean']:.5f} fp32 {p['fp32_mean']:.5f} shift {100*p['shift']:+.2f}% max|case| {100*p['per_case_max_abs_shift']:.1f}%  points {rec['points'].get('identical')}" if p else f"{run}: no pressure field", flush=True)
 
 
-def summary(group_key):
+def summary(*keys):
     out = {}
-    for g in sorted({r[group_key] for r in rows.values()}):
-        sh = [r["fields"]["pressure_l2"]["shift"] for r in rows.values() if r[group_key] == g and "pressure_l2" in r["fields"]]
-        mx = [r["fields"]["pressure_l2"]["per_case_max_abs_shift"] for r in rows.values() if r[group_key] == g and "pressure_l2" in r["fields"]]
+    groups = sorted({tuple(r[k] for k in keys) for r in rows.values()})
+    for g in groups:
+        sel = [r for r in rows.values() if tuple(r[k] for k in keys) == g and "pressure_l2" in r["fields"]]
+        sh = [r["fields"]["pressure_l2"]["shift"] for r in sel]
+        mx = [r["fields"]["pressure_l2"]["per_case_max_abs_shift"] for r in sel]
         if sh:
-            out[g] = {"n_runs": len(sh), "median_shift": float(st.median(sh)), "min_shift": float(min(sh)), "max_shift": float(max(sh)),
-                      "median_per_case_max": float(st.median(mx)), "n_not_reporting_equivalent": int(sum(not r["reporting_equivalent"] for r in rows.values() if r[group_key] == g)),
-                      "n_points_mismatch": int(sum(r["points"].get("identical") is False for r in rows.values() if r[group_key] == g))}
+            out["|".join(g)] = {"n_runs": len(sh), "median_shift": float(st.median(sh)), "min_shift": float(min(sh)), "max_shift": float(max(sh)),
+                                "median_per_case_max": float(st.median(mx)), "n_not_reporting_equivalent": int(sum(not r["reporting_equivalent"] for r in sel)),
+                                "n_points_mismatch": int(sum(r["points"].get("identical") is False for r in sel))}
     return out
 
 
 res = {"n_runs": len(rows), "runs": rows, "by_architecture": summary("arch"), "by_family": summary("family"),
+       "by_config": summary("config"), "by_architecture_dataset": summary("arch", "dataset"), "by_architecture_rung": summary("arch", "rung"),
+       "by_config_rung": summary("config", "rung"),
        "bars": {"reporting_equivalent": "|shift| <= 1% and per-case max <= 5% (pressure)", "architecture_dependent": "per-architecture medians differ by > 1 pt"}}
 json.dump(res, open(out_path, "w"), indent=1)
-print(json.dumps({"by_architecture": res["by_architecture"]}, indent=1))
+print(json.dumps({"by_architecture": res["by_architecture"], "by_config_rung": res["by_config_rung"]}, indent=1))
