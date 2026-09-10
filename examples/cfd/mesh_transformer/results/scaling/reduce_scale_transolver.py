@@ -61,7 +61,7 @@ def points_identical(root_a, root_b, run):
     return {"checked": len(pa), "identical": n_same}
 
 
-LOADER_HAZARD = ("skipping load", "Could not find valid model file")
+LOADER_HAZARD = ("skipping load", "Could not find valid model file", "Inference summary is inconsistent")  # last: infer.py summary range guard (f9330f317)
 HAZARD = {"logs_checked": 0, "hits": []}
 
 
