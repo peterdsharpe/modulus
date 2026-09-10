@@ -10811,6 +10811,56 @@ The reference already has its probe (transfer/campaign_e_fp32): uniform
 10,000 cells loses an order of magnitude under a 10:1 density bias. The
 corner arm's probe runs when its chains finish; the reducer carries both.
 
+
+**Provenance (2026-09-10).** Thirty-six evaluation and probe logs (ten
+lanes in two precisions, the reference lanes, and the reference probes) were
+scanned for a silently skipped checkpoint load ("skipping load" / "Could not
+find valid model file"): zero hits. The ten lanes and the references were
+evaluated under the training snapshot `code`; from this date the evaluation,
+fp32 and probe launchers import the program-wide evaluation snapshot
+`code_eval`, identity-checked by the main session on
+`uw_gt_unit_lr1e3_seed42` (bitwise identical to `code` in float32, zero
+skipped loads), so both sets of evaluations are the same function. Wall
+shear (fp32, two-seed means) moves with pressure: wss_x 0.0540 / 0.0533 /
+0.0541 / 0.0530 / 0.0518 for w384 / w512 / t40k / t80k / c384x40k against
+the same components under bf16 about 10% higher.
+
+**Corner and density-bias probe (2026-09-10; DrivAerML half complete).**
+The 512-wide, 80,000-cell corner (`scale_gt_dr_c512x80k_seed{42,43}`)
+scores **0.0419** in float32 (seeds 0.0419 / 0.0418; bf16 0.0460, shift
+−9.1%, per-case max 16%; points bit-identical), **0.833 of the reference**
+0.0503, at 41.5 GB logged peak memory, 0.211 s per step and 12.7 GPU-hours
+per run: the largest configuration is the most accurate, 16.7% below the
+protocol's operating point, and still at 1.5x its GPU-hours. Wall shear
+follows (wss_x 0.0503 against the reference's 0.0540 in fp32).
+
+| arm (fp32) | width | cells | pressure | ÷ reference | 10:1 density-bias probe, biased ÷ uniform (fp32) |
+|---|---|---|---|---|---|
+| reference (uw_gt_unit, three seeds) | 256 | 10,000 | 0.0503 | 1.000 | 11.8 / 7.9 / 8.8 (uniform 0.0503 / 0.0510 / 0.0504; biased 0.592 / 0.401 / 0.445) |
+| c512x80k (two seeds) | 512 | 80,000 | 0.0419 | 0.833 | **6.5 / 1.9** (uniform 0.0419 / 0.0418; biased 0.274 / 0.079) |
+
+**Discretization invariance, GeoTransolver.** Neither configuration passes
+the probe: the reference loses an order of magnitude under a 10:1 sampling
+bias and the corner loses 1.9–6.5x, with a seed spread larger than any
+accuracy difference in this study (seed 42 collapses to 0.274, seed 43 to
+0.079 from the same 0.042). The larger model at eight times the cells is
+less density-sensitive than the reference, which is consistent with a
+per-point map that sees more of the surface, but a factor of 2–6.5 is still
+a shortcut on the sampling distribution, not invariance. Under the
+program's redirect the corner's accuracy is therefore reported with this
+property attached and is not an adoptable configuration on its own; the
+probe pool for the 80,000-cell variants is 320,000 cells (4x), shared with
+the ISLA track. Provenance: 52 evaluation and probe logs checked, zero
+skipped loads; summary-range guard silent on every corner and probe log
+(zero "inconsistent" lines).
+
+**HiLift half: training; I/O-bound, weeks.** The ten HiLift lanes advance
+25–44 epochs per day (2.5–3.4 s per step against 0.15 s of GPU compute, the
+285M-cell boundary reads), so they complete in two to three weeks at full
+protocol; per the coordinator's decision they run unshortened and unheld,
+and the HiLift half of this verdict is written when they land. The
+DrivAerML half above is complete.
+
 ## 2026-09-10 — Float32 re-grade of the interior headline: bfloat16 inflated GeoTransolver-volume's errors by 20–23%, so its pressure lead over ISLA's query-token configuration was hidden; in float32 ISLA leads on velocity only {#sec-nb-fp32-interior-regrade}
 
 **Source.** The transfer session's same-snapshot float32 re-evaluation of the

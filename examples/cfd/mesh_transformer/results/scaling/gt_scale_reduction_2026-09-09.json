@@ -1,5 +1,5 @@
 {
- "instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure",
+ "instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure; density-bias probe biased/unif in fp32 where run",
  "runs": {
   "scale_gt_hl_w384_seed42": {
    "eval": {
@@ -7,10 +7,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 20,
-    "peak_mem_gb": 5.39,
-    "median_step_s": 1.5415,
-    "n_logged_steps": 6780,
+    "epochs_seen": 43,
+    "peak_mem_gb": 5.41,
+    "median_step_s": 1.5385,
+    "n_logged_steps": 17506,
     "params": null
    }
   },
@@ -20,10 +20,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 20,
-    "peak_mem_gb": 5.39,
-    "median_step_s": 1.594,
-    "n_logged_steps": 6550,
+    "epochs_seen": 43,
+    "peak_mem_gb": 5.41,
+    "median_step_s": 1.566,
+    "n_logged_steps": 17200,
     "params": null
    }
   },
@@ -33,10 +33,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 20,
-    "peak_mem_gb": 6.14,
-    "median_step_s": 1.5230000000000001,
-    "n_logged_steps": 6908,
+    "epochs_seen": 43,
+    "peak_mem_gb": 6.16,
+    "median_step_s": 1.537,
+    "n_logged_steps": 17523,
     "params": null
    }
   },
@@ -46,10 +46,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 20,
+    "epochs_seen": 44,
     "peak_mem_gb": 6.18,
-    "median_step_s": 1.716,
-    "n_logged_steps": 6598,
+    "median_step_s": 1.771,
+    "n_logged_steps": 17188,
     "params": null
    }
   },
@@ -59,10 +59,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 28,
     "peak_mem_gb": 16.4,
-    "median_step_s": 2.401,
-    "n_logged_steps": 4617,
+    "median_step_s": 2.445,
+    "n_logged_steps": 12081,
     "params": null
    }
   },
@@ -72,10 +72,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 22,
     "peak_mem_gb": 16.55,
-    "median_step_s": 2.6189999999999998,
-    "n_logged_steps": 4642,
+    "median_step_s": 2.4325,
+    "n_logged_steps": 12006,
     "params": null
    }
   },
@@ -85,10 +85,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 13,
+    "epochs_seen": 23,
     "peak_mem_gb": 32.23,
-    "median_step_s": 2.676,
-    "n_logged_steps": 4807,
+    "median_step_s": 2.547,
+    "n_logged_steps": 12154,
     "params": null
    }
   },
@@ -98,10 +98,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 23,
     "peak_mem_gb": 32.25,
-    "median_step_s": 2.63,
-    "n_logged_steps": 4539,
+    "median_step_s": 2.266,
+    "n_logged_steps": 12007,
     "params": null
    }
   },
@@ -111,10 +111,10 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 23,
     "peak_mem_gb": 18.97,
-    "median_step_s": 2.449,
-    "n_logged_steps": 4612,
+    "median_step_s": 2.576,
+    "n_logged_steps": 11852,
     "params": null
    }
   },
@@ -124,12 +124,24 @@
    },
    "train": {
     "completed": false,
-    "epochs_seen": 12,
+    "epochs_seen": 22,
     "peak_mem_gb": 18.91,
-    "median_step_s": 2.7110000000000003,
-    "n_logged_steps": 4588,
+    "median_step_s": 2.489,
+    "n_logged_steps": 11897,
     "params": null
    }
+  },
+  "scale_gt_hl_c512x80k_seed42": {
+   "eval": {
+    "headline": null
+   },
+   "train": null
+  },
+  "scale_gt_hl_c512x80k_seed43": {
+   "eval": {
+    "headline": null
+   },
+   "train": null
   },
   "scale_gt_dr_w384_seed42": {
    "eval": {
@@ -520,6 +532,84 @@
     "n_logged_steps": 54134,
     "params": null
    }
+  },
+  "scale_gt_dr_c512x80k_seed42": {
+   "eval": {
+    "fp32": {
+     "pressure_l2": 0.041946479973072805,
+     "wss_x_l2": 0.05037577939219773,
+     "wss_y_l2": 0.11566651721174519,
+     "wss_z_l2": 0.09672084776684642,
+     "n_cases": 48,
+     "root": "hl_evals_fp32"
+    },
+    "bf16": {
+     "pressure_l2": 0.04605357667120794,
+     "wss_x_l2": 0.05489882306816677,
+     "wss_y_l2": 0.12629872964074215,
+     "wss_z_l2": 0.10449863939235608,
+     "n_cases": 48,
+     "root": "hl_evals"
+    },
+    "shift_fp32_minus_bf16_pressure": {
+     "mean_rel": -0.0921976400690917,
+     "max_abs_rel_per_case": 0.16315892836182727,
+     "n_cases": 48,
+     "mean_ratio": 0.9108191590100138
+    },
+    "points_identity": {
+     "cases_checked": 48,
+     "cases_with_different_points": 0
+    },
+    "headline": "fp32"
+   },
+   "train": {
+    "completed": true,
+    "epochs_seen": 500,
+    "peak_mem_gb": 41.46,
+    "median_step_s": 0.208,
+    "n_logged_steps": 54079,
+    "params": null
+   }
+  },
+  "scale_gt_dr_c512x80k_seed43": {
+   "eval": {
+    "fp32": {
+     "pressure_l2": 0.041880897556742035,
+     "wss_x_l2": 0.05031442199833691,
+     "wss_y_l2": 0.11560961650684476,
+     "wss_z_l2": 0.0965981421371301,
+     "n_cases": 48,
+     "root": "hl_evals_fp32"
+    },
+    "bf16": {
+     "pressure_l2": 0.045885659366225205,
+     "wss_x_l2": 0.05484406533651054,
+     "wss_y_l2": 0.12673530525838336,
+     "wss_z_l2": 0.10418305623655517,
+     "n_cases": 48,
+     "root": "hl_evals"
+    },
+    "shift_fp32_minus_bf16_pressure": {
+     "mean_rel": -0.09047568925071095,
+     "max_abs_rel_per_case": 0.14331978353843558,
+     "n_cases": 48,
+     "mean_ratio": 0.9127230192439834
+    },
+    "points_identity": {
+     "cases_checked": 48,
+     "cases_with_different_points": 0
+    },
+    "headline": "fp32"
+   },
+   "train": {
+    "completed": true,
+    "epochs_seen": 500,
+    "peak_mem_gb": 41.46,
+    "median_step_s": 0.214,
+    "n_logged_steps": 54064,
+    "params": null
+   }
   }
  },
  "arms": {
@@ -531,10 +621,10 @@
     "scale_gt_hl_w384_seed43"
    ],
    "headline": null,
-   "peak_mem_gb": 5.39,
-   "median_step_s": 1.5677500000000002,
+   "peak_mem_gb": 5.41,
+   "median_step_s": 1.55225,
    "params": null,
-   "gpu_hours_500_epochs": 274.35625000000005
+   "gpu_hours_500_epochs": 271.64375
   },
   "hl_w512": {
    "width": 512,
@@ -545,9 +635,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 6.18,
-   "median_step_s": 1.6195,
+   "median_step_s": 1.654,
    "params": null,
-   "gpu_hours_500_epochs": 283.4125
+   "gpu_hours_500_epochs": 289.45
   },
   "hl_t40k": {
    "width": 256,
@@ -558,9 +648,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 16.55,
-   "median_step_s": 2.51,
+   "median_step_s": 2.4387499999999998,
    "params": null,
-   "gpu_hours_500_epochs": 439.24999999999994
+   "gpu_hours_500_epochs": 426.78124999999994
   },
   "hl_t80k": {
    "width": 256,
@@ -571,9 +661,9 @@
    ],
    "headline": null,
    "peak_mem_gb": 32.25,
-   "median_step_s": 2.653,
+   "median_step_s": 2.4065000000000003,
    "params": null,
-   "gpu_hours_500_epochs": 464.275
+   "gpu_hours_500_epochs": 421.13750000000005
   },
   "hl_c384x40k": {
    "width": 384,
@@ -584,9 +674,18 @@
    ],
    "headline": null,
    "peak_mem_gb": 18.97,
-   "median_step_s": 2.58,
+   "median_step_s": 2.5324999999999998,
    "params": null,
-   "gpu_hours_500_epochs": 451.5
+   "gpu_hours_500_epochs": 443.18749999999994
+  },
+  "hl_c512x80k": {
+   "width": 512,
+   "tokens": 80000,
+   "runs": [
+    "scale_gt_hl_c512x80k_seed42",
+    "scale_gt_hl_c512x80k_seed43"
+   ],
+   "headline": null
   },
   "dr_w384": {
    "width": 384,
@@ -772,6 +871,43 @@
    "median_step_s": 0.1745,
    "params": null,
    "gpu_hours_500_epochs": 10.47
+  },
+  "dr_c512x80k": {
+   "width": 512,
+   "tokens": 80000,
+   "runs": [
+    "scale_gt_dr_c512x80k_seed42",
+    "scale_gt_dr_c512x80k_seed43"
+   ],
+   "fp32": {
+    "pressure_l2": 0.04191368876490742,
+    "wss_x_l2": 0.05034510069526732,
+    "wss_y_l2": 0.11563806685929498,
+    "wss_z_l2": 0.09665949495198825,
+    "n_seeds": 2
+   },
+   "bf16": {
+    "pressure_l2": 0.045969618018716574,
+    "wss_x_l2": 0.05487144420233865,
+    "wss_y_l2": 0.12651701744956276,
+    "wss_z_l2": 0.10434084781445563,
+    "n_seeds": 2
+   },
+   "shift_fp32_minus_bf16_pressure": {
+    "mean_rel": -0.09133666465990133,
+    "max_abs_rel_per_case": 0.16315892836182727
+   },
+   "points_identity": {
+    "cases_with_different_points": 0
+   },
+   "headline": "fp32",
+   "reference_used": "unit",
+   "pressure_over_reference": 0.8325300577827943,
+   "comparison_instruments": "arm fp32 vs reference fp32",
+   "peak_mem_gb": 41.46,
+   "median_step_s": 0.211,
+   "params": null,
+   "gpu_hours_500_epochs": 12.66
   }
  },
  "references": {
@@ -1023,5 +1159,42 @@
    "pressure_l2": 0.04983512874847899,
    "instrument": "fp32"
   }
+ },
+ "probe": {
+  "uw_gt_unit_lr1e3_seed42": {
+   "unif_pressure_l2": 0.05025228252634406,
+   "biased_pressure_l2": 0.5918606234093508,
+   "biased_over_unif": 11.777785876672887,
+   "root": "transfer/campaign_e_fp32"
+  },
+  "uw_gt_unit_lr1e3_seed43": {
+   "unif_pressure_l2": 0.051019253209233284,
+   "biased_pressure_l2": 0.4010201922307412,
+   "biased_over_unif": 7.860173699252932,
+   "root": "transfer/campaign_e_fp32"
+  },
+  "uw_gt_unit_lr1e3_seed44": {
+   "unif_pressure_l2": 0.050370418932288885,
+   "biased_pressure_l2": 0.44516767747700214,
+   "biased_over_unif": 8.837879194044918,
+   "root": "transfer/campaign_e_fp32"
+  },
+  "scale_gt_dr_c512x80k_seed42": {
+   "unif_pressure_l2": 0.04188584974811723,
+   "biased_pressure_l2": 0.27379424776881933,
+   "biased_over_unif": 6.536676453152927,
+   "root": "hl_evals_probe_fp32"
+  },
+  "scale_gt_dr_c512x80k_seed43": {
+   "unif_pressure_l2": 0.04182803832615415,
+   "biased_pressure_l2": 0.07925177086144686,
+   "biased_over_unif": 1.894704462195457,
+   "root": "hl_evals_probe_fp32"
+  }
+ },
+ "provenance": {
+  "eval_logs_checked_for_skipped_load": 52,
+  "eval_logs_with_skipped_load": [],
+  "evaluation_snapshot": "the ten DrivAerML lanes and the references were evaluated under the training snapshot code; from 2026-09-10 the eval, fp32 and probe launchers import the program-wide evaluation snapshot code_eval, identity-checked by the main session (uw_gt_unit_lr1e3_seed42 under code vs code_eval: bitwise identical in float32, zero skipped loads), so both sets are the same function"
  }
 }
