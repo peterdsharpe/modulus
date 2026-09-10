@@ -12311,3 +12311,40 @@ said: GeoTransolver-volume leads pressure (ISLA ÷ GeoTransolver 1.08x, was
 1.06x) and eddy viscosity (1.27x, was 1.28x), ISLA leads velocity (0.75x,
 was 0.73x). The chapter 8 and index numbers move by one to two points when
 they are refreshed to three seeds; no verdict changes.
+
+## 2026-09-10 — Verdict: 21-geometry rung with the unit drive — GeoTransolver 0.92x of ISLA in float32, lower on 136 of 180 cases; the 1.4x "unseen-geometry advantage" was the input scale {#sec-nb-udrvl-geo210-verdict}
+
+The unit-drive ladder (@sec-nb-udrvl-prereg) reruns GeoTransolver on each
+HiLiftAeroML rung with the freestream as a unit direction, the input ISLA
+receives, and nothing else changed. The 21-geometry rung trains on 210
+cases from 21 wing geometries at all ten angles and validates on 180 cases
+from 18 geometries never seen; against the physical-drive GeoTransolver
+this rung had read as a 1.40x ISLA advantage on 172 of 180 cases. Two seeds
+of the unit-drive GeoTransolver were evaluated in float32 (the reporting
+instrument; training and evaluation snapshots matched, zero skipped loads)
+with the bfloat16 pass alongside. Artifact: `results/udrvl_geo210_reduction_2026-09-10.json`.
+
+**Unit-drive GeoTransolver scores 0.0933 (seeds 0.0965 / 0.0900) against
+ISLA's 0.1014 (0.1002 / 0.1026): a ratio of 0.920, with GeoTransolver lower
+on 136 of 180 cases (median GeoTransolver ÷ ISLA 0.897).** The
+preregistered bands were an ISLA advantage at a ratio of 1.10 or more with
+two thirds of the cases, parity within 0.95–1.05, and "baseline ahead" at
+0.90 or below; 0.92 falls between parity and baseline-ahead, on the
+baseline's side, and is reported as a small difference in that direction.
+Velocity (0.108 against 0.119) and wall shear (0.172 against 0.190) show the
+same 0.91x. The physical-drive GeoTransolver on the same cases scores 0.142
+in float32, 1.48x behind ISLA by the median case, so the 1.40x was the input
+scale, as at 35 cases, 4 geometries and the fixed angle. Bfloat16 gives the
+same picture (0.0938 against 0.1017).
+
+Two caveats. The 180 validation cases are 18 geometries at ten angles, so
+the case count is descriptive and the geometry is the independent unit
+(@sec-nb-geostat); and the unit-drive GeoTransolver's seed spread here is
+7% (0.0965 against 0.0900), the largest of any arm on this rung, so the
+0.92 carries roughly ±0.03 from seeds alone before the training-draw
+uncertainty of @sec-nb-campa-35-merged is considered. The ladder tally is
+now baselines ahead at 4 geometries (0.76x) and the fixed angle (0.78x),
+between at 21 geometries (0.92x), with 210 and 1,260 cases pending (epochs
+460–470 of 500). The chapter 5 geometry-ladder paragraph, the chapter 12
+recommendation context and the index table are updated; "1.4x on never-seen
+geometries" is retired as an ISLA advantage.

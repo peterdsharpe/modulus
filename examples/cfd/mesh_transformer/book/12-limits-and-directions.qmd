@@ -309,15 +309,18 @@ independent unit and the case count is descriptive;
 results/hilift_paired_stats_geometry_2026-09-08.json) but 0.250 against
 the unit-drive GeoTransolver's 0.189 (ratio 0.76 by the mean; 9 of 18
 geometries each way; @sec-nb-udrvl-geo40-verdict), and 0.102 against the
-physical-drive 0.143 from 21 geometries (1.40x; unit-drive rerun training). The observation behind those numbers,
+physical-drive 0.143 from 21 geometries (1.40x) but 0.101 against the
+unit-drive GeoTransolver's 0.093 (ratio 0.92; GeoTransolver lower on 136 of
+180 cases; @sec-nb-udrvl-geo210-verdict). The observation behind those numbers,
 that ISLA's error responds to the number of training geometries while the
 physical-drive GeoTransolver's does not (0.38 → 0.45 and 0.14 → 0.14 as the
 geometries fall from 33 to 4 and from about 126 to 21), is a fact about a
 model whose per-case error at 35 random cases was nearly case-independent
 (coefficient of variation 0.15) and whose input scale had collapsed its
-global-context routing; whether a unit-drive GeoTransolver is equally
-geometry-blind is exactly what the reruns at 4 and 21 training geometries
-measure. The transplant test (GeoTransolver and Transolver at 35 cases with
+global-context routing; a unit-drive GeoTransolver is not geometry-blind
+(0.189 at 4 geometries, 0.093 at 21, against 0.449 and 0.142 with the
+physical drive), which the reruns at 4 and 21 training geometries
+measured. The transplant test (GeoTransolver and Transolver at 35 cases with
 n·d, r̂·d and |r|/L appended to their per-cell inputs, physical velocity
 kept) moved Transolver from 0.402 to 0.297 and GeoTransolver not at all
 (0.392 to 0.394); it appended features to a mis-scaled input and could not

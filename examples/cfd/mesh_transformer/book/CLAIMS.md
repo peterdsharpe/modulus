@@ -1242,3 +1242,11 @@ interior control @sec-nb-udrv-int-prereg.
   gradient". Next principled step (transfer session): wall-distance band decomposition of the saved
   float32 predictions (sdf < 0.01 L / 0.01–0.05 L / ≥ 0.05 L); if near-wall, candidate arm = local
   readout with kernel radius ∝ query SDF (wall-distance scaling of the closure), discretization-invariant.
+- **21-geometry rung, unit drive (2026-09-10, fp32, two seeds; results/udrvl_geo210_reduction_2026-09-10.json).** Unit GT 0.0933 (0.0965/0.0900)
+  vs ISLA 0.1014 (0.1002/0.1026) → 0.920, GT lower on 136/180 cases (median GT÷ISLA 0.897): BETWEEN band
+  (parity 0.0963–0.1065; baseline ahead ≤ 0.0913), baseline direction. Physical GT 0.1422 (1.48x behind
+  ISLA by the median case). Write "unit-drive GeoTransolver 0.92x of ISLA at 21 geometries, lower on 136
+  of 180 cases"; RETIRE "1.4x on never-seen geometries" as an ISLA advantage (physical-drive measurement).
+  Caveats: 180 cases = 18 geometries (case count descriptive); GT seed spread 7%. UDRV-L tally: 4
+  geometries baseline ahead (0.76x), fixed angle baseline ahead (0.78x), 21 geometries between (0.92x);
+  210 and 1,260 pending.

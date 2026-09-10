@@ -569,7 +569,14 @@ geometries at both rungs, against the physical-drive GeoTransolver. The
 inference that ISLA generalizes across wing geometries where GeoTransolver
 does not does not stand, because the unit-drive control removed a larger
 deficit at 35 cases (@tbl-unit-drive); the unit-drive GeoTransolver at 4
-and 21 training geometries decides these rungs (@sec-nb-udrvl-prereg).
+and 21 training geometries decided these rungs (@sec-nb-udrvl-prereg). At
+21 geometries it scores 0.0933 in float32 (seeds 0.0965 / 0.0900) against
+ISLA's 0.1014, a ratio of 0.92 with GeoTransolver lower on 136 of 180
+validation cases, inside the preregistered band between parity and
+"baseline ahead" on the baseline's side; the physical-drive GeoTransolver
+scores 0.142 in float32 on the same cases, 1.48x behind ISLA by the median
+case, so the 1.40x was the input scale
+(`results/udrvl_geo210_reduction_2026-09-10.json`, @sec-nb-udrvl-geo210-verdict).
 What stands about ISLA alone is that its error responds to the number of
 training geometries (0.138 → 0.250 and 0.065 → 0.102, with the
 evaluation-population caveat above); that the physical-drive

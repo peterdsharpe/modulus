@@ -1,0 +1,80 @@
+{
+ "date": "2026-09-10",
+ "rung": "highlift_surface_geometry_scarce (21 training geometries, 210 cases; 180 validation cases = 18 geometries x 10 angles)",
+ "instrument": "float32 (hl_evals_fp32, code snapshots matched; zero skipped loads) with bf16 alongside; seed means; paired per-case on seed-mean pressure",
+ "arms_fp32": {
+  "gt_unit": {
+   "runs": [
+    "udrv_hl_gt_geometry_scarce_seed42",
+    "udrv_hl_gt_geometry_scarce_seed43"
+   ],
+   "pressure_l2": 0.0933,
+   "velocity_l2": 0.1084,
+   "tau_wall_l2": 0.1717,
+   "seed_pressure": [
+    0.0965,
+    0.09
+   ]
+  },
+  "isla": {
+   "runs": [
+    "geo_hl_mt2_geometry_scarce_seed42",
+    "geo_hl_mt2_geometry_scarce_seed43"
+   ],
+   "pressure_l2": 0.1014,
+   "velocity_l2": 0.119,
+   "tau_wall_l2": 0.1895,
+   "seed_pressure": [
+    0.1002,
+    0.1026
+   ]
+  },
+  "gt_physical": {
+   "runs": [
+    "geo_hl_gt_geometry_scarce_seed42",
+    "geo_hl_gt_geometry_scarce_seed43"
+   ],
+   "pressure_l2": 0.1422,
+   "velocity_l2": 0.1631,
+   "tau_wall_l2": 0.2539,
+   "seed_pressure": [
+    0.1522,
+    0.1321
+   ]
+  }
+ },
+ "arms_bf16": {
+  "gt_unit": {
+   "pressure_l2": 0.0938
+  },
+  "isla": {
+   "pressure_l2": 0.1017
+  },
+  "gt_physical": {
+   "pressure_l2": 0.1427
+  }
+ },
+ "paired_fp32": {
+  "gt_unit_vs_isla": {
+   "gt_lower_on": 136,
+   "n": 180,
+   "median_gt_over_isla": 0.897
+  },
+  "gt_physical_vs_isla": {
+   "gt_lower_on": 9,
+   "n": 180,
+   "median_gt_over_isla": 1.483
+  }
+ },
+ "bars": {
+  "reference_isla_fp32": 0.1014,
+  "isla_advantage_if_gt_at_least": 0.1115,
+  "parity": [
+   0.0963,
+   0.1065
+  ],
+  "baseline_ahead_if_gt_at_most": 0.0913,
+  "source": "#sec-nb-udrvl-prereg"
+ },
+ "verdict": "BETWEEN, baseline direction: unit-drive GT 0.920x of ISLA (below the parity band, above the 0.90 baseline-ahead bar), lower on 136/180 cases; the physical-drive 1.40x was the input scale (physical GT 1.48x behind ISLA by the median case). Caveat: 180 cases are 18 geometries; seed spread of GT 7%."
+}
