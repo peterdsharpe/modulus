@@ -89,7 +89,7 @@ peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
 | DrivAerML interior, 435 cars | ISLA ahead on pressure, velocity; behind on eddy viscosity | 0.91x / 0.64x / 1.29x at a third of the parameters; only at ≥10,000 queries together; 365 or 10,000 surface tokens alike; unit-drive GeoTransolver-volume within 2% of the physical-drive one |
 | DrivAerML interior, 54–109 cars | Mixed, same conditions | pressure 1.06–1.11x behind, velocity ahead, eddy viscosity 1.45x behind |
 | Regime extrapolation | Nobody wins | both lose about 10x |
-| Contracts and cost | Mixed | SE(3) covariance by construction; learning-rate robust; memory 1.6 vs 4.1 GiB for the current code, 9.3 GiB as trained; step 3.7x slower |
+| Contracts and cost | Mixed | SE(3) covariance by construction; learning-rate robust; one instrument at 10k cells: step 1.09x GeoTransolver's and 2.2x Transolver's at 0.83x GeoTransolver's incremental memory (1.5x step at 0.36x memory with exact recompute), with the fast softmax kernel; the earlier 3.7x was the reference kernel |
 
 : The standing of ISLA against GeoTransolver in every setting measured, as
 baseline error divided by ISLA error where a ratio is given (above one

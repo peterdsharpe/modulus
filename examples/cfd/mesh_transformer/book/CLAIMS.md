@@ -907,3 +907,20 @@ interior control @sec-nb-udrv-int-prereg.
   kernel; bf16 outputs differ 1.0–1.5% between kernels, so evaluations of existing checkpoints
   keep the old kernel (fast_point_softmax must stay off in evaluation snapshots) until an
   eval-time neutrality check on a trained checkpoint is recorded.
+
+- **Cost row REWRITTEN (2026-09-09, one instrument, GB300, 10k cells, ~9M params, AdamW step;
+  results/isla_vs_baselines_cost_fastkernel_2026-09-09.json).** ISLA fast kernel 72 ms / 3.24 GiB
+  incremental (99 ms / 1.41 GiB with geo_checkpoint); ISLA reference kernel 230 ms / 3.24 GiB;
+  GeoTransolver 66 ms / 3.91 GiB; Transolver 32 ms / 2.58 GiB. Write "ISLA's step is 1.09x
+  GeoTransolver's and 2.2x Transolver's at 0.83x GeoTransolver's incremental memory (1.5x step at
+  0.36x memory with recompute)"; never "3.7x slower" without "reference kernel". Kernel rule:
+  fast_point_softmax stays default False; it is the kernel to TRAIN with (self-consistent); every
+  existing checkpoint is EVALUATED with the reference kernel (same-checkpoint kernel swap moves
+  pressure −0.61%, per case up to 26%). State the kernel in every new lane record.
+- **Cross-snapshot evaluation HOLD (2026-09-09).** The same checkpoint evaluated under the current
+  snapshot + recipe scores 0.06235 vs 0.05875 recorded at training time (+6.1%, per case up to
+  31–51%; results/isla_checkpoint_snapshot_discrepancy_2026-09-09.json), most plausibly different
+  sampled validation points through the changed reader path. Until the snapshot ladder lands, draw
+  no new comparison between arms evaluated under different code snapshots. Verified safe: the
+  35-case HiLift arms (ISLA weighted/unweighted, unit- and physical-drive GT and Transolver) were
+  evaluated on bit-identical sampled points (results/measure_metric_35_2026-09-09.json asserts it).
