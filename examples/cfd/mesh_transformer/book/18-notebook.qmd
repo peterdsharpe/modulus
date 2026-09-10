@@ -12236,3 +12236,80 @@ loaded through the legacy-name path, one warning, no skip); GeoTransolver
 evaluation launchers now import `code_eval`; the training snapshots remain
 for training and bfloat16 reproduction. An evaluation log containing
 "skipping load" voids the run (CLAIMS).
+
+## 2026-09-10 — Kernel check for the 80,000-cell cliff: the middle-dimension softmax has no defect above 2^16 points on the GB300, so the cliff is not the bare kernel; the reference kernel is 1,000x less precise than the fast one in float32 {#sec-nb-softmax-dim1-test}
+
+**Setting.** The ISLA scaling track found (@sec-nb-scale-isla-launch, count
+curve) that both 10,000-cell-trained ISLA references improve monotonically
+when evaluated at 20,000, 40,000 and 60,000 cells and then collapse to a
+near-constant prediction at 80,000 (relative pressure error 0.81 and 0.89,
+biased ÷ uniform ≈ 1). The one healthy 80,000-cell evaluation, the
+80k-trained corner at 0.0427, ran on the fast point-softmax kernel, while
+both references ran on the reference kernel, `torch.softmax(x, dim=1)` over
+the middle (point) dimension of a (batch, points, slices) tensor. Since
+65,536 = 2^16 lies between 60,000 and 80,000, a kernel defect above 2^16
+points was a live hypothesis with a preregistered discriminator (the
+track's 65k/70k brackets and an 80k kernel swap). This entry isolates the
+kernel from the model with a one-minute micro-test so the brackets can be
+read against a known kernel.
+
+**Instrument.** One GB300, the evaluation snapshot's environment
+(`code_eval`), random logits with standard deviation 3 in a (1, N, 256)
+tensor for N in {40,000, 60,000, 65,535, 65,536, 65,537, 70,000, 80,000,
+100,000}, float32 and bfloat16. Three quantities per N: the reference
+kernel's and the fast kernel's (transpose, softmax over the last dimension,
+transpose back) maximum absolute deviation from a float64 log-sum-exp
+softmax, and each kernel's column sums over points (exactly one for a
+correct softmax). The same check runs through the model's own
+`_softmax_over_points` helper imported from `code_eval` at 60,000 and
+80,000 points. Script and artifact:
+results/scaling/softmax_dim1_test.py,
+results/scaling/softmax_dim1_test_2026-09-10.json (job 700392).
+
+**Result.** No cliff. In float32 the reference kernel deviates from exact
+by 4.5e-5 to 1.2e-4 at *every* N, including 65,535 and 65,537, with column
+sums between 1.00002 and 1.00021; the fast kernel deviates by 0.5e-7 to
+2.3e-7 with column sums within 3.5e-7 of one. In bfloat16 the two kernels
+give identical outputs at every N (0.9e-3 to 1.9e-3 from exact, the
+bfloat16 rounding of the weights themselves). Through the model's helper at
+80,000 points: reference 1.0e-4, fast 1.4e-7.
+
+| N (points) | reference kernel, float32, max |Δ| | fast kernel, float32, max |Δ| | bfloat16 (both kernels) |
+|---|---|---|---|
+| 40,000 | 9.7e-5 | 1.3e-7 | 1.3e-3 |
+| 60,000 | 7.1e-5 | 1.3e-7 | 1.9e-3 |
+| 65,535 | 1.0e-4 | 1.4e-7 | 1.8e-3 |
+| 65,536 | 4.5e-5 | 1.0e-7 | 1.8e-3 |
+| 65,537 | 1.2e-4 | 2.3e-7 | 1.8e-3 |
+| 70,000 | 6.7e-5 | 0.5e-7 | 1.0e-3 |
+| 80,000 | 6.9e-5 | 0.9e-7 | 0.9e-3 |
+| 100,000 | 8.7e-5 | 0.9e-7 | 1.1e-3 |
+
+**Two readings.** (1) A bare-kernel defect above 2^16 points is excluded on
+this device and PyTorch build: if the 65k/70k brackets are healthy and
+80,000 still collapses, the cause sits elsewhere in the 80,000-cell
+evaluation path of the *reference* checkpoints, something the corner's
+evaluation did not share (snapshot, which kernel a legacy checkpoint
+instantiates under `code_eval` — checkpoints written before the
+`fast_point_softmax` argument existed take the current default unless the
+loader pins it, so the kernel actually used must be read from the
+evaluation log, not the lane table — or a per-count datapipe behaviour).
+The track's kernel-swap probe remains the decisive discriminator and its
+readout supersedes this entry's bracketing of causes. (2) A finding in its
+own right: the middle-dimension softmax kernel is about a thousand times
+less precise than the last-dimension kernel in float32 (1e-4 against 1e-7
+on weights of order 0.5), the same at every N. The model's docstring
+statement that the two kernels "agree to 1e-6 in float32" describes the
+model-level comparison, where the logits' range is narrower than this
+test's; on raw softmax weights the reference kernel carries a 1e-4 floor.
+No verdict changes: every float32 headline in the book compares
+checkpoints evaluated under one kernel each, and the 1e-4 floor is three
+orders below the smallest difference the book reports. It is recorded here
+because it is the kind of instrument property that would otherwise be
+rediscovered.
+
+**What this does not say.** Nothing about why the references collapse at
+80,000 cells (open, the track's probes are running), and nothing about
+training numerics: the reference kernel's 1e-4 floor was present in every
+pre-2026-09-10 ISLA training run and is part of what the kernel-neutrality
+control (@sec-nb-fast-kernel-default) measured as +1.8%.

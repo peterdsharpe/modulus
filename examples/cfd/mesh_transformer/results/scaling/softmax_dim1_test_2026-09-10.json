@@ -1,0 +1,208 @@
+{
+ "torch": "2.12.0+cu130",
+ "device": "NVIDIA GB300",
+ "rows": [
+  {
+   "N": 40000,
+   "dtype": "float32",
+   "ref_vs_exact_max": 9.651420952649925e-05,
+   "fast_vs_exact_max": 1.3349892469260993e-07,
+   "ref_colsum_min": 1.0000153780583845,
+   "ref_colsum_max": 1.000130587729437,
+   "fast_colsum_min": 0.9999998876696858,
+   "fast_colsum_max": 1.0000002233361636,
+   "exact_max_weight": 0.7390582418596569,
+   "ref_max_weight": 0.7391547560691833
+  },
+  {
+   "N": 40000,
+   "dtype": "bfloat16",
+   "ref_vs_exact_max": 0.0012812409677805947,
+   "fast_vs_exact_max": 0.0012812409677805947,
+   "ref_colsum_min": 0.999453293354307,
+   "ref_colsum_max": 1.0013626327666165,
+   "fast_colsum_min": 0.9994501937381557,
+   "fast_colsum_max": 1.0013514576194231,
+   "exact_max_weight": 0.8385625090322194,
+   "ref_max_weight": 0.83984375
+  },
+  {
+   "N": 60000,
+   "dtype": "float32",
+   "ref_vs_exact_max": 7.052418417152762e-05,
+   "fast_vs_exact_max": 1.3124031322808705e-07,
+   "ref_colsum_min": 1.0000325086967288,
+   "ref_colsum_max": 1.0001129947331613,
+   "fast_colsum_min": 0.9999998588871458,
+   "fast_colsum_max": 1.0000002869014286,
+   "exact_max_weight": 0.6241868615465719,
+   "ref_max_weight": 0.6242573857307434
+  },
+  {
+   "N": 60000,
+   "dtype": "bfloat16",
+   "ref_vs_exact_max": 0.0019114748533168857,
+   "fast_vs_exact_max": 0.0019114748533168857,
+   "ref_colsum_min": 0.998046145491454,
+   "ref_colsum_max": 1.0010183232977852,
+   "fast_colsum_min": 0.9980413604179112,
+   "fast_colsum_max": 1.000951353017797,
+   "exact_max_weight": 0.6845295826966928,
+   "ref_max_weight": 0.68359375
+  },
+  {
+   "N": 65535,
+   "dtype": "float32",
+   "ref_vs_exact_max": 0.00010358607698368605,
+   "fast_vs_exact_max": 1.4121948599399303e-07,
+   "ref_colsum_min": 1.0000283674508388,
+   "ref_colsum_max": 1.000145788522715,
+   "fast_colsum_min": 0.9999998560181566,
+   "fast_colsum_max": 1.0000002413614402,
+   "exact_max_weight": 0.7105293937928588,
+   "ref_max_weight": 0.7106329798698425
+  },
+  {
+   "N": 65535,
+   "dtype": "bfloat16",
+   "ref_vs_exact_max": 0.0017946440117136975,
+   "fast_vs_exact_max": 0.0017946440117136975,
+   "ref_colsum_min": 0.9992784185860106,
+   "ref_colsum_max": 1.0018739672997565,
+   "fast_colsum_min": 0.999256694510132,
+   "fast_colsum_max": 1.0018008664366373,
+   "exact_max_weight": 0.7622835978692427,
+   "ref_max_weight": 0.76171875
+  },
+  {
+   "N": 65536,
+   "dtype": "float32",
+   "ref_vs_exact_max": 4.47909250085865e-05,
+   "fast_vs_exact_max": 9.990172356033611e-08,
+   "ref_colsum_min": 1.0000255135053806,
+   "ref_colsum_max": 1.0001136159241402,
+   "fast_colsum_min": 0.9999998861020171,
+   "fast_colsum_max": 1.0000001478448144,
+   "exact_max_weight": 0.6509861543135169,
+   "ref_max_weight": 0.6510027647018433
+  },
+  {
+   "N": 65536,
+   "dtype": "bfloat16",
+   "ref_vs_exact_max": 0.0018308598175753588,
+   "fast_vs_exact_max": 0.0018308598175753588,
+   "ref_colsum_min": 0.9988957795309688,
+   "ref_colsum_max": 1.0017975301156525,
+   "fast_colsum_min": 0.9988682703858984,
+   "fast_colsum_max": 1.0017881742267605,
+   "exact_max_weight": 0.7274230136209767,
+   "ref_max_weight": 0.7265625
+  },
+  {
+   "N": 65537,
+   "dtype": "float32",
+   "ref_vs_exact_max": 0.00011502682542330334,
+   "fast_vs_exact_max": 2.282795859009923e-07,
+   "ref_colsum_min": 1.0000520944689866,
+   "ref_colsum_max": 1.0001800644601346,
+   "fast_colsum_min": 0.9999998821622896,
+   "fast_colsum_max": 1.0000003464838108,
+   "exact_max_weight": 0.6388448578181314,
+   "ref_max_weight": 0.6389598846435547
+  },
+  {
+   "N": 65537,
+   "dtype": "bfloat16",
+   "ref_vs_exact_max": 0.001790335567491974,
+   "fast_vs_exact_max": 0.001790335567491974,
+   "ref_colsum_min": 0.9981785972134958,
+   "ref_colsum_max": 1.0007117910237238,
+   "fast_colsum_min": 0.99816042539112,
+   "fast_colsum_max": 1.0007114628481357,
+   "exact_max_weight": 0.651971123403739,
+   "ref_max_weight": 0.65234375
+  },
+  {
+   "N": 70000,
+   "dtype": "float32",
+   "ref_vs_exact_max": 6.742394714276401e-05,
+   "fast_vs_exact_max": 4.745802345551553e-08,
+   "ref_colsum_min": 1.0000555760567071,
+   "ref_colsum_max": 1.0001558287446037,
+   "fast_colsum_min": 0.9999998953176772,
+   "fast_colsum_max": 1.0000001425605074,
+   "exact_max_weight": 0.48177367488014117,
+   "ref_max_weight": 0.48180341720581055
+  },
+  {
+   "N": 70000,
+   "dtype": "bfloat16",
+   "ref_vs_exact_max": 0.0009702447068829501,
+   "fast_vs_exact_max": 0.0009702447068829501,
+   "ref_colsum_min": 0.9992193565074672,
+   "ref_colsum_max": 1.0012806312734446,
+   "fast_colsum_min": 0.9991744701016501,
+   "fast_colsum_max": 1.0012649087348526,
+   "exact_max_weight": 0.5045016877485016,
+   "ref_max_weight": 0.50390625
+  },
+  {
+   "N": 80000,
+   "dtype": "float32",
+   "ref_vs_exact_max": 6.854633628466944e-05,
+   "fast_vs_exact_max": 9.040176013330736e-08,
+   "ref_colsum_min": 1.0000637269971606,
+   "ref_colsum_max": 1.0001478626810925,
+   "fast_colsum_min": 0.9999998856128852,
+   "fast_colsum_max": 1.0000001914270356,
+   "exact_max_weight": 0.46360599895180127,
+   "ref_max_weight": 0.46367454528808594
+  },
+  {
+   "N": 80000,
+   "dtype": "bfloat16",
+   "ref_vs_exact_max": 0.000928640424934124,
+   "fast_vs_exact_max": 0.000928640424934124,
+   "ref_colsum_min": 0.9993227934822464,
+   "ref_colsum_max": 1.0009359576515031,
+   "fast_colsum_min": 0.9992540829774263,
+   "fast_colsum_max": 1.0007717977546768,
+   "exact_max_weight": 0.2931747900265135,
+   "ref_max_weight": 0.29296875
+  },
+  {
+   "N": 100000,
+   "dtype": "float32",
+   "ref_vs_exact_max": 8.681263043069931e-05,
+   "fast_vs_exact_max": 8.787228250595192e-08,
+   "ref_colsum_min": 1.0000976236527392,
+   "ref_colsum_max": 1.0002136707617835,
+   "fast_colsum_min": 0.9999998810954519,
+   "fast_colsum_max": 1.0000002186492085,
+   "exact_max_weight": 0.43415531884643904,
+   "ref_max_weight": 0.4342068135738373
+  },
+  {
+   "N": 100000,
+   "dtype": "bfloat16",
+   "ref_vs_exact_max": 0.0011059455775572768,
+   "fast_vs_exact_max": 0.0011059455775572768,
+   "ref_colsum_min": 0.9993458585414476,
+   "ref_colsum_max": 1.0011524302625567,
+   "fast_colsum_min": 0.9992872663005574,
+   "fast_colsum_max": 1.0011411436606814,
+   "exact_max_weight": 0.6253141116652136,
+   "ref_max_weight": 0.625
+  },
+  {
+   "helper_N": 60000,
+   "ref_vs_exact": 4.497470004155568e-05,
+   "fast_vs_exact": 1.0900323199614093e-07
+  },
+  {
+   "helper_N": 80000,
+   "ref_vs_exact": 0.00010497974358758544,
+   "fast_vs_exact": 1.3517342767332963e-07
+  }
+ ]
+}
