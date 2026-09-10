@@ -73,7 +73,7 @@ flowchart TB
     W2F["W2-F: unseen-geometry ladder (210, 40 cases)<br/>+ GT single-angle lr 3e-3 steel-man<br/>DONE - 1.8x (4 geometries), 1.4x (21) vs PHYSICAL-DRIVE GT;<br/>superseded as a comparison by UDRV-L lanes 12-15"]:::done
     DEFL["DEFL: deflection split (geometry extrapolation,<br/>sealed one-shot test)<br/>RUNNING - physical-drive GT arm; ISLA arm kept as a measurement"]:::running
     QT["QT: ISLA query tokens (interior queries interact)<br/>DONE - interior pressure 0.064 vs GT-volume 0.062 (1.03x, bar 1.3);<br/>velocity 1.16x, nu_t 1.71x; 8.9M vs 27.6M params"]:::done
-    QTSDF["QT-SDF: query tokens + signed distance as input<br/>DONE - float32: pressure 1.06x GT, velocity 0.73x, nu_t 1.27x at 8.9M vs 27.6M (bf16 read 0.91x/0.64x/1.29x);<br/>QT-SDF/QT 0.89 (inconclusive band on pressure)"]:::done
+    QTSDF["QT-SDF: query tokens + signed distance as input<br/>DONE - float32, three seeds: pressure 1.08x GT, velocity 0.75x, nu_t 1.27x at 8.9M vs 27.6M (bf16 read 0.91x/0.64x/1.29x);<br/>QT-SDF/QT 0.89 (inconclusive band on pressure)"]:::done
     QTSDFL["QT-SDF ladder: signed-distance configuration at 54 and 109 cars<br/>DONE - 54 cars: pressure 1.11 (inconclusive band), velocity 0.83 (closed), nu_t 1.44;<br/>109: 1.06 / 0.73 / 1.49; pressure curves cross between 109 and 435"]:::done
     QTLF["QT-SDF-LF: local surface-patch features on query tokens<br/>(third difference; target nu_t 1.29x)<br/>STOPPED - falsified: nu_t 0.127 vs 0.122 (1.36x GT); pressure and velocity unchanged"]:::stopped
     QTH256["QT-SDF h256: width control (15.7M params; a width increase,<br/>GT-volume runs at effective width 448)<br/>DONE - float32: nu_t 1.17x GT (inconclusive band; bf16 read 1.26x), pressure 1.02x, velocity 0.72x; capacity not excluded"]:::done
@@ -295,8 +295,8 @@ with ISLA lower on two thirds of the cases. On DrivAerML GeoTransolver's
 surface lanes also consumed the physical velocity (38.9 m/s) and lead ISLA
 1.2–1.3x at every training-set size regardless, so that lead is a lower
 bound; GeoTransolver-volume consumes the same vector, and the interior
-comparison (ISLA query tokens + SDF ahead on velocity 0.73x and behind on
-pressure 1.06x and eddy viscosity 1.27x in float32, at or above the training query
+comparison (ISLA query tokens + SDF ahead on velocity 0.75x and behind on
+pressure 1.08x and eddy viscosity 1.27x in float32, three seeds, at or above the training query
 count) stands pending its unit-drive control (UDRV-INT). What no unit-drive
 rerun can remove is ISLA's contracts: exact SE(3) covariance without a
 frame estimate or a freestream at inference, a query-independent passive

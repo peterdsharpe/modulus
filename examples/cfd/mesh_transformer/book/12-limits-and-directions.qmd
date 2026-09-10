@@ -12,8 +12,8 @@ at four geometries so far). What
 stands is parity with GeoTransolver at full HiLiftAeroML data and, at full
 DrivAerML data in float32, 10% behind the unit-drive GeoTransolver and 8%
 behind Transolver (7% and 5% for the weights-off ablation, not adopted), a lead on
-interior velocity (27% in float32) with deficits on interior pressure (6%)
-and eddy viscosity (27%), and
+interior velocity (25% in float32, three seeds) with deficits on interior
+pressure (8%) and eddy viscosity (27%), and
 a set of contracts that GeoTransolver does not have. This chapter states
 the boundary of each claim as a fact about the evidence, lists the open
 questions with the preregistered outcome that settles each, and names what
@@ -410,8 +410,8 @@ there is no transfer advantage to explain and the thread is closed.
 
 **On the boundary → interior task, ISLA with query tokens and the signed
 distance as an input is more accurate than GeoTransolver's volume
-configuration on interior velocity (0.73x in float32) and less accurate on
-interior pressure (1.06x) and eddy viscosity (1.27x); in bfloat16, which
+configuration on interior velocity (0.75x in float32, three seeds) and less
+accurate on interior pressure (1.08x) and eddy viscosity (1.27x); in bfloat16, which
 inflates GeoTransolver-volume's errors by 20–23% and ISLA's by 4–7%, the
 pressure ratio read 0.91x (@sec-nb-fp32-interior-regrade); without the
 signed distance it trails on every field (1.19x, 1.28x, 1.61x in
@@ -769,8 +769,8 @@ consistency benchmark and the gauge ladder (#sec-nb-bench-prereg,
 measured against a physical-drive GeoTransolver and is not claimed as an
 advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on velocity
-(0.73x in float32) at a third of the parameters and trails on pressure
-(1.06x) and eddy viscosity (1.27x), at or above the training query count
+(0.75x in float32, three seeds) at a third of the parameters and trails on
+pressure (1.08x) and eddy viscosity (1.27x), at or above the training query count
 (@sec-interior); the unit-drive control of GeoTransolver-volume changed
 nothing (@sec-nb-udrv-int-verdict), and GeoTransolver-volume is the choice
 where pressure or eddy viscosity is the target field or the
