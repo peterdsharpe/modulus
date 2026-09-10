@@ -9735,3 +9735,14 @@ is reported as a separate numerics family and not pooled with the
 reference-kernel arms. Every arm trained from `code_perf` is labelled
 "trained with the fast point-softmax kernel; numerics differ from the
 reference checkpoints at bf16 roundoff" in the reduction and the verdict.
+
+**Second amendment (same day).** The merged code ships the fast kernel
+opt-in (`fast_point_softmax` default False until training neutrality is
+shown); the `code_perf` snapshot predates that flip. Every lane run from
+`code_perf` therefore carries `+model.fast_point_softmax=true` in its lane
+row so the hydra override in its log names the kernel explicitly (rows 6,
+7, 16, 17 and 24–29 of highlift/scale_lanes_isla.tsv); the ten lanes had
+started a minute earlier without the flag and were cancelled, their run
+directories (startup logs only) deleted, and their chains left to restart
+from the flagged rows. All other ISLA lanes in this study run the
+reference kernel.
