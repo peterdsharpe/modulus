@@ -1273,3 +1273,11 @@ interior control @sec-nb-udrv-int-prereg.
   invariance × GPU-hours; "within 3% at 512×80k"; never "ISLA wins at scale". bf16 = additive floor per
   architecture (GT +0.004–0.005, T +0.004, ISLA +0.0013–0.002) that INVERTS the corner ordering — never
   quote bf16 corner numbers. GT corner step/memory are launch-record values pending its reduction.
+- **Count convergence of the 10k-trained ISLA references (2026-09-10, scaling session, fp32, code_eval).**
+  Queried at 80,000 cells the 10k-trained constant-gauge reference goes 0.0558 → 0.0528 and the
+  similarity-gauge reference 0.0616 → 0.0574: error falls under refinement (consistency in the
+  @sec-principle sense). The 80k-trained corner arm queried at 10k = 0.0663 (native 0.0427; 40k 0.0447)
+  STANDS as a same-snapshot number: monotone with refinement, worse than a 10k-trained model at 10k. The
+  legacy `code` readings of the references at 80k (0.814 / 0.892, job 700105) were a metric-aggregation
+  artifact of that snapshot and are STRUCK; never quote them. Write "converges up in count; does not
+  generalize down", never "collapse".
