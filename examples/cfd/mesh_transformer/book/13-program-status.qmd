@@ -100,7 +100,7 @@ flowchart TB
     MOM2T["MOM2-T: second-moment channel trained on DrivAerML surface, 435 cars<br/>DONE - free: pressure 0.0583 vs 0.0577 (+0.9%, under the 3% bar); wall shear not measured"]:::done
     MEASMET["MEAS-METRIC: are the measure weights a metric mismatch? (eval-only)<br/>DONE - falsified: no-weights advantage unchanged under the area-weighted metric (1.116 vs 1.119)"]:::done
     NOWL["NOW-L: measure weights off at 210 HiLift cases and on DrivAerML<br/>RUNNING - persists if >= 5% better at both; fades if within 3%"]:::running
-    WAVE3["WAVE-3: unit-drive baselines on every rung and on DrivAerML, ISLA weights-off ladder,<br/>third seeds, lr steel-men for the new baselines (35 lanes)<br/>RUNNING - bars per arm group in the preregistration"]:::running
+    WAVE3["WAVE-3: unit-drive baselines on every rung and on DrivAerML, ISLA weights-off ladder,<br/>third seeds, lr steel-men for the new baselines (35 lanes)<br/>RUNNING - weights-off persists at 35, 4 geometries and the fixed angle (3 of 6 rungs); 210, 21 geometries, 1,260, deflection pending"]:::running
     FP32["FP32-EVAL: float32 re-evaluation of every reported checkpoint (reporting instrument)<br/>RUNNING - bf16 numbers carry a per-checkpoint rounding offset (0.0568 fp32 vs 0.0588/0.0624 bf16 on one checkpoint)"]:::running
     CAMPA["CAMPA: 35-case unit-drive arms on three further geometry-stratified draws × three seeds (fp32)<br/>DONE at 35 - orderings stand on every draw (GT÷ISLA 0.88-0.96, T÷ISLA 0.85-0.90, off÷on 0.90-0.95);<br/>between-draw SD is 3-11x seed SD: future rungs need draws, not seeds; 210-case rung RUNNING"]:::done
     UDRV --> CAMPA

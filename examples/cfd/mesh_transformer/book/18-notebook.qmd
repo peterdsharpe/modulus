@@ -11740,3 +11740,34 @@ effective width of 448 and its multi-radius encoding taken together, and
 the thread is deprioritized as the preregistration said it would be. The
 channels stay in the code as flag-gated, default-off options with contract
 tests; neither is adopted. Tech-tree change: QTDENS RUNNING → DONE (neither).
+
+## 2026-09-10 — Verdict: measure weights off persists at the fixed angle (0.031 against 0.035 in float32, 17 of 18 geometries); third of six rungs {#sec-nb-now-single12-verdict}
+
+The weights-off ladder (@sec-nb-wave3-prereg, bars from
+@sec-nb-noweights-prereg) asks whether dropping ISLA's routing measure
+weights, which helped by 12% at 35 training cases and 17% at 4 training
+geometries, persists on the other HiLift rungs. The fixed-angle rung trains
+on 126 geometries at one angle of attack (12°) and validates on 18 geometries
+never seen. Two seeds of ISLA with `use_measure_weights=false`, otherwise the
+frozen protocol, were evaluated in float32 (the reporting instrument) with the
+bfloat16 pass alongside. Artifact: `results/now_single12_reduction_2026-09-10.json`.
+
+**Weights off scores 0.03106 (seeds 0.03164 / 0.03047) against 0.03476 for
+the weighted reference (0.03425 / 0.03528): 0.894x, a 10.6% gain, lower on
+17 of 18 held-out geometries.** The preregistered bars in readout units were
+0.0330 or below to persist and 0.0337 or above to fade; the rung persists.
+Velocity (0.0571 against 0.0643) and wall shear (0.0899 against 0.1044)
+improve by the same proportion. Bfloat16 gives the same reading (0.0320
+against 0.0358).
+
+Against the unit-drive baselines in float32, ISLA with weights off remains
+behind: GeoTransolver 0.02697 is 0.87x of it and lower on 18 of 18
+geometries (the gap was 0.78x against the weighted ISLA), and Transolver at
+3e-3, 0.0298, is 0.96x and lower on 14 of 18, inside the preregistered parity
+band but with a one-sided count. The ladder tally is now three rungs
+persisting (35 cases 12%, 4 geometries 17%, fixed angle 10.6%) and one
+fading (DrivAerML, 2.9%, not one of the six HiLift rungs), with 210 cases,
+21 geometries, 1,260 cases and the deflection split pending; the rule that
+weights-off becomes ISLA's reference configuration at four or more of six
+rungs needs one more. Chapter 5 fixed-angle paragraph and the index table
+updated.

@@ -1,0 +1,132 @@
+{
+ "date": "2026-09-10",
+ "rung": "highlift_surface_single_aoa_12 (126 training geometries at 12 deg; 18 held-out geometries)",
+ "instrument": "float32 inference (hl_evals_fp32) with bf16 (hl_evals) alongside; seed means over seeds 42/43; paired counts on per-geometry seed-mean pressure rel-L2",
+ "arms_fp32": {
+  "isla_weights_off": {
+   "runs": [
+    "now_hl_mt2_single_aoa_12_seed42",
+    "now_hl_mt2_single_aoa_12_seed43"
+   ],
+   "pressure_l2": 0.03106,
+   "velocity_l2": 0.05709,
+   "tau_wall_l2": 0.08991,
+   "seed_pressure": [
+    0.03164,
+    0.03047
+   ]
+  },
+  "isla_weights_on": {
+   "runs": [
+    "mech_hl_mt2_single_aoa_12_seed42",
+    "mech_hl_mt2_single_aoa_12_seed43"
+   ],
+   "pressure_l2": 0.03476,
+   "velocity_l2": 0.06432,
+   "tau_wall_l2": 0.10441,
+   "seed_pressure": [
+    0.03425,
+    0.03528
+   ]
+  },
+  "gt_unit": {
+   "runs": [
+    "udrv_hl_gt_single_aoa_12_seed42",
+    "udrv_hl_gt_single_aoa_12_seed43"
+   ],
+   "pressure_l2": 0.02697,
+   "velocity_l2": 0.05162,
+   "tau_wall_l2": 0.08321,
+   "seed_pressure": [
+    0.02719,
+    0.02675
+   ]
+  },
+  "transolver_unit_lr3e3": {
+   "runs": [
+    "udrv_hl_transolver_single_aoa_12_lr3e3_seed42",
+    "udrv_hl_transolver_single_aoa_12_lr3e3_seed43"
+   ],
+   "pressure_l2": 0.0298,
+   "velocity_l2": 0.05706,
+   "tau_wall_l2": 0.09445,
+   "seed_pressure": [
+    0.0298,
+    0.0298
+   ]
+  },
+  "gt_physical": {
+   "pressure_l2": 0.17829
+  },
+  "gt_physical_lr3e3": {
+   "pressure_l2": 0.27951
+  },
+  "transolver_physical_lr3e3": {
+   "pressure_l2": 0.07103
+  }
+ },
+ "arms_bf16": {
+  "isla_weights_off": {
+   "pressure_l2": 0.03201,
+   "seed_pressure": [
+    0.03261,
+    0.0314
+   ]
+  },
+  "isla_weights_on": {
+   "pressure_l2": 0.03584
+  },
+  "gt_unit": {
+   "pressure_l2": 0.02914
+  },
+  "transolver_unit_lr3e3": {
+   "pressure_l2": 0.03168
+  }
+ },
+ "paired_fp32_vs_isla_weights_off": {
+  "isla_weights_on": {
+   "off_lower_on": 17,
+   "n": 18,
+   "median_other_over_off": 1.148
+  },
+  "gt_unit": {
+   "off_lower_on": 0,
+   "n": 18,
+   "median_other_over_off": 0.872
+  },
+  "transolver_unit_lr3e3": {
+   "off_lower_on": 4,
+   "n": 18,
+   "median_other_over_off": 0.972
+  },
+  "gt_physical": {
+   "off_lower_on": 18,
+   "n": 18,
+   "median_other_over_off": 5.789
+  }
+ },
+ "bars": {
+  "reference_weighted_fp32": 0.03476,
+  "persists_if_at_most": 0.033,
+  "fades_if_at_least": 0.0337,
+  "source": "#sec-nb-noweights-prereg via #sec-nb-wave3-prereg"
+ },
+ "verdict": "PERSISTS: weights off 0.03106 = 0.894x weighted (10.6% better), lower on 17/18 geometries; still behind unit-drive GeoTransolver (0.87x of ISLA-off, 0/18) and at parity band with unit-drive Transolver (0.96x, Transolver lower on 14/18)",
+ "ladder_tally": {
+  "persists": [
+   "35 cases (12%)",
+   "4 geometries (17%)",
+   "fixed angle (10.6%)"
+  ],
+  "fades": [
+   "DrivAerML 435 cars (2.9%, not a HiLift rung)"
+  ],
+  "pending": [
+   "210 cases (NOW-L)",
+   "21 geometries",
+   "1,260 cases",
+   "deflection"
+  ],
+  "rule": "weights-off becomes ISLA's reference configuration if it persists at >= 4 of the 6 HiLift rungs"
+ }
+}

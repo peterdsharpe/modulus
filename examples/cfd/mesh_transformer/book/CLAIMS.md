@@ -1125,3 +1125,11 @@ interior control @sec-nb-udrv-int-prereg.
   third of the source family's accuracy"; never "diversity is free". Part of the cost is the
   218-car rung of each ladder, not the mixing (decomposition pending). Supersedes the one-seed
   "pays 33% (0.074 vs 0.056)" preview.
+- **Weights-off fixed-angle rung (2026-09-10, float32, two seeds; results/now_single12_reduction_2026-09-10.json).**
+  ISLA weights off 0.03106 (0.03164/0.03047) vs weights on 0.03476 → 0.894x, lower on 17/18
+  held-out geometries: PERSISTS (bar ≤ 0.0330). Against the unit-drive baselines in float32: GT
+  0.02697 (0.87x of ISLA-off; GT lower on 18/18), Transolver 3e-3 0.0298 (0.96x; lower on 14/18).
+  Write "weights off closes a third of ISLA's fixed-angle deficit to GeoTransolver (0.78x → 0.87x)
+  and reaches the parity band with Transolver (0.96x), still behind both". Ladder tally: persists at
+  35 (12%), 4 geometries (17%), fixed angle (10.6%); fades on DrivAerML (2.9%); pending 210,
+  21 geometries, 1,260, deflection. Rule unchanged: ≥ 4 of 6 HiLift rungs → reference config.

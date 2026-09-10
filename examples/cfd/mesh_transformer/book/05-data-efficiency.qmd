@@ -773,7 +773,13 @@ ISLA on 18 of 18 geometries (median per-geometry ISLA ÷ GeoTransolver 1.24,
 the unit-drive Transolver 0.032 / 0.032 (mean 0.0317), also 18 of 18
 (median 1.13, range 1.06–1.21). Both unit-drive baselines lead ISLA on
 velocity (0.053 and 0.059 against 0.065) and wall shear (0.087 and 0.097
-against 0.106) as well. The physical-drive GeoTransolver is 6.2x worse than
+against 0.106) as well. ISLA's best fair configuration, measure weights off,
+scores 0.031 here in float32 (two seeds 0.032 / 0.030, against 0.035 with
+the weights on; lower on 17 of 18 geometries), which closes a third of the
+deficit to the unit-drive GeoTransolver (0.87x of the weights-off ISLA,
+GeoTransolver lower on 18 of 18) and brings Transolver into the parity band
+(0.96x, Transolver lower on 14 of 18); ISLA remains behind both
+(`results/now_single12_reduction_2026-09-10.json`, @sec-nb-now-single12-verdict). The physical-drive GeoTransolver is 6.2x worse than
 its unit-drive twin on every geometry
 (results/udrv_reduction_2026-09-09b.json, arms `gt_unit_single12`,
 `transolver_unit_single12`; preregistered bars in @sec-nb-udrv-prereg,
