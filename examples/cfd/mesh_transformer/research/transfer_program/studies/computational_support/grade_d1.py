@@ -30,6 +30,7 @@ KEYS = ("pressure_l2", "velocity_l2", "nut_l2")
 ARMS = {
     "isla_qtsdfval": ("v0_evals_support_fp32", "reference: ISLA query tokens + SDF, 10k interacting queries"),
     "gt_vol": ("v0_evals_support_fp32", "GeoTransolver-volume reference (physical drive)"),
+    "udrv_gt_vol": ("v0_evals_support_fp32", "GeoTransolver-volume reference (unit drive; campaign D's eddy-viscosity reference)"),
     "isla_support12": ("v0_evals_fp32", "SUPPORT-12: 5k interacting support + 5k passive queries, 12 read blocks"),
     "isla_support4": ("v0_evals_fp32", "SUPPORT-4: same, 4 read blocks"),
     "isla_passive12": ("v0_evals_fp32", "PASSIVE-12: no support, 5k passive queries, 12 read blocks"),
@@ -55,7 +56,8 @@ def main():
     a = ap.parse_args()
     per_arm = {}
     for arm, (root, label) in ARMS.items():
-        runs = {s: run_metrics(root, f"v0_{arm}_seed{s}") for s in (42, 43)}
+        prefix = "" if arm.startswith("udrv_") else "v0_"
+        runs = {s: run_metrics(root, f"{prefix}{arm}_seed{s}") for s in (42, 43)}
         runs = {s: r for s, r in runs.items() if r}
         if runs:
             per_arm[arm] = {"label": label, "seeds": sorted(runs), "per_seed": runs,
@@ -84,6 +86,8 @@ def main():
     elif ref:
         v["d1"]["accuracy_verdict"] = "PENDING (SUPPORT-12 needs both seeds evaluated)"
     gt_unit_nut = a.gt_unit_nut
+    if gt_unit_nut is None and per_arm.get("udrv_gt_vol") and len(per_arm["udrv_gt_vol"]["seeds"]) == 2:
+        gt_unit_nut = per_arm["udrv_gt_vol"]["mean"]["nut_l2"]  # same-snapshot float32 re-evaluation of the unit-drive reference
     v["campaign_d"]["gt_unit_nut_reference"] = gt_unit_nut
     nl = per_arm.get("gt_vol_nolocal")
     if nl and len(nl["seeds"]) == 2 and gt_unit_nut:
