@@ -31,11 +31,12 @@ ARMS = {
            "c384x40k": ["scale_isla_dr_c384x40k_seed42", "scale_isla_dr_c384x40k_seed43"],
            "w384nw": ["scale_isla_dr_w384nw_seed42", "scale_isla_dr_w384nw_seed43"],
            "c512x80k": ["scale_isla_dr_c512x80k_seed42", "scale_isla_dr_c512x80k_seed43"],
-           "kernelctrl": ["scale_isla_dr_kernelctrl_seed42", "scale_isla_dr_kernelctrl_seed43"]},
+           "kernelctrl": ["scale_isla_dr_kernelctrl_seed42", "scale_isla_dr_kernelctrl_seed43"],
+           "g512x80k": ["scale_isla_dr_g512x80k_seed42", "scale_isla_dr_g512x80k_seed43"]},
 }
 # Numerics families (coordinator amendment): t80k, c512x80k and kernelctrl were trained from code_perf (fast
 # point-softmax kernel; bf16-roundoff-level differences from the reference checkpoints); everything else from code_isla5.
-FAST_KERNEL = {"t80k", "c512x80k", "kernelctrl"}
+FAST_KERNEL = {"t80k", "c512x80k", "kernelctrl", "g512x80k"}
 STEP = re.compile(r"Epoch (\d+) \[(\d+)/(\d+)\] Loss: ([0-9.eE+-]+|nan) Step: ([0-9.]+)s Mem: ([0-9.]+)GB")
 
 
@@ -135,7 +136,9 @@ PROBE = {"dr_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_lr1e3_seed{s}" for s i
          # the same probe at 80,000 cells: resolution-generalization test (the 80k-trained model at its own density,
          # and the 10k-trained reference queried 8x denser)
          "dr_ref@80k": [f"{T}/scale_probe_fp32_80k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
-         "dr_c512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)]}
+         "dr_c512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
+         "dr_g512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)],
+         "dr_g512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_g512x80k_seed{s}" for s in (42, 43)]}
 
 
 def _probe_metric(d):

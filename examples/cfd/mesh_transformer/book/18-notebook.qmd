@@ -9890,3 +9890,22 @@ uniform errors is ≤ 0.0531, halfway between 0.0428 and the reference's
 if its 10k-cell error stays above the reference's 10k-cell error, as
 observed, and the reference queried at 80k does not degrade by more than
 5%.
+
+**Preregistered before launch: the similarity-gauge corner, `g512x80k`
+(rows 30–31).** The constant-gauge 512 × 80,000 configuration's 0.0428 is
+not adoptable on its own under the redirect: its density sensitivity is
+10.9x and its gain is partly tied to the training density. The similarity
+gauge is the program's only configuration that is nearly density-invariant
+(1.20x under the 10:1 bias, @sec-robustness-density, against 11–15x for the
+constant gauge at every width measured here), so scaling *it* is the
+principled scaling. Arm: `model.hidden=512 +model.similarity_gauge=true
++model.geo_checkpoint=true +model.fast_point_softmax=true`, 80,000 cells,
+DrivAerML, seeds 42/43, from `code_perf` (run ids
+`scale_isla_dr_g512x80k_seed{42,43}`, jobs 699985/699986). Evaluated in
+both precisions plus the density probe at its native 80,000 cells and at
+10,000. **Bars (float32):** *principled scaling* if the gauge corner
+reaches within 5% of the constant-gauge corner (≤ 0.0449) **and** its
+biased ÷ uniform ratio at 80,000 cells is ≤ 1.5; *gauge fails at scale* if
+that ratio is ≥ 3; *gauge costs accuracy* if the ratio is ≤ 1.5 but the
+error exceeds 0.0470 (5% worse than the constant corner). The DrivAerML
+verdict waits for this pair (about a day at 0.29 s per step).
