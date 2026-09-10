@@ -123,6 +123,7 @@ def _compute_slices_from_projections(
     temperature: torch.Tensor,
     plus: bool,
     proj_temperature: nn.Module | None = None,
+    measure_weights: Float[torch.Tensor, "B N"] | None = None,
 ) -> tuple[
     Float[torch.Tensor, "B N H S"],
     Float[torch.Tensor, "B H S D"],
@@ -153,6 +154,17 @@ def _compute_slices_from_projections(
     proj_temperature : nn.Module or None, optional
         If ``plus`` is ``True``, module mapping :math:`(B, N, H, D)` to
         adaptive temperature; ignored otherwise. Default is ``None``.
+    measure_weights : torch.Tensor or None, optional
+        Per-token quadrature measure :math:`m_i` (e.g. cell area times
+        sampling weight), any layout reshapeable to :math:`(B, N)`. When
+        given, slice tokens are measure-weighted means
+        :math:`\sum_i m_i a_{is} f_i / (\sum_i m_i a_{is} + \epsilon)`, so
+        the aggregate approximates a surface integral and is insensitive to
+        the sampler's point density; without it every sampled point counts
+        equally and the aggregate is a mean over the sample. The measure is
+        normalized to mean 1 per sample so the ``1e-2`` floor keeps its
+        token-count meaning. ``None`` (default) reproduces the unweighted
+        computation exactly. The returned ``slice_weights`` are unaffected.
 
     Returns
     -------
@@ -180,12 +192,22 @@ def _compute_slices_from_projections(
     # Cast to the computation type (since the parameter is probably fp32)
     slice_weights = slice_weights.to(slice_projections.dtype)
 
+    # Pooling weights: the softmax assignments, optionally scaled by each
+    # token's quadrature measure so the slice token integrates over the
+    # surface instead of averaging over the sample.
+    pooling_weights = slice_weights
+    if measure_weights is not None:
+        B, N = slice_weights.shape[:2]
+        m = measure_weights.reshape(B, N)
+        m = m / m.mean(dim=1, keepdim=True)
+        pooling_weights = slice_weights * m[:, :, None, None].to(slice_weights.dtype)
+
     # Computing the slice tokens is a matmul followed by a normalization.
     # It can, unfortunately, overflow in reduced precision, so normalize first:
-    slice_norm = slice_weights.sum(1) + 1e-2  # (B, H, S)
+    slice_norm = pooling_weights.sum(1) + 1e-2  # (B, H, S)
     # Sharded note: slice_norm will be a partial sum at this point.
     # That's because the we're summing over the tokens, which are distributed
-    normed_weights = slice_weights / (slice_norm[:, None, :, :])
+    normed_weights = pooling_weights / (slice_norm[:, None, :, :])
     # Normed weights has shape (B, N, H, S)
 
     # Sharded note: normed_weights will resolve the partial slice_norm
@@ -359,6 +381,7 @@ class PhysicsAttentionBase(nn.Module, ABC):
         self,
         slice_projections: Float[torch.Tensor, "B N H S"],
         fx: Float[torch.Tensor, "B N H D"],
+        measure_weights: Float[torch.Tensor, "B N"] | None = None,
     ) -> tuple[
         Float[torch.Tensor, "B N H S"],
         Float[torch.Tensor, "B H S D"],
@@ -383,6 +406,9 @@ class PhysicsAttentionBase(nn.Module, ABC):
         fx : torch.Tensor
             Latent features of shape :math:`(B, N, H, D)` where :math:`D` is
             dimension per head.
+        measure_weights : torch.Tensor or None, optional
+            Per-token quadrature measure, see
+            :func:`_compute_slices_from_projections`. Default is ``None``.
 
         Returns
         -------
@@ -394,7 +420,12 @@ class PhysicsAttentionBase(nn.Module, ABC):
         """
         proj_temp = getattr(self, "proj_temperature", None) if self.plus else None
         return _compute_slices_from_projections(
-            slice_projections, fx, self.temperature, self.plus, proj_temp
+            slice_projections,
+            fx,
+            self.temperature,
+            self.plus,
+            proj_temp,
+            measure_weights=measure_weights,
         )
 
     def _compute_slice_attention_te(
@@ -498,7 +529,11 @@ class PhysicsAttentionBase(nn.Module, ABC):
             out_x = self.out_linear(out_x)
             return self.out_dropout(out_x)
 
-    def forward(self, x: Float[torch.Tensor, "B N C"]) -> Float[torch.Tensor, "B N C"]:
+    def forward(
+        self,
+        x: Float[torch.Tensor, "B N C"],
+        measure_weights: Float[torch.Tensor, "B N"] | None = None,
+    ) -> Float[torch.Tensor, "B N C"]:
         r"""
         Forward pass of physics attention.
 
@@ -506,6 +541,10 @@ class PhysicsAttentionBase(nn.Module, ABC):
         ----------
         x : torch.Tensor
             Input tensor of shape :math:`(B, N, C)`.
+        measure_weights : torch.Tensor or None, optional
+            Per-token quadrature measure of shape :math:`(B, N)` used to
+            weight the slice pooling (see
+            :func:`_compute_slices_from_projections`). Default is ``None``.
 
         Returns
         -------
@@ -539,7 +578,7 @@ class PhysicsAttentionBase(nn.Module, ABC):
 
         # Compute slice weights and aggregate features per slice
         slice_weights, slice_tokens = self._compute_slices_from_projections(
-            slice_projections, fx_mid
+            slice_projections, fx_mid, measure_weights
         )
         # slice_weights: (B, N, H, S)
         # slice_tokens: (B, H, S, D)

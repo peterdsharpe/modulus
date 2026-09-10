@@ -156,6 +156,7 @@ class _SliceToContextMixin:
         self,
         slice_projections: Float[torch.Tensor, "batch tokens heads slices"],
         fx: Float[torch.Tensor, "batch tokens heads dim"],
+        measure_weights: Float[torch.Tensor, "batch tokens"] | None = None,
     ) -> tuple[
         Float[torch.Tensor, "batch tokens heads slices"],
         Float[torch.Tensor, "batch heads slices dim"],
@@ -172,6 +173,9 @@ class _SliceToContextMixin:
             Shape :math:`(B, N, H, S)`.
         fx : torch.Tensor
             Shape :math:`(B, N, H, D)`.
+        measure_weights : torch.Tensor or None, optional
+            Per-token quadrature measure of shape :math:`(B, N)` weighting the
+            slice pooling. Default is ``None``.
 
         Returns
         -------
@@ -186,6 +190,7 @@ class _SliceToContextMixin:
             self.temperature,
             self.plus,
             proj_temperature=proj_temp,
+            measure_weights=measure_weights,
         )
 
 
@@ -324,7 +329,9 @@ class ContextProjector(_SliceToContextMixin, nn.Module):
         )
 
     def forward(
-        self, x: Float[torch.Tensor, "batch tokens channels"]
+        self,
+        x: Float[torch.Tensor, "batch tokens channels"],
+        measure_weights: Float[torch.Tensor, "batch tokens"] | None = None,
     ) -> Float[torch.Tensor, "batch heads slices dim"]:
         r"""Project inputs to physical state slices.
 
@@ -337,6 +344,10 @@ class ContextProjector(_SliceToContextMixin, nn.Module):
         x : torch.Tensor
             Input tensor of shape :math:`(B, N, C)` where :math:`B` is batch size, :math:`N` is
             number of tokens, and :math:`C` is number of channels.
+        measure_weights : torch.Tensor or None, optional
+            Per-token quadrature measure of shape :math:`(B, N)` weighting the
+            slice pooling, so the context tokens integrate over the geometry
+            rather than averaging over its sample. Default is ``None``.
 
         Returns
         -------
@@ -370,7 +381,9 @@ class ContextProjector(_SliceToContextMixin, nn.Module):
         slice_projections = self.in_project_slice(projected_x)
 
         # Compute weighted aggregation of features into slice tokens
-        _, slice_tokens = self._compute_slices(slice_projections, feature_projection)
+        _, slice_tokens = self._compute_slices(
+            slice_projections, feature_projection, measure_weights
+        )
 
         # Apply concrete dropout to output slice tokens
         if self.output_dropout is not None:
@@ -466,7 +479,9 @@ class StructuredContextProjector(_SliceToContextMixin, nn.Module):
         )
 
     def forward(
-        self, x: Float[torch.Tensor, "batch tokens channels"]
+        self,
+        x: Float[torch.Tensor, "batch tokens channels"],
+        measure_weights: Float[torch.Tensor, "batch tokens"] | None = None,
     ) -> Float[torch.Tensor, "batch heads slices dim"]:
         if not torch.compiler.is_compiling():
             if x.ndim != 3:
@@ -479,7 +494,9 @@ class StructuredContextProjector(_SliceToContextMixin, nn.Module):
         else:
             projected_x, feature_projection = self._grid_project(x)
         slice_projections = self.in_project_slice(projected_x)
-        _, slice_tokens = self._compute_slices(slice_projections, feature_projection)
+        _, slice_tokens = self._compute_slices(
+            slice_projections, feature_projection, measure_weights
+        )
 
         # Apply concrete dropout to output slice tokens
         if self.output_dropout is not None:
@@ -716,6 +733,7 @@ class MultiScaleFeatureExtractor(nn.Module):
         self,
         spatial_coords: Float[torch.Tensor, "batch points spatial_dim"],
         geometry: Float[torch.Tensor, "batch points geometry_dim"],
+        measure_weights: Float[torch.Tensor, "batch points"] | None = None,
     ) -> list[Float[torch.Tensor, "batch heads slices dim"]]:
         r"""Extract and tokenize features for context.
 
@@ -725,6 +743,9 @@ class MultiScaleFeatureExtractor(nn.Module):
             Spatial coordinates of shape :math:`(B, N, 3)`.
         geometry : torch.Tensor
             Geometry features of shape :math:`(B, N, C_{geo})`.
+        measure_weights : torch.Tensor or None, optional
+            Per-query-point quadrature measure of shape :math:`(B, N)`
+            weighting the tokenizers' slice pooling. Default is ``None``.
 
         Returns
         -------
@@ -733,7 +754,7 @@ class MultiScaleFeatureExtractor(nn.Module):
             :math:`(B, H, S, D)`.
         """
         return [
-            tokenizer(processor(spatial_coords, geometry))
+            tokenizer(processor(spatial_coords, geometry), measure_weights)
             for processor, tokenizer in zip(self.processors, self.tokenizers)
         ]
 
@@ -965,6 +986,7 @@ class GlobalContextBuilder(nn.Module):
         geometry: Float[torch.Tensor, "batch tokens geometry_dim"] | None = None,
         global_embedding: Float[torch.Tensor, "batch global_tokens global_dim"]
         | None = None,
+        measure_weights: Float[torch.Tensor, "batch tokens"] | None = None,
     ) -> tuple[
         Float[torch.Tensor, "batch heads slices context_dim"] | None,
         list[Float[torch.Tensor, "batch tokens local_features"]] | None,
@@ -985,6 +1007,13 @@ class GlobalContextBuilder(nn.Module):
             Geometry features of shape :math:`(B, N, C_{geo})`. Default is ``None``.
         global_embedding : torch.Tensor | None, optional
             Global embedding of shape :math:`(B, N_g, C_g)`. Default is ``None``.
+        measure_weights : torch.Tensor | None, optional
+            Per-point quadrature measure of shape :math:`(B, N)` weighting the
+            slice pooling of the geometry tokenizer and the local-feature
+            tokenizers, whose tokens are the :math:`N` points. The global
+            tokenizer pools over the :math:`N_g` global tokens and is never
+            weighted. Requires ``geometry`` to share the point axis with
+            ``local_embeddings``. Default is ``None``.
 
         Returns
         -------
@@ -1033,7 +1062,7 @@ class GlobalContextBuilder(nn.Module):
 
                 # Get tokenized context features from multi-scale extractor
                 context_feats = self.local_extractors[i].extract_context_features(
-                    spatial_coords, geometry
+                    spatial_coords, geometry, measure_weights
                 )
                 context_parts.extend(context_feats)
 
@@ -1045,7 +1074,7 @@ class GlobalContextBuilder(nn.Module):
 
         # Tokenize geometry features
         if self.geometry_tokenizer is not None and geometry is not None:
-            geometry_context = self.geometry_tokenizer(geometry)
+            geometry_context = self.geometry_tokenizer(geometry, measure_weights)
             # Detach the returned copy so downstream observers (e.g. the OOD
             # guard) don't keep the backward graph alive.
             geometry_context_detached = geometry_context.detach()

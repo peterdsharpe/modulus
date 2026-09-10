@@ -55,6 +55,7 @@ from hydra import compose, initialize_config_dir
 from omegaconf import DictConfig, OmegaConf
 from tensordict import TensorDict
 
+from physicsnemo.datapipes.transforms.mesh import TARGET_QUADRATURE_MEASURE_KEY
 from physicsnemo.mesh import DomainMesh, Mesh
 
 from collate import build_collate_fn
@@ -147,8 +148,15 @@ from conftest import make_surface_domain_mesh, make_volume_domain_mesh  # noqa: 
 def _surface_domain_mesh(
     target_config: dict[str, str], n_cells: int = 80
 ) -> DomainMesh:
-    """Surface DomainMesh sized for synthetic E2E testing (80 cells default)."""
-    return make_surface_domain_mesh(target_config, n_cells=n_cells)
+    """Surface DomainMesh sized for synthetic E2E testing (80 cells default).
+
+    Carries the per-point quadrature measure the centroid-producing
+    ``MeshToDomainMesh`` terminal records, which the measure-weighted
+    (``*_mw``) templates consume as ``forward_kwargs.measure_weights``.
+    """
+    domain = make_surface_domain_mesh(target_config, n_cells=n_cells)
+    domain.interior.point_data[TARGET_QUADRATURE_MEASURE_KEY] = torch.rand(n_cells) + 0.5
+    return domain
 
 
 def _volume_domain_mesh(target_config: dict[str, str], n_pts: int = 200) -> DomainMesh:
@@ -259,7 +267,21 @@ _TENSOR_INPUT_RECIPES: list[_RecipeSpec] = [
         ["+model.attention_type=GALE_FA"],
     ),
     _RecipeSpec(
+        "geotransolver_surface_mw",
+        "geotransolver_surface_mw",
+        "drivaer_ml_surface",
+        "surface",
+        [],
+    ),
+    _RecipeSpec(
         "transolver_surface", "transolver_surface", "drivaer_ml_surface", "surface", []
+    ),
+    _RecipeSpec(
+        "transolver_surface_mw",
+        "transolver_surface_mw",
+        "drivaer_ml_surface",
+        "surface",
+        [],
     ),
     _RecipeSpec(
         "transolver_volume", "transolver_volume", "drivaer_ml_volume", "volume", []

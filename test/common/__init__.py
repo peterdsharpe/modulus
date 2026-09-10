@@ -25,4 +25,4 @@ from .optimization import (
     validate_jit,
     validate_torch_compile,
 )
-from .utils import compare_output, validate_accuracy
+from .utils import compare_output, duplicate_first_half_tokens, validate_accuracy

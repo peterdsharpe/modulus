@@ -29,7 +29,9 @@ from physicsnemo.nn.module.physics_attention import (
     PhysicsAttentionIrregularMesh,
     PhysicsAttentionStructuredMesh2D,
     PhysicsAttentionStructuredMesh3D,
+    _compute_slices_from_projections,
 )
+from test.common import duplicate_first_half_tokens
 from test.conftest import requires_module
 
 # =============================================================================
@@ -779,3 +781,92 @@ class TestPhysicsAttentionMemory:
         # Memory should not grow significantly
         memory_growth = final_memory - initial_memory
         assert memory_growth < 1_000_000  # Less than 1MB growth
+
+
+# =============================================================================
+# Measure-weighted slice pooling
+# =============================================================================
+
+
+def _slice_pooling_inputs(
+    n_tokens: int, slice_num: int, heads: int = 1, dim_head: int = 8
+):
+    """Random fp64 inputs for ``_compute_slices_from_projections`` (B=1)."""
+    proj = torch.randn(1, n_tokens, heads, slice_num, dtype=torch.float64)
+    fx = torch.randn(1, n_tokens, heads, dim_head, dtype=torch.float64)
+    temperature = torch.full((1, 1, heads, 1), 0.5, dtype=torch.float64)
+    measure = torch.rand(1, n_tokens, dtype=torch.float64) + 0.5
+    return proj, fx, temperature, measure
+
+
+def test_slice_pooling_measure_weights_default_is_bitwise_unchanged():
+    """No measure, or a measure of ones, reproduces the stock pooling exactly."""
+    torch.manual_seed(0)
+    proj, fx, temperature, _ = _slice_pooling_inputs(256, 8)
+
+    weights_ref, tokens_ref = _compute_slices_from_projections(
+        proj, fx, temperature, False
+    )
+    weights_none, tokens_none = _compute_slices_from_projections(
+        proj, fx, temperature, False, measure_weights=None
+    )
+    weights_ones, tokens_ones = _compute_slices_from_projections(
+        proj,
+        fx,
+        temperature,
+        False,
+        measure_weights=torch.ones(1, 256, dtype=proj.dtype),
+    )
+    assert torch.equal(tokens_none, tokens_ref)
+    assert torch.equal(weights_none, weights_ref)
+    assert torch.equal(tokens_ones, tokens_ref)
+    assert torch.equal(weights_ones, weights_ref)
+
+
+def test_slice_pooling_uniform_measure_matches_unweighted():
+    """A constant measure is a no-op (the mean-1 normalization removes the scale)."""
+    torch.manual_seed(0)
+    proj, fx, temperature, _ = _slice_pooling_inputs(256, 8)
+    _, tokens_ref = _compute_slices_from_projections(proj, fx, temperature, False)
+    _, tokens_uniform = _compute_slices_from_projections(
+        proj,
+        fx,
+        temperature,
+        False,
+        measure_weights=torch.full((1, 256), 0.37, dtype=proj.dtype),
+    )
+    torch.testing.assert_close(tokens_uniform, tokens_ref, rtol=1e-6, atol=0.0)
+
+
+def test_slice_pooling_measure_is_resampling_invariant():
+    """Measure semantics: splitting a point's measure over duplicates changes nothing.
+
+    Duplicating the first half of the tokens, each copy carrying half the
+    original measure, leaves the measure-weighted slice tokens unchanged
+    (to the footprint of the ``1e-2`` floor, ~1e-8 here), while the stock
+    token-count pooling over-weights the duplicated half by a clear margin.
+    The returned per-token slice weights are the same either way, so the
+    broadcast back to points is untouched by the measure.
+    """
+    torch.manual_seed(0)
+    proj, fx, temperature, measure = _slice_pooling_inputs(16384, 2)
+    proj_dup, fx_dup, measure_dup = duplicate_first_half_tokens(
+        proj, fx, measure=measure
+    )
+
+    weights_w, tokens_w = _compute_slices_from_projections(
+        proj, fx, temperature, False, measure_weights=measure
+    )
+    _, tokens_w_dup = _compute_slices_from_projections(
+        proj_dup, fx_dup, temperature, False, measure_weights=measure_dup
+    )
+    torch.testing.assert_close(tokens_w_dup, tokens_w, rtol=1e-6, atol=1e-6)
+
+    weights_u, tokens_u = _compute_slices_from_projections(proj, fx, temperature, False)
+    _, tokens_u_dup = _compute_slices_from_projections(
+        proj_dup, fx_dup, temperature, False
+    )
+    with pytest.raises(AssertionError):  # the test has teeth
+        torch.testing.assert_close(tokens_u_dup, tokens_u, rtol=1e-6, atol=1e-6)
+
+    assert torch.equal(weights_w, weights_u)

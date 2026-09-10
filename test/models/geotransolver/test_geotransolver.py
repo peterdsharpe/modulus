@@ -32,6 +32,7 @@ from physicsnemo.models.geotransolver.geotransolver import (
     GeoTransolver,
 )
 from test.common import (  # noqa E402
+    duplicate_first_half_tokens,
     validate_amp,
     validate_checkpoint,
     validate_combo_optims,
@@ -1672,8 +1673,10 @@ def test_geotransolver_zero_block_ratio_checkpoints_selected_components(monkeypa
         global_embedding=torch.randn(2, 2, 2),
     )
 
+    ### context: (local_embedding, local_positions, geometry, global_embedding,
+    ### measure_weights); preprocess and output: one tensor each.
     assert calls == [
-        (4, {"use_reentrant": False}),
+        (5, {"use_reentrant": False}),
         (1, {"use_reentrant": False}),
         (1, {"use_reentrant": False}),
     ]
@@ -1851,3 +1854,109 @@ def test_geotransolver_activation_checkpointing_reduces_peak_cuda_memory():
 # =============================================================================
 # Checkpoint Tests
 # =============================================================================
+
+
+# =============================================================================
+# Measure-weighted slice pooling
+# =============================================================================
+
+
+def _small_geotransolver(measure_weighted_slices: bool, **kwargs) -> GeoTransolver:
+    return GeoTransolver(
+        functional_dim=6,
+        out_dim=4,
+        geometry_dim=3,
+        global_dim=3,
+        n_layers=2,
+        n_hidden=16,
+        n_head=2,
+        slice_num=2,
+        use_te=False,
+        measure_weighted_slices=measure_weighted_slices,
+        **kwargs,
+    )
+
+
+def test_geotransolver_measure_weights_ignored_without_flag(device):
+    """With the default flag the kwarg is accepted and the output is bitwise unchanged."""
+    torch.manual_seed(0)
+    model = _small_geotransolver(False).to(device).eval()
+    local_emb = torch.randn(2, 300, 6, device=device)
+    geometry = torch.randn(2, 300, 3, device=device)
+    global_emb = torch.randn(2, 1, 3, device=device)
+    measure = torch.rand(2, 300, device=device) + 0.5
+    with torch.no_grad():
+        out_plain = model(local_emb, global_embedding=global_emb, geometry=geometry)
+        out_kwarg = model(
+            local_emb,
+            global_embedding=global_emb,
+            geometry=geometry,
+            measure_weights=measure,
+        )
+    assert torch.equal(out_kwarg, out_plain)
+
+
+def test_geotransolver_measure_weighted_slices_requires_gale():
+    with pytest.raises(ValueError, match="attention_type"):
+        _small_geotransolver(True, attention_type="GALE_FA")
+
+
+def test_geotransolver_measure_weighted_slices_resampling_invariance():
+    """Measure semantics at the model level (fp64, CPU), recipe layout.
+
+    Geometry is the same point set as the local embedding (the surface
+    recipe's contract), so the measure weights the GALE blocks and the
+    geometry tokenizer alike. Duplicating the first half of the points with
+    each copy carrying half its measure leaves the output at the original
+    points unchanged when slices are measure-weighted, and moves it by a
+    clear margin under the stock token-count pooling (same weights, flag
+    off). The recipe collates the per-point measure as ``(1, 1, N)``; that
+    layout must give the same result as ``(B, N)``. The checkpointed training
+    path (blocks and context) must match too.
+    """
+    torch.manual_seed(0)
+    n_tokens = 16384
+    weighted = _small_geotransolver(True).double().eval()
+    unweighted = _small_geotransolver(False).double().eval()
+    unweighted.load_state_dict(weighted.state_dict())
+
+    local_emb = torch.randn(1, n_tokens, 6, dtype=torch.float64)
+    geometry = torch.randn(1, n_tokens, 3, dtype=torch.float64)
+    global_emb = torch.randn(1, 1, 3, dtype=torch.float64)
+    measure = torch.rand(1, n_tokens, dtype=torch.float64) + 0.5
+    local_dup, geometry_dup, measure_dup = duplicate_first_half_tokens(
+        local_emb, geometry, measure=measure
+    )
+
+    def run(model, le, geo, m):
+        with torch.no_grad():
+            return model(
+                le, global_embedding=global_emb, geometry=geo, measure_weights=m
+            )
+
+    out_w = run(weighted, local_emb, geometry, measure)
+    out_w_dup = run(weighted, local_dup, geometry_dup, measure_dup)
+    out_w_collated = run(weighted, local_emb, geometry, measure[:, None, :])
+    out_u = run(unweighted, local_emb, geometry, None)
+    out_u_dup = run(unweighted, local_dup, geometry_dup, None)
+
+    torch.testing.assert_close(out_w_dup[:, :n_tokens], out_w, rtol=1e-6, atol=1e-6)
+    assert torch.equal(out_w_collated, out_w)
+    with pytest.raises(AssertionError):  # the test has teeth
+        torch.testing.assert_close(out_u_dup[:, :n_tokens], out_u, rtol=1e-6, atol=1e-6)
+
+    checkpointed = _small_geotransolver(
+        True,
+        activation_checkpointing=True,
+        activation_checkpointing_components=("blocks", "context"),
+    ).double()
+    checkpointed.load_state_dict(weighted.state_dict())
+    checkpointed.train()
+    out_ckpt = checkpointed(
+        local_emb,
+        global_embedding=global_emb,
+        geometry=geometry,
+        measure_weights=measure,
+    )
+    out_ckpt.sum().backward()
+    torch.testing.assert_close(out_ckpt.detach(), out_w, rtol=1e-12, atol=1e-12)

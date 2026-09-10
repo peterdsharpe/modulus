@@ -150,6 +150,7 @@ def _gale_forward_impl(
     module: nn.Module,
     x: tuple[Float[torch.Tensor, "batch tokens channels"], ...],
     context: Float[torch.Tensor, "batch heads context_slices context_dim"] | None,
+    measure_weights: Float[torch.Tensor, "batch tokens"] | None = None,
 ) -> list[Float[torch.Tensor, "batch tokens channels"]]:
     r"""Single implementation of the GALE forward pipeline.
 
@@ -172,6 +173,11 @@ def _gale_forward_impl(
     context : torch.Tensor or None
         Optional context of shape :math:`(B, H, S_c, D_c)` for cross-attention.
         If ``None``, only self-attention is applied.
+    measure_weights : torch.Tensor or None, optional
+        Per-token quadrature measure of shape :math:`(B, N)`, applied to the
+        slice pooling of every input stream (see
+        :func:`~physicsnemo.nn.module.physics_attention._compute_slices_from_projections`).
+        Default is ``None``.
 
     Returns
     -------
@@ -200,7 +206,7 @@ def _gale_forward_impl(
     slice_projections = [module.in_project_slice(_x_mid) for _x_mid in x_mid]
     slice_weights, slice_tokens = zip(
         *[
-            module._compute_slices_from_projections(proj, _fx_mid)
+            module._compute_slices_from_projections(proj, _fx_mid, measure_weights)
             for proj, _fx_mid in zip(slice_projections, fx_mid)
         ]
     )
@@ -365,6 +371,7 @@ class GALE(PhysicsAttentionIrregularMesh):
         x: tuple[Float[torch.Tensor, "batch tokens channels"], ...],
         context: Float[torch.Tensor, "batch heads context_slices context_dim"]
         | None = None,
+        measure_weights: Float[torch.Tensor, "batch tokens"] | None = None,
     ) -> list[Float[torch.Tensor, "batch tokens channels"]]:
         r"""Forward pass of the GALE module.
 
@@ -382,6 +389,9 @@ class GALE(PhysicsAttentionIrregularMesh):
             where :math:`H` is number of heads, :math:`S_c` is number of context
             slices, and :math:`D_c` is context dimension. If ``None``, only
             self-attention is applied. Default is ``None``.
+        measure_weights : torch.Tensor | None, optional
+            Per-token quadrature measure of shape :math:`(B, N)` weighting the
+            slice pooling. Default is ``None`` (every token counts equally).
 
         Returns
         -------
@@ -389,7 +399,7 @@ class GALE(PhysicsAttentionIrregularMesh):
             List of output tensors, each of shape :math:`(B, N, C)``, same shape
             as inputs.
         """
-        return _gale_forward_impl(self, x, context)
+        return _gale_forward_impl(self, x, context, measure_weights)
 
 
 def _gale_cross_init(
@@ -440,8 +450,9 @@ class _GALEStructuredForwardMixin:
         x: tuple[Float[torch.Tensor, "batch tokens channels"], ...],
         context: Float[torch.Tensor, "batch heads context_slices context_dim"]
         | None = None,
+        measure_weights: Float[torch.Tensor, "batch tokens"] | None = None,
     ) -> list[Float[torch.Tensor, "batch tokens channels"]]:
-        return _gale_forward_impl(self, x, context)
+        return _gale_forward_impl(self, x, context, measure_weights)
 
 
 class GALEStructuredMesh2D(
@@ -977,6 +988,7 @@ class GALEBlock(nn.Module):
         self,
         fx: tuple[Float[torch.Tensor, "batch tokens hidden_dim"], ...],
         global_context: Float[torch.Tensor, "batch heads context_slices context_dim"],
+        measure_weights: Float[torch.Tensor, "batch tokens"] | None = None,
     ) -> list[Float[torch.Tensor, "batch tokens hidden_dim"]]:
         r"""Forward pass of the GALE block.
 
@@ -990,6 +1002,10 @@ class GALEBlock(nn.Module):
             Global context tensor for cross-attention of shape :math:`(B, H, S_c, D_c)`
             where :math:`H` is number of heads, :math:`S_c` is number of context slices,
             and :math:`D_c` is context dimension.
+        measure_weights : torch.Tensor | None, optional
+            Per-token quadrature measure of shape :math:`(B, N)` weighting the
+            slice pooling; only the ``"GALE"`` attention type pools by slices,
+            so it is only forwarded when given. Default is ``None``.
 
         Returns
         -------
@@ -1011,7 +1027,12 @@ class GALEBlock(nn.Module):
         normed_inputs = [self.ln_1(_fx) for _fx in fx]
 
         # Apply GALE attention with cross-attention to global context
-        attn = self.Attn(tuple(normed_inputs), global_context)
+        if measure_weights is None:
+            attn = self.Attn(tuple(normed_inputs), global_context)
+        else:
+            attn = self.Attn(
+                tuple(normed_inputs), global_context, measure_weights=measure_weights
+            )
 
         # Residual connection after attention
         fx_out = [attn[i] + fx[i] for i in range(len(fx))]

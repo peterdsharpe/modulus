@@ -25,6 +25,7 @@ from physicsnemo.core.module import Module
 from physicsnemo.models.transolver import Transolver
 from test.common import (
     check_ort_version,
+    duplicate_first_half_tokens,
     validate_amp,
     validate_checkpoint,
     validate_combo_optims,
@@ -754,3 +755,93 @@ def test_transolver_deploy(device):
         1e-2,
         1e-2,
     )
+
+
+# =============================================================================
+# Measure-weighted slice pooling
+# =============================================================================
+
+
+def _small_transolver(measure_weighted_slices: bool) -> Transolver:
+    return Transolver(
+        functional_dim=2,
+        embedding_dim=3,
+        out_dim=1,
+        n_layers=2,
+        n_hidden=16,
+        n_head=2,
+        slice_num=2,
+        use_te=False,
+        measure_weighted_slices=measure_weighted_slices,
+    )
+
+
+def test_transolver_measure_weights_ignored_without_flag(device):
+    """With the default flag the kwarg is accepted and the output is bitwise unchanged."""
+    torch.manual_seed(0)
+    model = _small_transolver(False).to(device).eval()
+    fx = torch.randn(2, 300, 2, device=device)
+    embedding = torch.randn(2, 300, 3, device=device)
+    measure = torch.rand(2, 300, device=device) + 0.5
+    with torch.no_grad():
+        out_plain = model(fx, embedding=embedding)
+        out_kwarg = model(fx, embedding=embedding, measure_weights=measure)
+    assert torch.equal(out_kwarg, out_plain)
+
+
+def test_transolver_measure_weighted_slices_resampling_invariance():
+    """Measure semantics at the model level (fp64, CPU).
+
+    Duplicating the first half of the points with each copy carrying half its
+    measure leaves the output at the original points unchanged when slices
+    are measure-weighted, and moves it by a clear margin under the stock
+    token-count pooling (same weights, flag off). The recipe collates the
+    per-point measure as ``(1, 1, N)``; that layout must give the same result
+    as ``(B, N)``. The checkpointed training path must match too.
+    """
+    torch.manual_seed(0)
+    n_tokens = 16384
+    weighted = _small_transolver(True).double().eval()
+    unweighted = _small_transolver(False).double().eval()
+    unweighted.load_state_dict(weighted.state_dict())
+
+    fx = torch.randn(1, n_tokens, 2, dtype=torch.float64)
+    embedding = torch.randn(1, n_tokens, 3, dtype=torch.float64)
+    measure = torch.rand(1, n_tokens, dtype=torch.float64) + 0.5
+    fx_dup, embedding_dup, measure_dup = duplicate_first_half_tokens(
+        fx, embedding, measure=measure
+    )
+
+    with torch.no_grad():
+        out_w = weighted(fx, embedding=embedding, measure_weights=measure)
+        out_w_dup = weighted(
+            fx_dup, embedding=embedding_dup, measure_weights=measure_dup
+        )
+        out_w_collated = weighted(
+            fx, embedding=embedding, measure_weights=measure[:, None, :]
+        )
+        out_u = unweighted(fx, embedding=embedding)
+        out_u_dup = unweighted(fx_dup, embedding=embedding_dup)
+
+    torch.testing.assert_close(out_w_dup[:, :n_tokens], out_w, rtol=1e-6, atol=1e-6)
+    assert torch.equal(out_w_collated, out_w)
+    with pytest.raises(AssertionError):  # the test has teeth
+        torch.testing.assert_close(out_u_dup[:, :n_tokens], out_u, rtol=1e-6, atol=1e-6)
+
+    checkpointed = Transolver(
+        functional_dim=2,
+        embedding_dim=3,
+        out_dim=1,
+        n_layers=2,
+        n_hidden=16,
+        n_head=2,
+        slice_num=2,
+        use_te=False,
+        measure_weighted_slices=True,
+        activation_checkpointing=True,
+    ).double()
+    checkpointed.load_state_dict(weighted.state_dict())
+    checkpointed.train()
+    out_ckpt = checkpointed(fx, embedding=embedding, measure_weights=measure)
+    out_ckpt.sum().backward()
+    torch.testing.assert_close(out_ckpt.detach(), out_w, rtol=1e-12, atol=1e-12)

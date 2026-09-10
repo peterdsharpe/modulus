@@ -99,6 +99,35 @@ def compare_output(
     return True
 
 
+def duplicate_first_half_tokens(*tensors: Tensor, measure: Tensor) -> list[Tensor]:
+    """Resample a token set: the first half of the tokens appear twice.
+
+    Each duplicate pair shares the original token's quadrature measure, half
+    per copy, so the resampled set represents the same measure with a skewed
+    point density. Used to check that measure-weighted aggregates are
+    invariant to how the measure is split over points, while token-count
+    aggregates are not.
+
+    Parameters
+    ----------
+    *tensors : Tensor
+        Per-token tensors of shape ``(B, N, ...)`` to duplicate alongside.
+    measure : Tensor
+        Per-token measure of shape ``(B, N)``.
+
+    Returns
+    -------
+    list[Tensor]
+        The duplicated ``tensors`` (each ``(B, N + N // 2, ...)``) followed by
+        the split measure ``(B, N + N // 2)``.
+    """
+    n = measure.shape[1] // 2
+    split = measure.clone()
+    split[:, :n] /= 2
+    split = torch.cat([split, split[:, :n]], dim=1)
+    return [torch.cat([t, t[:, :n]], dim=1) for t in tensors] + [split]
+
+
 def is_fusion_available(cls_name: str):
     """Check if certain APIs are available in nvfuser package."""
 

@@ -285,7 +285,9 @@ class TransolverBlock(nn.Module):
                 )
 
     def forward(
-        self, fx: Float[torch.Tensor, "B N C"]
+        self,
+        fx: Float[torch.Tensor, "B N C"],
+        measure_weights: Float[torch.Tensor, "B N"] | None = None,
     ) -> Float[torch.Tensor, "B N C_out"]:
         r"""
         Forward pass of the Transolver block.
@@ -294,6 +296,9 @@ class TransolverBlock(nn.Module):
         ----------
         fx : torch.Tensor
             Input tensor of shape :math:`(B, N, C)`.
+        measure_weights : torch.Tensor | None, optional
+            Per-token quadrature measure of shape :math:`(B, N)` weighting the
+            physics-attention slice pooling. Default is ``None``.
 
         Returns
         -------
@@ -302,7 +307,7 @@ class TransolverBlock(nn.Module):
             if ``last_layer=True``.
         """
         # Apply physics attention with residual connection
-        fx = self.Attn(self.ln_1(fx)) + fx
+        fx = self.Attn(self.ln_1(fx), measure_weights) + fx
 
         # Apply feed-forward network with residual connection
         fx = self.ln_mlp1(fx) + fx
@@ -392,6 +397,13 @@ class Transolver(Module):
         Selected blocks are distributed evenly across the block stack.
         Checkpointing trades additional computation during the backward pass
         for lower activation memory usage.
+    measure_weighted_slices : bool, optional, default=False
+        Whether the physics-attention slice pooling weights each token by the
+        ``measure_weights`` passed to :meth:`forward`. The stock pooling counts
+        every sampled point equally, so slice tokens are means over the
+        sampler's draw and drift with its density; weighting by the quadrature
+        measure makes them surface integrals. When ``False`` the kwarg is
+        ignored, so existing configs and checkpoints are unaffected.
 
     Forward
     -------
@@ -410,6 +422,9 @@ class Transolver(Module):
         are flattened internally to align with ``fx``.
     time : torch.Tensor | None, optional
         Time tensor of shape :math:`(B,)` for time-dependent models.
+    measure_weights : torch.Tensor | None, optional, keyword-only
+        Per-token quadrature measure, any layout reshapeable to
+        :math:`(B, N)`. Used only when ``measure_weighted_slices=True``.
 
     Outputs
     -------
@@ -476,10 +491,12 @@ class Transolver(Module):
         plus: bool = False,
         activation_checkpointing: bool = False,
         checkpointing_ratio: float = 1.0,
+        measure_weighted_slices: bool = False,
     ) -> None:
         super().__init__(meta=MetaData())
 
         self.use_te = use_te
+        self.measure_weighted_slices = measure_weighted_slices
 
         # Validate hidden dimension and head compatibility
         if not n_hidden % n_head == 0:
@@ -592,7 +609,12 @@ class Transolver(Module):
             training=self.training,
         )
 
-    def _checkpoint_block(self, block: nn.Module, fx: torch.Tensor) -> torch.Tensor:
+    def _checkpoint_block(
+        self,
+        block: nn.Module,
+        fx: torch.Tensor,
+        measure_weights: torch.Tensor | None,
+    ) -> torch.Tensor:
         r"""Checkpoint a block with the backend-appropriate implementation.
 
         Transformer Engine's wrapper establishes the activation-recompute
@@ -600,9 +622,10 @@ class Transolver(Module):
         handling. The native PyTorch backend uses the recommended
         non-reentrant checkpoint implementation directly.
         """
+        inputs = (fx,) if measure_weights is None else (fx, measure_weights)
         return run_checkpoint(
             block,
-            fx,
+            *inputs,
             use_te=self.use_te,
             te_module=te,
         )
@@ -693,6 +716,8 @@ class Transolver(Module):
         fx: Float[torch.Tensor, "B *spatial C_in"],
         embedding: Float[torch.Tensor, "B *spatial C_emb"] | None = None,
         time: Float[torch.Tensor, " B"] | None = None,
+        *,
+        measure_weights: torch.Tensor | None = None,
     ) -> Float[torch.Tensor, "B *spatial C_out"]:
         r"""
         Forward pass of the Transolver model.
@@ -710,6 +735,11 @@ class Transolver(Module):
             one with the same spatial layout as ``fx`` (flattened internally).
         time : torch.Tensor | None, optional
             Time tensor of shape :math:`(B,)` for time-dependent models.
+        measure_weights : torch.Tensor | None, optional, keyword-only
+            Per-token quadrature measure, any layout reshapeable to
+            :math:`(B, N)`, weighting the slice pooling in every block.
+            Ignored unless the model was built with
+            ``measure_weighted_slices=True``. Default is ``None``.
 
         Returns
         -------
@@ -768,12 +798,21 @@ class Transolver(Module):
             time_emb = self.time_fc(time_emb)
             fx = fx + time_emb
 
+        # Full-object pickles from before this flag existed lack the attribute;
+        # treat them like the historical default (unweighted pooling).
+        if not getattr(self, "measure_weighted_slices", False):
+            measure_weights = None
+
         # Apply transformer blocks
+        # Subclasses swap in blocks without slice pooling (FLARE), so the
+        # measure is only handed over when there is one.
         for block_idx, block in enumerate(self.blocks):
             if self._should_checkpoint_block(block_idx):
-                fx = self._checkpoint_block(block, fx)
-            else:
+                fx = self._checkpoint_block(block, fx, measure_weights)
+            elif measure_weights is None:
                 fx = block(fx)
+            else:
+                fx = block(fx, measure_weights)
 
         # Reshape back to structured format if needed
         if self.structured_shape is not None:

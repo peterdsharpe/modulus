@@ -448,3 +448,34 @@ def test_gale_block_concat_project(device, attention_type):
     assert len(outputs) == 1
     assert outputs[0].shape == (batch_size, n_tokens, hidden_dim)
     assert not torch.isnan(outputs[0]).any()
+
+
+def test_gale_block_measure_weights_thread_to_slice_pooling(device):
+    """GALEBlock forwards ``measure_weights`` into GALE's slice pooling.
+
+    Ones reproduce the unweighted output bitwise; a non-uniform measure
+    changes it, which shows the kwarg actually reaches the pooling.
+    """
+    torch.manual_seed(42)
+    n_head, hidden_dim, slice_num, n_tokens = 4, 64, 8, 100
+    context_dim = hidden_dim // n_head
+    block = GALEBlock(
+        num_heads=n_head,
+        hidden_dim=hidden_dim,
+        dropout=0.0,
+        slice_num=slice_num,
+        context_dim=context_dim,
+        use_te=False,
+    ).to(device)
+    x = torch.randn(2, n_tokens, hidden_dim, device=device)
+    context = torch.randn(2, n_head, slice_num, context_dim, device=device)
+    measure = torch.rand(2, n_tokens, device=device) + 0.5
+
+    out_plain = block((x,), context)[0]
+    out_ones = block((x,), context, measure_weights=torch.ones_like(measure))[0]
+    out_measure = block((x,), context, measure_weights=measure)[0]
+
+    assert torch.equal(out_ones, out_plain)
+    assert not torch.equal(out_measure, out_plain)
+    assert out_measure.shape == out_plain.shape
+    assert not torch.isnan(out_measure).any()
