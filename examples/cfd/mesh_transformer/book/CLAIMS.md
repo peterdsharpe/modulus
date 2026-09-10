@@ -924,3 +924,11 @@ interior control @sec-nb-udrv-int-prereg.
   no new comparison between arms evaluated under different code snapshots. Verified safe: the
   35-case HiLift arms (ISLA weighted/unweighted, unit- and physical-drive GT and Transolver) were
   evaluated on bit-identical sampled points (results/measure_metric_35_2026-09-09.json asserts it).
+
+- **Cross-snapshot hold NARROWED (2026-09-09).** results/eval_points_identity_2026-09-09.md: the
+  saved prediction artifacts share bit-identical sampled validation points across `code`,
+  `code_isla2/3/4/5` for the interior family and DrivAerML surface (and the 35-case HiLift arms),
+  so every within-family comparison in the book is on identical points and stands. The +6.1%
+  same-checkpoint discrepancy lives in evaluation under the newly merged code + recipe
+  (`code_perf`); no book number uses it. Rule: a new snapshot's evaluations may be compared with
+  existing ones only after an identity check of sampled points against a frozen-snapshot artifact.
