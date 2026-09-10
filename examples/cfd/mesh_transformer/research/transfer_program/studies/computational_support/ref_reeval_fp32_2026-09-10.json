@@ -2,23 +2,112 @@
  "purpose": "Float32 same-snapshot re-evaluation of the V0 reference checkpoints under code_support + recipe_support (job 696540, launcher v0/v0_ref_reeval_fp32_aga.sbatch, outputs $T/v0_evals_support_fp32/), beside the bf16 same-snapshot evaluation (v0_evals_support/, bit-identical to the originals). 48 DrivAerML validation cars, sampling_resolution 10000, dataset drivaer_ml_volume_mt, identical sampled points.",
  "date": "2026-09-10",
  "runs": {
-  "v0_isla_qtsdfval_seed42": {"fp32": {"pressure_l2": 0.0547, "velocity_l2": 0.0796, "nut_l2": 0.1068}, "bf16": {"pressure_l2": 0.0569, "velocity_l2": 0.0850, "nut_l2": 0.1172}},
-  "v0_isla_qtsdfval_seed43": {"fp32": {"pressure_l2": 0.0547, "velocity_l2": 0.0796, "nut_l2": 0.1164}, "bf16": {"pressure_l2": 0.0565, "velocity_l2": 0.0855, "nut_l2": 0.1258}},
-  "v0_gt_vol_seed42": {"fp32": {"pressure_l2": 0.0517, "velocity_l2": 0.1091, "nut_l2": 0.0873}, "bf16": {"pressure_l2": 0.0622, "velocity_l2": 0.1335, "nut_l2": 0.0934}},
-  "v0_gt_vol_seed43": {"fp32": {"pressure_l2": 0.0512, "velocity_l2": 0.1084, "nut_l2": 0.0884}, "bf16": {"pressure_l2": 0.0618, "velocity_l2": 0.1332, "nut_l2": 0.0944}}
+  "v0_isla_qtsdfval_seed42": {
+   "fp32": {
+    "pressure_l2": 0.0547,
+    "velocity_l2": 0.0796,
+    "nut_l2": 0.1068
+   },
+   "bf16": {
+    "pressure_l2": 0.0569,
+    "velocity_l2": 0.085,
+    "nut_l2": 0.1172
+   }
+  },
+  "v0_isla_qtsdfval_seed43": {
+   "fp32": {
+    "pressure_l2": 0.0547,
+    "velocity_l2": 0.0796,
+    "nut_l2": 0.1164
+   },
+   "bf16": {
+    "pressure_l2": 0.0565,
+    "velocity_l2": 0.0855,
+    "nut_l2": 0.1258
+   }
+  },
+  "v0_gt_vol_seed42": {
+   "fp32": {
+    "pressure_l2": 0.0517,
+    "velocity_l2": 0.1091,
+    "nut_l2": 0.0873
+   },
+   "bf16": {
+    "pressure_l2": 0.0622,
+    "velocity_l2": 0.1335,
+    "nut_l2": 0.0934
+   }
+  },
+  "v0_gt_vol_seed43": {
+   "fp32": {
+    "pressure_l2": 0.0512,
+    "velocity_l2": 0.1084,
+    "nut_l2": 0.0884
+   },
+   "bf16": {
+    "pressure_l2": 0.0618,
+    "velocity_l2": 0.1332,
+    "nut_l2": 0.0944
+   }
+  },
+  "udrv_gt_vol_seed42": {
+   "fp32": {
+    "pressure_l2": 0.0512,
+    "velocity_l2": 0.109,
+    "nut_l2": 0.088
+   },
+   "note": "unit-drive GeoTransolver-volume (forward_kwargs.global_embedding=global_data.U_inf_dir); job 696699; bf16 program-book reference 0.0617/0.1310/0.0936 (two-seed mean)"
+  },
+  "udrv_gt_vol_seed43": {
+   "fp32": {
+    "pressure_l2": 0.0514,
+    "velocity_l2": 0.1051,
+    "nut_l2": 0.0878
+   }
+  }
  },
  "arms_fp32_two_seed_mean": {
-  "isla_qtsdf": {"pressure_l2": 0.0547, "velocity_l2": 0.0796, "nut_l2": 0.1116},
-  "gt_vol_physical_drive": {"pressure_l2": 0.0515, "velocity_l2": 0.1088, "nut_l2": 0.0879}
+  "isla_qtsdf": {
+   "pressure_l2": 0.0547,
+   "velocity_l2": 0.0796,
+   "nut_l2": 0.1116
+  },
+  "gt_vol_physical_drive": {
+   "pressure_l2": 0.0515,
+   "velocity_l2": 0.1088,
+   "nut_l2": 0.0879
+  },
+  "gt_vol_unit_drive": {
+   "pressure_l2": 0.0513,
+   "velocity_l2": 0.107,
+   "nut_l2": 0.0879
+  }
  },
  "bf16_over_fp32": {
-  "isla_qtsdf": {"pressure_l2": 1.037, "velocity_l2": 1.071, "nut_l2": 1.089},
-  "gt_vol_physical_drive": {"pressure_l2": 1.204, "velocity_l2": 1.226, "nut_l2": 1.069}
+  "isla_qtsdf": {
+   "pressure_l2": 1.037,
+   "velocity_l2": 1.071,
+   "nut_l2": 1.089
+  },
+  "gt_vol_physical_drive": {
+   "pressure_l2": 1.204,
+   "velocity_l2": 1.226,
+   "nut_l2": 1.069
+  }
  },
  "d1_bars_translated_to_fp32": {
   "note": "PREREG.md states the bars as 'each within 3% of the reference' and 'pressure 10% worse than the reference'; the bf16 constants 0.0584/0.0879/0.1251 and 0.0624 were their evaluation at the bf16 reference. In float32 the reference is 0.0547/0.0796/0.1116.",
-  "supported_max": {"pressure_l2": 0.0563, "velocity_l2": 0.0820, "nut_l2": 0.1149},
+  "supported_max": {
+   "pressure_l2": 0.0563,
+   "velocity_l2": 0.082,
+   "nut_l2": 0.1149
+  },
   "falsified_pressure_min": 0.0602,
   "gt_vol_pressure_fp32_for_context": 0.0515
+ },
+ "campaign_d_bars_at_fp32_reference": {
+  "gt_nolocal_nut_local_features_carry_min": 0.0967,
+  "h344_nut_supported_max": 0.0967,
+  "h344_nut_falsified_min": 0.1099
  }
 }
