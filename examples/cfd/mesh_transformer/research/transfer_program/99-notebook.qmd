@@ -1609,3 +1609,43 @@ Proposed bars for whoever preregisters it, in this table's units at hidden
 0.068) with the near-wall band unchanged within 3%; falsified if ≥ 0.085
 (no better than the two seeds' 0.087–0.099 range). Not launched by this
 track.
+
+## 2026-09-10 — Launched: far-field context tokens for ISLA's interior queries (wake tokens and latent volume tokens at hidden 344), preregistered against the far-band eddy-viscosity error {#sec-nb-wake-launch}
+
+Follow-up to @sec-nb-bands, which located ISLA's remaining interior
+eddy-viscosity deficit in the outer wake. Preregistration
+`studies/computational_support/PREREG_WAKE.md`, written before any lane.
+Two arms, each two seeds, on top of the hidden-344 query-token + SDF
+configuration of campaign D (frozen V0 protocol, exact activation
+recompute): **wake tokens**, three interacting tokens on the drive axis
+through the centering point at 1, 2 and 4 times the measure-weighted RMS
+extent of the surface along the drive, and **latent volume tokens**, the
+existing off-surface construction (three offsets along each slice anchor's
+normal plus the centroid) newly allowed with query tokens. Both are built
+covariantly from the surface and the drive alone, are invariant to how the
+surface was sampled, carry a routing weight that is a learned fraction of
+the total surface measure, and are off by default. Repository commit
+e5ff39bea (model and tests: SE(3) covariance, correct output count,
+measure-scale and Horvitz–Thompson refinement invariance, liveness,
+gradients, constructor contracts, weighted-extent invariance under a 10:1
+biased resample); one bookkeeping change rides along, the surface-only
+measure statistics and local invariants now use the true surface count
+rather than the count after appended context tokens, which is identical
+whenever no context tokens are present.
+
+Mechanism stated before the run: far from the body every surface anchor is
+at nearly the same distance and direction, so a query's relational
+invariants lose the resolution that a per-point network on raw position
+keeps; wake tokens add anchors whose relative geometry varies along the
+wake (the flow-organized construction), latent volume tokens add
+off-surface anchors around the body (the control that says whether any
+off-surface context or the wake alignment carries the effect). Bars in the
+band-decomposition units: far-band ν_t ≤ 0.074 with the near-wall band
+unchanged within 3% → supported; ≥ 0.085 → falsified; between reported as
+the fraction of the 0.093 → 0.068 gap closed. Lanes v0wk-0..3
+(`v0_isla_qtsdf_h344_{wake,lvt}_seed{42,43}`), code snapshot
+`$T/code_wake` (= `code_support` plus the commit), launcher
+`v0/v0_wake_aga.sbatch`, evaluation `v0/v0_wake_eval_aga.sbatch` in float32
+under `code_wake` (the program's evaluation snapshot does not carry the
+option yet; both snapshots evaluate the campaign D reference identically,
+so the comparison is same-snapshot in the sense of the CLAIMS rule).
