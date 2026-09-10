@@ -503,7 +503,19 @@ with passive read blocks; it is exactly independent in fp64 and 3.0–3.7x
 less accurate on DrivAerML surface pressure: 3.5–3.7x against the
 interacting reference at the same learning rate, 3.0–3.3x against the
 6,500-token control at matched memory.
-Evaluate-anywhere semantics is a contract with a measured price.
+Evaluate-anywhere semantics is a contract with a measured price. The
+interior confirms it at matched depth: a passive decode that reads through
+twelve blocks from an interacting support set of 5,000 surface-plus-signed-
+distance tokens (the companion's D1 arm) scores 0.078 / 0.107 / 0.269 on
+pressure, velocity and eddy viscosity against 0.055 / 0.080 / 0.112 for the
+interacting query-token reference, 1.43x, 1.34x and 2.41x, far past the
+preregistered falsifier of 0.060 on pressure; depth buys 13% and the support
+12% on pressure and neither anything on eddy viscosity. What the interacting
+queries provide is computation at the requested points through every
+encoder layer, not geometric context, so the passive route is closed for
+ISLA at matched depth and inputs, and the deployment repair for query-set
+dependence is query-count augmentation in training, not architecture
+(`research/transfer_program/studies/computational_support/d1_verdict_2026-09-10.json`, companion #sec-computational-support).
 
 ### Cross-family transfer is a data property {#sec-limits-transfer}
 

@@ -1290,3 +1290,12 @@ interior control @sec-nb-udrv-int-prereg.
   ISLA advantage. UDRV-L prediction (baselines match or beat ISLA at every rung) held at 5 of 6 rungs (35,
   210, geo4, geo21, fixed angle); 1,260 pending (epochs 80–90, I/O-throttled). Write "unit-drive
   GeoTransolver 0.83x of ISLA at 210 cases, lower on 162 of 180 cases".
+- **D1 computational support (2026-09-10, transfer session, fp32, code_eval, 48 cars, 2 seeds; research/transfer_program/studies/computational_support/d1_verdict_2026-09-10.json).**
+  SUPPORT-12 (5k interacting support + SDF, 5k passive queries, 12 read blocks) 0.0781 (0.0774/0.0788) /
+  0.1068 / 0.2689 vs interacting QT+SDF 0.0547 / 0.0796 / 0.1116 → 1.43 / 1.34 / 2.41x; falsifier pressure
+  ≥ 0.0602 → FALSIFIED. SUPPORT-4 0.0896 / 0.1187 / 0.2485; PASSIVE-12 (no support) 0.0890 / 0.1201 / 0.2305:
+  depth 13%, support 12% on pressure; nothing on ν_t. Scored points = exact second half of the reference's
+  10k sample. Cost 0.71–0.75 s/step, 10.8 GB unpinned vs 0.28 s / 6.1 GB pinned (~1.9x). Write "interacting
+  queries provide computation at the requested points, not geometric context; the passive route is closed
+  for ISLA at matched depth and inputs; the deployment repair for query-set dependence is query-count
+  augmentation (QCOUNT), not architecture". PASSIVE2 closed by this result.

@@ -173,6 +173,20 @@ same answer at every shared point, at a cost linear in the points asked
 for. GeoTransolver's queries are tokens, so its answer at a point depends
 on the other points requested with it.
 
+The passive route was tested at matched depth and inputs by the companion
+program: a decode that reads through twelve blocks from an interacting
+support set of 5,000 surface tokens carrying the signed distance, with 5,000
+passive queries, scores 0.078 / 0.107 / 0.269 (pressure, velocity, eddy
+viscosity; two seeds, float32) against 0.055 / 0.080 / 0.112 for the
+interacting query-token configuration, 1.43x, 1.34x and 2.41x, past the
+preregistered pressure falsifier of 0.060. Twelve read blocks against four
+buy 13% on pressure and the support set 12%; neither moves eddy viscosity.
+The interacting queries therefore provide computation at the requested points
+through every encoder layer rather than geometric context, the passive route
+is closed for ISLA at matched depth, and query-set dependence is a training
+question (query-count augmentation), not an architectural one
+(`research/transfer_program/studies/computational_support/d1_verdict_2026-09-10.json`, companion #sec-computational-support).
+
 ### How each architecture treats an interior point
 
 *GeoTransolver.* The interior points are the tokens. Each carries its
