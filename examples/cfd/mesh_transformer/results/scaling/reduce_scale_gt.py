@@ -16,7 +16,7 @@ import glob, json, os, re, statistics as st
 import numpy as np
 
 T = "/scratch/fsw/portfolios/coreai/projects/coreai_modulus_cae/users/psharpe/agents/2026-08-09-mt2-stage0"
-F = ("pressure_l2", "velocity_l2", "tau_wall_l2")
+F = ("pressure_l2", "velocity_l2", "tau_wall_l2", "wss_x_l2", "wss_y_l2", "wss_z_l2")  # HiLift: pressure/velocity/tau_wall; DrivAerML surface: pressure + wss components
 ARMS = ("w384", "w512", "t40k", "t80k", "c384x40k")
 REF = {  # unit-drive references (main session) with the physical-drive fallbacks
     "hl": {"unit": ["udrv_hl_gt_full_seed42", "udrv_hl_gt_full_seed43"], "physical": ["gt_hl_lr1_seed42", "gt_hl_lr1_seed43"]},
