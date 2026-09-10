@@ -9775,3 +9775,15 @@ re-evaluation campaign when they exist, otherwise their bf16 numbers with
 that label. Reference-kernel lanes are evaluated with the fast kernel off;
 code_perf lanes with it on, as trained (under float32 the two kernels agree
 to 1e-6).
+
+**First readout (DrivAerML, width 512; float32 instrument).** ISLA at width
+512 (60.2M parameters) scores 0.0508 against the reference width's 0.0557
+(float32 re-evaluation of `iw_mt2_lr1e3_seed{42,43}`; bf16 0.0577), a ratio
+of 0.91: the width-scaling bar (≥ 5% better) is met on DrivAerML. The cost
+of the 6.8x parameter increase is 2% in step time (0.278 against 0.273 s)
+and 22.7 against 21.3 GPU-hours, at 6.1 GB peak memory: at 10,000 tokens
+and width 192 the B300 is not compute-bound, so width is nearly free here.
+Both evaluations sampled bit-identical points; the fp32-over-bf16 shift is
+0.949 for the wide model and 0.965 for the reference. Partial artifact
+results/scaling/isla_scale_reduction_2026-09-09.json (overwritten as arms
+land).
