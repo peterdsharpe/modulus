@@ -13087,3 +13087,75 @@ updated. What the ladder now says about ISLA is unchanged in kind from the
 35-case verdict: the small-data advantage on HiLiftAeroML was the baselines'
 input scale, and with it removed ISLA is 1.1–1.3x behind at every small-data
 rung on this dataset.
+
+## 2026-09-10 — Preregistered: QCOUNT, query-count augmentation for the interior query-token configuration (does training over a range of request sizes remove the count dependence?) {#sec-nb-qcount-prereg}
+
+*Setting.* ISLA's interior configuration admits the interior query points as
+interacting tokens (@sec-interior-query-tokens). Its prediction at a point
+therefore depends on how many other points are requested with it: on the
+trained reference checkpoint the sentinel pressure error is 0.114 when a
+point is predicted alone, 0.080 with 2,000 companions, 0.055 at the training
+request of 10,000 and 0.054 at 40,000 (float32, four cars,
+@sec-nb-qmass-verdict). The passive alternative, which is exactly
+count-independent, was tested at matched depth and inputs and lost 1.43x on
+pressure and 2.41x on eddy viscosity (companion D1, @sec-interior-query-independence),
+so the interacting queries are the configuration and the count dependence
+is what remains to remove. Under @sec-principle the target is consistency:
+the same field at every request size, with error that falls, not rises,
+as the count grows.
+
+*Mechanism (why this should work).* The dependence is a training-distribution
+artifact, not an architectural necessity: every interior lane has trained
+at exactly 10,000 queries, so the routing weights, the query mass and the
+query-query interactions have only ever been seen at one count. Training
+with the count drawn per sample over a range asks the same network to
+produce the same field at 2,000 and at 20,000 requests, which the
+measure-consistent routing (Horvitz–Thompson weights on the surface, query
+mass a fraction of the surface measure) already permits; what the
+augmentation supplies is the gradient signal that penalizes count-specific
+solutions. It changes no input, adds no non-physical signal and leaves the
+architecture unchanged; it is a statement about the training distribution
+over discretizations, which is the principled lever for a consistency
+property.
+
+*Instrument.* `DomainMeshReader` gains `interior_n_points_range=(lo, hi)`:
+the interior point count is drawn per sample, uniformly on the closed
+integer range, from the sample's own generator (reproducible per epoch and
+index), overriding the fixed count for the interior only; boundaries keep
+their fixed sizes and the default `None` is bitwise the old behaviour
+(reader tests, 33 passing). Arm: the reference query-token + signed-distance
+configuration (hidden 192, 12 layers, 256 slices, similarity gauge; training
+snapshot `code_isla2` plus this reader change, otherwise frozen protocol,
+`dataloader.pin_memory=false`) trained on DrivAerML volume with
+`interior_n_points_range=[2000, 20000]`, two seeds
+(v0_isla_qtsdfval_qcount_seed{42,43}). Evaluation in float32 under the
+guarded snapshot at three request sizes on all 48 validation cars: 2,000,
+10,000 and 20,000 interior points per car. Controls: the reference
+checkpoints (v0_isla_qtsdfval_seed{42,43}) evaluated at the same three
+sizes (10,000 already: 0.0547 / 0.0796 / 0.1116 deduplicated two-seed means;
+2,000 and 20,000 running now, jobs 702010 and 702011).
+
+*Bars (readout units, float32, two-seed means, 48 cars).* (1) *Accuracy kept
+at the training count:* pressure at 10,000 within 3% of the reference
+(≤ 0.0563), otherwise "augmentation costs accuracy". (2) *Count dependence
+removed:* pressure at 2,000 requests within 10% of the arm's own 10,000
+value (the reference's 2,000-request penalty on all 48 cars, float32,
+deduplicated two-seed means, is +38% on pressure, 0.0753 against 0.0547,
++59% on velocity, 0.1266 against 0.0796, and +49% on eddy viscosity, 0.1663
+against 0.1116; at 20,000 requests the reference improves to 0.0531 / 0.0771
+/ 0.1097, so it converges upward and fails only downward; control jobs
+702010 / 702011, zero skipped loads);
+"supported" if the 2,000-to-10,000 ratio is ≤ 1.10 for pressure and ≤ 1.15
+for eddy viscosity, "falsified" if pressure ≥ 1.25 (no better than half the
+reference's penalty), between otherwise. (3) *Consistency upward:* the
+20,000-request error is at or below the 10,000 value for all three fields.
+(4) *No regression against GeoTransolver-volume at the training count:*
+pressure ratio ISLA ÷ GeoTransolver-volume stays within 0.03 of the
+reference's 1.08. Falsifiers stated in advance: (2) failing means the count
+dependence is not a training-distribution artifact and the interacting
+decode carries an intrinsic request-size dependence, which would make
+query-count consistency an architectural question after all; (1) failing
+means the price of consistency is paid in accuracy and the trade is
+reported, not adopted. Cost is recorded (mean count 11,000, about 1.1x the
+reference step). Owner: this session; launch after the two control jobs
+report.

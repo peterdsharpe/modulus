@@ -418,6 +418,7 @@ class DomainMeshReader:
         extra_boundaries: dict[str, dict] | None = None,
         drop_interior_cells: bool = False,
         drop_in_file_boundaries: bool = False,
+        interior_n_points_range: tuple[int, int] | None = None,
     ) -> None:
         """
         Initialize the domain mesh reader.
@@ -467,6 +468,17 @@ class DomainMeshReader:
             only the cells whose vertices *all* survive the point cut, so
             a surface meant to keep ``N`` cells (about ``3N`` vertices)
             keeps roughly ``N * (N / 3N)**3 ≈ N / 27`` of them.
+        interior_n_points_range : (int, int), optional
+            If set, the *interior* point count is drawn per sample, uniformly
+            over the closed integer range ``[lo, hi]``, from the sample's
+            generator (so it is reproducible per ``(epoch, index)`` under
+            ``set_epoch``), and overrides ``subsample_n_points`` for the
+            interior only; boundaries keep the fixed sizes. This is
+            query-count augmentation: a model trained on a range of interior
+            request sizes is asked to give the same field at every size
+            (consistency in the fine-mesh limit) instead of learning the one
+            count it was trained at. Default ``None`` leaves behaviour
+            unchanged.
         extra_boundaries : dict[str, dict] or None, optional
             Load additional sibling meshes as extra boundaries on each
             sample.  Each key is the boundary name to assign; each value
@@ -518,6 +530,15 @@ class DomainMeshReader:
                 f"got {boundary_subsample!r}"
             )
         self.boundary_subsample = boundary_subsample
+        if interior_n_points_range is not None:
+            lo, hi = (int(interior_n_points_range[0]), int(interior_n_points_range[1]))
+            if lo <= 0 or hi < lo:
+                raise ValueError(
+                    "interior_n_points_range must be (lo, hi) with 0 < lo <= hi, "
+                    f"got {interior_n_points_range!r}"
+                )
+            interior_n_points_range = (lo, hi)
+        self.interior_n_points_range = interior_n_points_range
         # Base seed + epoch for deterministic per-index RNG (see
         # :meth:`set_generator`). ``None`` means unseeded.
         self._seed_base: int | None = None
@@ -654,16 +675,29 @@ class DomainMeshReader:
                 global_data=dm.global_data,
             )
 
-        if self.subsample_n_cells is not None or self.subsample_n_points is not None:
+        if (
+            self.subsample_n_cells is not None
+            or self.subsample_n_points is not None
+            or self.interior_n_points_range is not None
+        ):
             generator = (
                 None
                 if self._seed_base is None
                 else spawn_generator(self._seed_base, self._epoch, index)
             )
+            interior_n_points = self.subsample_n_points
+            if self.interior_n_points_range is not None:
+                ### Query-count augmentation: one draw per sample from the
+                ### same generator as the subsample itself, before the
+                ### subsample consumes it, so (epoch, index) fixes both.
+                lo, hi = self.interior_n_points_range
+                interior_n_points = int(
+                    torch.randint(lo, hi + 1, (1,), generator=generator).item()
+                )
             interior = _subsample_mesh(
                 dm.interior,
                 n_cells=self.subsample_n_cells,
-                n_points=self.subsample_n_points,
+                n_points=interior_n_points,
                 generator=generator,
             )
             bnd_n_cells, bnd_n_points = self._boundary_subsample_sizes()
