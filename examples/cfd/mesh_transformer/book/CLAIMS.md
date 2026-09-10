@@ -1122,8 +1122,12 @@ interior control @sec-nb-udrv-int-prereg.
   0.115 (−81%), DrivAerML 0.0504 → 0.0598 (+19%); fastback drag rel. MAE >150% → 16% / 13%. Bar
   (≥30% drop at ≤10% in-family cost) NOT met on cost for either → write "a trade: half the label
   budget on the sibling family buys the target family almost entirely and costs a fifth to a
-  third of the source family's accuracy"; never "diversity is free". Part of the cost is the
-  218-car rung of each ladder, not the mixing (decomposition pending). Supersedes the one-seed
+  third of the source family's accuracy"; never "diversity is free". Decomposed (2026-09-10, four
+  protocol-matched 218-DrivAerML-only lanes, fp32): ISLA 0.0557 → 0.0683 (rung 1.226) → 0.0737 (mixing
+  1.078); GT 0.0504 → 0.0573 (1.137) → 0.0598 (1.043). Write "most of the cost is the halved source
+  data; the sibling family costs 4–8% at a 50% share; ISLA pays more on both factors". 218-alone
+  zero-shot fastback 0.848 / 0.670. One-seed T1 preview: 435 DrivAerML + 794 estate → ISLA in-family
+  +18% (0.0658): mixing cost grows with the foreign share. Supersedes the one-seed
   "pays 33% (0.074 vs 0.056)" preview.
 - **Weights-off fixed-angle rung (2026-09-10, float32, two seeds; results/now_single12_reduction_2026-09-10.json).**
   ISLA weights off 0.03106 (0.03164/0.03047) vs weights on 0.03476 → 0.894x, lower on 17/18
