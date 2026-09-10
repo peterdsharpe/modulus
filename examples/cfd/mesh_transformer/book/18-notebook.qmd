@@ -9363,3 +9363,17 @@ fifteen minutes of normal stepping past epoch 312, after which the other
 QTDENS lanes and the coordinator's held interior chains are released with
 the same override. The cost of pageable host-to-device copies is read from
 the probe's step time against the 0.287 s of the pinned run.
+
+**Outcome.** The probe resumed from epoch 310, passed the stall point and
+stepped normally for fifteen minutes (epoch 327 at the check), where four
+pinned attempts had hung at epoch 311–312. Step time 0.388 s against
+0.287 s pinned: the workaround costs 35% per step on the 10,000-query ISLA
+lane. The other three QTDENS lanes and the coordinator's held interior
+chains were released with the same override. Root cause (why host-memory
+pinning began hanging on DrivAerML interior lanes on every node from
+12:14) remains open; a bounded wait on the prefetch hand-off in
+physicsnemo/datapipes/dataloader.py would turn this class of hang into a
+logged failure instead of an hour of idle GPUs per link and is the
+datapipe follow-up to file. Diagnostic tools left in the task directory:
+highlift/qtdens_thread_dump.sh, qtdens_probe_files.sh,
+qtdens_probe_stripes.sh, code_qtdens/sitecustomize.py, tools/pyspy.
