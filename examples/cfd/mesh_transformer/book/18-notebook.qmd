@@ -13687,7 +13687,7 @@ under the same snapshot (no loader warnings). Reference ISLA 0.788 (0.782 /
 | H4 measure weights | weights off | 0.802 / 0.811 → 0.806 | 0.0544 | null |
 | (partial H2) | 2,560 query-independent anchors | 0.800 / 0.900 → 0.850 | — | worse; two-factor variant |
 
-**No arm reaches the 0.70 bar; none reaches 0.76 with its seed mean.** The
+**No arm reaches the 0.70 bar, and no arm's seed mean falls below 0.76.** The
 anchor count moves the zero-shot error the wrong way at both 128 and 512;
 the raw seeds are within seed spread of the reference (and 4% better
 in-family, consistent with A35B's finding that the invariant seed set is

@@ -95,6 +95,8 @@ measures but does not adopt (@sec-principle), scores 0.123 on three seeds.
 | Transolver | physical velocity (three seeds) | 0.404 | 0.372 | 0.602 | 0 of 180 | 0 |
 | Transolver | unit direction, lr 3e-3 (three seeds: 0.117, 0.113, 0.114) | **0.115** | **0.141** | **0.217** | 152 of 180 | 102 |
 | Transolver | unit direction, lr 1e-3 (two seeds: 0.124, 0.129) | 0.127 | 0.148 | 0.234 | — | — |
+| GeoTransolver | unit direction, lr 3e-3, measure-weighted slice pooling (three seeds: 0.113, 0.122, 0.117; float32) | **0.117** | — | — | — | — |
+| Transolver | unit direction, lr 3e-3, measure-weighted slice pooling (three seeds: 0.121, 0.121, 0.123; float32) | **0.122** | — | — | — | — |
 | ISLA | unit direction, measure weights on (three seeds) | 0.138 | 0.168 | 0.256 | — | — |
 | ISLA | unit direction, measure weights off (three seeds: 0.121, 0.123, 0.124) | **0.123** | **0.152** | **0.234** | — | — |
 
@@ -107,9 +109,14 @@ Transolver; median ISLA ÷ baseline ratio 1.09 and 1.17). Each unit-drive
 baseline beats its physical-drive self on 180 of 180 cases (median 3.4x and
 3.8x). Data: results/udrv_reduction_2026-09-09.json. {#tbl-unit-drive}
 
-The preregistered bar for "the drive scale carries a material part of the
-deficit" was a unit-drive error of 0.27 or below for GeoTransolver and 0.29
-for Transolver; both land at less than half of it, and below ISLA. The
+The two measure-weighted rows are the baselines with the same quadrature
+measure ISLA carries in their slice pooling (@sec-nb-mw-verdict): they pay
+6.5% for it at this rung and remain 0.85x and 0.88x of ISLA's error, so
+about a third of the baselines' lead here was the sampling density they
+read and two thirds was not; on DrivAerML the same change costs nothing
+(@sec-consistency-bench). The preregistered bar for "the drive scale
+carries a material part of the deficit" was a unit-drive error of 0.27 or
+below for GeoTransolver and 0.29 for Transolver; both land at less than half of it, and below ISLA. The
 reading is direct: the baselines' small-data deficit on HiLiftAeroML was the
 input scale, not the architecture, and the steel-man controls of
 @sec-de-controls (a higher learning rate, doubled epochs, a third seed, the

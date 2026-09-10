@@ -642,7 +642,8 @@ def f(v, fmt):
     return "not measured" if v is None else fmt.format(v)
 out = ("| configuration | in-family error | density 10:1 (x) | pose, random SO(3) (x) "
        "| zero-shot fastback | few-shot gain from pretraining |\n|---|---:|---:|---:|---:|---:|\n")
-for key in ("geotransolver_unit", "transolver_unit", "isla_reference_constant_gauge",
+for key in ("geotransolver_unit", "geotransolver_unit_mw", "transolver_unit", "transolver_unit_mw",
+            "isla_reference_constant_gauge", "isla_constant_gauge_mcenter", "isla_similarity_gauge_lr1e3",
             "isla_similarity_gauge", "isla_weights_off_ablation"):
     r = M["rows"][key]
     pose = f(r["pose_factor"], "{:.2f}") + (" (augmented)" if r.get("pose_note") else "")
@@ -672,8 +673,14 @@ print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-dr
       "it demonstrates the frame class (a frame that does not read the sampling distribution costs nothing "
       "at scale and removes the sensitivity); the single reference configuration is decided by the "
       "relative-position frame (RELFRAME). The last column is training cost in GPU-hours. "
-      "Learning rates are stated per row: the similarity-gauge checkpoints were trained at 3e-3, "
-      "so their in-family error is not a price of the gauge (the rate-matched constant gauge scores 0.0620). "
+      "Learning rates are stated per row: the similarity-gauge checkpoints at 3e-3 sit beside the "
+      "rate-matched constant gauge at 0.0620, and the 1e-3 pair is at parity with the 1e-3 reference. "
+      "The measure-weighted rows give GeoTransolver and Transolver the quadrature measure in their "
+      "slice pooling: their accuracy is unchanged and their density factor falls to 1.02x, the lowest "
+      "measured; the probe's pipeline centres every architecture by the plain mean of the 40,000-cell "
+      "uniform pool before the biased draw, so those two rows carry an unbiased frame from the pipeline "
+      "while the ISLA rows re-centre in the model on the biased sample (a like-for-like probe is in "
+      "progress). The measure-centred ISLA row is a sample-statistic frame and not a flagship candidate. "
       "Data: results/accuracy_consistency_matrix_2026-09-10.json (provenance per cell "
       "inside). {#tbl-consistency-matrix}")
 ```
@@ -774,7 +781,21 @@ print(f": The DrivAerML frontier at full data. In-family: validation pressure "
       f"results/p1pp_canonical_training_2026-09-03.json. {{#tbl-frontier}}")
 ```
 
-Three things to read off the table. First, at the common learning rate
+The measure-weighted rows of @tbl-consistency-matrix are the result the
+principle asked for and the one to lead with when the baselines are
+discussed: unweighted slice pooling was a removable hack, and once the
+baselines carry the surface measure (@sec-nb-mw-prereg,
+@sec-nb-mw-verdict) they keep their in-distribution lead over ISLA on both
+datasets (free on the cars, 6.5% on the wings) and become the most
+density-consistent configurations measured, so at the reference size ISLA's
+contracts buy neither accuracy nor consistency on these surfaces. What ISLA
+retains is exact equivariance under arbitrary poses (@sec-pose-contract),
+the interior velocity and near-wall lead at matched parameters
+(@sec-interior), and its memory footprint at scale. Measure-weighted
+pooling is the recommended repair for the Transolver family and ships in
+the repository flag-gated with its contract tests.
+
+Three things to read off the bfloat16 table below. First, at the common learning rate
 ISLA is about 1.2x behind GeoTransolver in-family; at each architecture's best
 rate the gap is 1.085x (@sec-full-data-accuracy), and the table's
 column is the conservative one for ISLA. Second, on the common held-out
