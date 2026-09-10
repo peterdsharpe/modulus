@@ -134,7 +134,26 @@ for name, (root, runs) in REFS.items():
         gh = [c["gpu_hours_500ep"] for c in costs if c.get("gpu_hours_500ep")]; ref["gpu_hours_500ep"] = st.mean(gh) if gh else None
         mems = [c["peak_mem_gb"] for c in costs if c.get("peak_mem_gb")]; ref["peak_mem_gb"] = max(mems) if mems else None
     out["refs"][name] = ref
+# Density-bias probe (program redirect 2026-09-10): biased (10:1 sampling density, drivaer_probe_biased3) over
+# uniform (drivaer_probe_unif2) pressure error, float32, each model at its own training resolution. Reference
+# probes come from the transfer campaign (transfer/campaign_e_fp32/<run>/{unif,biased}); the 512 x 80k corner
+# arm from hl_evals_probe_fp32/<run>/{unif,biased}.
+PROBES = {"dr_ref_unit_lr3e3": ("transfer/campaign_e_fp32", ["uw_transolver_unit_lr3e3_seed42", "uw_transolver_unit_lr3e3_seed43"]),
+          "dr_c512x80k": ("hl_evals_probe_fp32", ["scale_transolver_dr_c512x80k_seed42", "scale_transolver_dr_c512x80k_seed43"])}
+out["density_probe"] = {}
+for name, (root, runs) in PROBES.items():
+    per = []
+    for r in runs:
+        u = rows(f"{root}/{r}/unif", ""); b = rows(f"{root}/{r}/biased", "")
+        if u and b:
+            mu, mb = means(u)["pressure_l2"], means(b)["pressure_l2"]
+            per.append({"run": r, "uniform": mu, "biased": mb, "ratio": mb / mu})
+    out["density_probe"][name] = {"runs": per, "ratio_mean": st.mean(x["ratio"] for x in per) if per else None,
+                                  "uniform_mean": st.mean(x["uniform"] for x in per) if per else None,
+                                  "biased_mean": st.mean(x["biased"] for x in per) if per else None}
 json.dump(out, open(f"{T}/hl_evals/transolver_scale_reduction.json", "w"), indent=1)
+for k, v in out["density_probe"].items():
+    print("PROBE", k, json.dumps(v)[:300])
 for k, v in out["refs"].items():
     print("REF", k, json.dumps(v)[:300] if v else None)
 for k, v in out["arms"].items():
