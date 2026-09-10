@@ -10174,3 +10174,39 @@ because it removes one hang site. The +35% step-time caveat stands for
 unpinned lanes. Open question for the cluster team: what changed on the
 GB300 nodes' CUDA or driver side around 12:14 PDT on 2026-09-09 for jobs
 performing large host-to-device copies.
+
+## 2026-09-09 — WAVE-3 arms 3–4 verdict at 35 cases: third seeds change nothing; the learning-rate steel-man moves the unit-drive GeoTransolver to 0.111; ISLA's best fair configuration (weights off, three seeds) is 0.123, 1.07–1.11x behind the baselines {#sec-nb-wave3-35-verdict}
+
+**Setting and bars** (@sec-nb-wave3-prereg, arms 3, 4 and the 35-case third
+seed of arm 1). The 35-case HiLift rung, frozen protocol, unit drive for
+every architecture, all arms scored on identical sampled points. Bars: third
+seeds have no bar (spread reported); a steel-man moves a baseline's number
+if it improves the two-seed mean by ≥ 5% (GeoTransolver ≤ 0.118, Transolver
+≤ 0.109).
+
+**Readout** (results/udrv_reduction_2026-09-09d.json; 180 validation cases):
+
+| arm | seeds | mean | note |
+|---|---|---|---|
+| GeoTransolver, unit, lr 1e-3 | 0.1236 / 0.1253 / 0.1215 | **0.1235** | third seed within 2% |
+| GeoTransolver, unit, lr 3e-3 | 0.1119 / 0.1092 | **0.1105** | steel-man: 11% better, lower on 158 of 180 cases and 107 of 118 geometries than its 1e-3 lane → GeoTransolver's 35-case number moves to 0.111 |
+| Transolver, unit, lr 3e-3 | 0.1172 / 0.1126 / 0.1137 | **0.1145** | third seed within 1% |
+| Transolver, unit, lr 1e-3 | 0.1245 / 0.1293 | 0.1269 | worse: lower than its 3e-3 lane on 25 of 180 cases; Transolver stays at 3e-3 |
+| ISLA, weights on | 0.1352 / 0.1410 / 0.1376 | 0.1379 | reference |
+| ISLA, weights off | 0.1210 / 0.1231 / 0.1236 | **0.1225** | third seed within 1%; 12% better than weights on (lower on 144 of 180 cases, 92 of 118 geometries) |
+
+Paired against ISLA's best fair configuration (weights off, three seeds):
+unit-drive GeoTransolver at 1e-3 is lower on 109 of 180 cases and 67 of 118
+geometries (median ISLA ÷ GeoTransolver 1.03; sign test p = 0.006);
+Transolver at 3e-3 on 137 of 180 and 87 of 118 (median 1.10). Against the
+steel-manned GeoTransolver (0.111) the gap widens to 1.11x by the mean.
+
+**Verdict.** The third seeds confirm the 35-case picture to within 2% per
+arm. The steel-man bar is met for GeoTransolver (0.111 ≤ 0.118), not for
+Transolver, so the rung's baseline numbers are GeoTransolver 0.111 and
+Transolver 0.115; against them ISLA is 1.25x and 1.2x behind with its
+measure weights on, and 1.11x and 1.07x behind with them off. The chapter-5
+unit-drive table, the index verdict table and sentence, and chapter 12's
+limits carry the three-seed and steel-man numbers. The fair 35-case
+ordering on HiLiftAeroML is therefore GeoTransolver (0.111) < Transolver
+(0.115) < ISLA weights off (0.123) < ISLA weights on (0.138).

@@ -939,3 +939,11 @@ interior control @sec-nb-udrv-int-prereg.
   lower on 36/48 cars). vs ISLA weights-off 0.0561: 0.99x / 1.00x. Write "parity within 4% at
   full DrivAerML data, within 1% with ISLA's weights off"; retire "8.5% behind" and "lower
   bound". The 27–218-car ladder stays physical-drive and stands (not a handicap here).
+
+- **35-case unit-drive numbers, final (2026-09-09, three seeds; results/udrv_reduction_2026-09-09d.json).**
+  GT unit lr 1e-3 0.1235 (0.1236/0.1253/0.1215); GT unit lr 3e-3 0.1105 (0.1119/0.1092) → by the
+  best-rate rule GT's 35-case number is **0.111**; Transolver unit lr 3e-3 0.1145
+  (0.1172/0.1126/0.1137), lr 1e-3 0.1269 (worse). ISLA weights on 0.138 (three seeds); ISLA
+  weights off **0.1225** (0.1210/0.1231/0.1236). Write "baselines 1.1–1.25x more accurate than
+  ISLA at 35 cases; 1.07–1.11x more accurate than ISLA's best fair configuration". Paired
+  (weights-off ISLA vs GT 1e-3, three seeds): GT lower on 109/180 (median 1.03).

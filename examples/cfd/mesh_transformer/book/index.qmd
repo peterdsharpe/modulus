@@ -33,10 +33,12 @@ global-context projector, untrained, collapses from about 200 occupied
 slices per head at unit magnitude to one slice at the HiLift magnitude
 (@sec-part-baseline). The preregistered control retrained both baselines with
 the unit direction, changing nothing else. At 35 training cases
-GeoTransolver's surface-pressure error fell from 0.381 to 0.124 and
-Transolver's from 0.404 to 0.115; ISLA's is 0.138. Both baselines are now
-more accurate than ISLA, on 130 and 152 of the 180 validation cases, by 1.1x
-and 1.2x (@sec-de-unit-drive). Every steel-man control run for the baselines
+GeoTransolver's surface-pressure error fell from 0.381 to 0.124 (0.111 at
+its better learning rate) and Transolver's from 0.404 to 0.115; ISLA's is
+0.138 with its measure weights on and 0.123 with them off. Both baselines
+are now more accurate than ISLA, on 130 and 152 of the 180 validation cases,
+by 1.1–1.25x, and by 1.07–1.11x against ISLA's best fair configuration
+(@sec-de-unit-drive). Every steel-man control run for the baselines
 before that (higher learning rate, doubled epochs, a third seed, the same
 attention family without a geometry encoder) had kept the input and could not
 find it.
@@ -82,7 +84,7 @@ peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
 
 | Setting | Standing | Measured |
 |---|---|---|
-| HiLift surface, 35 cases, unit-drive baselines | ISLA behind | GeoTransolver 0.124 and Transolver 0.115 vs ISLA 0.138 (0.90x, 0.83x); baselines lower on 130 and 152 of 180 cases |
+| HiLift surface, 35 cases, unit-drive baselines | ISLA behind | GeoTransolver 0.111 (best rate; 0.124 at 1e-3) and Transolver 0.115 vs ISLA 0.138 (weights on) / 0.123 (weights off): 0.80–0.83x, or 0.90–0.93x of ISLA's best configuration; three seeds each, spreads under 2% |
 | HiLift surface, 35 cases, physical-drive baselines | Protocol artifact | 2.8x "advantage"; baselines 3.4–3.8x worse than their unit-drive selves on 180/180 cases |
 | HiLift surface, fixed angle (126 geometries at 12°, 18 never-seen) | ISLA behind | unit-drive GeoTransolver 0.81x, Transolver 0.89x; 18 of 18 geometries |
 | HiLift, 4 never-seen training geometries (18 held out) | ISLA behind by the mean; even by geometry | unit-drive GeoTransolver 0.76x by the mean; 9 of 18 geometries each way |
@@ -233,7 +235,7 @@ carried that claim (2.8x at 35 cases, 2.2x at 210, 1.4–1.8x on never-seen
 geometries, 5.0x at a fixed angle, 3% force coefficients against 8–17%,
 a six-fold data multiplier) were measured against baselines that received
 the freestream as a physical velocity of 2,679.5 in/s while ISLA received a
-unit direction; with the unit direction the same baselines are 1.1–1.2x more
+unit direction; with the unit direction the same baselines are 1.1–1.25x more
 accurate than ISLA at 35 cases (@sec-de-unit-drive), and the higher rungs are
 being re-measured. Those figures appear in this book as measurements of the
 physical-drive protocol and as the record of how the artifact was found, not

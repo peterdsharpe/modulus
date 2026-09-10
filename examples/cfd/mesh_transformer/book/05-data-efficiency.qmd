@@ -5,7 +5,8 @@ than GeoTransolver and plain Transolver from 35 high-lift training cases;
 the protocol fed the baselines the freestream as a physical velocity of
 2,679.5 in/s while ISLA received a unit direction, and when the baselines
 are retrained with the unit direction and nothing else changed they are
-1.1–1.2x more accurate than ISLA.** The first section states the protocol,
+1.1–1.25x more accurate than ISLA (1.07–1.11x more accurate than ISLA's
+best fair configuration).** The first section states the protocol,
 the second reports the control that found the artifact
 (@sec-de-unit-drive), and the remaining sections report the physical-drive
 ladder as the measurement it is: the 2.8x, the 2.2x at 210 cases, the
@@ -76,14 +77,25 @@ per baseline (`forward_kwargs.global_embedding=global_data.U_inf_dir` for
 GeoTransolver, `forward_kwargs.fx.source=global_data.U_inf_dir` for
 Transolver), the declared learning rates (1e-3 and 3e-3), seeds 42 and 43,
 evaluated on the same 180 validation cases by the same inference path.
+Third seeds and the learning-rate steel-men that the physical-drive
+baselines had received were then run for the unit-drive baselines
+(@sec-nb-wave3-35-verdict): the third seeds move neither mean by more than
+0.001; GeoTransolver at 3e-3 improves to 0.111 (two seeds 0.112 / 0.109;
+lower than its 1e-3 lane on 158 of 180 cases), so by the protocol's
+best-rate rule GeoTransolver's 35-case number is 0.111; Transolver at 1e-3
+is worse (0.127) and stays at 3e-3. ISLA's own best fair configuration,
+measure weights off (@sec-mechanism), scores 0.123 on three seeds.
 
 | Model, 35 training cases | Freestream input | Pressure | Velocity | Wall shear | Cases where the baseline beats ISLA | Geometries (of 118) |
 |---|---|---:|---:|---:|---:|---:|
 | GeoTransolver | physical velocity (three seeds) | 0.381 | 0.342 | 0.564 | 0 of 180 | 0 |
-| GeoTransolver | unit direction (two seeds: 0.124, 0.125) | **0.124** | **0.145** | **0.229** | 130 of 180 | 84 |
+| GeoTransolver | unit direction, lr 1e-3 (three seeds: 0.124, 0.125, 0.122) | **0.124** | **0.145** | **0.229** | 130 of 180 | 84 |
+| GeoTransolver | unit direction, lr 3e-3 (two seeds: 0.112, 0.109) | **0.111** | **0.136** | **0.210** | 158 of 180 vs its 1e-3 lane | — |
 | Transolver | physical velocity (three seeds) | 0.404 | 0.372 | 0.602 | 0 of 180 | 0 |
-| Transolver | unit direction (two seeds: 0.117, 0.113) | **0.115** | **0.140** | **0.216** | 152 of 180 | 102 |
-| ISLA | unit direction (three seeds) | 0.138 | 0.168 | 0.256 | — | — |
+| Transolver | unit direction, lr 3e-3 (three seeds: 0.117, 0.113, 0.114) | **0.115** | **0.141** | **0.217** | 152 of 180 | 102 |
+| Transolver | unit direction, lr 1e-3 (two seeds: 0.124, 0.129) | 0.127 | 0.148 | 0.234 | — | — |
+| ISLA | unit direction, measure weights on (three seeds) | 0.138 | 0.168 | 0.256 | — | — |
+| ISLA | unit direction, measure weights off (three seeds: 0.121, 0.123, 0.124) | **0.123** | **0.152** | **0.234** | — | — |
 
 : The unit-drive control at 35 training cases. Relative L2 on the 180
 shared validation cases, seed means; the paired counts use seed-mean errors
@@ -887,7 +899,7 @@ GeoTransolver's DrivAerML lead the unit drive would add is not yet measured
 controls did not find it.** The baselines received the freestream as a
 physical velocity of 2,679.5 in/s and ISLA a unit direction; retrained with
 the unit direction and nothing else changed, GeoTransolver and Transolver
-are 1.1–1.2x more accurate than ISLA at 35 cases (@sec-de-unit-drive). Four
+are 1.1–1.25x more accurate than ISLA at 35 cases (@sec-de-unit-drive). Four
 steel-man controls (@sec-de-controls), a same-family baseline, a third seed,
 an invariant-input transplant and a learning-rate steel-man at the fixed
 angle all kept the input and all left the gap standing; an external audit of
