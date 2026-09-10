@@ -1153,3 +1153,63 @@ weights-off recommendation at 35 cases is qualified as a draw-dependent
 gain of 5–10%; and any future single-draw comparison on HiLift is a
 measurement of that draw. The 210-case rung decides whether the ratios
 tighten with data, as the ladder's slopes suggest.
+
+## 2026-09-10 — Instrument hazard: a legacy surface ISLA checkpoint evaluated under the D1 code snapshot scores 1.57 because the loader silently skips its weights file; campaign C's ISLA fine-tune result held as provisional pending a frozen-init probe {#sec-nb-snapshot-hazard}
+
+**Symptom.** The single-family ISLA references for campaign C's T2 bars
+(`iw_mt2_lr1e3_seed{42,43}`), evaluated through the campaign's recipe copy
+and code snapshot (`recipe_campc` + `code_support`), scored 1.53 on the
+fastback cases and 1.57 on DrivAerML in float32, against 0.0568 for the
+same checkpoint in the main session's float32 re-evaluation; the unit-drive
+GeoTransolver reference through the same launcher reproduced its known
+value (0.0504). A four-way probe (job 699026, float32, DrivAerML 48 cars)
+separated the recipe copy from the code snapshot:
+
+| checkpoint | code + recipe_campc | code_support + recipe | code_support + recipe_campc | code + recipe |
+|---|---|---|---|---|
+| `iw_mt2_lr1e3_seed42` (ISLA reference) | 0.0568 | 1.5667 | 1.5667 (first pass) | 0.0568 (main session) |
+| `mt2_v3c_seed42` (T3 fine-tune source) | | | 1.5667 | 0.0620 |
+
+: Identical 1.5667 for two different checkpoints: the weights were never loaded. {#tbl-snapshot-hazard}
+
+**Mechanism.** Model weights are saved as `<ClassName>.0.<epoch>.mdlus`,
+optimizer and scheduler as `checkpoint.0.<epoch>.pt`. The loader
+(`physicsnemo/utils/checkpoint.py::load_checkpoint`) derives the weights
+filename from the model's *current* class name; under `code_support`,
+`MeshTransformer2` is an alias of `ISLA`, so it looks for `ISLA.0.500.mdlus`,
+does not find the legacy `MeshTransformer2.0.500.mdlus`, logs an error
+("could not find valid model file, skipping load") and continues; the
+inference script then loads the optimizer file, reports "loaded checkpoint
+(epoch 500)" and evaluates the seeded random initialization. Under `code`
+the class is still `MeshTransformer2` and the file is found. The recipe copy
+is irrelevant. The same hazard applies to any evaluation of a
+legacy-named surface checkpoint under a snapshot in which the class was
+renamed; the interior V0 references were unaffected because their runs
+were trained under a snapshot that already saved `ISLA.*.mdlus`, which is
+why the same-snapshot identity checks of @sec-nb-evalpoints-verdict passed.
+
+**Consequences and actions.** (1) The two T2 ISLA reference evaluations
+are invalid and are rerun under `code` (probe job 699070 also evaluates
+`iw_mt2_lr1e3_seed42` and `mt2_v3c_seed42` on the fastback cases under
+`code`, and the code_support-trained T3 checkpoints under `code`, as a
+cross-snapshot check). (2) Campaign C's ISLA fine-tune arms initialized
+from `mt2_v3c_seed42` through the campaign's `init_from` hook, which globs
+the `.mdlus` file explicitly and loads it with `strict=True`; the hook
+reported success, so the initialization most likely carried the trained
+weights, but the fine-tune's first-batch loss (0.105) is above the scratch
+arm's (0.080), so the result "pretraining is worth nothing for ISLA"
+(@sec-nb-campc-t3-verdict) is **held as provisional** until a frozen-init
+lane decides it: lane 28 (`campC_probe_v3c_lr0`) loads the same source
+through the same hook, trains one epoch at learning rate zero (so the
+resaved `ISLA.0.1.mdlus` is the loaded source, byte-for-byte in weights),
+and is then evaluated on the fastback cases under `code_support`; if that
+gives the source's true zero-shot error (about 1.0, measured under `code`
+in the same probe), the T3 ISLA result stands; if it gives 1.5-class
+garbage, the fine-tune started from noise and the ISLA half of T3 is
+withdrawn and rerun. The GeoTransolver half of T3 is unaffected (its
+loader path found `GeoTransolver.0.500.mdlus`). (3) The loader is patched
+to raise instead of skipping when a requested model's weights file is
+missing, in `code_support` on the cluster and in the repository, so that
+an evaluation can never again report a number for a model it did not
+load; the main session's CLAIMS carry the rule that an identical error
+from two checkpoints is a load failure.
