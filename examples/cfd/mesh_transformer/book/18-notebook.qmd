@@ -11948,3 +11948,29 @@ combines the same centroid shift with the loss of the Horvitz–Thompson
 weighting in the attention (log-weights zero), so weighted centering alone
 must *not* recover it; if it does, the derivation is wrong about where the
 weights matter.
+
+## 2026-09-10 — One guarded evaluation snapshot for the program: code_eval reproduces the original-snapshot float32 numbers per case for all three architectures {#sec-nb-code-eval-adopted}
+
+The checkpoint-loading hazard of @sec-nb-snapshot-hazard (a renamed model
+class made the loader skip the weights file and evaluate the seeded
+initialization, silently) has two structural fixes in the repository: the
+loader refuses to continue when a training checkpoint exists but the
+model's weights file is missing, and it searches a model's declared legacy
+class names first, so ISLA loads its MeshTransformer2 checkpoints with a
+warning naming both files. The frozen training snapshots on the cluster
+predate both fixes, so the scaling session exported an evaluation-only
+snapshot, `code_eval`, from the fixed package (fast kernel opt-in, so the
+default forward is bitwise the reference), and the question was whether it
+computes the same function as the snapshots that trained the reported
+checkpoints.
+
+Identity check, float32, 48 DrivAerML validation cars, per-case pressure
+relative L2 against the existing `code` evaluations: **ISLA
+(iw_mt2_lr1e3_seed42) 0.056818 under both, mean relative difference 1.3 ×
+10⁻⁶ and largest per-case difference 6 × 10⁻⁵ (summation-order roundoff;
+loaded through the legacy-name path, one warning, no skip); GeoTransolver
+(uw_gt_unit_lr1e3_seed42) 0.050043 and Transolver
+(uw_transolver_unit_lr3e3_seed42) 0.05158 bitwise identical.** All float32
+evaluation launchers now import `code_eval`; the training snapshots remain
+for training and bfloat16 reproduction. An evaluation log containing
+"skipping load" voids the run (CLAIMS).

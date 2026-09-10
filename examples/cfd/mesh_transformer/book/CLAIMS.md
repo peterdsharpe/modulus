@@ -1180,3 +1180,12 @@ interior control @sec-nb-udrv-int-prereg.
   must be grepped for "skipping load" before its number is used; a program-wide guarded evaluation
   snapshot built from the merged head is the pending fix (identity check against `code` on one legacy
   checkpoint in float32 before adoption).
+- **Program-wide evaluation snapshot = `$T/code_eval` (2026-09-10; identity check jobs 700122/700142).**
+  Float32, 48 DrivAerML cars, per-case comparison against the `code` evaluations: ISLA
+  iw_mt2_lr1e3_seed42 0.056818 vs 0.056818 (mean rel diff 1.3e-6, max per-case 6e-5; loaded via the
+  legacy class-name path with a warning), GeoTransolver uw_gt_unit_lr1e3_seed42 0.050043 identical
+  (0.0), Transolver uw_transolver_unit_lr3e3_seed42 0.05158 identical (0.0); zero "skipping load".
+  All fp32_eval/*.sbatch launchers now import code_eval (backups in fp32_eval/pre_codeeval_backup/).
+  RULE: every float32 or probe evaluation runs from code_eval; the training snapshots are for training
+  and bf16 reproduction only. code_eval = worktree-scaling-study 0e41b9ee1 package, evaluation-only
+  (SNAPSHOT file), fast kernel opt-in so the default forward is the bitwise reference.
