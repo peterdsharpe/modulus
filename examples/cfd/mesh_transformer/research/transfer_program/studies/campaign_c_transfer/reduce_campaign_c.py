@@ -32,10 +32,11 @@ ARMS = {
     "scratch20_gt": ["campC_scratch20_gt_seed42", "campC_scratch20_gt_seed43"],
     "ft20lr3_isla": ["campC_ft20lr3_isla_seed42", "campC_ft20lr3_isla_seed43"],
     "ft20lr3_gt": ["campC_ft20lr3_gt_seed42", "campC_ft20lr3_gt_seed43"],
+    # T2 all-DrivAerML single-family references, scored zero-shot on the fastback cases and on DrivAerML in float32
+    # by the same eval launcher (lane-table rows 24-27); the bf16 book value for ISLA was 0.99 (three seeds).
+    "ref_single_isla": ["iw_mt2_lr1e3_seed42", "iw_mt2_lr1e3_seed43"],
+    "ref_single_gt": ["uw_gt_unit_lr1e3_seed42", "uw_gt_unit_lr1e3_seed43"],
 }
-# T2 all-DrivAerML references (fastback zero-shot, source-only): ISLA constant gauge 0.99 (three seeds, program book);
-# unit-drive GeoTransolver: to be read from a float32 fastback eval of uw_gt_unit_lr1e3_seed{42,43} when it exists.
-REF_FASTBACK_ZEROSHOT = {"isla": 0.99, "gt_unit": None}
 
 
 def load(run, probe):
@@ -88,13 +89,17 @@ for a in ("isla", "gt"):
         verdict[f"T1_{a}"] = {"fastback_cond0": c0, "fastback_cond1": c1, "gain": gain, "verdict": v,
                               "drivaer_cond0": d0, "drivaer_cond1": d1, "infamily_cost": (d1 / d0 - 1) if d0 and d1 else None}
 # T2: diversity helps if fastback error falls >= 30% vs the all-DrivAerML reference at <= 10% in-family cost.
-for a, ref in (("isla", REF_FASTBACK_ZEROSHOT["isla"]), ("gt", REF_FASTBACK_ZEROSHOT["gt_unit"])):
-    m = fb(f"mix435_{a}")
+for a in ("isla", "gt"):
+    m, ref, dref = fb(f"mix435_{a}"), fb(f"ref_single_{a}"), dr(f"ref_single_{a}")
     if m and ref:
-        verdict[f"T2_{a}"] = {"fastback_mix435": m, "reference_zeroshot": ref, "drop": 1 - m / ref, "drivaer_mix435": dr(f"mix435_{a}"),
-                              "verdict": "HELPS (in-family cost to be read against the 435-case single-family reference)" if 1 - m / ref >= 0.30 else "REPORTED"}
+        cost = (dr(f"mix435_{a}") / dref - 1) if (dr(f"mix435_{a}") and dref) else None
+        drop = 1 - m / ref
+        v = ("HELPS at <= 10% in-family cost" if (drop >= 0.30 and cost is not None and cost <= 0.10)
+             else "HELPS on the target, at an in-family cost above 10% (trade reported)" if drop >= 0.30 else "REPORTED")
+        verdict[f"T2_{a}"] = {"fastback_mix435": m, "fastback_reference_zeroshot": ref, "drop": drop,
+                              "drivaer_mix435": dr(f"mix435_{a}"), "drivaer_reference": dref, "infamily_cost": cost, "verdict": v}
     elif m:
-        verdict[f"T2_{a}"] = {"fastback_mix435": m, "reference_zeroshot": None, "note": "reference pending"}
+        verdict[f"T2_{a}"] = {"fastback_mix435": m, "fastback_reference_zeroshot": None, "note": "reference pending"}
 # T3: credible if fine-tune <= 0.15 and >= 2x better than scratch; pretraining adds nothing if scratch <= 0.15.
 for a in ("isla", "gt"):
     s = fb(f"scratch20_{a}")
