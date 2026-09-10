@@ -1050,3 +1050,91 @@ def test_query_cloud_channels_contracts(kw):
     with torch.no_grad():
         dens, nbr = m._query_cloud_invariants(q - q.mean(1, keepdim=True), qn, d[:, None].expand(1, 40, 3), None)
     assert dens.shape == (1, 40, 2) and (nbr is None or nbr.shape[-1] == 8)
+
+
+def _biased_poisson_subsample(pts, w, n_expected, bias, generator):
+    """10:1 Poisson subsample with exact Horvitz-Thompson weights, mirroring the
+    recipe's PoissonBiasedSubsampleMesh (bias toward x below the median)."""
+    x = pts[0, :, 0]
+    b = torch.where(x < x.median(), torch.full_like(x, bias), torch.ones_like(x))
+    pi = (n_expected / b.sum() * b).clamp(max=1.0)
+    keep = torch.rand(x.shape[0], dtype=pi.dtype, generator=generator) < pi
+    idx = keep.nonzero(as_tuple=True)[0]
+    return pts[:, idx], (w[:, idx] / pi[idx]), idx
+
+
+def test_center_mode_contracts():
+    """center_mode='plain' is the pre-flag model; 'measure' with uniform weights
+    equals 'plain' to 1e-12; both modes are translation invariant."""
+    torch.manual_seed(0)
+    n = 300
+    pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n, dtype=torch.float64) + 0.5
+    shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
+    torch.manual_seed(1)
+    m_default = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    torch.manual_seed(1)
+    m_plain = ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="plain").double().eval()
+    torch.manual_seed(1)
+    m_meas = ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="measure").double().eval()
+    with torch.no_grad():
+        a = m_default(pts, nrm, drv, w)
+        a_plain = m_plain(pts, nrm, drv, w)
+        a_meas = m_meas(pts, nrm, drv, w)
+        a_meas_unif = m_meas(pts, nrm, drv, torch.ones_like(w))
+        a_plain_unif = m_plain(pts, nrm, drv, torch.ones_like(w))
+        a_meas_now = m_meas(pts, nrm, drv, None)
+        a_plain_now = m_plain(pts, nrm, drv, None)
+    assert torch.equal(a_plain, a)
+    assert torch.allclose(a_meas_unif, a_plain_unif, atol=1e-12)
+    assert torch.allclose(a_meas_now, a_plain_now, atol=1e-12)
+    assert not torch.allclose(a_meas, a_plain, atol=1e-6)  # non-uniform weights: a live channel
+    with torch.no_grad():
+        assert torch.allclose(m_plain(pts + shift, nrm, drv, w), a_plain, atol=1e-10)
+        assert torch.allclose(m_meas(pts + shift, nrm, drv, w), a_meas, atol=1e-10)
+    with pytest.raises(ValueError):
+        ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="weighted")
+
+
+def test_center_mode_measure_is_sampling_bias_robust():
+    """The discriminating contract. Under a 10:1 biased Poisson subsample with
+    exact HT weights the measure-weighted centroid stays near the full-cloud
+    weighted centroid while the plain mean moves by a large fraction of the
+    cloud radius; and a measure-centered ISLA's predictions at fixed queries
+    move less between a uniform and a biased subsample than a plain-centered
+    one's (ordering only, several seeds)."""
+    torch.manual_seed(0)
+    n_full = 100000
+    pts = torch.randn(1, n_full, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, n_full, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n_full, dtype=torch.float64) + 0.5
+    w_n = w / w.sum()
+    c_full = (w_n[..., None] * pts).sum(dim=1)
+    radius = (w_n * (pts - c_full[:, None]).norm(dim=-1)).sum()
+    q = pts[:, :40]
+    qn = nrm[:, :40]
+    torch.manual_seed(1)
+    m_plain = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=1).double().eval()
+    torch.manual_seed(1)
+    m_meas = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=1,
+                  center_mode="measure").double().eval()
+    n_sub = 10000  # the probe's token budget; ~900 tokens land in the 10x-undersampled half
+    wins = 0
+    for seed in range(4):
+        g = torch.Generator().manual_seed(100 + seed)
+        p_u, w_u, iu = _biased_poisson_subsample(pts, w, n_sub, 1.0, g)
+        p_b, w_b, ib = _biased_poisson_subsample(pts, w, n_sub, 10.0, g)
+        c_meas = ((w_b / w_b.sum())[..., None] * p_b).sum(dim=1)
+        c_plain = p_b.mean(dim=1)
+        assert (c_meas - c_full).norm() < 0.15 * radius  # ~4 sigma of the HT estimate
+        assert (c_plain - c_full).norm() > 0.3 * radius
+        with torch.no_grad():
+            o_pu = m_plain(p_u, nrm[:, iu], drv, w_u, query_points=q, query_normals=qn)
+            o_pb = m_plain(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn)
+            o_mu = m_meas(p_u, nrm[:, iu], drv, w_u, query_points=q, query_normals=qn)
+            o_mb = m_meas(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn)
+        wins += int((o_mb - o_mu).norm() < (o_pb - o_pu).norm())
+    assert wins == 4

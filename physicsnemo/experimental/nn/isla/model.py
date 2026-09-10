@@ -416,9 +416,25 @@ class ISLA(Module):
         query_density_radius: float = 0.05,
         query_neighbor_features: bool = False,
         query_neighbor_k: int = 16,
+        center_mode: str = "plain",
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
+        ### CENTER (2026-09-10): the constant gauge (similarity_gauge=False,
+        ### the reference configuration) centers by the PLAIN mean of the
+        ### sampled points. The routing softmax adds raw log-weights (invariant
+        ### to uniform rescaling), the slice moments are attention-normalized,
+        ### and the reference configuration has no local features, so the
+        ### unweighted centroid is the ONLY sampling-distribution-dependent
+        ### quantity in its forward pass: under a 10:1 sampling bias toward one
+        ### half of the body the plain mean moves by a large fraction of the
+        ### body length, every r shifts, and all relational invariants leave
+        ### their trained range. "measure" centers by the normalized measure
+        ### weights (the similarity-gauge centroid formula; plain mean when no
+        ### weights are given) while keeping the constant length scale.
+        if center_mode not in ("plain", "measure"):
+            raise ValueError(f"center_mode must be 'plain' or 'measure', got {center_mode!r}")
+        self.center_mode = center_mode
         ### Density-factorial knob (prereg 3f4e4af7 follow-up): with False,
         ### the assignment softmax ignores quadrature weights entirely,
         ### isolating the measure-bias pathway of density sensitivity.
@@ -881,7 +897,7 @@ class ISLA(Module):
         d_hat = (drive / drive_mag)[:, None, :].expand(b, n, 3)
 
         ### Similarity reduction: center by the plain mean, scale by L_ref.
-        if self.similarity_gauge:
+        if self.similarity_gauge or self.center_mode == "measure":
             w_raw = (
                 measure_weights.reshape(b, n, 1).to(points.dtype)
                 if measure_weights is not None
@@ -889,11 +905,13 @@ class ISLA(Module):
             )
             w_n = w_raw / w_raw.sum(dim=1, keepdim=True).clamp_min(self.eps)
             center = (w_n * points).sum(dim=1, keepdim=True)
+        else:
+            center = points.mean(dim=1, keepdim=True)
+        if self.similarity_gauge:
             gauge = (
                 (w_n * (points - center).square().sum(-1, keepdim=True)).sum(dim=1, keepdim=True)
             ).sqrt().clamp_min(self.eps)  # (B,1,1) weighted RMS radius
         else:
-            center = points.mean(dim=1, keepdim=True)
             gauge = self.reference_length
         r = (points - center) / gauge
         r_mag = r.norm(dim=-1, keepdim=True).clamp_min(self.eps)
