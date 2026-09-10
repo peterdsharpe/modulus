@@ -11267,3 +11267,34 @@ new HiLift rungs are judged over geometry-stratified draws, not extra seeds.
 The 210-case rung of the same campaign (36 lanes) is at about epoch 125 of
 500; its verdict decides whether the 210-case unit-drive comparison inherits
 the same caveat.
+
+## 2026-09-10 — Step-schedule hazard: the frozen recipe's learning rate is ÷10 every 100 epochs, so "500 epochs" is about 300 useful ones and the doubled-epoch control was a low-rate tail {#sec-nb-steplr-hazard}
+
+The single-sample overfitting track (a companion session) found that its
+20,000-epoch lanes, with one sample per epoch, reached a learning rate of
+10⁻⁶ by step 300 and then sat flat for 19,700 steps (loss 0.036 at step 319
+and at step 19,999 alike; float32 relative L2 0.59 on their own training
+sample). The cause is the frozen recipe's scheduler: `StepLR` with
+`step_size=100` epochs and `gamma=0.1`, advanced once per epoch, verified in
+the resolved configs of every reported run. Under the standard protocol (500
+epochs at a peak rate of 10⁻³) epochs 300–500 run at 10⁻⁶ or less, so the
+effective budget is about 300 epochs, and any run whose epoch count differs
+from 500 gets a different effective schedule unless the step is rescaled.
+
+Two consequences for this book. First, the GeoTransolver "doubled epochs"
+steel-man of @sec-de-controls (the `ctrl_hl_gt_*_ep1000` lanes) kept
+`step_size=100`, so its second 500 epochs ran at 10⁻⁶ and below: it tested a
+longer low-rate tail, not a doubled optimization budget, and its 210-case
+improvement (0.140 against 0.159) is within the two seeds' spread (0.152 /
+0.128). The control's conclusion is unaffected in substance, because the
+small-data deficit was later identified as the freestream input scale
+(@sec-de-unit-drive), but the caption now says what the lanes actually
+tested. Second, every comparison in the book is at equal epoch counts (the
+ladder rungs, the WAVE-3 and UDRV lanes, and the scaling study's larger-token
+arms all run 500 epochs of the same schedule), so no reported ratio is
+affected; the hazard applies to future runs with other epoch counts, which
+must set `training.scheduler.step_size` to keep the schedule proportional.
+The single-sample track's attempt is archived as not a result and relaunched
+with `step_size=4000` (fixed cached sample and 64 cycled cached views, twelve
+lanes each, float32-training arms included). Protocol statement amended in
+@sec-protocol; rule recorded in CLAIMS.

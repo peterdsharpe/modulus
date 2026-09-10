@@ -1051,3 +1051,13 @@ interior control @sec-nb-udrv-int-prereg.
   "5–10%, draw-dependent" (never a bare 12%); any two-seed HiLift number understates its uncertainty
   3–11x, so a new rung's verdict needs geometry-stratified draws, not extra seeds. All 35-case
   verdicts ("ISLA behind" both baselines; weights-off "between") stand.
+- **Step-schedule hazard (2026-09-10; verified in the frozen recipe's resolved configs and the
+  control runs' logs).** The recipe's scheduler is StepLR(step_size=100 epochs, gamma=0.1),
+  advanced per epoch. At lr 1e-3, epochs 300–500 run at ≤ 1e-6: "500 epochs" is about 300 useful
+  epochs. Any run with a different epoch count gets a different effective schedule unless
+  `training.scheduler.step_size` is rescaled; the 1,000-epoch CTRL lanes
+  (ctrl_hl_gt_*_ep1000) kept step_size 100, so their second 500 epochs ran at ≤ 1e-6 — write
+  "a longer low-rate tail", never "doubled optimization budget". The single-sample track's
+  20,000-epoch attempt 4 (one sample per epoch) hit lr 1e-6 by step 300 and is archived, not a
+  result; its relaunch uses step_size 4000. Comparisons at equal epoch counts (all ladder rungs,
+  SCALE's 80k-token arms) are unaffected.

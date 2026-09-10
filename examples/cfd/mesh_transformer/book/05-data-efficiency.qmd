@@ -673,7 +673,11 @@ control within 1.2x of ISLA at 35 cases voids the result.
 | 210 | learning rate 3e-3, 500 epochs | 0.220 / 0.290 | 0.157 / 0.160 | 0.077 |
 | 210 | learning rate 1e-3, 1,000 epochs | 0.152 / 0.128 | 0.157 / 0.160 | 0.077 |
 
-: GeoTransolver steel-man controls, two seeds each, on the shared validation set. A higher learning rate hurts at both rungs; doubling the epochs helps only at 210 cases (0.140 against 0.159, 1.13x) and leaves GeoTransolver 2.2x behind ISLA there. No control approaches the falsifier. All four controls kept the physical-velocity input; see @sec-de-unit-drive. Data: results/t1_transolver_control_reduction_2026-09-05.json. {#tbl-hilift-controls}
+: GeoTransolver steel-man controls, two seeds each, on the shared validation set. A higher learning rate hurts at both rungs; doubling the epochs helps only at 210 cases (0.140 against 0.159, 1.13x) and leaves GeoTransolver 2.2x behind ISLA there. The doubled-epoch lanes kept the
+protocol's step schedule (÷10 every 100 epochs), so their extra 500 epochs ran at a
+learning rate of 10⁻⁶ or less; they test a longer low-rate tail, not a doubled
+optimization budget, and the 210-case improvement is within their seed spread.
+No control approaches the falsifier. All four controls kept the physical-velocity input; see @sec-de-unit-drive. Data: results/t1_transolver_control_reduction_2026-09-05.json. {#tbl-hilift-controls}
 
 The same-family baseline (Transolver at its better learning rate) is a
 further control, already in the tables above, and it too received the

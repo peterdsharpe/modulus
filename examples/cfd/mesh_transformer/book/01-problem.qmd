@@ -590,7 +590,11 @@ property that was not tested in one of these two forms.
 
 **One frozen recipe.** Every cross-architecture comparison on the CFD
 datasets uses the same training recipe: 10,000 sampled surface points per
-case per step, 500 epochs, bfloat16 arithmetic, no data augmentation, and
+case per step, 500 epochs under a step schedule that divides the learning
+rate by ten every 100 epochs (so epochs 300–500 run at a thousandth of
+the peak rate or less, and the effective budget is about 300 epochs; a
+run with a different epoch count gets a different schedule unless the
+step is rescaled), bfloat16 arithmetic, no data augmentation, and
 one learning rate per architecture per dataset, chosen for each by
 validation on that dataset's full split before any smaller-split
 experiment ran and never retuned per rung, so a difference between rungs
