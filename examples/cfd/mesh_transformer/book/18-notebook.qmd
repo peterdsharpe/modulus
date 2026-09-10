@@ -11882,3 +11882,50 @@ host-copy stalls) finished and was evaluated in both precisions
 @sec-nb-fp32-interior-regrade, unchanged). The interior reference numbers
 used by the campaign D grading (0.0513 / 0.1070 / 0.0879) stand to the third
 decimal; nothing in chapter 8 changes.
+
+## 2026-09-10 — Derivation: the constant gauge's sampling-density collapse is the unweighted centroid, not the length scale; prediction and bars for the reference-configuration switch {#sec-nb-centroid-derivation}
+
+The density-robustness probe (@sec-robustness-density; `drivaer_probe_biased3`)
+hands the model importance-corrected measure weights: `PoissonBiasedSubsampleMesh`
+computes each cell's inclusion probability and composes 1/π into the measure,
+so the sparse half of a 10:1 biased sample carries 10x weights and the total
+measure is preserved within the Poisson count noise (about 3%). A
+measure-consistent aggregate is therefore invariant under the probe up to
+Monte Carlo variance, and the degradation ratios are properties of the
+models, not of the quadrature. That makes the reference ISLA configuration's
+12–14x collapse (against 1.2x for the similarity-gauge configuration) a
+question about a specific path in the forward pass.
+
+Reading the artifact rather than its description: in
+`physicsnemo/experimental/nn/isla/model.py` the constant-gauge branch
+centers the point cloud by the *plain mean of the sampled points* and
+divides by the constant `reference_length`; the similarity-gauge branch
+centers by the *measure-weighted mean* and scales by the weighted RMS
+radius. The routing softmax adds the raw log-weights and is invariant to a
+uniform rescale of the measure; the slice moments are attention-normalized;
+the reference configuration (hidden 192, 12 layers, 256 slices,
+reference length 8.0, no local features, no virtual tokens, no anchors)
+has no other path in which the sampling distribution enters except through
+the weights. **The only sampling-distribution-dependent quantity in the
+reference forward pass is the unweighted centroid.** Under a 10:1 bias
+toward one half of the car the plain mean moves by a large fraction of the
+body length; every relative vector r shifts with it, and all eight
+relational invariants (|r|/L, r̂·d, r̂·n, the anchor positions) leave the
+range the model was trained on. On a uniform sample the plain and
+measure-weighted centroids nearly coincide, which is why the same model is
+accurate in distribution.
+
+**Prediction (falsifiable).** (a) The trained reference checkpoint,
+evaluated on the biased probe with measure-weighted centering in place of
+the plain mean (a flag-gated option in the constant-gauge branch; the
+default stays bitwise), recovers most of the collapse without retraining:
+biased ÷ uniform falls from 12.1x to below 2x. Falsifier: it stays at or
+above 6x. (b) A constant-length model *trained* with weighted centering
+passes the probe at ≤ 1.5x while keeping the constant gauge's accuracy
+within 3% at 35 HiLift cases and on DrivAerML, so the reference switch can
+avoid the similarity gauge's 8% in-distribution cost if that cost sits in
+the scale normalization rather than the centering. If (a) recovers but (b)
+still costs about 8%, the price is the centering itself and the similarity
+gauge stands as the reference. (a) is evaluation-only; (b) is two lanes per
+dataset. Owner: the generalization-plan session (item 4), which holds the
+model file for this work; this entry is the derivation it cites.

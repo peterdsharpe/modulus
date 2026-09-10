@@ -1157,3 +1157,13 @@ interior control @sec-nb-udrv-int-prereg.
   architecture) and is never written as a defect. The failure is a sampling-distribution dependence
   that does not vanish with refinement (the biased-resampling collapse). Write "consistent in the
   fine-mesh limit" / "converges to the same field"; never "the error must not change with count".
+- **Density probe convention (2026-09-10, verified by the transfer session in the code path the model
+  sees).** `drivaer_probe_biased3` = biased INCLUSION with exact importance correction
+  (PoissonBiasedSubsampleMesh composes 1/π_i into `_measure_weights`; cell_measures = true triangle
+  areas × weights; totals preserved within Poisson noise, ~3%). Dense-half ratio 937, sparse-half
+  9,366 (= 1,703 × 0.55 / × 5.5). So the probe is an unbiased Horvitz–Thompson quadrature of each
+  region; degradation ratios are MODEL properties (constant-gauge ISLA 12–14x, weights-off 19x,
+  unit GT 7.9–11.8x, Transolver 2.2–5.5x, similarity-gauge ISLA 1.21x = residual estimator variance +
+  model). Write "biased inclusion with exact measure weights", never "biased quadrature". Mechanism
+  derivation for the constant gauge's collapse (unweighted centroid): #sec-nb-centroid-derivation,
+  test owned by the generalization-plan session.
