@@ -843,3 +843,64 @@ only links submitted after it, all ten chains were cancelled, running and
 pending links alike, and re-seeded with one fresh link each (jobs
 696433–696442, verified to carry the setting); the chains self-extend from
 there. One-time cost: a replay of up to ten epochs per lane.
+
+## 2026-09-09 — Campaign C, T3 few-shot (float32, 99 fastback cases): fine-tuning at lr 1e-4 is worse than training from scratch for both architectures; adaptation not credible at this budget; a learning-rate sensitivity arm is preregistered and launched {#sec-nb-campc-t3}
+
+**Setting.** T3 of campaign C (`studies/campaign_c_transfer/PREREG.md`)
+asks whether a source-only DrivAerML checkpoint adapts to the SHIFT-SUV
+fastback family from 20 labelled fastback training cases better than a
+model trained from scratch on the same 20 cases for the same number of
+optimizer steps (200 epochs, 20 cases, four GPUs: 1,000 steps at batch
+four). Preregistered budget: fine-tuning at lr 1e-4 from the ISLA
+DrivAerML reference (`mt2_v3c_seed42`) and from the unit-drive
+GeoTransolver (`uw_gt_unit_lr1e3_seed42`); scratch at lr 1e-3. Readout:
+surface-pressure relative L2 on the 99 fastback validation cases, never
+used for adaptation. Bars: adaptation is the credible fallback if
+fine-tuning reaches ≤ 0.15 AND beats scratch by ≥ 2x; if scratch already
+reaches ≤ 0.15 the pretraining adds nothing.
+
+**Readout (float32 inference, seed means over the two fine-tuning seeds;
+the fastback zero-shot errors of the source checkpoints are 0.99 for ISLA
+and, for the physical-drive GeoTransolver, 0.59).**
+
+| arm | pressure | wall shear |
+|---|---|---|
+| ISLA fine-tuned, lr 1e-4 | 0.450 (0.4496, 0.4494) | 0.575 |
+| ISLA from scratch, lr 1e-3 | 0.198 (0.207, 0.190) | 0.309 |
+| GeoTransolver fine-tuned, lr 1e-4 | 0.202 (0.2025, 0.2018) | 0.230 |
+| GeoTransolver from scratch, lr 1e-3 | 0.186 (0.182, 0.189) | 0.242 |
+| ISLA, 435 mixed cases (218 DrivAerML + 217 estate), seed 42, for scale | 0.129 | 0.157 |
+
+: Artifacts `$T/campc_evals_fp32/campC_{ft20,scratch20}_{isla,gt}_seed{42,43}/fastback/`. {#tbl-campc-t3}
+
+**Verdict on the preregistered arms: adaptation is not credible at this
+budget, for either architecture.** Neither fine-tuned model reaches 0.15,
+and neither beats scratch: the ISLA fine-tune is 2.3x *worse* than
+scratch, the GeoTransolver fine-tune 9% worse. Scratch on 20 cases does not
+reach 0.15 either, so the "pretraining adds nothing" clause is not
+triggered as written; the honest reading is that 1,000 steps at lr 1e-4
+from a source checkpoint move the ISLA model only halfway from its
+zero-shot field (0.99) toward the data, while the same steps at lr 1e-3
+from random weights get to 0.20. The two fine-tuning seeds agree to four
+digits for both architectures, which says the fine-tune's outcome is set
+by the initialization and the small learning rate, not by the data order.
+
+**Confound, and the amendment made before running it.** The
+preregistration paired a 10x smaller learning rate with fine-tuning (the
+usual practice) and so cannot separate "pretraining does not help" from
+"the fine-tune was under-adapted". A sensitivity arm is added, four lanes
+(`campC_ft20lr3_{isla,gt}_seed{42,43}`, lane-table rows 20–23): identical
+fine-tuning from the same checkpoints at lr 1e-3, the scratch arm's rate
+and step count, so the only difference from the scratch arm is the
+initialization. Bars, stated before the run: the original T3 bars apply
+unchanged (≤ 0.15 and ≥ 2x over scratch for "credible"); if the lr 1e-3
+fine-tune is within 5% of scratch, the pretraining is worth nothing on
+this shift at this budget, whatever the rate; if it is ≥ 20% better than
+scratch but still above 0.15, pretraining helps but 20 labels are too few.
+Cost: four lanes of about five minutes each.
+
+**Force error.** The float32 evaluation artifacts of these arms carry
+normals and measure weights but not the predicted and true pressure
+fields, so the integrated pressure-force error promised for every arm
+cannot be computed from them; the inference option that saves the fields
+is being located and the final arms will be re-evaluated with it.
