@@ -9800,3 +9800,12 @@ The de-confound pair, width 384 with the routing measure weights off, scores
 cost 2%, against 12% at 35 HiLift cases, so the two knobs are nearly
 independent here and the width gain is not a weights artifact. Width bar 1
 on DrivAerML: **scales** (0.91 ≤ 0.95).
+
+**Kernel control: the fast point-softmax kernel is training-neutral.** The
+DrivAerML reference configuration trained from `code_perf` with
+`+model.fast_point_softmax=true` scores 0.0567 in float32 against the
+reference lanes' 0.0557 (+1.8%, inside the 3% bar; bf16 0.0596 against
+0.0577, +3.3%), at 0.161 s per step against 0.273 and 3.9 GB against 9.8 GB
+(the reference lanes ran older code). The fast-kernel arms (80,000 tokens
+and the 512 × 80,000 pilot) are therefore pooled with the reference-kernel
+arms in the verdict, each still labelled with its kernel.

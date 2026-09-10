@@ -40,7 +40,7 @@ STEP = re.compile(r"Epoch (\d+) \[(\d+)/(\d+)\] Loss: ([0-9.eE+-]+|nan) Step: ([
 
 
 def _metrics_in(root, run):
-    ps = glob.glob(f"{T}/{root}/{run}/**/metrics.jsonl", recursive=True)
+    ps = glob.glob(f"{T}/{root}/{run}/*/metrics.jsonl") or glob.glob(f"{T}/{root}/{run}/metrics.jsonl")
     if not ps:
         return None
     rows = [json.loads(l) for l in open(ps[0])]
@@ -51,8 +51,8 @@ def _metrics_in(root, run):
 def _points_identical(run):
     """Assert the fp32 and bf16 artifacts sampled the same points (bit-identical) per case."""
     import numpy as np, os
-    a = glob.glob(f"{T}/hl_evals/{run}/**/predictions", recursive=True) + glob.glob(f"{T}/iw_evals/{run}/**/predictions", recursive=True)
-    b = glob.glob(f"{T}/hl_evals_fp32/{run}/**/predictions", recursive=True) + glob.glob(f"{T}/iw_evals_fp32/{run}/**/predictions", recursive=True)
+    a = glob.glob(f"{T}/hl_evals/{run}/*/predictions") + glob.glob(f"{T}/iw_evals/{run}/*/predictions")
+    b = glob.glob(f"{T}/hl_evals_fp32/{run}/*/predictions") + glob.glob(f"{T}/iw_evals_fp32/{run}/*/predictions")
     if not a or not b:
         return None
     cases = sorted(set(os.listdir(a[0])) & set(os.listdir(b[0])))
