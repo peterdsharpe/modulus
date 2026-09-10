@@ -357,6 +357,161 @@ statistics computed from the sample rather than from the surface. The
 scope is one probe geometry (one bias pattern at one ratio) on one
 dataset, and the GeoTransolver figure is a single seed.
 
+## Consistency under refinement and across samplers {#sec-consistency-bench}
+
+**No configuration gives the same field under a different sampling of the
+same surface at 10,000 cells, and only ISLA with measure weights moves
+toward it as the sample grows.** The density-robustness probe above changes
+the sampling distribution by a factor of ten at one count. The consistency
+benchmark (preregistered in @sec-nb-bench-prereg, verdict in
+@sec-nb-bench-verdict) asks the question the principle of @sec-principle
+actually poses: does a model converge to a single field under refinement,
+and to the same field under two samplings of the same surface? Every
+reference checkpoint of the three architectures was evaluated in float32,
+under its own training snapshot, on the same validation surfaces sampled
+three ways from a 320,000-cell pool at 2,500 to 40,000 cells: uniformly
+over cells (the training convention, which inherits the mesher's
+refinement), proportionally to cell area (the law a uniform point-cloud
+generator over the surface would produce), and with the 10:1 front/back
+bias; each draw carries exact Horvitz--Thompson weights, so a
+measure-consistent model sees the same integral under all three.
+
+```{python}
+#| label: fig-consistency-curves
+#| fig-cap: >
+#|   Convergence toward consistency. Each panel plots an architecture's
+#|   pressure rel-L2 divided by the same architecture's error under uniform
+#|   sampling at 40,000 cells, against the number of sampled cells, for the
+#|   three samplers (columns) and three validation sets (rows); a curve that
+#|   approaches 1 converges to the uniform-sampling answer. Uniform sampling
+#|   (left) converges for every arm. Under the area-proportional sampler
+#|   (middle) only the two measure-weighted ISLA arms on DrivAerML fall
+#|   toward 1 (constant gauge 2.6x, similarity gauge 3.5x from 2,500 to
+#|   40,000 cells); every baseline and the weights-off ablation is flat. Under
+#|   the 10:1 bias (right) only the similarity gauge reaches the uniform
+#|   answer (1.028 at 40,000 cells). The area sampler's Horvitz-Thompson
+#|   weights span 1,000-37,000 (the bias probe's span exactly 10), so at small
+#|   counts the refined regions (mirrors, slat and flap gaps) are unsampled
+#|   and its fixed-count values carry information loss as well as variance;
+#|   only the trend with count is interpretable. Markers are seed means over
+#|   two seeds (raw values in the artifact). Float32; each checkpoint under its
+#|   training snapshot. Data:
+#|   results/consistency_bench/consistency_bench_2026-09-10.json.
+#| code-fold: true
+import json
+from pathlib import Path
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+BLUE, RED = "#2a78d6", "#e34948"
+BLUE2, AMBER = "#7fb0e6", "#c98a2b"
+INK, INK2, MUTED, GRID, BASELINE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
+mpl.rcParams.update({"figure.dpi": 110, "font.size": 9.5, "axes.edgecolor": BASELINE,
+                     "axes.labelcolor": INK2, "axes.grid": True, "grid.color": GRID,
+                     "xtick.color": MUTED, "ytick.color": MUTED, "xtick.labelcolor": INK2,
+                     "ytick.labelcolor": INK2, "axes.spines.top": False,
+                     "axes.spines.right": False, "legend.frameon": False})
+B = json.load(open(Path("..") / "results" / "consistency_bench" / "consistency_bench_2026-09-10.json"))
+A = B["arms"]; COUNTS = [str(c) for c in B["counts"]]
+# arm key -> (label, color, marker, linestyle)
+STYLE = {
+ "isla_const": ("ISLA, constant gauge", BLUE, "s", "-"),
+ "isla_gauge": ("ISLA, similarity gauge", BLUE2, "D", "-"),
+ "isla_off": ("ISLA, weights off (ablation)", MUTED, "s", "--"),
+ "gt": ("GeoTransolver", RED, "o", "-"),
+ "transolver": ("Transolver", AMBER, "^", "-"),
+}
+ROWS = [
+ ("DrivAerML, 48 cars", {"isla_const": "iw_mt2_lr1e3", "isla_gauge": "iw_mt2_gauge", "isla_off": "now_mt2_lr1e3",
+                         "gt": "uw_gt_unit_lr1e3", "transolver": "uw_transolver_unit_lr3e3"}),
+ ("HiLift, 35 training cases (180 val)", {"isla_const": "lad_hl_mt2_super_scarce", "isla_off": "a35_hl_mt2_noweights",
+                         "gt": "udrv_hl_gt_super_scarce_lr3e3", "transolver": "udrv_hl_transolver_super_scarce_lr3e3"}),
+ ("HiLift, fixed angle (18 geometries)", {"isla_const": "mech_hl_mt2_single_aoa_12", "isla_off": "now_hl_mt2_single_aoa_12",
+                         "gt": "udrv_hl_gt_single_aoa_12", "transolver": "udrv_hl_transolver_single_aoa_12_lr3e3"}),
+]
+SAMPLERS = [("unif", "uniform over cells"), ("area", "area-proportional"), ("biased", "10:1 front/back bias")]
+def err(arm, sampler, count):
+    return A[arm]["table"][sampler][count]["pressure_l2"]["mean"]
+fig, axs = plt.subplots(len(ROWS), 3, figsize=(10.2, 9.4), sharex=True)
+x = [int(c) for c in COUNTS]
+for i, (row_title, arms) in enumerate(ROWS):
+    for j, (sampler, stitle) in enumerate(SAMPLERS):
+        ax = axs[i, j]
+        for key, arm in arms.items():
+            label, color, mk, ls = STYLE[key]
+            ref = err(arm, "unif", "40000")
+            y = [err(arm, sampler, c) / ref for c in COUNTS]
+            ax.plot(x, y, color=color, ls=ls, lw=1.6, marker=mk, ms=5, mfc="white", mec=color, mew=1.4, zorder=3)
+            ax.annotate(label, (x[-1], y[-1]), xytext=(4, 0), textcoords="offset points", fontsize=7.5,
+                        color=color, va="center", ha="left",
+                        bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.85))
+        ax.axhline(1.0, color=BASELINE, lw=1.0, zorder=1)
+        ax.set_xscale("log"); ax.set_yscale("log")
+        ax.set_xticks(x); ax.set_xticklabels(["2.5k", "5k", "10k", "20k", "40k"])
+        ax.set_xlim(2100, 1.6e5)
+        if i == 0: ax.set_title(stitle, color=INK, fontsize=10, loc="left")
+        if j == 0: ax.set_ylabel(f"{row_title}\nerror ÷ own uniform-40k error [-]", color=INK2)
+        if i == len(ROWS) - 1: ax.set_xlabel("sampled cells per case [count]")
+fig.suptitle("Pressure rel-L2 relative to each architecture's uniform 40,000-cell error, by sampler and validation set",
+             color=INK, fontsize=10.5, x=0.01, ha="left")
+fig.tight_layout(rect=(0, 0, 1, 0.97))
+plt.show()
+```
+
+```{python}
+#| label: tbl-consistency-40k
+#| output: asis
+#| code-fold: true
+import json
+from pathlib import Path
+B = json.load(open(Path("..") / "results" / "consistency_bench" / "consistency_bench_2026-09-10.json"))
+A = B["arms"]
+def D(arm, sampler, count="40000"):
+    return A[arm]["D"][sampler][count]["pressure_l2"]
+def conv(arm, sampler):
+    t = A[arm]["table"][sampler]; return t["2500"]["pressure_l2"]["mean"] / t["40000"]["pressure_l2"]["mean"]
+rows = [("DrivAerML", "ISLA, similarity gauge", "iw_mt2_gauge"), ("DrivAerML", "ISLA, constant gauge", "iw_mt2_lr1e3"),
+        ("DrivAerML", "Transolver, unit drive", "uw_transolver_unit_lr3e3"), ("DrivAerML", "GeoTransolver, unit drive", "uw_gt_unit_lr1e3"),
+        ("DrivAerML", "ISLA, weights off (ablation)", "now_mt2_lr1e3"),
+        ("HiLift 35", "ISLA, constant gauge", "lad_hl_mt2_super_scarce"), ("HiLift 35", "GeoTransolver, unit drive", "udrv_hl_gt_super_scarce_lr3e3"),
+        ("HiLift 35", "Transolver, unit drive", "udrv_hl_transolver_super_scarce_lr3e3"), ("HiLift 35", "ISLA, weights off (ablation)", "a35_hl_mt2_noweights")]
+out = "| validation set | configuration | uniform 40k error | area ÷ uniform − 1 at 40k | bias ÷ uniform − 1 at 40k | area-curve fall, 2.5k → 40k |\n|---|---|---:|---:|---:|---:|\n"
+for ds, label, arm in rows:
+    u40 = A[arm]["table"]["unif"]["40000"]["pressure_l2"]["mean"]
+    out += f"| {ds} | {label} | {u40:.4f} | {D(arm,'area'):+.0%} | {D(arm,'biased'):+.1%} | {conv(arm,'area'):.2f}x |\n"
+print(out)
+print(": Consistency at the benchmark's largest count. The preregistered bars are "
+      "|D| at or below 3% for consistent and at or above 10% for reading the sampling "
+      "distribution; one cell passes, the similarity-gauge ISLA under the bias on DrivAerML. "
+      "The last column is the factor by which each arm's area-sampler error fell from 2,500 "
+      "to 40,000 cells: a value near 1 means the arm's answer under a different sampling law "
+      "does not approach its uniform-sampling answer as the sample grows. Float32, seed means "
+      "of two seeds, each checkpoint under its training snapshot. Data: "
+      "results/consistency_bench/consistency_bench_2026-09-10.json. {#tbl-consistency-40k}")
+```
+
+Three readings, in order of weight. First, consistency in the fine-mesh
+limit is a property only ISLA with measure weights shows on this evidence:
+under the area sampler its two DrivAerML arms fall steadily toward the
+uniform answer while every baseline and the weights-off ablation stay flat,
+and under the bias the similarity gauge reaches +2.8% at 40,000 cells. The
+ordering by sampling-distribution dependence on DrivAerML at 40,000 cells
+is similarity gauge, constant gauge, Transolver, GeoTransolver, weights-off
+ablation (+18%, +90%, +213%, +562%, +1176%). Second, no configuration is
+consistent at the 10,000 cells of the book's accuracy numbers, and the
+factor-of-ten density probe understates how far each stands from
+consistency: a different mesher changes the local density by thousands, and
+at that scale even the measure-weighted estimator's variance is large where
+the geometry is fine, so the area-sampler values at fixed count mix
+information loss with model dependence and only the trend is read. Third,
+on the HiLiftAeroML wings, whose refinement spans more decades than the
+cars', no arm converges within 40,000 cells; the fine-mesh limit lies
+beyond the benchmark's range there, and the HiLift rows report the
+distance, not a verdict. The frame work that follows from the centering
+results (@sec-nb-center-lanes-verdict, @sec-nb-relframe-prereg) addresses
+the part of ISLA's remaining dependence that comes from the frame; the
+variance of the estimator under extreme weights is a separate limit that a
+sample budget alone does not remove.
+
 ## Pose: a contract, not an accuracy edge {#sec-pose-contract}
 
 **ISLA is exactly covariant to rotations and translations, and
@@ -509,8 +664,10 @@ print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-dr
       "density column; the weights-off ablation is the extreme case and is not adopted. "
       "The scale-corner rows (width 512, 80,000 cells, evaluated at 80,000 cells) show the three "
       "architectures within 3% of one another in-family; only the similarity-gauge ISLA corner "
-      "(0.0431, 1.08x under the bias at 80,000 cells) keeps its accuracy when the sampling changes, "
-      "and it is the configuration the program adopts at scale; the last column is training cost in GPU-hours. "
+      "(0.0431, 1.08x under the bias at 80,000 cells) keeps its accuracy when the sampling changes: "
+      "it demonstrates the frame class (a frame that does not read the sampling distribution costs nothing "
+      "at scale and removes the sensitivity); the single reference configuration is decided by the "
+      "relative-position frame (RELFRAME). The last column is training cost in GPU-hours. "
       "Learning rates are stated per row: the similarity-gauge checkpoints were trained at 3e-3, "
       "so their in-family error is not a price of the gauge (the rate-matched constant gauge scores 0.0620). "
       "Data: results/accuracy_consistency_matrix_2026-09-10.json (provenance per cell "
