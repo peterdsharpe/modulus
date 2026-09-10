@@ -26,3 +26,10 @@ the same sampled points. The +6.1% discrepancy therefore arises in the evaluatio
 newly merged code + recipe (snapshot `code_perf`), which no book number uses; new snapshots must
 pass this identity check against a frozen-snapshot artifact before their evaluations are compared
 with existing ones.
+
+Addendum (transfer-program session, same day): `code_support` + `recipe_support` re-evaluated
+v0_isla_qtsdfval_seed{42,43} and v0_gt_vol_seed{42,43} on the 48 validation cars and reproduced
+every per-car pressure, velocity and eddy-viscosity relative L2 to the last digit (max per-car
+|diff| 0.0), with the 10,000 sampled interior points allclose at 1e-6 on three cars per run
+(research/transfer_program/studies/computational_support/ref_reeval_2026-09-09.json; cluster
+outputs $T/v0_evals_support/). A sixth snapshot with identical sampling.
