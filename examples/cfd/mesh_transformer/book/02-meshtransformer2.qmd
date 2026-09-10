@@ -536,9 +536,15 @@ so these ablations do not show that invariants are dispensable. What the
 contract removes is the need for a canonical frame or a freestream
 estimate at inference (@sec-pose).
 
-**Measure weights** are a robustness property paid for in small-data
-accuracy. Turning the routing weights off gives 0.88x and turning the
-similarity gauge on gives 1.08x at 35 cases (@sec-mechanism). Under a
+**Measure weights** are a correctness requirement, not a tunable. With the
+cell-area log-weights in the routing softmax, a slice aggregates an integral
+over the surface measure, so the output does not depend on how the surface
+was sampled; without them it aggregates a mean over whichever points the
+mesher placed, and a uniformly generated point cloud or a different mesher
+would change the answer (@sec-principle). Turning the routing weights off
+gives 0.88x and turning the similarity gauge on gives 1.08x at 35 cases
+(@sec-mechanism); the first number is the in-distribution price of the
+requirement, measured as an ablation and never adopted. Under a
 10:1 sampling-density bias on DrivAerML, ISLA *with the similarity gauge*
 degrades 1.20x; that configuration is not the one behind any accuracy
 number in this book and costs the 8% just stated. The constant-gauge

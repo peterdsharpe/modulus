@@ -1133,3 +1133,14 @@ interior control @sec-nb-udrv-int-prereg.
   and reaches the parity band with Transolver (0.96x), still behind both". Ladder tally: persists at
   35 (12%), 4 geometries (17%), fixed angle (10.6%); fades on DrivAerML (2.9%); pending 210,
   21 geometries, 1,260, deflection. Rule unchanged: ≥ 4 of 6 HiLift rungs → reference config.
+- **PRINCIPLE (2026-09-10, Peter): no discretization-dependent or non-physical shortcuts in the
+  flagship.** "Measure weights off" is an ABLATION (what the measure semantics costs in distribution),
+  never "ISLA's best fair configuration", never the reference configuration; the "≥ 4 of 6 rungs →
+  reference config" rule is RETIRED. Write "the weights-off ablation (not adopted)". Never write that
+  mesh density is "information about the physics". Any architecture change needs: mechanism (why),
+  physical soundness (old-guard CFD test), and discretization-invariance tests (biased resampling,
+  area-proportional resampling, different mesher) before adoption; in-distribution accuracy alone
+  never justifies it. Retired in principle regardless of result: query-density scalar,
+  query-neighbour channel (read sample density). Baselines' density dependence (GT 9.5x, Transolver
+  3.9x, GT-volume ball queries) is a first-class comparison axis, stated beside every accuracy claim.
+  See @sec-principle.

@@ -11771,3 +11771,73 @@ fading (DrivAerML, 2.9%, not one of the six HiLift rungs), with 210 cases,
 weights-off becomes ISLA's reference configuration at four or more of six
 rungs needs one more. Chapter 5 fixed-angle paragraph and the index table
 updated.
+
+## 2026-09-10 — Program redirect: accuracy by principled means only; measure weights off becomes an ablation and its reference-configuration rule is retired {#sec-nb-principle-redirect}
+
+Peter's review of the weights-off ladder (@sec-nb-noweights-prereg,
+@sec-nb-wave3-prereg) redirected the program. The physics does not depend
+on how a surface was meshed, so a surrogate's answer must not either; a
+model that gains accuracy by aggregating over whichever points the mesher
+placed is reading the mesher's refinement pattern, a non-physical signal
+that a uniformly generated point cloud or a different mesher would remove.
+The goal is restated in @sec-principle: an accurate model reached by
+physically principled means, because the principles are what generalize to
+novel problems, while accuracy can be bought later with size.
+
+Three consequences take effect now. First, the routing without measure
+weights is an **ablation**, pricing the requirement (12% at 35 cases, 17%
+at 4 geometries, 10.6% at the fixed angle, 2.9% on DrivAerML, in exchange
+for a 19x loss of sampling-density robustness), and is never ISLA's
+reference configuration; the preregistered rule that it would become the
+reference at four or more of six rungs is retired, and every "best fair
+configuration" phrase in the polished chapters now reads "weights-off
+ablation (not adopted)". The remaining weights-off lanes keep running
+because the price is worth knowing at every rung. Second, adoption of any
+architecture change now requires a stated mechanism, a physical
+justification and discretization-invariance tests before in-distribution
+accuracy is even consulted. Third, the mechanism question behind the
+weights-off gain stays open and is worth answering for its own sake:
+whether the in-distribution price is estimator variance (the log-area term
+spans orders of magnitude on a high-lift wing and concentrates each slice's
+mass on a few large cells) or the loss of the density signal. The
+discriminating experiment, sampling cells with probability proportional to
+area and aggregating with uniform weights (an unbiased estimate of the
+surface integral with the smooth attention of the weights-off model), is a
+candidate for preregistration; it would be adopted only if it recovers
+density robustness as well as accuracy.
+
+## 2026-09-10 — Audit of the program's architecture changes against the principle: one shortcut (weights off), two channels retired in principle, one configuration question (constant gauge), baselines fail the invariance test {#sec-nb-principle-audit}
+
+Each change to ISLA made or evaluated in this program, graded on the three
+questions of @sec-principle (mechanism; physical soundness; discretization
+invariance), with the standing decision.
+
+| change | mechanism | physically principled? | discretization test | decision |
+|---|---|---|---|---|
+| measure-weighted routing (`use_measure_weights`) | slice aggregate = integral over the surface measure | yes: quadrature | 1.20x under 10:1 bias with the similarity gauge | keep; requirement |
+| measure weights off | aggregate = mean over sampled points; reads mesher density or reduces estimator variance (open) | no | 19x under 10:1 bias | **ablation only; never adopted** |
+| similarity gauge (scale-normalized geometry, reference length as input) | scale equivariance with absolute size re-entered explicitly | yes | 1.20x under bias | keep; **should be the reference configuration** (see below) |
+| constant gauge (configuration behind every accuracy number) | fixed length scale | yes in mechanism | **13–14.5x under bias**, worse than GeoTransolver's 3.6x | fails the test; proposal: move the reference to the similarity gauge at its 8% in-distribution cost |
+| unit-direction freestream (all architectures) | dimensionless drive input | yes; discards speed magnitude, so a Reynolds-dependent dataset needs Re as a physical scalar input | n/a | keep; note the Re caveat |
+| second-moment channel (`second_moment_features`) | per-slice covariance of point positions under the routing weights (measure-weighted) | yes: geometric invariant of the slice | inherits the routing's measure | keep as option (free on DrivAerML) |
+| query tokens + signed distance (interior) | SDF is a physical geometric field | yes | query-count contract exact after `query_mass="source_total"` | keep |
+| query mass = source total (QMASS repair) | query weight tied to the source measure, not the query count | yes: removes a query-discretization dependence | exact (roundoff) | keep |
+| local surface features (patch integrals at three radii) | measure-weighted integrals in gauge-normalized units | yes if the radii scale with the reference length (they are applied after the gauge) | inherits the routing's measure | keep as option; verify the radius units in the constant gauge |
+| query-density scalar, query-neighbour channel (QTDENS) | read the interior sample density / neighbour layout | **no**: discretization features | not tested; falsified on accuracy anyway | **retired in principle** |
+| anchor top-k sparse routing | approximation of the full routing | neutral (exact at k = N) | neutral | not adopted (not worth it) |
+| fast point-softmax kernel | summation order | neutral | neutral (float32 identical to 1e-6) | default |
+| support tokens / passive readout (companion) | query-independent decode | yes | exact query independence | keep as option |
+| raw-coordinate channel, raw seeds | break or bypass the invariants | no | n/a | ablations only |
+| learned virtual tokens with learned log-weight | virtual routing targets | neutral | neutral | keep |
+| **baselines**: GeoTransolver's radius ball queries; GeoTransolver-volume's local features over interior samples | aggregate over neighbouring sampled points | read sample density | 9.5x (GeoTransolver), 3.9x (Transolver) under 10:1 bias | state beside every accuracy comparison |
+
+Two findings change practice. The reference ISLA configuration behind the
+accuracy results is the constant gauge, which fails the discretization test
+by a wide margin; under the principle the similarity gauge, which passes it
+at an 8% in-distribution cost at 35 cases, is the configuration the program
+should stand on, and that switch is proposed for Peter's decision rather
+than made here. And the baselines' density dependence, measured but
+reported as a side column, becomes a first-class axis: an accuracy lead that
+disappears under resampling is a lead over this mesher, not over the
+problem. Everything else in the table is principled or already an
+ablation.

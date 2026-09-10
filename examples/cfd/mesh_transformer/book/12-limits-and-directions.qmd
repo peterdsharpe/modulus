@@ -6,12 +6,12 @@ scale. Against the baselines as their recipes ship them, fed the physical
 freestream velocity, ISLA was several times more accurate at a few dozen
 HiLiftAeroML training cases; against the same baselines fed the unit
 direction that ISLA receives, it is 1.1–1.25x *less* accurate at 35 cases
-(1.07–1.11x with its measure weights off; @sec-part-baseline), and the
+(1.07–1.11x against the weights-off ablation, not adopted; @sec-part-baseline), and the
 rungs above 35 are being re-measured (baselines ahead at the fixed angle and
 at four geometries so far). What
 stands is parity with GeoTransolver at full HiLiftAeroML data and, at full
 DrivAerML data in float32, 10% behind the unit-drive GeoTransolver and 8%
-behind Transolver (7% and 5% with ISLA's measure weights off), a lead on
+behind Transolver (7% and 5% for the weights-off ablation, not adopted), a lead on
 interior velocity (27% in float32) with deficits on interior pressure (6%)
 and eddy viscosity (27%), and
 a set of contracts that GeoTransolver does not have. This chapter states
@@ -81,7 +81,7 @@ extrapolation of the two curves puts GeoTransolver at 0.015 and ISLA at
 0.029 at 5,000 cases, a factor of two in GeoTransolver's favour. With the
 unit direction as input GeoTransolver scores 0.111 (0.124 at 1e-3) and
 Transolver 0.115 at 35 cases (@sec-part-baseline), already below ISLA's
-0.138 (0.123 with measure weights off), so the
+0.138 (0.123 in the weights-off ablation), so the
 unit-drive curves start below ISLA's and their shape above 35 cases is not
 yet measured (@sec-program-status). Every seed at a rung trains on the same
 curated subset, so the seed bands measure initialization, not the choice of
@@ -277,8 +277,8 @@ contract neither costs nor buys anything measurable in distribution. Those
 are measurements of ISLA and they stand. What they were meant to explain
 does not: against the unit-drive baselines ISLA's 0.138 is 1.25x behind
 GeoTransolver's 0.111 (1.1x behind its 1e-3 lane, 0.124) and 1.2x behind
-Transolver's 0.115; ISLA's best fair configuration (weights off, 0.123) is
-1.11x and 1.07x behind.
+Transolver's 0.115; the weights-off ablation (0.123, not adopted) is 1.11x
+and 1.07x behind.
 
 On DrivAerML, where the geometry variation is a smooth morph of one car,
 the same ladder protocol at a frozen learning rate of 3e-3 for both
@@ -730,12 +730,11 @@ control. It is not yet measured (@sec-program-status).
 ISLA is not recommended over GeoTransolver for HiLiftAeroML surface
 pressure: at the one rung where the inputs have been matched, 35 training
 cases, GeoTransolver and Transolver fed the unit direction are 1.1–1.25x
-more accurate (1.07–1.11x against ISLA's best fair configuration), and at every other rung the comparison is a physical-drive
+more accurate (1.07–1.11x against the weights-off ablation), and at every other rung the comparison is a physical-drive
 measurement awaiting its rerun (@sec-part-baseline). On smooth single-body
 families such as DrivAerML, GeoTransolver is 1.2–1.3x more accurate on the
 surface below full data (physical drive, which on this dataset is not a
-handicap) and 8–10% more accurate at full data in float32 (5–7% once ISLA
-drops its measure weights); GeoTransolver or Transolver is the
+handicap) and 8–10% more accurate at full data in float32 (5–7% for the weights-off ablation, which is not adopted); GeoTransolver or Transolver is the
 recommendation on DrivAerML at every size. Where geometries arrive in arbitrary poses the contracts earn accuracy: on
 DrivAerML with every training and validation case in its own random SO(3)
 pose, ISLA scores 0.0566 (1.01x its canonical error) against 0.0602 for

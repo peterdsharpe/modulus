@@ -5,8 +5,8 @@ than GeoTransolver and plain Transolver from 35 high-lift training cases;
 the protocol fed the baselines the freestream as a physical velocity of
 2,679.5 in/s while ISLA received a unit direction, and when the baselines
 are retrained with the unit direction and nothing else changed they are
-1.1–1.25x more accurate than ISLA (1.07–1.11x more accurate than ISLA's
-best fair configuration).** The first section states the protocol,
+1.1–1.25x more accurate than ISLA (1.07–1.11x against the weights-off
+ablation, which is not adopted).** The first section states the protocol,
 the second reports the control that found the artifact
 (@sec-de-unit-drive), and the remaining sections report the physical-drive
 ladder as the measurement it is: the 2.8x, the 2.2x at 210 cases, the
@@ -83,8 +83,9 @@ baselines had received were then run for the unit-drive baselines
 0.001; GeoTransolver at 3e-3 improves to 0.111 (two seeds 0.112 / 0.109;
 lower than its 1e-3 lane on 158 of 180 cases), so by the protocol's
 best-rate rule GeoTransolver's 35-case number is 0.111; Transolver at 1e-3
-is worse (0.127) and stays at 3e-3. ISLA's own best fair configuration,
-measure weights off (@sec-mechanism), scores 0.123 on three seeds.
+is worse (0.127) and stays at 3e-3. The weights-off ablation of ISLA
+(@sec-mechanism), a discretization-dependent configuration that the program
+measures but does not adopt (@sec-principle), scores 0.123 on three seeds.
 
 | Model, 35 training cases | Freestream input | Pressure | Velocity | Wall shear | Cases where the baseline beats ISLA | Geometries (of 118) |
 |---|---|---:|---:|---:|---:|---:|
@@ -742,8 +743,9 @@ equivariance is not load-bearing (adding raw coordinates costs 4%); the
 invariant seed set is not (raw vectors cost nothing); the gauge is neutral
 to slightly harmful at this rung; and measure weights, which buy
 sampling-density robustness (@sec-robustness-density), *cost* 12% at 35
-cases, where uniform sampling makes area weights a source of gradient
-variance rather than information. Relational routing is worth 16%.
+cases; whether that cost is estimator variance or the loss of a non-physical
+density signal is the open question of @sec-principle, and the weights stay
+on regardless. Relational routing is worth 16%.
 
 The complementary test from the baseline side gives GeoTransolver and
 Transolver ISLA's three drive-relative invariants (local incidence n·d,
@@ -773,8 +775,8 @@ ISLA on 18 of 18 geometries (median per-geometry ISLA ÷ GeoTransolver 1.24,
 the unit-drive Transolver 0.032 / 0.032 (mean 0.0317), also 18 of 18
 (median 1.13, range 1.06–1.21). Both unit-drive baselines lead ISLA on
 velocity (0.053 and 0.059 against 0.065) and wall shear (0.087 and 0.097
-against 0.106) as well. ISLA's best fair configuration, measure weights off,
-scores 0.031 here in float32 (two seeds 0.032 / 0.030, against 0.035 with
+against 0.106) as well. The weights-off ablation of ISLA (not adopted,
+@sec-principle) scores 0.031 here in float32 (two seeds 0.032 / 0.030, against 0.035 with
 the weights on; lower on 17 of 18 geometries), which closes a third of the
 deficit to the unit-drive GeoTransolver (0.87x of the weights-off ISLA,
 GeoTransolver lower on 18 of 18) and brings Transolver into the parity band

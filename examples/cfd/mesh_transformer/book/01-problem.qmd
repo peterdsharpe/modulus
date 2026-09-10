@@ -586,6 +586,37 @@ weights under non-uniform sampling is not a contract but the
 density-robustness measurement above. Nothing in this book asserts a units
 property that was not tested in one of these two forms.
 
+### Discretization invariance is an acceptance criterion, not a metric {#sec-principle}
+
+The goal of this program is not an accurate surrogate. It is an accurate
+surrogate reached by physically principled means, because the principles
+are what carry a model to problems it was not trained on; accuracy can be
+bought later with model size, and generalization to genuinely novel
+problems cannot. The sharpest form of that rule concerns the
+discretization. The physics does not depend on how a surface was meshed,
+so a model's answer must not either: a uniformly generated point cloud, a
+different mesher, or a refinement of the same geometry must give the same
+prediction up to a discretization error that goes to zero. A CFD mesh is
+refined where the engineer expected gradients, so point density is a
+signal about where the flow is hard; a model that reads it is borrowing the
+mesher's judgment, which is a non-physical input that will not be there in
+a new setting. This program therefore treats a change to the architecture
+as adoptable only when three questions have been answered in order: *why*
+should it work, stated as a mechanism; is that mechanism physically
+principled, in the sense that a CFD practitioner would accept it as a
+statement about the problem rather than about the dataset; and does the
+model still give the same answer under a biased resampling, an
+area-proportional resampling and, where a second mesh exists, a different
+mesher. In-distribution accuracy alone never justifies a change, and no
+result in this book adopts one that fails the third test. Configurations
+that fail it are still measured, as ablations that price the requirement:
+the routing without its measure weights is the standing example
+(@sec-mechanism, @sec-de-unit-drive), 5–17% more accurate on
+HiLiftAeroML in distribution and 19x less robust to sampling density.
+Physically meaningful geometric inputs (signed distance, geodesic or
+heat-method distance, curvature), exact invariances and measure-consistent
+operators are the directions the program pursues instead.
+
 ## Protocol {#sec-protocol}
 
 **One frozen recipe.** Every cross-architecture comparison on the CFD
