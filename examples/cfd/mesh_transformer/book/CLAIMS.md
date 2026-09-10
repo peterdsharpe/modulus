@@ -1006,3 +1006,14 @@ interior control @sec-nb-udrv-int-prereg.
   crossover. bf16 shifts: GT-volume −17/−18/−6%; ISLA arms −2 to −12%. The local-feature
   explanation of GT-volume's bf16 inflation is NOT supported (ν_t shifts least; surface GT
   without local features inflates 9%; the excess is an additive floor across the ladder).
+
+- **FP32 campaign complete (2026-09-10; results/fp32_reeval/fp32_shift_2026-09-09.json).** Median
+  pressure shift fp32 ÷ bf16 − 1: ISLA HiLift −0.7%, GT HiLift −0.4%, Transolver HiLift −8.2%;
+  ISLA DrivAerML −3.1%, GT DrivAerML −9.6%, Transolver DrivAerML −7.8%. Other-rung ratio moves:
+  fixed angle GT-unit÷ISLA 0.813 → 0.776, Transolver-unit 0.884 → 0.857 (write 0.78x / 0.86x in
+  float32); 1,260 GT-physical÷ISLA 1.021 → 1.007 (parity stands); 210 and 510 Transolver-physical
+  1.34 → 1.20 (measurements only); geometry rungs unchanged. Protocol sentences: the offset is
+  neither a fixed percentage nor a fixed absolute (an additive floor within a dataset, growing as
+  the error falls across the campaign, largest for Transolver's physical-drive HiLift checkpoints);
+  every close comparison moved toward the baselines (max counter-move 0.01); per-case maxima
+  5–25% for the baselines → per-case statistics from fp32 everywhere.
