@@ -651,3 +651,63 @@ density statistics by construction. For the NOW-L decision (weights off as
 the best fair configuration) this is the cost side: weights off buys 2.8%
 on DrivAerML and loses all density robustness. Verdict and chapter text
 after job 696011.
+
+## 2026-09-09 — Verdict, campaign E density probe (float32): the similarity gauge is the only density-robust configuration (1.21x); unit-drive GeoTransolver 9.5x, Transolver 3.9x, constant-gauge ISLA 12.1x, weights-off ISLA 19.1x {#sec-nb-campe-verdict}
+
+**Readout (float32 inference, the reporting instrument; 48 DrivAerML
+validation cars; pressure relative L2; factor = biased ÷ uniform).**
+
+| arm | seeds | uniform | biased | factor (per seed) | bf16 uniform, for the offset table |
+|---|---|---|---|---|---|
+| GeoTransolver, unit drive | 3 | 0.0505 | 0.479 | 9.5 (11.8, 7.9, 8.8) | 0.0554 (+9.7%) |
+| Transolver, unit drive, lr 3e-3 | 2 | 0.0517 | 0.200 | 3.9 (2.2, 5.5) | 0.0561 (+8.5%) |
+| ISLA reference, constant gauge | 2 | 0.0558 | 0.675 | 12.1 (12.5, 11.7) | 0.0579 (+3.8%) |
+| ISLA similarity gauge | 2 | 0.0616 | 0.0746 | 1.21 (1.21, 1.21) | 0.0633 (+2.8%) |
+| ISLA weights off | 2 | 0.0544 | 1.043 | 19.1 (23.1, 15.2) | 0.0566 (+4.0%) |
+
+: Every car is worse under the bias for every run except the gauge arm's (47 and 46 of 48). Artifacts `studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json` (float32) and `campaign_e_density_bf16_2026-09-09.json` (bf16 preview, @tbl-campe-bf16); reducer `reduce_campaign_e.py`. {#tbl-campe-fp32}
+
+**Verdict.** By the letter of the preregistration the outcome is *between*,
+because the "holds" clause named the ISLA reference configuration, whose
+factor is 12.1; that clause could not have been met and is recorded as a
+miscalibration (the book's 1.20 belongs to the similarity-gauge arm, which
+this protocol reproduces at 1.21). Graded with the gauge arm as ISLA, the
+claim **holds by a wide margin**: the input-matched unit-drive
+GeoTransolver degrades 9.5x (its factor exceeds the 1.32 bar by a factor of
+seven), Transolver 3.9x, and the gauge's 1.21 is inside the 1.24 bar. The
+absolute levels are reported with the factors: the gauge arm pays 10–20% on
+the uniform draw for its robustness (0.0616 against 0.0505 for
+GeoTransolver and 0.0558 for the constant-gauge ISLA), so the trade is a
+fifth of the accuracy on well-sampled surfaces for an eight- to fifteen-fold
+smaller error under a ten-fold density skew. The two non-gauge ISLA
+configurations are the least robust of all five, and weights-off (the
+program's best fair configuration on canonical data, 2.8% ahead of weights
+on) has no measure to correct the density and reaches an error above 1.0,
+worse than predicting zero; that is the cost side of the weights-off
+decision, as the main session anticipated.
+
+**Mechanism, as far as this readout supports it.** The biased draw carries
+exact Horvitz–Thompson weights (ten-fold range) in the measure field. The
+similarity gauge normalizes ISLA's kernel by the local measure, so those
+weights are consumed as a quadrature correction and the field is
+reconstructed from the sparse half almost as well as from the dense half;
+the constant-gauge ISLA sees weights outside its training range in every
+measure-weighted sum; the weights-off ISLA discards them and sees the
+front-heavy token cloud as geometry; GeoTransolver's radius-based local
+features are neighbour-count statistics that shift ten-fold with density;
+Transolver's slice attention degrades more gracefully (2.2–5.5x) because
+its routing is by learned features rather than by counts. These are
+readings consistent with the numbers, not separately tested.
+
+**Instrument note.** The float32 uniform levels are 8.5–9.7% below the
+bf16 ones for GeoTransolver and Transolver but only 2.8–4.0% for the three
+ISLA configurations, so bf16 evaluation has been penalizing the baselines
+more than ISLA in every bf16 comparison of this program; a per-architecture
+offset that the main session's offset table now has five more entries for.
+
+**What changes.** The program book's density-robustness paragraph gains a
+fair comparison and survives, with the gauge named as the mechanism and its
+10–20% uniform-draw cost stated; the weights-off configuration is
+recommended for canonical benchmarks only. Next: no further node time on
+this question; the mechanism reading would be tested by a gauge arm with
+weights off (does the gauge alone suffice?) if the program wants it.
