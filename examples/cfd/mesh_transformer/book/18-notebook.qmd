@@ -13626,7 +13626,7 @@ in-distribution lead over ISLA on both datasets (free on the cars, 6.5% on
 the wings) and become the most density-consistent configurations measured,
 so at the reference size ISLA's contracts buy neither accuracy nor
 consistency; what ISLA retains is exact equivariance under arbitrary poses
-(6–19%, @sec-nb-campb-verdict), the interior velocity and near-wall lead at
+(6–19%, @sec-pose-contract; companion #sec-nb-campb-verdict), the interior velocity and near-wall lead at
 matched parameters (@sec-interior), and the memory footprint at scale.
 Measure-weighted pooling is the recommended repair for the Transolver family:
 a principled, general fix of exactly the kind this program should ship, and
