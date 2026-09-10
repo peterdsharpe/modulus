@@ -9830,3 +9830,52 @@ turns any producer fault into an hour of idle GPUs per link; a bounded wait
 that raises a named error (and the recipe's step-failure barrier reporting
 the *cause* rather than the collective) is a datapipe fix worth making
 independent of the pinning cause. Recorded as an upstream candidate.
+
+## 2026-09-09 — Preregistered: ISLA-PERF, profile the training step, then buy scale with the savings {#sec-nb-isla-perf-prereg}
+
+**Why.** The SCALE launch (@sec-nb-scale-launch) measured ISLA's step at
+0.23 s (hidden 192, 10,000 cells), 1.28 s (512, 10k) and 3.44 s (192, 80k
+with the exact geometry recompute) on GB300s, four GPUs per lane, against
+GeoTransolver's 0.15–0.19 s and Transolver's 0.08–0.10 s over the same grid.
+Peak memory never exceeded 13 GB of 288. Step time, not memory, is what
+stops ISLA from being trained at the scale the hardware allows, and the
+token scaling (15x for 8x cells) is superlinear where the arithmetic
+(points × slices × 8 invariants per layer) is linear; something in the
+implementation, not the model, is paying that. Earlier speed work: the
+exact recompute trades 1.16x step for 2.3x less incremental memory;
+compiling the geometry region gave 0.82x step with bf16 rounding
+differences (not adopted); sparse anchor routing was slower at every k
+(@sec-nb-sparse-routing-verdict).
+
+**Instrument, written before running.** One GB300, bf16 autocast, AdamW
+step, batch 1, synthetic anisotropic cloud (no data loading), the reference
+surface configuration (12 layers, 256 slices). Median step time over ten
+steps after three warm-ups, peak allocated and reserved memory, and a
+torch.profiler trace of three steps with CUDA kernel time bucketed by
+operator family (point softmax, slice softmax, slice einsums, geometry
+elementwise and cat, Linear/MLP GEMMs, LayerNorm and GELU, optimizer,
+other), at (192, 10k), (512, 10k), (192, 80k) and (512, 40k); plus the
+log-log slopes of step time in tokens (10k–80k at hidden 192) and in hidden
+(192–512 at 10k), with and without the recompute. Readout 1 is the ranked
+bucket table and the named term behind the superlinear token scaling.
+
+**Optimization rule.** Every change must reproduce the reference forward to
+bf16 roundoff (the observed maximum relative difference is stated) or
+bitwise; a change that is exactly equivalent in fp32 arithmetic may become
+the default with an exactness test; anything beyond roundoff is a flag-gated
+option with its own test, default off. Candidates to be measured, not
+assumed: never materializing the (B, N, S, 8) invariants (a fused region
+with recompute in backward), chunking over slices, avoiding (B, N, S)
+intermediates in bf16 copies, fp32 accumulation only where needed, removing
+the duplicated point softmax, contiguity and memory format, the passive
+readout's chunk size.
+
+**Bars, in readout units.** *Worthwhile for merge* if the step time at
+(192, 80k) or at (512, 10k) falls by ≥ 1.3x at equal outputs, or peak
+memory falls by ≥ 30% at ≤ 1.05x step time (quoted against both the plain
+path, 3.37 GiB incremental at (192, 10k), and the recompute path, 1.47 GiB).
+*Not worthwhile* if < 1.15x and < 15%. Between: reported, merged only if
+exact. Readout 3 is the largest (hidden, cells) configuration trainable in
+the reference lane's budget (500 epochs of HiLift's 1,260 cases on four
+GPUs in ≤ 3 days) before and after. If the gain is ≥ 1.5x, one scaled
+training pilot is proposed with its exact flags (not launched here).
