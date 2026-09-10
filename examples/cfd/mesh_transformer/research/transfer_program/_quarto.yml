@@ -13,6 +13,7 @@ book:
     - 04-composition.qmd
     - 05-solver-spaces.qmd
     - 06-classical-solvers.qmd
+    - 07-campaigns.qmd
     - 99-notebook.qmd
 
 format:

@@ -1,0 +1,82 @@
+# Campaign results {#sec-campaigns}
+
+**Of five configurations scored under a ten-fold sampling-density skew on
+DrivAerML, only the similarity-gauge ISLA keeps its accuracy (1.21x); the
+input-matched unit-drive GeoTransolver degrades 9.5x, Transolver 3.9x, and
+the two other ISLA configurations 12x and 19x.** This chapter collects the
+verdicts of the node-budget campaigns (@sec-nb-campaign) as they close; each
+section states the question, the preregistered bar, the float32 readout and
+what it changes. Campaigns A (data-draw variance), B (random poses), C
+(fastback transfer) and D (interior carriers) are still training and are
+absent here by design.
+
+## Density robustness against fair baselines (campaign E) {#sec-campaigns-density}
+
+The program book's remaining robustness claim for ISLA was that its
+similarity gauge makes the prediction insensitive to how densely the
+surface is sampled: on the 48 DrivAerML validation cars, a Poisson-biased
+draw with ten times the inclusion probability on the front half of the car
+(exact Horvitz–Thompson weights carried in the measure field, total measure
+preserved) raised the gauge arm's pressure error only from 0.063 to 0.076,
+a factor 1.20. The audit's objection was that no input-matched baseline had
+been run through the same probe. Campaign E ran it, in float32 inference
+(@sec-nb-campe-verdict for the preregistration and the bf16 preview), on
+the canonical unit-drive GeoTransolver and Transolver checkpoints and on
+three ISLA configurations.
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json").read_text())
+b = json.loads(Path("studies/campaign_e_evalonly/campaign_e_density_bf16_2026-09-09.json").read_text())
+names = {"gt_unit": "GeoTransolver, unit drive", "transolver_unit": "Transolver, unit drive (lr 3e-3)",
+         "isla_reference": "ISLA, constant gauge (reference configuration)", "isla_gauge": "ISLA, similarity gauge",
+         "isla_noweights": "ISLA, measure weights off"}
+print("| arm | seeds | uniform draw | 10:1 biased draw | degradation factor (per seed) | bf16 uniform draw |")
+print("|---|---|---|---|---|---|")
+for k, n in names.items():
+    a = d["arms"][k]; ab = b["arms"][k]
+    seeds = ", ".join(f"{x:.2f}" for x in a["factor_seeds"])
+    print(f"| {n} | {a['n_seeds']} | {a['unif_pressure_mean']:.4f} | {a['biased_pressure_mean']:.3f} | {a['factor_mean']:.2f} ({seeds}) | {ab['unif_pressure_mean']:.4f} |")
+print()
+print(": Surface-pressure relative L2 on the 48 DrivAerML validation cars, float32 inference, seed means; the factor is the biased-draw error divided by the uniform-draw error. The last column is the same uniform-draw evaluation in bf16, kept for the program's per-architecture offset table. Data: studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json and campaign_e_density_bf16_2026-09-09.json. {#tbl-campaigns-density}")
+```
+
+The claim holds against fair baselines, by a wide margin: the
+preregistered bar asked for a GeoTransolver factor of at least 1.32 with
+the gauge arm's factor at most 1.24, and the readout is 9.5 against 1.21.
+Every car is worse under the bias for every run of the four non-gauge arms.
+The cost of the robustness is visible in the first column: the gauge arm is
+10–20% less accurate on the uniform draw than the constant-gauge ISLA
+(0.0558) and the unit-drive GeoTransolver (0.0505), so the trade is a fifth
+of the accuracy on a well-sampled surface for an eight- to fifteen-fold
+smaller error under the skew. The two non-gauge ISLA configurations are the
+least robust of the five, and the weights-off configuration, which is the
+program's best fair ISLA on canonical data (2.8% ahead of weights on),
+reaches an error above 1.0 under the bias, worse than predicting zero. That
+is the cost side of the weights-off decision: weights off is a canonical-
+benchmark configuration, not a deployable one.
+
+The mechanism, stated as the reading the numbers support rather than as a
+separately tested result: the gauge normalizes ISLA's kernel by the local
+measure, so the Horvitz–Thompson weights act as a quadrature correction and
+the field is reconstructed from the sparse half nearly as well as from the
+dense half; the constant-gauge ISLA meets weights far outside its training
+range in every measure-weighted sum; the weights-off ISLA has no measure
+and reads the front-heavy token cloud as geometry; GeoTransolver's
+radius-based local features are neighbour statistics that shift ten-fold
+with density; Transolver's learned slice routing degrades more gracefully.
+A gauge arm with weights off would test whether the gauge alone suffices;
+it is not scheduled.
+
+One preregistration miscalibration is recorded rather than rewritten: the
+"holds" clause named the ISLA reference configuration as the arm whose
+factor had to stay within 1.24, but the book's 1.20 belongs to the gauge
+arm, so the clause as written could not be met; the gauge arm is graded in
+its place. A second, program-wide observation from the same evaluations:
+bf16 inference inflates the uniform-draw error by 8.5–9.7% for
+GeoTransolver and Transolver but only 2.8–4.0% for the three ISLA
+configurations, so every bf16 comparison in the program has penalized the
+baselines about 5% more than ISLA, which is one reason the program moved
+to float32 as its reporting instrument.

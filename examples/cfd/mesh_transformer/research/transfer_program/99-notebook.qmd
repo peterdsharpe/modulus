@@ -711,3 +711,36 @@ fair comparison and survives, with the gauge named as the mechanism and its
 recommended for canonical benchmarks only. Next: no further node time on
 this question; the mechanism reading would be tested by a gauge arm with
 weights off (does the gauge alone suffice?) if the program wants it.
+
+## 2026-09-09 — Ops: the collective timeout does not kill a stalled link, and restarted links re-hang at the same sample; idle-link watchdog armed {#sec-nb-ops-watchdog}
+
+Two facts from the 19:22 stall's aftermath that change the guard. First,
+the NCCL collective timeout fired on every stalled rank at 19:42–19:45
+(@sec-nb-ops-stall3) and the ranks printed their failure, but the links did
+not exit: at 20:18 six of my ten links were still RUNNING two hours after
+their last training step (the failing rank never leaves the copy it is
+stuck in, so the process group's error path never completes), and the
+four that had been recycled by the 18:14 cancel were back in the same state
+within minutes of resuming. A short collective timeout is therefore not a
+sufficient guard; an external idle-link watchdog is (`watchdog_interior.sh`:
+every five minutes, cancel any running link older than fifteen minutes
+whose training log has no step for twenty minutes, all clock arithmetic on
+the cluster; the chain's pending successor restarts from the last epoch
+checkpoint). It cancelled eight links at 20:22–20:23 and all ten chains had
+fresh links stepping by 20:24. Second, a restarted link hangs at exactly
+the step where its predecessor hung: the last logged loss before successive
+stalls of the same lane is identical (0.012028 three times for support-12
+seed 42 between 13:44 and 16:07; 0.062525 three times for the hidden-344
+carrier; 0.017022 twice for passive-12 seed 43), so a specific sample in
+the replayed epoch order blocks until something outside the job clears,
+after which the lane moves on and later stalls at a different sample. With
+the main session's stack dumps (the stuck rank inside the host-to-device
+copy, or earlier inside `pin_memory`), the reading that fits all of it: the
+reader returns memory-mapped tensors whose pages are faulted in at the copy,
+and an intermittent Lustre-side stall on particular files of the volume
+dataset (the surface lanes read different files and never stall) turns
+that page fault into an indefinite wait. This is the third reading of the
+stall and is now with the cluster team through the main session; it also
+says the cost of each stall is bounded by the watchdog's twenty minutes
+plus a restart, and that recycling onto the same sample is harmless once
+the file is readable again.
