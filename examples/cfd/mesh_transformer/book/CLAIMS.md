@@ -1261,3 +1261,15 @@ interior control @sec-nb-udrv-int-prereg.
   pending): flow-organized far-field anchors (latent_volume_tokens, offsets 0.5/1.0/2.0 L along the
   drive) — NOTE the option currently requires query_independent=True (model.py ~596), so the QT+SDF
   configuration needs a flag-gated relaxation first.
+- **SCALE DrivAerML synthesis (2026-09-10, scaling session; #sec-nb-scale-drivaer-synthesis; fp32, 48 cars,
+  two seeds, 512 wide × 80,000 cells).** GeoTransolver 0.0419 (0.22 s/step, 41 GB, ~13 GPU-h), ISLA
+  constant gauge + weights on + fast kernel 0.0428 (0.285 s, 22.8 GB, 22.5 GPU-h), Transolver 0.0431
+  (0.111 s, 27.6 GB, 6.6 GPU-h). Baseline ÷ ISLA 0.903 / 0.928 → 0.979 / 1.007 (shift +0.076 / +0.079 >
+  0.05 bar): the reference-size DrivAerML ordering does NOT persist at scale; mechanism = the cell-count
+  knob (ISLA +16% vs +8%); width 9–11% for all. Biased ÷ uniform at the corner: GT 4.2 (6.5 / 1.9
+  seed-fragile), ISLA constant gauge 16.7, Transolver 4.6; similarity-gauge ISLA reference 1.21 (10k) /
+  1.01 (80k) → no corner is invariant; ISLA's row is a capacity measurement, not a recommendation; the
+  gauge corner g512x80k (bars ≤ 0.0449, ratio ≤ 1.5) is decisive. Write the frontier as accuracy ×
+  invariance × GPU-hours; "within 3% at 512×80k"; never "ISLA wins at scale". bf16 = additive floor per
+  architecture (GT +0.004–0.005, T +0.004, ISLA +0.0013–0.002) that INVERTS the corner ordering — never
+  quote bf16 corner numbers. GT corner step/memory are launch-record values pending its reduction.
