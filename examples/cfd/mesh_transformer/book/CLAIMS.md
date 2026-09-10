@@ -956,3 +956,9 @@ interior control @sec-nb-udrv-int-prereg.
   label it "(bf16)"; write no new comparative verdict from bf16 numbers alone; after the
   campaign, quote float32 numbers and state precision beside them. Within-family bf16
   comparisons on identical points remain valid as bf16 comparisons.
+- **bf16 offset is architecture-dependent (2026-09-09, float32 first look).** float32 is 8.5–9.7%
+  below bf16 for GeoTransolver and Transolver, 2.8–4.0% for ISLA. Every bf16 ISLA-vs-baseline
+  margin in the book UNDERSTATES the baselines' lead by ~5 points; DrivAerML fp32: GT 0.0505 <
+  Transolver 0.0517 < ISLA weights off 0.0544 < ISLA 0.0558 (GT 10% ahead). Density robustness
+  (fp32): gauge ISLA 1.21x; unit GT 9.5x; Transolver 3.9x; constant-gauge ISLA 12.1x; weights-off
+  ISLA 19.1x. Write "the similarity gauge is the mechanism, at a 10–20% uniform-draw cost".

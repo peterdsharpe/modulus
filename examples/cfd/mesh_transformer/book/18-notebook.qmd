@@ -10386,3 +10386,48 @@ stands at ≥ 4 of 6 HiLift rungs persisting before the reference
 configuration changes, and the density-robustness cost of weights off
 (campaign E, bf16 preview: 18x degradation under a 10:1 sampling bias
 against 1.2x for the similarity gauge) is part of that decision.
+
+## 2026-09-09 — Float32 first look (campaign E, transfer session): the bf16 offset is architecture-dependent, penalizing GeoTransolver and Transolver 8.5–9.7% and ISLA 2.8–4.0%; the density-robustness claim holds with the similarity gauge as the mechanism; weights off is the least robust configuration {#sec-nb-fp32-first-look}
+
+**Source.** The transfer session's density-bias probe (campaign E,
+research/transfer_program, #sec-nb-campe-verdict), rerun in float32 under
+the reporting rule of @sec-nb-fp32-instrument on the DrivAerML surface
+checkpoints (48 validation cars, pressure relative L2, uniform two-stage
+control against the 10:1 biased sample). These are float32 numbers from the
+same launcher configuration as the book's evaluations; the formal
+re-evaluation campaign (FP32-EVAL) will reproduce them for the book's tables.
+
+| arm (435 cars) | uniform, bf16 | uniform, float32 | bf16 − float32 | biased ÷ uniform (float32) |
+|---|---|---|---|---|
+| GeoTransolver, unit drive (three seeds) | 0.0554 | **0.0505** | +9.7% | **9.5x** (11.8 / 7.9 / 8.8) |
+| Transolver, unit drive, lr 3e-3 | 0.0561 | **0.0517** | +8.5% | **3.9x** (2.2 / 5.5) |
+| ISLA, constant gauge (weights on) | 0.0579 | **0.0558** | +3.8% | 12.1x |
+| ISLA, measure weights off | 0.0566 | **0.0544** | +4.0% | **19.1x** |
+| ISLA, similarity gauge | 0.0633 | **0.0616** | +2.8% | **1.21x** (1.208 / 1.214) |
+
+**Two consequences.** First, the bf16 evaluation offset is
+architecture-dependent: the baselines' float32 errors are 8.5–9.7% below
+their bf16 numbers, ISLA's only 2.8–4.0%, so every bf16 comparison in the
+book has penalized GeoTransolver and Transolver by about five percentage
+points more than ISLA. On DrivAerML surface at 435 cars the float32 ordering
+is GeoTransolver 0.0505 < Transolver 0.0517 < ISLA weights off 0.0544 <
+ISLA 0.0558: GeoTransolver leads ISLA by 10% in float32 where bf16 showed
+4%. The 35-case HiLift margins are expected to widen the same way; the
+formal campaign's group 1 decides by how much. Second, the
+density-robustness result stands against input-matched baselines with its
+mechanism named and its cost stated: the similarity gauge holds ISLA to 1.21x
+under a 10:1 sampling bias where the unit-drive GeoTransolver degrades 9.5x
+and Transolver 3.9x, and the gauge pays 10–20% on the uniform draw (0.0616
+against 0.0505 for GeoTransolver and 0.0558 for constant-gauge ISLA).
+Dropping the measure weights, the configuration that gains 12–17% at small
+HiLift data, degrades 19.1x under the bias (worse than predicting zero),
+so NOW-L's decision is a trade between small-data accuracy and density
+robustness, not a free gain.
+
+**Interior stall, third reading.** Restarted interior links re-hang at
+exactly the same training step (identical loss value at successive stalls),
+and the hang sites found so far (pinning, the host-to-device copy) are the
+two places where the reader's memory-mapped tensors are first faulted in;
+a stuck Lustre file or stripe therefore appears as a copy hang, which unifies
+the earlier readings and is the hypothesis to give the cluster team: specific
+volume-dataset files, intermittent, roughly hourly since 12:14 PDT.
