@@ -1306,3 +1306,14 @@ interior control @sec-nb-udrv-int-prereg.
   ISLA 0.0557 → 0.0652 (1.171), GT 0.0504 → 0.0525 (1.042) vs 1.078 / 1.043 at 50%: ISLA's mixing cost grows with the foreign
   share, GT's does not. Extra 577 estate cars buy fastback 6% (ISLA) / 9% (GT) over the 217-car mix → coverage saturates within
   a few hundred sibling cars. Campaign C CLOSED (T1 null, T2 trade, T3 GT-only).
+- **Similarity-gauge corner g512x80k (2026-09-10, scaling session, fp32, code_eval, two seeds).** 0.0431
+  (0.0425 / 0.0437; bf16 0.0441) vs bar ≤ 0.0449 → PASS; biased ÷ uniform 1.08 at 80k vs bar ≤ 1.5 → PASS
+  (constant-gauge corner 16.7x, GT corner 4.2x, Transolver 4.6x). Cost equal to the constant-gauge corner
+  (60.2M params, 22.9 vs 22.8 GB, 0.281 vs 0.285 s, 20.2 vs 22.5 GPU-h): the gauge's 10% reference-size
+  cost vanishes at scale. Down-transfer: 0.0727 at 10k (1.69x native; constant corner 1.55x) → deploy at
+  the training count. Bar 3 with the gauge row: GT ÷ ISLA 0.972, Transolver ÷ ISLA 1.000. WRITE: "at 512 ×
+  80k the three architectures reach 0.042–0.043; GeoTransolver and Transolver at density sensitivities of
+  4x and 5x, ISLA's constant gauge at 17x, ISLA's similarity gauge at 1.08x at the same cost — the only
+  scaled configuration whose accuracy survives a 10:1 sampling-density bias; under the principle the
+  configuration the program adopts at scale". The reference-size switch (similarity gauge vs constant
+  length + measure centering) is decided by the centering lanes and Peter.
