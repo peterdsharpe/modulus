@@ -1,0 +1,58 @@
+{
+ "date": "2026-09-10",
+ "instrument": "float32; snapshot code_center (training snapshot); 48 DrivAerML validation cars at 10,000 cells; 180 HiLift 35-case validation cases; density probe = drivaer_probe_biased3 \u00f7 drivaer_probe_unif2 at 10,000 cells",
+ "configuration": "ISLA constant gauge (reference_length 8.0) with center_mode='measure' (measure-weighted centroid), unit drive, lr 1e-3, 500 epochs",
+ "drivaerml": {
+  "runs": {
+   "cg_dr_mt2_mcenter_seed42": {
+    "pressure_l2": 0.055,
+    "wss_l2": 0.0806,
+    "probe_unif": 0.0553,
+    "probe_biased": 0.0646
+   },
+   "cg_dr_mt2_mcenter_seed43": {
+    "pressure_l2": 0.0545,
+    "wss_l2": 0.0796,
+    "probe_unif": 0.055,
+    "probe_biased": 0.0651
+   }
+  },
+  "pressure_mean": 0.0548,
+  "reference_constant_gauge_plain": 0.0557,
+  "ratio_vs_reference": 0.983,
+  "density_factor_seeds": [
+   1.168,
+   1.184
+  ],
+  "density_factor_mean": 1.17,
+  "bars": {
+   "accuracy_within_3pct": true,
+   "density_le_1p5": true
+  },
+  "verdict": "JOINT PASS"
+ },
+ "hilift_35": {
+  "runs": {
+   "cg_hl_mt2_mcenter_super_scarce_seed42": {
+    "pressure_l2": 0.1519,
+    "velocity_l2": 0.1767,
+    "tau_wall_l2": 0.2724
+   },
+   "cg_hl_mt2_mcenter_super_scarce_seed43": {
+    "pressure_l2": 0.1521,
+    "velocity_l2": 0.1754,
+    "tau_wall_l2": 0.2692
+   }
+  },
+  "pressure_mean": 0.152,
+  "reference_constant_gauge_plain": 0.1377,
+  "ratio_vs_reference": 1.104,
+  "similarity_gauge_three_seeds": 0.1482,
+  "similarity_gauge_ratio": 1.076,
+  "density_factor": "not measured (no HiLift density probe; BENCH samplers to be run on these checkpoints)",
+  "bars": {
+   "accuracy_within_3pct": false
+  },
+  "verdict": "accuracy bar FAILED (+10.4%); reading: the price is the frame estimate itself on heterogeneous meshes"
+ }
+}

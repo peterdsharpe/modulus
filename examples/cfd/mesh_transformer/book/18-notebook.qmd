@@ -13308,3 +13308,60 @@ configuration the program can adopt: matched accuracy, an order of
 magnitude less density sensitivity than every other corner, equal cost.
 Whether the same holds on HiLift, where the two datasets' surface
 resolutions and case counts differ, is the pending half.
+
+## 2026-09-10 — Verdict, measure-centering lanes: free and density-robust on DrivAerML (0.98x, 1.17x under the bias), a 10% price at 35 HiLift cases; the frame estimate, not the length scale, is what heterogeneous meshes charge for {#sec-nb-center-lanes-verdict}
+
+The centering probe (@sec-nb-center-probe-verdict) showed that the
+constant-gauge ISLA's density collapse is its plain-mean centroid; the
+open question was whether a model *trained* with the measure-weighted
+centroid keeps the constant gauge's accuracy. Four lanes answered it
+(constant gauge, `center_mode="measure"`, unit drive, learning rate 1e-3,
+500 epochs, snapshot code_center; float32 evaluation; bars preregistered in
+the probe verdict as a joint pass of density ratio ≤ 1.5x and error within
+3% of the constant gauge's 0.0557 on DrivAerML and 0.138 at 35 HiLift
+cases). Artifact: results/center_lanes_2026-09-10.json.
+
+| dataset | measure-centered ISLA (seeds) | constant gauge, plain centering | ratio | density 10:1 (seeds) | similarity gauge, rate-matched |
+|---|---|---|---|---|---|
+| DrivAerML, 48 cars | 0.0550 / 0.0545 → **0.0548** | 0.0557 | **0.98x** | 1.17x / 1.18x → **1.17x** | 0.0616 at 3e-3 (parity with 0.0620 at 3e-3) |
+| HiLift, 35 cases (180 val) | 0.1519 / 0.1521 → **0.1520** | 0.1377 | **1.10x** | not measured | 0.1482 (three seeds), 1.076x |
+
+**DrivAerML: joint pass.** Measure centering costs nothing (1.6% better,
+inside seed spread) and takes the density-bias ratio from 12.1x to 1.17x,
+inside the 1.5x bar; the residual 1.17x is the estimator-variance floor the
+similarity gauge also shows (1.21x). On this dataset "constant length plus
+measure-weighted centering" is a configuration that is both as accurate as
+the reference and consistent under resampling, and it does it without the
+similarity gauge's scale normalization.
+
+**HiLift 35 cases: the accuracy bar fails** (0.1520 against 0.1377, a 10.4%
+price), landing in the preregistered "invariant but costly" reading: the
+price of robustness here is the frame estimate itself. The similarity
+gauge, which also builds its frame from the measure-weighted sample, pays
+7.6% on the same rung (three seeds, rate-matched), and the two prices
+coincide within the seed spread, so the common cause is the frame
+statistic, not the length scale. The mechanism is the one already named
+for the weights-off ablation: on a multi-element wing the cell areas span
+orders of magnitude, so a centroid (or RMS extent) estimated from 10,000
+area-weighted samples is a high-variance statistic, and a frame that
+jitters between draws of the same surface is a handicap in training; the
+plain mean of a uniform-over-cells draw is a low-variance statistic that
+happens to read the mesher. DrivAerML's near-uniform meshes make the two
+estimates nearly equivalent, which is why the price vanishes there.
+
+**What follows.** The principled repair does not need the sample at all: the
+frame (centroid, extent) of a surface is a property of the geometry and can
+be computed once from the full mesh at data-preparation time and passed as
+global data, exactly as the freestream direction is; it is then
+sampling-independent by construction, has no estimator variance, and costs
+nothing at inference. That configuration ("full-geometry frame", FRAME-FULL)
+is the next preregistration: prediction, constant-gauge accuracy recovered
+at 35 HiLift cases (within 3% of 0.1377) with the density ratio ≤ 1.2x on
+DrivAerML. Until it is measured, the reference-configuration decision reads:
+on DrivAerML the measure-centered constant gauge is adopted as the reference
+(accuracy kept, consistency gained); on HiLiftAeroML the constant gauge
+stays the accuracy reference with its density dependence stated beside
+every number, and the similarity gauge and measure centering are reported
+as the consistent configurations at their 7–10% price. The HiLift
+consistency of the measure-centered checkpoints under the BENCH samplers is
+being measured to complete their row.
