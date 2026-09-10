@@ -11974,3 +11974,23 @@ loaded through the legacy-name path, one warning, no skip); GeoTransolver
 evaluation launchers now import `code_eval`; the training snapshots remain
 for training and bfloat16 reproduction. An evaluation log containing
 "skipping load" voids the run (CLAIMS).
+
+## 2026-09-10 — Interior ISLA query-token + SDF, third seed: 0.0564 / 0.0809 / 0.1083 in float32; three-seed means 0.0553 / 0.0804 / 0.1109; the interior ordering is unchanged {#sec-nb-qtsdf-seed44}
+
+The third seed (44) of the reference ISLA interior configuration (query
+tokens with the signed distance as query scalar, similarity gauge;
+v0_isla_qtsdfval_seed44, chain recycled through the host-copy stalls by the
+idle watchdog) finished and was evaluated in both precisions, float32 under
+the program's guarded snapshot (@sec-nb-code-eval-adopted; no skipped load).
+Float32 pressure 0.0564, velocity 0.0809, eddy viscosity 0.1083 against
+0.0548 / 0.0800 / 0.1058 and 0.0549 / 0.0802 / 0.1187 for seeds 42 and 43;
+three-seed means **0.0553 / 0.0804 / 0.1109**, seed spreads 1.7%, 0.6% and
+6%. Bfloat16 gives 0.0584 / 0.0863 / 0.1154 (the 3–6% ISLA inflation of
+@sec-nb-fp32-interior-regrade).
+
+Against the three-seed unit-drive GeoTransolver-volume (0.0513 / 0.1070 /
+0.0876, @sec-nb-udrvint-seed44) the interior ordering is what two seeds
+said: GeoTransolver-volume leads pressure (ISLA ÷ GeoTransolver 1.08x, was
+1.06x) and eddy viscosity (1.27x, was 1.28x), ISLA leads velocity (0.75x,
+was 0.73x). The chapter 8 and index numbers move by one to two points when
+they are refreshed to three seeds; no verdict changes.

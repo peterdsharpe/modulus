@@ -1189,3 +1189,8 @@ interior control @sec-nb-udrv-int-prereg.
   RULE: every float32 or probe evaluation runs from code_eval; the training snapshots are for training
   and bf16 reproduction only. code_eval = worktree-scaling-study 0e41b9ee1 package, evaluation-only
   (SNAPSHOT file), fast kernel opt-in so the default forward is the bitwise reference.
+- **Interior ISLA QT+SDF third seed (2026-09-10, fp32, code_eval).** Seed 44: 0.0564 / 0.0809 / 0.1083;
+  three-seed means 0.0553 / 0.0804 / 0.1109 (spreads 1.7% / 0.6% / 6%). Three-seed ratios ISLA ÷
+  GT-volume: pressure 1.08x (was 1.06x), velocity 0.75x (was 0.73x), ν_t 1.27x (was 1.28x). Write
+  "8% behind on pressure, 25% ahead on velocity, 27% behind on eddy viscosity" once chapter 8 and the
+  index are refreshed to three seeds (pending the generalization session's index merge).
