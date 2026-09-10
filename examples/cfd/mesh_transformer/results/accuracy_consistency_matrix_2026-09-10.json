@@ -3,7 +3,7 @@
  "instrument": "float32 inference; unit-drive baselines; DrivAerML surface pressure rel-L2, 48 validation cars, 10,000 cells; seed means",
  "columns": {
   "in_family": "pressure rel-L2 on the 48 validation cars (sampling uniform over cells, 10k)",
-  "density_factor": "pressure rel-L2 under 10:1 front/back Poisson-biased sampling (exact HT measure weights) \u00f7 uniform, 10k cells (campaign E, research/transfer_program/studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json); for the baselines, which consume absolute centred coordinates, the headline uses the frame centred on the biased sample (post-centre probe, #sec-nb-mw-postcenter); the pipeline-frame value is kept as density_factor_pipeline_frame",
+  "density_factor": "pressure rel-L2 under 10:1 front/back Poisson-biased sampling (exact HT measure weights) \u00f7 uniform, 10k cells, float32; SAMPLE FRAME for every row (the input frame centred on the drawn points, as a biased mesher delivers it; probes drivaer_probe_{unif2,biased3}_sf); pool-frame values (pipeline centring on the uniform reader pool before the draw) are kept per row where they differ",
   "pose_factor": "pressure rel-L2 with every training and validation case in its own random SO(3) pose \u00f7 canonical-pose error of the same architecture (POSE-BENCH, research/transfer_program/studies/campaign_b_pose/campaign_b_fp32_2026-09-10.json); baselines trained with SO(3) augmentation",
   "zero_shot_fastback": "pressure rel-L2 on the 99 SHIFT-SUV fastback validation cases, no fastback training data (1.0 = predicting the mean; transfer session float32 evaluations under snapshot code)",
   "few_shot_gain": "fine-tuned on 20 fastback cases for 1,000 steps at matched learning rate: error from scratch \u00f7 error fine-tuned \u2212 1 (campaign C T3, #sec-nb-campc-t3-verdict)"
@@ -13,7 +13,7 @@
    "label": "ISLA, constant gauge (reference, lr 1e-3)",
    "runs": "iw_mt2_lr1e3_seed{42,43}",
    "in_family": 0.0558,
-   "density_factor": 12.1,
+   "density_factor": 12.0,
    "density_seeds": [
     12.5,
     11.7
@@ -24,7 +24,8 @@
     0.7824,
     0.794
    ],
-   "few_shot_gain": 0.06
+   "few_shot_gain": 0.06,
+   "density_note": "ISLA centres in the model on the sampled points, so pool-frame and sample-frame probes agree within 1% (sample-frame rerun: constant 11.99, gauge 1.207, weights-off 19.23)"
   },
   "isla_similarity_gauge": {
    "label": "ISLA, similarity gauge (lr 3e-3; other rows 1e-3 except Transolver)",
@@ -42,13 +43,14 @@
     0.8514
    ],
    "few_shot_gain": null,
-   "lr_note": "trained at 3e-3; rate-matched constant gauge mt2_v3c_seed42 scores 0.0620 fp32, so no in-distribution price is established on DrivAerML (#sec-nb-gauge-lr-confound)"
+   "lr_note": "trained at 3e-3; rate-matched constant gauge mt2_v3c_seed42 scores 0.0620 fp32, so no in-distribution price is established on DrivAerML (#sec-nb-gauge-lr-confound)",
+   "density_note": "ISLA centres in the model on the sampled points, so pool-frame and sample-frame probes agree within 1% (sample-frame rerun: constant 11.99, gauge 1.207, weights-off 19.23)"
   },
   "isla_weights_off_ablation": {
    "label": "ISLA, measure weights off (ablation, not adopted; lr 1e-3)",
    "runs": "now_mt2_lr1e3_seed{42,43}",
    "in_family": 0.0544,
-   "density_factor": 19.1,
+   "density_factor": 19.2,
    "density_seeds": [
     23.1,
     15.2
@@ -59,17 +61,18 @@
     0.8018,
     0.8105
    ],
-   "few_shot_gain": null
+   "few_shot_gain": null,
+   "density_note": "ISLA centres in the model on the sampled points, so pool-frame and sample-frame probes agree within 1% (sample-frame rerun: constant 11.99, gauge 1.207, weights-off 19.23)"
   },
   "geotransolver_unit": {
    "label": "GeoTransolver, unit drive (lr 1e-3)",
    "runs": "uw_gt_unit_lr1e3_seed{42,43,44}",
    "in_family": 0.0503,
-   "density_factor": 12.0,
+   "density_factor": 12.1,
    "density_seeds": [
-    11.8,
-    7.9,
-    8.8
+    12.0,
+    11.9,
+    12.5
    ],
    "pose_factor": 1.2,
    "pose_note": "with SO(3) augmentation; unaugmented degrades far more",
@@ -80,7 +83,7 @@
    ],
    "few_shot_gain": 0.31,
    "density_factor_pipeline_frame": 9.5,
-   "density_note": "headline = frame from the biased sample (12.0 / 11.9 GT; 10.2 / 13.0 Transolver); the campaign E value with the pipeline's pool frame was 9.5x"
+   "density_note": "sample frame, three seeds (campaign E sample-frame rerun, research/transfer_program/studies/campaign_e_evalonly/campaign_e_density_fp32_sampleframe_2026-09-10.json); pool-frame 9.5x"
   },
   "transolver_unit": {
    "label": "Transolver, unit drive (lr 3e-3)",
@@ -96,7 +99,7 @@
    "zero_shot_fastback": null,
    "few_shot_gain": null,
    "density_factor_pipeline_frame": 3.9,
-   "density_note": "headline = frame from the biased sample (12.0 / 11.9 GT; 10.2 / 13.0 Transolver); the campaign E value with the pipeline's pool frame was 3.9x"
+   "density_note": "sample frame, two seeds 10.2 / 13.0 (mw post-centre probe); pool-frame 3.9x"
   },
   "geotransolver_unit_mw": {
    "label": "GeoTransolver, unit drive, measure-weighted pooling (lr 1e-3)",
