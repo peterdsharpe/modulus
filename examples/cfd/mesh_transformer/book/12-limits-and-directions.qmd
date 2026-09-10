@@ -503,11 +503,12 @@ Evaluate-anywhere semantics is a contract with a measured price.
 **Neither ISLA nor GeoTransolver transfers zero-shot across vehicle
 families; what moves cross-family error is the diversity of the training
 data** (@tbl-frontier in @sec-full-data). The failure is not identical across
-the two architectures — on the held-out fastback family GeoTransolver trained
-on DrivAerML alone scores 0.59 where ISLA scores 0.95–0.99 (1.0 is the mean
-predictor; the unit-drive ISLA checkpoint at learning rate 1e-3 scores 0.78
-in float32) — but neither is usable, and a second training family moves both
-to 0.11–0.13. Few-shot adaptation separates them further: fine-tuned on 20
+the two architectures — on the held-out fastback family the reference
+configurations trained on DrivAerML alone score, in float32 on two seeds,
+0.61 for the unit-drive GeoTransolver and 0.79 for ISLA (0.98 for ISLA's
+constant-gauge configuration; 1.0 is the mean predictor), so ISLA's
+zero-shot failure is 29% worse than GeoTransolver's — but neither is usable,
+and a second training family moves both to 0.11–0.13. Few-shot adaptation separates them further: fine-tuned on 20
 labelled fastback cases for 1,000 steps, the unit-drive GeoTransolver
 reaches 0.128 against 0.186 trained from scratch on those cases, while ISLA
 reaches 0.187 against 0.198 (float32, matched learning rate;

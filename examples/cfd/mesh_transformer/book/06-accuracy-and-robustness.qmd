@@ -535,7 +535,10 @@ rate the gap is 1.085x (@sec-full-data-accuracy), and the table's
 column is the conservative one for ISLA. Second, on the common held-out
 fastback family no single-family row transfers: GeoTransolver scores
 0.59 (0.82 with rotation augmentation) and ISLA 0.95--0.99 in either
-gauge, against 1.0 for predicting the mean; GeoTransolver's failure is
+gauge, against 1.0 for predicting the mean; re-evaluated in float32 on
+two seeds, the current reference checkpoints score 0.61 (unit-drive
+GeoTransolver) and 0.79 (ISLA at learning rate 1e-3), the constant-gauge
+ISLA configuration 0.98. GeoTransolver's failure is
 the milder one, but neither is usable, neither gauge nor pose handling
 moves ISLA's, and a second training family moves both architectures to
 0.11--0.13. Cross-family transfer is governed by training-data diversity,
