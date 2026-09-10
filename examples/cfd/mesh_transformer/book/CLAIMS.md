@@ -896,3 +896,7 @@ interior control @sec-nb-udrv-int-prereg.
   0.041 (slopes 0.42, 0.31, 0.21). Physical-drive GT 0.0568 and Transolver 0.0656 are
   measurements of that protocol only (never an ISLA advantage); unit-drive baselines at 510 are
   training (udrv_hl_gt_medium_*, udrv_hl_transolver_medium_lr3e3_*).
+- **Interior step times after 2026-09-09.** Every DrivAerML interior lane launched or resumed on
+  or after 2026-09-09 runs with `dataloader.pin_memory=false` (+35% step time: 0.388 s vs
+  0.287 s for the 10k-query ISLA arm on GB300). Never compare such a step time to an earlier
+  pinned one without saying so; the 0.28 s / 6.3 GiB eager QT numbers are pinned-memory numbers.

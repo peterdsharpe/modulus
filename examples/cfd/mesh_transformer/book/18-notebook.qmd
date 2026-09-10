@@ -9785,3 +9785,48 @@ drive, as it did at 35 cases (two seeds within 1%). No comparison is drawn
 from the physical-drive arms; the rung's fair comparison waits for rows
 69–72 (about two days). Chapter 5's ladder text and the W2 ledger row are
 updated.
+
+## 2026-09-09 — Ops: every DrivAerML interior lane hung from about 12:14; root cause a hang inside host-memory pinning in the reader's prefetch thread, not Lustre; workaround `dataloader.pin_memory=false` at +35% step time {#sec-nb-interior-pin-stall}
+
+**Symptom.** From about 12:14 every training lane on the DrivAerML volume
+dataset, across three sessions (the density and neighbour arms, the
+interior third seeds, the transfer companion's D1 and campaign-D lanes),
+stopped advancing within minutes of starting or resuming, with fresh lanes
+hanging before their first checkpoint and resumed lanes at the same epochs
+on every attempt; HiLift and DrivAerML *surface* lanes were unaffected. Each
+hung link idled until the 3,600 s distributed timeout, restarted from its
+checkpoint and hung again.
+
+**Diagnosis** (density track; tools `highlift/qtdens_thread_dump.sh`,
+`highlift/qtdens_probe_stripes.sh`, a faulthandler `sitecustomize` that
+dumps every thread's stack every ten minutes). Not a hung read: on a
+stalled link no thread on any rank was in D state, no dataset file was
+open, and every training file and every stripe of every interior memmap
+read cleanly from a healthy allocation. The stack dump of the stuck rank
+shows its main thread waiting without timeout in the DataLoader prefetch
+hand-off (`physicsnemo/datapipes/protocols.py:366` ←
+`datapipes/dataloader.py:459/499/306` ← `train.py:548`), and the prefetch
+worker it waits for inside `TensorDict.pin_memory` called from
+`physicsnemo/datapipes/readers/mesh.py:690` (`dm = dm.pin_memory()` in
+`DomainMeshReader.__getitem__`). The other three ranks spin in the recipe's
+step-failure barrier all-reduce, which is what the NCCL watchdog then names.
+Why host pinning hangs on these lanes is not established (driver or
+pinned-memory level; it began at a fixed time and affects only the volume
+pipeline).
+
+**Workaround and cost.** The hydra override `dataloader.pin_memory=false`
+(recipe/conf/base.yaml sets it true) on the train.py command line. A probe
+lane resumed from epoch 310 stepped normally for fifteen minutes past the
+point where four pinned attempts hung, at **0.388 s per step against 0.287 s
+pinned (+35%)** for the 10,000-query ISLA configuration on GB300. Every
+interior lane launched or resumed from 2026-09-09 onward runs with the
+override, and every interior step time from then on is a pageable-copy
+number, stated as such wherever it is quoted. Held chains (mine, the
+density track's, the transfer companion's ten) were released with the
+override after the probe's acceptance.
+
+**What it says about the tooling.** A prefetch hand-off with no timeout
+turns any producer fault into an hour of idle GPUs per link; a bounded wait
+that raises a named error (and the recipe's step-failure barrier reporting
+the *cause* rather than the collective) is a datapipe fix worth making
+independent of the pinning cause. Recorded as an upstream candidate.
