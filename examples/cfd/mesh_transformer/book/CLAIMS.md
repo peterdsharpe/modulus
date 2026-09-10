@@ -1030,8 +1030,13 @@ interior control @sec-nb-udrv-int-prereg.
   started from the trained weights and the ISLA half STANDS. Write "ISLA's DrivAerML
   representation transfers less than GeoTransolver's" with the checkpoint asymmetry caveat; T3 is
   the third sign of family-specific learning (with the 1.6x zero-shot force error and the
-  constant-gauge density collapse). The first-batch-loss gap (0.105 vs 0.080) is the source's
-  genuine fastback mismatch (zero-shot 0.98), not a broken init. Zero-shot fastback under `code`:
+  constant-gauge density collapse). First-batch training losses on the 20 fastback cases
+  (corrected 2026-09-10; the 0.105 / 0.080 quoted earlier were second-epoch values): frozen-init
+  probe 0.193751 = ISLA fine-tune at lr 1e-3 = at lr 1e-4 (identical to six digits: same weights,
+  same batch); ISLA scratch 0.477; GeoTransolver fine-tune 0.176, scratch 0.278. Write "pretrained
+  ISLA starts 2.5x better than random and ends 6% better after 1,000 matched-rate steps;
+  GeoTransolver starts 1.6x better and ends 31% better": the DrivAerML knowledge is worth about
+  the same at step 0 and very different amounts after adaptation. Zero-shot fastback under `code`:
   iw_mt2_lr1e3_seed42 0.7824 fp32 (the book's 0.99 is mt2_v3c); T2 ISLA references being
   re-evaluated for both seeds. The mixed-435 ISLA pays 33% in-family (T2 preview, one seed).
 - **Snapshot hazard for legacy surface ISLA checkpoints (2026-09-10; transfer session probe job
