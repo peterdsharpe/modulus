@@ -124,6 +124,28 @@ control (@sec-nb-udrvl-prereg), with the prediction that they match or beat
 ISLA at every rung; the fair-comparison protocol now requires every
 architecture to receive the freestream at unit scale (@sec-protocol).
 
+How much of this ordering belongs to the particular 35 cases? The 35-case
+split is one random draw from the 1,260-case pool, and every number above is
+a seed mean on that draw. The cross-dataset companion program re-ran the four
+unit-drive arms (GeoTransolver and Transolver at their best rates, ISLA with
+measure weights on and off) on three further geometry-stratified 35-case
+draws, three seeds each, evaluated in float32 (`research/transfer_program/studies/campaign_a_draws/campaign_a_n35_fp32_2026-09-10.json`).
+The ordering holds on every draw. GeoTransolver ÷ ISLA is 0.881, 0.892 and
+0.957 on the three new draws against 0.895 on the draw above (mean 0.910, 90%
+interval 0.84–0.98); Transolver ÷ ISLA is 0.846, 0.852 and 0.900 against 0.829
+(mean 0.866, interval 0.82–0.92); weights-off ISLA ÷ ISLA is 0.896, 0.898 and
+0.947 against 0.885 (mean 0.914, interval 0.87–0.96), so the weights-off gain
+at 35 cases is 5–10% and draw-dependent. The draw in @tbl-unit-drive is
+typical for every arm, at the easy end of the range. The number that changes
+practice is the variance decomposition: the between-draw standard deviation of
+an arm's error is 8.8 (GeoTransolver), 10.9 (Transolver), 3.4 (ISLA, whose
+seed spread is two to three times the others') and 8.4 (weights-off ISLA)
+times its between-seed standard deviation, and the hardest draw is 24% harder
+than the easiest for GeoTransolver. A two-seed number at this rung therefore
+understates its uncertainty by a factor of 3–11; read the 35-case ratios in
+this book with the intervals above, not with their seed spreads, and expect
+future rungs to be run over draws rather than seeds.
+
 ## The result under the physical-drive protocol {#sec-de-result}
 
 The figure and tables of this section are the ladder as it was run, with

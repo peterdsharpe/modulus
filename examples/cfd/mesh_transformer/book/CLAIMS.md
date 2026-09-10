@@ -1039,3 +1039,15 @@ interior control @sec-nb-udrv-int-prereg.
   arrive in arbitrary poses; the value of exact equivariance is conditional on that setting".
   Caveat to carry: the augmented-ISLA contract clause landed 1.2% above the unaugmented seeds'
   range (miscalibrated clause, within 3%). Verdict sentence now names this lead.
+- **35-case draw intervals (2026-09-10; companion campaign A, three further geometry-stratified
+  draws × three seeds, fp32; `research/transfer_program/studies/campaign_a_draws/campaign_a_n35_fp32_2026-09-10.json`).**
+  GT÷ISLA per draw 0.881/0.892/0.957 (curated draw 0.895; mean 0.910, 90% t-interval 0.840–0.979);
+  Transolver÷ISLA 0.846/0.852/0.900 (0.829; 0.866, 0.816–0.916); ISLA weights-off÷on
+  0.896/0.898/0.947 (0.885; 0.914, 0.865–0.963). Absolute seed means per draw: GT 0.1155/0.1309/
+  0.1434, Transolver 0.1109/0.1249/0.1349, ISLA 0.1311/0.1467/0.1498, ISLA-off 0.1175/0.1317/0.1419;
+  the curated draw is typical (inside the range, easy end) for every arm. Between-draw SD ÷ seed SD =
+  8.8 (GT), 10.9 (Transolver), 3.4 (ISLA; its seed SD is 2–3x the others'), 8.4 (ISLA-off). RULES:
+  quote every 35-case ratio with its draw interval; write the weights-off gain at 35 cases as
+  "5–10%, draw-dependent" (never a bare 12%); any two-seed HiLift number understates its uncertainty
+  3–11x, so a new rung's verdict needs geometry-stratified draws, not extra seeds. All 35-case
+  verdicts ("ISLA behind" both baselines; weights-off "between") stand.

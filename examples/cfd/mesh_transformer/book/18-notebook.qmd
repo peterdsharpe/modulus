@@ -9720,7 +9720,7 @@ Job-name prefix scale-<arch>-; run ids scale_<arch>_<dataset>_<arm>_seed<s>.
 the weights-off pair; GeoTransolver 20; Transolver 20), each after a first-link
 acceptance check of steps advancing, memory recorded and no fault. The
 per-architecture agents' own launch entries carry the per-lane detail
-(@sec-nb-scale-isla-launch, @sec-nb-scale-gt-launch).
+(@sec-nb-scale-launch, @sec-nb-scale-gt-launch).
 
 **What the first links measured** (four GPUs per lane, bf16, peak memory
 per GPU from the training log; reference operating point 10,000 cells):
@@ -11231,3 +11231,39 @@ input-matched baselines, in the one setting its construction targets, and it
 reverses the canonical-frame ordering (10% behind → 6% ahead). The index
 verdict sentence and table, chapter 12's contracts paragraph, the POSE-BENCH
 node and CLAIMS carry it with the caveat.
+
+## 2026-09-10 — Campaign A at 35 cases: the unit-drive ordering stands on three further training draws; between-draw spread is 3–11x the seed spread {#sec-nb-campa-35-merged}
+
+The cross-dataset companion program (research/transfer_program) asked whether
+the 35-case standing of @sec-de-unit-drive is a property of the particular 35
+training cases. The four unit-drive arms (GeoTransolver at 3e-3, Transolver
+at 3e-3, ISLA with measure weights on and off) were retrained on three
+further geometry-stratified 35-case draws from the 1,260-case pool, three
+seeds each, and evaluated in float32; the curated draw enters as draw 0 from
+the float32 re-evaluations of @sec-nb-fp32-35-regrade. Artifact:
+`research/transfer_program/studies/campaign_a_draws/campaign_a_n35_fp32_2026-09-10.json`.
+
+**Every ordering stands on every draw.** GeoTransolver ÷ ISLA is 0.881, 0.892
+and 0.957 (curated 0.895; mean 0.910, 90% t-interval 0.840–0.979); Transolver
+÷ ISLA 0.846, 0.852 and 0.900 (curated 0.829; 0.866, 0.816–0.916); ISLA with
+weights off ÷ on 0.896, 0.898 and 0.947 (curated 0.885; 0.914, 0.865–0.963).
+The preregistered "between" band for the weights-off effect (0.93–0.97)
+holds on two draws; the third lands at 0.947, past 0.93 but short of the 0.97
+"fades" bar, so the weights-off gain at 35 cases is written as 5–10% and
+draw-dependent. Absolute seed-mean pressure errors by draw: GeoTransolver
+0.1155 / 0.1309 / 0.1434, Transolver 0.1109 / 0.1249 / 0.1349, ISLA 0.1311 /
+0.1467 / 0.1498, ISLA weights off 0.1175 / 0.1317 / 0.1419; the curated draw
+is typical, at the easy end, for every arm.
+
+**What changes practice** is the variance decomposition. The between-draw
+standard deviation of an arm's error is 8.8 (GeoTransolver), 10.9
+(Transolver), 3.4 (ISLA, whose seed spread is two to three times the
+others') and 8.4 (weights-off ISLA) times its between-seed standard
+deviation; the hardest draw is 24% harder than the easiest for
+GeoTransolver. A two-seed 35-case number therefore carries 3–11x more
+uncertainty than its seed spread shows. Adopted: every 35-case ratio in the
+polished chapters is quoted with the interval above (@sec-de-unit-drive), and
+new HiLift rungs are judged over geometry-stratified draws, not extra seeds.
+The 210-case rung of the same campaign (36 lanes) is at about epoch 125 of
+500; its verdict decides whether the 210-case unit-drive comparison inherits
+the same caveat.
