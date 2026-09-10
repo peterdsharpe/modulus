@@ -9830,3 +9830,57 @@ turns any producer fault into an hour of idle GPUs per link; a bounded wait
 that raises a named error (and the recipe's step-failure barrier reporting
 the *cause* rather than the collective) is a datapipe fix worth making
 independent of the pinning cause. Recorded as an upstream candidate.
+
+## 2026-09-09 — Preregistered and launched: OVERFIT-1, train each architecture on one case to separate representational capacity from data limits {#sec-nb-overfit-prereg}
+
+**Why.** With fair inputs ISLA trails the unit-drive Transolver by 17% and
+GeoTransolver by 10% at 35 HiLift cases, and by 8.5% behind GeoTransolver
+on DrivAerML at full data. Two readings are open: ISLA *cannot represent*
+these fields as well (capacity), or it *generalizes* worse from few cases
+(inductive bias and optimization). Training on a single case removes
+generalization from the problem: the floor each architecture reaches on one
+field, given unlimited passes over it, is a direct measure of representational
+capacity for this data, and where the residual sits (gap regions against open
+surfaces; pressure against wall shear) says which capacity is missing. The
+same run tests the measure-weight variance reading with the data held fixed:
+if weights-off is still better on one field, the cost is not a few-sample
+effect.
+
+**Instrument.** One HiLift case (`geo_LHC020_AoA_12`, a validation case at
+the middle angle) and one DrivAerML car (`run_112`, a validation car), each
+used as both the training and the validation set (manifests under
+$T/overfit/, dataset variants `highlift_surface_overfit`,
+`drivaer_ml_surface_overfit`, `drivaer_ml_volume_overfit`; pipelines
+otherwise identical to the frozen ones). Every step draws a fresh 10,000-cell
+sample of the case, so the model fits the *field*, not a fixed point set;
+validation draws its own fresh sample every 1,000 epochs. 20,000 single-step
+epochs (one case, batch 1, one GPU per lane), the reference learning rates
+(ISLA and GeoTransolver 1e-3, Transolver 3e-3 on HiLift and 1e-3 on
+DrivAerML), bf16, no augmentation, unit drive for every baseline,
+`dataloader.pin_memory=false` throughout. Arms (seed 42): ISLA weights on,
+ISLA weights off, GeoTransolver, Transolver on each dataset (8 lanes); and
+on the DrivAerML interior task ISLA query tokens + SDF against
+GeoTransolver-volume with the unit drive (2 lanes; ~365 surface cells as in
+every interior arm). Readouts: the training loss curve; the recipe's
+per-point relative L2 of standardized pressure (and velocity, wall shear) on
+the same case at 10,000 and at a dense 40,000 sampled cells; the
+facing-distance band split of the residual (instrument of
+@sec-nb-hlreg-amendment) on the HiLift arms.
+
+**Bars, in readout units (10k-sample relative L2 on the training case).**
+*Capacity-limited* if ISLA's floor is ≥ 1.5x the unit-drive Transolver's on
+the same case (the 35-case gap is 1.2x, so a single-case gap larger than the
+data-limited gap says representation, not data). *Not capacity-limited* if
+ISLA's floor is within 1.15x of the better baseline's (then the 35-case gap
+is generalization). Between: partial, with the band split deciding whether
+the missing capacity is local (gap regions ≥ 1.5x the open-surface ratio) or
+global. *Weights are a representational cost* if weights-off beats weights-on
+by ≥ 5% on one field; *a few-sample effect* if within 2%. Interior:
+*capacity-limited on ν_t* if ISLA's single-car ν_t floor is ≥ 1.25x
+GeoTransolver-volume's; not if within 1.10x. Every floor is also reported
+against zero (a field that no architecture fits below 0.02 says the sampled
+metric itself has a floor at 10k points).
+
+**Launch.** Launcher $T/overfit_aga.sbatch (array 0–2, four single-GPU lanes
+per node), evaluation $T/overfit_eval_aga.sbatch; job prefix ovf-, run ids
+ovf_*; code snapshot code_isla5. About two hours per lane.
