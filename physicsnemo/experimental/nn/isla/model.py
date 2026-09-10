@@ -412,6 +412,10 @@ class ISLA(Module):
         second_moment_features: bool = False,
         anchor_topk: int = 0,
         support_tokens: bool = False,
+        query_density_feature: bool = False,
+        query_density_radius: float = 0.05,
+        query_neighbor_features: bool = False,
+        query_neighbor_k: int = 16,
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
@@ -676,6 +680,33 @@ class ISLA(Module):
             self.qt_local_embed = nn.Sequential(
                 nn.Linear(7 * len(self.query_local_radii), hidden), nn.GELU(), nn.Linear(hidden, hidden)
             )
+        ### QTDENS (2026-09-09, notebook #sec-nb-qt-density-prereg): two flag-gated
+        ### query-side channels that read the INTERIOR sample itself, the input
+        ### class GeoTransolver-volume's local features aggregate over. Both are
+        ### exact invariants of the gauge-normalized query cloud (distances in
+        ### gauge units, dot products of equivariant unit vectors), so every
+        ### covariance contract holds; both make the prediction depend on the
+        ### query cloud, as the query-token mode already does.
+        ### (a) density: the number of other queries within query_density_radius
+        ###     (gauge units), entered as [log(1+c), log(1+c) - log(n_queries)].
+        ###     A pure sampling-density (mesh-scale) proxy with no physics.
+        ### (b) neighbours: mean over the k nearest other queries of the pair
+        ###     invariants {|dr|, log|dr|, dr_hat.n_q, dr_hat.d, n_j.n_q, n_j.d,
+        ###     (s_j - s_q)/gauge if query scalars are given} plus the k-th
+        ###     neighbour distance and its log.
+        self.query_density_feature = bool(query_density_feature)
+        self.query_density_radius = float(query_density_radius)
+        self.query_neighbor_features = bool(query_neighbor_features)
+        self.query_neighbor_k = int(query_neighbor_k)
+        if self.query_density_feature:
+            if not self.query_tokens:
+                raise ValueError("query_density_feature requires query_tokens=True")
+            self.qt_density_embed = nn.Sequential(nn.Linear(2, hidden), nn.GELU(), nn.Linear(hidden, hidden))
+        if self.query_neighbor_features:
+            if not self.query_tokens:
+                raise ValueError("query_neighbor_features requires query_tokens=True")
+            n_nbr = 6 + (1 if self.n_query_scalars else 0) + 2
+            self.qt_neighbor_embed = nn.Sequential(nn.Linear(n_nbr, hidden), nn.GELU(), nn.Linear(hidden, hidden))
         if odd_head:
             self.N_ODD = 7
             self.odd_assign = nn.Linear(hidden, n_slices)
@@ -785,6 +816,41 @@ class ISLA(Module):
                 )
             feats.append(torch.cat(outs, dim=1))
         return torch.cat(feats, dim=-1)
+
+    def _query_cloud_invariants(self, q_r, q_nhat, q_d, qs_raw=None, chunk: int = 2048):
+        """QTDENS channels from the gauge-normalized query cloud alone (see __init__).
+        Returns (density (B,Q,2), neighbours (B,Q,n_nbr)); either may be unused."""
+        bq, nq, _ = q_r.shape
+        k = min(self.query_neighbor_k, max(nq - 1, 1))
+        rho = self.query_density_radius
+        dens_out, nbr_out = [], []
+        for i0 in range(0, nq, chunk):
+            qi = q_r[:, i0:i0 + chunk]
+            d2 = torch.cdist(qi.float(), q_r.float()).square()  # (B, c, Q)
+            ar = torch.arange(i0, min(i0 + chunk, nq), device=q_r.device)
+            d2[:, torch.arange(len(ar), device=q_r.device), ar] = float("inf")  # exclude self
+            count = (d2 < rho * rho).sum(-1, keepdim=True).to(q_r.dtype)
+            logc = torch.log1p(count)
+            dens_out.append(torch.cat([logc, logc - math.log(nq)], dim=-1))
+            if self.query_neighbor_features:
+                dk, idx = torch.topk(d2, k, dim=-1, largest=False)  # (B, c, k)
+                nb_r = torch.gather(q_r[:, None].expand(bq, len(ar), nq, 3), 2, idx[..., None].expand(bq, len(ar), k, 3))
+                nb_n = torch.gather(q_nhat[:, None].expand(bq, len(ar), nq, 3), 2, idx[..., None].expand(bq, len(ar), k, 3))
+                rel = nb_r - qi[:, :, None, :]
+                dist = rel.norm(dim=-1, keepdim=True).clamp_min(self.eps)
+                rel_hat = rel / dist
+                nq_e = q_nhat[:, i0:i0 + chunk, None, :]; d_e = q_d[:, i0:i0 + chunk, None, :]
+                feats = [dist, torch.log(dist), (rel_hat * nq_e).sum(-1, keepdim=True), (rel_hat * d_e).sum(-1, keepdim=True),
+                         (nb_n * nq_e).sum(-1, keepdim=True), (nb_n * d_e).sum(-1, keepdim=True)]
+                if qs_raw is not None:
+                    nb_s = torch.gather(qs_raw[:, None, :, :1].expand(bq, len(ar), nq, 1), 2, idx[..., None])
+                    feats.append(nb_s - qs_raw[:, i0:i0 + chunk, None, :1])
+                per = torch.cat(feats, dim=-1).mean(dim=2)  # (B, c, 6[+1])
+                dk_k = dk[..., -1:].clamp_min(self.eps * self.eps).sqrt().to(q_r.dtype)
+                nbr_out.append(torch.cat([per, dk_k, torch.log(dk_k)], dim=-1))
+        dens = torch.cat(dens_out, dim=1)
+        nbr = torch.cat(nbr_out, dim=1) if nbr_out else None
+        return dens, nbr
 
     def forward(
         self,
@@ -1004,6 +1070,15 @@ class ISLA(Module):
                     radii=self.query_local_radii, normalize_weights=True,
                 )
                 h_q = h_q + self.qt_local_embed(q_loc.to(q_inv.dtype)).to(h_q.dtype)
+            if self.query_density_feature or self.query_neighbor_features:
+                qs_raw = None
+                if self.n_query_scalars and query_scalars is not None:
+                    qs_raw = query_scalars.reshape(bq, nq, self.n_query_scalars).to(q_r.dtype) / gauge
+                dens, nbr = self._query_cloud_invariants(q_r, q_nhat, q_d, qs_raw)
+                if self.query_density_feature:
+                    h_q = h_q + self.qt_density_embed(dens.to(q_inv.dtype)).to(h_q.dtype)
+                if self.query_neighbor_features:
+                    h_q = h_q + self.qt_neighbor_embed(nbr.to(q_inv.dtype)).to(h_q.dtype)
             h = torch.cat([h, h_q], dim=1)
             r = torch.cat([r, q_r], dim=1)
             n_hat = torch.cat([n_hat, q_nhat], dim=1)

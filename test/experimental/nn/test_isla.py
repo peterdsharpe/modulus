@@ -1009,3 +1009,44 @@ def test_measure_weight_power_contracts(alpha):
         assert torch.allclose(base, off, atol=1e-12)
     else:
         assert not torch.allclose(base, ref, atol=1e-6) and not torch.allclose(base, off, atol=1e-6)
+
+
+@pytest.mark.parametrize("kw", [{"query_density_feature": True}, {"query_neighbor_features": True},
+                                {"query_density_feature": True, "query_neighbor_features": True, "n_query_scalars": 1}])
+def test_query_cloud_channels_contracts(kw):
+    """QTDENS channels (density / neighbour aggregation over the query cloud): exact SE(3)
+    covariance, drive degree one, measure-scale invariance, gauge scale equivariance, and
+    a live channel (outputs differ from the plain query-token model with the same seed)."""
+    torch.manual_seed(0)
+    m = ISLA(hidden=32, n_layers=2, n_slices=8, query_tokens=True, similarity_gauge=True, **kw).double().eval()
+    torch.manual_seed(0)
+    m0 = ISLA(hidden=32, n_layers=2, n_slices=8, query_tokens=True, similarity_gauge=True,
+              n_query_scalars=kw.get("n_query_scalars", 0)).double().eval()
+    torch.manual_seed(1)
+    p = torch.randn(1, 80, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    n = torch.nn.functional.normalize(torch.randn_like(p), dim=-1)
+    d = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, 80, dtype=torch.float64) + 0.5
+    q = torch.randn(1, 40, 3, dtype=torch.float64) * 0.5
+    qn = torch.nn.functional.normalize(torch.randn_like(q), dim=-1)
+    extra = {"query_scalars": q.norm(dim=-1, keepdim=True)} if kw.get("n_query_scalars") else {}
+    R, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
+    if torch.det(R) < 0:
+        R[:, 0] = -R[:, 0]
+    t = torch.tensor([2.0, -1.0, 3.0], dtype=torch.float64)
+    with torch.no_grad():
+        base = m(p, n, d, w, query_points=q, query_normals=qn, **extra)
+        moved = m(p @ R.T + t, n @ R.T, d @ R.T, w, query_points=q @ R.T + t, query_normals=qn @ R.T, **extra)
+        scaled_w = m(p, n, d, 2.5 * w, query_points=q, query_normals=qn, **extra)
+        sc_extra = {"query_scalars": 1.7 * extra["query_scalars"]} if extra else {}
+        scaled = m(1.7 * p, n, d, 1.7**2 * w, query_points=1.7 * q, query_normals=qn, **sc_extra)
+        plain = m0(p, n, d, w, query_points=q, query_normals=qn, **extra)
+    s0, v0 = base[..., :1], base[..., 1:4]
+    s1, v1 = moved[..., :1], moved[..., 1:4]
+    assert torch.allclose(s1, s0, atol=1e-10) and torch.allclose(v1, v0 @ R.T, atol=1e-10)
+    assert torch.allclose(scaled_w, base, atol=1e-10)
+    assert torch.allclose(scaled, base, atol=1e-9)
+    assert (plain - base).abs().max() > 1e-6
+    with torch.no_grad():
+        dens, nbr = m._query_cloud_invariants(q - q.mean(1, keepdim=True), qn, d[:, None].expand(1, 40, 3), None)
+    assert dens.shape == (1, 40, 2) and (nbr is None or nbr.shape[-1] == 8)
