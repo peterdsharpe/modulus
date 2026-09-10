@@ -83,7 +83,7 @@ changes nothing (@sec-interior-task); and GeoTransolver-volume also received
 the physical velocity, but retrained with the unit direction it changes by
 under 2% on every field, so the interior ordering is not an input-scale
 artifact (@sec-interior-task). The passive,
-query-independent decode is 2.6x behind on pressure as built. Cost: on one
+query-independent decode is 3.1x behind on pressure as built (float32). Cost: on one
 GPU and one instrument ISLA's current code peaks at 1.6 GiB of training
 memory against GeoTransolver's 4.1 GiB, the code that trained the checkpoints
 peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
@@ -98,7 +98,7 @@ peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
 | DrivAerML surface, 435 cars | ISLA behind | float32: unit-drive GeoTransolver 0.90x and Transolver 0.93x of ISLA (0.0503, 0.0517 vs 0.0558); 0.93x and 0.95x of ISLA with measure weights off (0.0542) |
 | DrivAerML surface, 27–218 cars | ISLA behind | GeoTransolver 1.2–1.3x ahead (physical drive, which is not a handicap on this dataset) |
 | DrivAerML interior, 435 cars | ISLA ahead on velocity; behind on pressure and eddy viscosity | float32: 1.06x / 0.73x / 1.27x of GeoTransolver-volume at a third of the parameters (pressure / velocity / eddy viscosity); only at ≥10,000 queries together; 365 or 10,000 surface tokens alike |
-| DrivAerML interior, 54–109 cars | Mixed, same conditions | pressure 1.06–1.11x behind, velocity ahead, eddy viscosity 1.45x behind |
+| DrivAerML interior, 54–109 cars | ISLA behind on pressure, ahead on velocity from 109 cars, behind on eddy viscosity | float32: pressure 1.18–1.19x behind, velocity 0.94x (54) and 0.83x (109), eddy viscosity 1.5x behind |
 | Regime extrapolation | Nobody wins | both lose about 10x |
 | Contracts and cost | Mixed | SE(3) covariance by construction; learning-rate robust; one instrument at 10k cells: step 1.09x GeoTransolver's and 2.2x Transolver's at 0.83x GeoTransolver's incremental memory (1.5x step at 0.36x memory with exact recompute), with the fast softmax kernel; the earlier 3.7x was the reference kernel |
 

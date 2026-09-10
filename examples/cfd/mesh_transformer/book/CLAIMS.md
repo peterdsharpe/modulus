@@ -995,3 +995,14 @@ interior control @sec-nb-udrv-int-prereg.
   Write "ISLA leads on interior velocity (27%) and trails on pressure (6%) and eddy viscosity
   (27%)"; RETIRE "leads on pressure and velocity" and the 0.91x pressure figure except as a labelled
   bf16 number. Interior ladder, h256, surf10k, density ratios stay bf16-labelled until group 4.
+
+- **Interior family, float32 (2026-09-10; results/fp32_reeval/fp32_shift_interior_2026-09-09.json;
+  unit-drive GT-volume from the transfer session's same-snapshot re-eval).** Reference row:
+  GeoTransolver-volume 0.0513 / 0.1070 / 0.0879 (unit drive; physical 0.0514 / 0.1088 / 0.0879).
+  ISLA ÷ GT-volume (p/u/ν_t): QT+SDF 1.06 / 0.73 / 1.27; surf10k 1.07 / 0.74 / 1.30; h256 1.02 /
+  0.72 / 1.17 (INCONCLUSIVE band, not falsified); +local features 1.09 / 0.75 / 1.36 (falsified);
+  QT no-SDF 1.19 / 1.28 / 1.61; passive 3.68, passive+SDF 3.06 (write "3.1x", never "2.6x"
+  without "bf16"); ladder 54 cars 1.19 / 0.94 / 1.53, 109 cars 1.18 / 0.83 / 1.49 — NO pressure
+  crossover. bf16 shifts: GT-volume −17/−18/−6%; ISLA arms −2 to −12%. The local-feature
+  explanation of GT-volume's bf16 inflation is NOT supported (ν_t shifts least; surface GT
+  without local features inflates 9%; the excess is an additive floor across the ladder).

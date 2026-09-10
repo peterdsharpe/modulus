@@ -51,8 +51,8 @@ chapter adds only the limits.
 - Interior accuracy: ISLA with query tokens and the signed distance leads
   GeoTransolver's volume configuration on interior velocity by 27% at a
   third of the parameters and trails on pressure (6%) and eddy viscosity
-  (27%) in float32; the passive, query-independent decode trails it by 2.6x
-  (bfloat16; @sec-interior).
+  (27%) in float32; the passive, query-independent decode trails it by 3.1x
+  (float32; @sec-interior).
   GeoTransolver-volume consumes the physical freestream velocity (38.9 m/s)
   where ISLA consumes the unit direction; retrained with the unit direction
   it changes by under 2% on every field, so the ordering stands
@@ -414,9 +414,9 @@ configuration on interior velocity (0.73x in float32) and less accurate on
 interior pressure (1.06x) and eddy viscosity (1.27x); in bfloat16, which
 inflates GeoTransolver-volume's errors by 20–23% and ISLA's by 4–7%, the
 pressure ratio read 0.91x (@sec-nb-fp32-interior-regrade); without the
-signed distance it matches on pressure (1.03x, bfloat16) and trails on the
-other two (1.16x, 1.71x); ISLA's
-passive, query-independent decode trails by 2.6x on pressure, and that
+signed distance it trails on every field (1.19x, 1.28x, 1.61x in
+float32); ISLA's passive, query-independent decode trails by 3.1x on
+pressure (float32), and that
 deficit grows with distance from the wall** (@sec-interior). The setting is
 DrivAerML volume fields at 10,000 interior query points; ISLA predicts them
 from 10,000 surface tokens, GeoTransolver from the interior points
@@ -441,8 +441,8 @@ by which it leads ISLA on the DrivAerML surface below full data; with the
 signed distance the pressure deficit is 1.11x at 54 cars and 1.06x at 109,
 velocity is an ISLA advantage at every size (0.83x, 0.73x, 0.64x), and
 eddy viscosity stays 1.3–1.5x in GeoTransolver's favour, so below full
-data ISLA leads on one field of three and trails within 11% on pressure
-(@sec-interior-open). The 2.6x is the cost of the complete passive
+data ISLA leads on velocity from 109 cars up and trails by 18–19% on
+pressure in float32 (@sec-interior-open). The 3.1x is the cost of the complete passive
 configuration as built, a separate four-block read decoder without the
 signed-distance input, against a query-token configuration that routes its
 queries through the twelve encoder blocks; what query independence alone
@@ -465,7 +465,8 @@ viscosity metric, which is not a physical percentage, flat across an
 eightfold change in
 training data with inputs matched): surface-patch local features on the
 query tokens did not close it, and neither did a width increase to hidden
-256 (1.26x, at the preregistered falsifier; about 15.7M parameters, still
+256 (1.17x in float32, inside the inconclusive band; 1.26x in bfloat16;
+about 15.7M parameters, still
 below GeoTransolver-volume's effective width of 448 and 27.6M parameters,
 so capacity is not ruled out, only that step in width; @sec-interior-query-tokens). Two facts bound
 the query-token configuration itself: its query weights scale with the
@@ -582,7 +583,7 @@ anywhere once the inputs are matched.
   into the shared slice state disabled, so that depth, readout and inputs
   are held fixed and only interaction is removed. Falsified as a fundamental
   cost if this configuration is within 1.3x of GeoTransolver-volume on
-  interior pressure (the 2.6x was the complete passive configuration);
+  interior pressure (the 3.1x was the complete passive configuration);
   confirmed as a cost of interaction if it stays at 2.0x or more.
 - **What is the force error against the full surface?** Lift and drag
   from 10,000, 20,000 and 40,000 sampled cells and from the full surface,
@@ -733,8 +734,8 @@ not happen.
 query-to-query local aggregation, the one
 GeoTransolver-volume ingredient not yet transplanted, closes the
 eddy-viscosity gap (within 1.10x) at the reference width without moving
-pressure or velocity by more than 5% (the width increase to 256 did not:
-1.26x).
+pressure or velocity by more than 5% (the width increase to 256 moved it
+to 1.17x in float32, inconclusive).
 
 **The contracts become the whole case** if both controls read as
 predicted: the program's ISLA-specific claims are then exact covariance,
