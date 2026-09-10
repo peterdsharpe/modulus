@@ -1161,3 +1161,9 @@ interior control @sec-nb-udrv-int-prereg.
   so write "the collapse is the centering" and NOT "measure centering recovers the reference's accuracy";
   accuracy is decided by the cg_*_mcenter trained lanes (bars ≤ 1.5x and within 3% of constant-gauge
   accuracy). Do not call the constant gauge "density-dependent by its measure semantics" anywhere.
+- **Gauge price on DrivAerML is an lr confound (2026-09-10).** iw_mt2_gauge_seed{42,43} trained at lr
+  3e-3, iw_mt2_lr1e3 at 1e-3. Rate-matched (3e-3): gauge 0.0616 (0.0623/0.0609) vs constant gauge
+  mt2_v3c_seed42 0.0620 (fp32, `code`) → parity. Never write "the gauge costs 10% on DrivAerML"; write
+  "at matched rate the gauges are at parity on DrivAerML (one constant-gauge seed at 3e-3)"; the 35-case
+  1.08x is rate-matched and stands. Label the gauge row "lr 3e-3" wherever it sits beside 1e-3 rows.
+  Rate-matched 1e-3 gauge pair added to WAVE-4 (w4_dr_mt2_gauge_lr1e3_seed{42,43}).

@@ -468,6 +468,8 @@ print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-dr
       "training from scratch after fine-tuning on 20 fastback cases at matched learning "
       "rate. A configuration that reads the sampling distribution shows it in the "
       "density column; the weights-off ablation is the extreme case and is not adopted. "
+      "Learning rates are stated per row: the similarity-gauge checkpoints were trained at 3e-3, "
+      "so their in-family error is not a price of the gauge (the rate-matched constant gauge scores 0.0620). "
       "Data: results/accuracy_consistency_matrix_2026-09-10.json (provenance per cell "
       "inside). {#tbl-consistency-matrix}")
 ```

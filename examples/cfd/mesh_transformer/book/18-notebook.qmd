@@ -12010,6 +12010,16 @@ prior configuration's record. If the similarity gauge fails the BENCH bars
 too, the switch is not made and the failure becomes the next mechanism
 question.
 
+*Amended 2026-09-10 (@sec-nb-gauge-lr-confound):* the "10% cost on
+DrivAerML" quoted above compares the similarity gauge trained at learning
+rate 3e-3 with the constant gauge trained at 1e-3; at matched rate the two
+are at parity, so the DrivAerML price of the gauge is not established and
+the per-rung bars apply to the HiLift lanes, which are rate-matched. The
+centering probe (@sec-nb-center-probe-verdict) adds a second candidate
+reference, constant length with measure-weighted centering; the switch is
+decided between the two once the four centering lanes and this wave read
+out.
+
 ## 2026-09-10 — Preregistered: XFAM, why ISLA's DrivAerML representation transfers to a new vehicle family worse than GeoTransolver's {#sec-nb-xfam-prereg}
 
 Zero-shot on the SHIFT-SUV fastback family (99 cases, float32, under
@@ -12165,3 +12175,27 @@ exists that the probe's frozen weights did not expose. Either way the mechanism 
 sample statistic in the frame construction, not the measure semantics of the
 routing. Artifact: results/center_probe_2026-09-10.json (cluster
 $T/center/probe_fp32, reducer center/reduce_center_probe.py).
+
+## 2026-09-10 — Note: the similarity gauge's "10% price on DrivAerML" is a learning-rate confound; at matched rate the two gauges are at parity {#sec-nb-gauge-lr-confound}
+
+While matching the MIX lanes to their reference checkpoints, the launch
+record showed that the similarity-gauge DrivAerML reference
+(iw_mt2_gauge_seed{42,43}) was trained at learning rate 3e-3 (the
+instrument-wave launcher's default; `resolved_config.yaml` confirms it),
+while the constant-gauge reference iw_mt2_lr1e3 was trained at 1e-3. The
+book's statement that the gauge costs about 10% on DrivAerML (0.0616 against
+0.0558 in float32) therefore compares two learning rates as well as two
+gauges. The rate-matched comparison uses the constant-gauge checkpoint
+trained at 3e-3, mt2_v3c_seed42, whose float32 error on the same 48 cars
+under the same snapshot is 0.0620 (transfer session, snapshot `code`):
+**0.0616 (gauge, two seeds 0.0623 / 0.0609) against 0.0620 (constant gauge,
+one seed at 3e-3), parity within the seed spread.** The 35-case HiLift
+comparison (1.08x, @sec-mechanism) is rate-matched and stands. Consequences:
+the DrivAerML price of the similarity gauge is not established and is not
+quoted; the accuracy × consistency matrix labels the gauge row with its
+rate; a rate-matched pair at 1e-3 (similarity gauge, two seeds, DrivAerML)
+is the missing measurement and is added to the WAVE-4 lane set as
+w4_dr_mt2_gauge_lr1e3_seed{42,43}; and the MIX study's ISLA lanes run at
+3e-3 to match their reference. This is also a reminder that the
+recipe's per-architecture rate rule (@sec-protocol) must be checked per
+lane record, not assumed.

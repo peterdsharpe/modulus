@@ -10,7 +10,7 @@
  },
  "rows": {
   "isla_reference_constant_gauge": {
-   "label": "ISLA, constant gauge (reference)",
+   "label": "ISLA, constant gauge (reference, lr 1e-3)",
    "runs": "iw_mt2_lr1e3_seed{42,43}",
    "in_family": 0.0558,
    "density_factor": 12.1,
@@ -27,7 +27,7 @@
    "few_shot_gain": 0.06
   },
   "isla_similarity_gauge": {
-   "label": "ISLA, similarity gauge",
+   "label": "ISLA, similarity gauge (lr 3e-3; other rows 1e-3 except Transolver)",
    "runs": "iw_mt2_gauge_seed{42,43}",
    "in_family": 0.0616,
    "density_factor": 1.21,
@@ -41,10 +41,11 @@
     1.0384,
     0.8514
    ],
-   "few_shot_gain": null
+   "few_shot_gain": null,
+   "lr_note": "trained at 3e-3; rate-matched constant gauge mt2_v3c_seed42 scores 0.0620 fp32, so no in-distribution price is established on DrivAerML (#sec-nb-gauge-lr-confound)"
   },
   "isla_weights_off_ablation": {
-   "label": "ISLA, measure weights off (ablation, not adopted)",
+   "label": "ISLA, measure weights off (ablation, not adopted; lr 1e-3)",
    "runs": "now_mt2_lr1e3_seed{42,43}",
    "in_family": 0.0544,
    "density_factor": 19.1,
@@ -61,7 +62,7 @@
    "few_shot_gain": null
   },
   "geotransolver_unit": {
-   "label": "GeoTransolver, unit drive",
+   "label": "GeoTransolver, unit drive (lr 1e-3)",
    "runs": "uw_gt_unit_lr1e3_seed{42,43,44}",
    "in_family": 0.0503,
    "density_factor": 9.5,
