@@ -153,11 +153,23 @@ arm, and it is not an input difference: both models receive the same
 per-point geometry at the interior queries (position, signed distance and
 its gradient direction; GeoTransolver as raw channels through a per-point
 network, ISLA through invariant products with its anchors and the drive).
-Under the program's principle the next step is diagnostic before
-architectural: a wall-distance band decomposition of the saved predictions
-says whether the gap lives in the near-wall layer, where the closure's
-behaviour is set by wall distance, and only then is a wall-distance-scaled
-query readout worth preregistering.
+A wall-distance band decomposition of the saved predictions locates the
+gap (@sec-nb-bands): in the near-wall band that holds 77% of the points,
+ISLA at matched parameters and GeoTransolver-volume are equal on eddy
+viscosity (0.081 against 0.080) and ISLA leads in the intermediate band;
+the entire deficit is in the far field (SDF ≥ 0.05 L, 10% of the points),
+where ISLA's eddy-viscosity error is 0.093 against 0.068 and which carries
+46% of ISLA's squared error against 36% of GeoTransolver's. The same
+far-field pattern holds for pressure and velocity but is invisible in
+their totals, which are 90–94% near-wall. So at matched parameters ISLA
+wins wherever the surface is close and GeoTransolver wins where it is far,
+which points at geometry rather than a closure input: far from the body
+every surface anchor looks alike, so ISLA's anchor-relative invariants lose
+resolution where a per-point network on raw position keeps it. The
+principled candidate is far-field anchors organized by the flow, for which
+ISLA already has a construction (latent volume tokens at downstream
+offsets along the drive); its preregistered readout would be the far-band
+eddy-viscosity error (bars in @sec-nb-bands).
 
 ## Matched-count diversity on the fastback shift (campaign C, T2) {#sec-campaigns-diversity}
 
