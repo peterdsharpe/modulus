@@ -1,0 +1,317 @@
+{
+ "date": "2026-09-09",
+ "bars": {
+  "holds_gt_factor_min": 1.32,
+  "isla_factor_max": 1.24,
+  "not_hold_gt_factor_max": 1.24,
+  "isla_gauge_factor_prior": 1.2
+ },
+ "runs": {
+  "uw_gt_unit_lr1e3_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.055007339299966894,
+    "wss_x_l2": 0.06267976729820172,
+    "wss_y_l2": 0.14837116546308002,
+    "wss_z_l2": 0.12218660737077396,
+    "wss_l2": 0.08390033260608713
+   },
+   "biased": {
+    "pressure_l2": 0.5920723862946033,
+    "wss_x_l2": 0.6675221336384615,
+    "wss_y_l2": 0.9237920790910721,
+    "wss_z_l2": 0.8940016205112139,
+    "wss_l2": 0.7277918408314387
+   },
+   "factor_pressure": 10.763516174921765,
+   "per_car_factor_median": 10.995522174921943,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  },
+  "uw_gt_unit_lr1e3_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05589060081789891,
+    "wss_x_l2": 0.06311922551443179,
+    "wss_y_l2": 0.15044859874372682,
+    "wss_z_l2": 0.12343814612055819,
+    "wss_l2": 0.08476729815204938
+   },
+   "biased": {
+    "pressure_l2": 0.40125588451822597,
+    "wss_x_l2": 0.3952861049522956,
+    "wss_y_l2": 0.7018063850700855,
+    "wss_z_l2": 0.6118796368439993,
+    "wss_l2": 0.4651084927221139
+   },
+   "factor_pressure": 7.179308839881431,
+   "per_car_factor_median": 7.291930684850385,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  },
+  "uw_gt_unit_lr1e3_seed44": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05531289684586227,
+    "wss_x_l2": 0.06300283075931172,
+    "wss_y_l2": 0.14933473678926626,
+    "wss_z_l2": 0.12157115107402205,
+    "wss_l2": 0.08416689513251185
+   },
+   "biased": {
+    "pressure_l2": 0.44580561233063537,
+    "wss_x_l2": 0.5158844093481699,
+    "wss_y_l2": 0.7824979312717915,
+    "wss_z_l2": 0.6368637892107168,
+    "wss_l2": 0.5637475041051706
+   },
+   "factor_pressure": 8.059704657540175,
+   "per_car_factor_median": 8.335754618090853,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  },
+  "uw_transolver_unit_lr3e3_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05596232398723563,
+    "wss_x_l2": 0.06293971611497302,
+    "wss_y_l2": 0.14881621999666095,
+    "wss_z_l2": 0.12189872578407328,
+    "wss_l2": 0.08407806015263002
+   },
+   "biased": {
+    "pressure_l2": 0.11674336949363351,
+    "wss_x_l2": 0.12825739616528153,
+    "wss_y_l2": 0.2781565360104044,
+    "wss_z_l2": 0.2068988916774591,
+    "wss_l2": 0.160628494185706
+   },
+   "factor_pressure": 2.0861065298192645,
+   "per_car_factor_median": 2.0840347223912783,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  },
+  "uw_transolver_unit_lr3e3_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05631179284925262,
+    "wss_x_l2": 0.0626980885087202,
+    "wss_y_l2": 0.1489433846436441,
+    "wss_z_l2": 0.12202696905781825,
+    "wss_l2": 0.08398247774069507
+   },
+   "biased": {
+    "pressure_l2": 0.2852454703922073,
+    "wss_x_l2": 0.32064360069731873,
+    "wss_y_l2": 0.5757282214860121,
+    "wss_z_l2": 0.4518383542696635,
+    "wss_l2": 0.3712850268930197
+   },
+   "factor_pressure": 5.0654659700822,
+   "per_car_factor_median": 5.068005386550028,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  },
+  "iw_mt2_lr1e3_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.058582134932900466,
+    "wss_x_l2": 0.06445389388439556,
+    "wss_y_l2": 0.14963229761148492,
+    "wss_z_l2": 0.1282573308174809,
+    "wss_l2": 0.08620832503462832
+   },
+   "biased": {
+    "pressure_l2": 0.7051006481051445,
+    "wss_x_l2": 0.5777138434350491,
+    "wss_y_l2": 0.9338684243460497,
+    "wss_z_l2": 0.9397568826874098,
+    "wss_l2": 0.6739835813641548
+   },
+   "factor_pressure": 12.03610365024698,
+   "per_car_factor_median": 12.152158395067875,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  },
+  "iw_mt2_lr1e3_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.057274001728122435,
+    "wss_x_l2": 0.06275928571509819,
+    "wss_y_l2": 0.14635154713566104,
+    "wss_z_l2": 0.1262204806941251,
+    "wss_l2": 0.08430857909843326
+   },
+   "biased": {
+    "pressure_l2": 0.6443409360945225,
+    "wss_x_l2": 0.5422512063135704,
+    "wss_y_l2": 0.9374621137976646,
+    "wss_z_l2": 0.9795354393621286,
+    "wss_l2": 0.6587410668532053
+   },
+   "factor_pressure": 11.250146954165784,
+   "per_car_factor_median": 11.50481987968555,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  },
+  "iw_mt2_gauge_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.06363948993384838,
+    "wss_x_l2": 0.06927149222853284,
+    "wss_y_l2": 0.16199427687873444,
+    "wss_z_l2": 0.13812933024019003,
+    "wss_l2": 0.09291843759516875
+   },
+   "biased": {
+    "pressure_l2": 0.07665299523311357,
+    "wss_x_l2": 0.0838858257047832,
+    "wss_y_l2": 0.20518981044491133,
+    "wss_z_l2": 0.1939096860587597,
+    "wss_l2": 0.12046894912297527
+   },
+   "factor_pressure": 1.204487894431467,
+   "per_car_factor_median": 1.1770599008006801,
+   "cars_worse_under_bias": 44,
+   "n_common": 48
+  },
+  "iw_mt2_gauge_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.06302326444226007,
+    "wss_x_l2": 0.06746375615087648,
+    "wss_y_l2": 0.15899727571134767,
+    "wss_z_l2": 0.13653146211678782,
+    "wss_l2": 0.0910931924978892
+   },
+   "biased": {
+    "pressure_l2": 0.07577682302022974,
+    "wss_x_l2": 0.08146883803419769,
+    "wss_y_l2": 0.20680712970594564,
+    "wss_z_l2": 0.2041474568347136,
+    "wss_l2": 0.12354279418165486
+   },
+   "factor_pressure": 1.2023627098792078,
+   "per_car_factor_median": 1.1748977937519849,
+   "cars_worse_under_bias": 46,
+   "n_common": 48
+  },
+  "now_mt2_lr1e3_seed42": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.057428093471874796,
+    "wss_x_l2": 0.06276267984261115,
+    "wss_y_l2": 0.14794387994334102,
+    "wss_z_l2": 0.1247334904037416,
+    "wss_l2": 0.08429058237622182
+   },
+   "biased": {
+    "pressure_l2": 1.2624390770991643,
+    "wss_x_l2": 0.9368874331315359,
+    "wss_y_l2": 1.127325750887394,
+    "wss_z_l2": 1.1815728296836217,
+    "wss_l2": 0.9907622374594212
+   },
+   "factor_pressure": 21.982952955201956,
+   "per_car_factor_median": 22.310643481701398,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  },
+  "now_mt2_lr1e3_seed43": {
+   "n_unif": 48,
+   "n_biased": 48,
+   "unif": {
+    "pressure_l2": 0.05581372192439934,
+    "wss_x_l2": 0.061691898542145886,
+    "wss_y_l2": 0.1437961730795602,
+    "wss_z_l2": 0.12451995629817247,
+    "wss_l2": 0.08296107376615207
+   },
+   "biased": {
+    "pressure_l2": 0.8200767040252686,
+    "wss_x_l2": 0.7434128647049268,
+    "wss_y_l2": 1.0482615493237972,
+    "wss_z_l2": 1.0639665114382904,
+    "wss_l2": 0.8235837544004122
+   },
+   "factor_pressure": 14.693101906661534,
+   "per_car_factor_median": 14.814880154128076,
+   "cars_worse_under_bias": 48,
+   "n_common": 48
+  }
+ },
+ "arms": {
+  "gt_unit": {
+   "n_seeds": 3,
+   "factor_mean": 8.667509890781124,
+   "factor_seeds": [
+    10.763516174921765,
+    7.179308839881431,
+    8.059704657540175
+   ],
+   "unif_pressure_mean": 0.05540361232124269,
+   "biased_pressure_mean": 0.4797112943811549
+  },
+  "transolver_unit": {
+   "n_seeds": 2,
+   "factor_mean": 3.575786249950732,
+   "factor_seeds": [
+    2.0861065298192645,
+    5.0654659700822
+   ],
+   "unif_pressure_mean": 0.05613705841824412,
+   "biased_pressure_mean": 0.20099441994292042
+  },
+  "isla_reference": {
+   "n_seeds": 2,
+   "factor_mean": 11.643125302206382,
+   "factor_seeds": [
+    12.03610365024698,
+    11.250146954165784
+   ],
+   "unif_pressure_mean": 0.05792806833051145,
+   "biased_pressure_mean": 0.6747207920998335
+  },
+  "isla_gauge": {
+   "n_seeds": 2,
+   "factor_mean": 1.2034253021553374,
+   "factor_seeds": [
+    1.204487894431467,
+    1.2023627098792078
+   ],
+   "unif_pressure_mean": 0.06333137718805423,
+   "biased_pressure_mean": 0.07621490912667166
+  },
+  "isla_noweights": {
+   "n_seeds": 2,
+   "factor_mean": 18.338027430931746,
+   "factor_seeds": [
+    21.982952955201956,
+    14.693101906661534
+   ],
+   "unif_pressure_mean": 0.05662090769813707,
+   "biased_pressure_mean": 1.0412578905622163
+  }
+ },
+ "verdict_gauge_arm": {
+  "gt_factor": 8.667509890781124,
+  "isla_gauge_factor": 1.2034253021553374,
+  "holds_by_bars_with_gauge_as_isla": true
+ },
+ "verdict": {
+  "text": "BETWEEN: reported as ratio of factors",
+  "gt_factor": 8.667509890781124,
+  "isla_factor": 11.643125302206382,
+  "ratio_gt_over_isla": 0.7444315564600704
+ }
+}

@@ -40,8 +40,10 @@ module before Hydra instantiation.
 
 from __future__ import annotations
 
+import zlib
 from typing import Any
 
+import torch
 from tensordict import TensorDict
 
 from physicsnemo.datapipes.keys import key_to_str, leaf_keys
@@ -97,13 +99,36 @@ class MeshReaderWithGlobalData(MeshReader):
         self,
         *args: Any,
         merge_global_data_from: str | None = None,
+        store_case_key: bool = False,
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self._merge_rel_path = merge_global_data_from
+        ### POSE-BENCH (transfer program, 2026-09-09): a stable per-case integer,
+        ### the CRC-32 of the case directory name (the first path component
+        ### below the reader root, e.g. ``run_1``), stored as the 0-dim int64
+        ### global field ``case_key``. Deterministic transforms such as
+        ### ``FixedRandomPose`` seed from it, so every load of a case sees the
+        ### same draw regardless of worker, epoch or shuffle order. 0-dim
+        ### fields are invariant under ``Mesh.transform``.
+        self._store_case_key = bool(store_case_key)
+
+    def _case_key(self, index: int) -> torch.Tensor:
+        sample_path = self._paths[index]
+        try:
+            name = sample_path.relative_to(self._root).parts[0]
+        except ValueError:
+            name = sample_path.name
+        return torch.tensor(zlib.crc32(name.encode()) & 0x7FFFFFFF, dtype=torch.int64)
 
     def _load_sample(self, index: int) -> Mesh:
         mesh = super()._load_sample(index)
+        if self._store_case_key:
+            if "case_key" in mesh.global_data.keys():
+                raise ValueError("global_data already has a 'case_key' field")
+            gd = mesh.global_data.clone()
+            gd["case_key"] = self._case_key(index)
+            mesh = mesh.with_data(global_data=gd)
         if self._merge_rel_path is None:
             return mesh
 

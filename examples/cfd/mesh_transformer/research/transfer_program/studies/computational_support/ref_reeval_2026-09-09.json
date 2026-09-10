@@ -1,0 +1,12 @@
+{
+ "purpose": "Same-snapshot re-evaluation of the V0 reference checkpoints under code_support + recipe_support (job 695764, launcher v0/v0_ref_reeval_aga.sbatch, outputs $T/v0_evals_support/), compared with the original evaluations in $T/v0_evals/ (snapshot code_isla2 + recipe). 48 DrivAerML validation cars, sampling_resolution 10000, dataset drivaer_ml_volume_mt.",
+ "date": "2026-09-09",
+ "runs": {
+  "v0_isla_qtsdfval_seed42": {"original": {"pressure_l2": 0.05689, "velocity_l2": 0.08498, "nut_l2": 0.11722}, "reeval": {"pressure_l2": 0.05689, "velocity_l2": 0.08498, "nut_l2": 0.11722}, "max_per_car_abs_diff": 0.0},
+  "v0_isla_qtsdfval_seed43": {"original": {"pressure_l2": 0.05651, "velocity_l2": 0.08553, "nut_l2": 0.12580}, "reeval": {"pressure_l2": 0.05651, "velocity_l2": 0.08553, "nut_l2": 0.12580}, "max_per_car_abs_diff": 0.0},
+  "v0_gt_vol_seed42": {"original": {"pressure_l2": 0.06218, "velocity_l2": 0.13354, "nut_l2": 0.09335}, "reeval": {"pressure_l2": 0.06218, "velocity_l2": 0.13354, "nut_l2": 0.09335}, "max_per_car_abs_diff": 0.0},
+  "v0_gt_vol_seed43": {"original": {"pressure_l2": 0.06177, "velocity_l2": 0.13323, "nut_l2": 0.09443}, "reeval": {"pressure_l2": 0.06177, "velocity_l2": 0.13323, "nut_l2": 0.09443}, "max_per_car_abs_diff": 0.0}
+ },
+ "points_identity": "check_eval_points.py on 3 cars each for v0_isla_qtsdfval_seed42 and v0_gt_vol_seed43: 10,000 interior points IDENTICAL (allclose atol 1e-6) between original and re-evaluation.",
+ "verdict": "Recorded references stand for D1 and campaign-D comparisons: per-car metrics bit-identical (max |diff| 0) and sampled points identical under code_support + recipe_support."
+}

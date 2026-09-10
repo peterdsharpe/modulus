@@ -354,3 +354,393 @@ held out; the cheap next nonlearned test is whether a curvature-indexed
 basis transfers better than a Fourier-indexed one. Chapter
 @sec-boundary-response has the tables; figures
 `studies/boundary_response/fig_*.png`.
+
+## 2026-09-09 — Ops: DrivAerML volume filesystem stall; one campaign-A chain blocked by a truncated checkpoint {#sec-nb-ops-stall}
+
+Every lane reading the DrivAerML volume dataset (D1's six, campaign D's
+four, the main session's and the density track's interior lanes) stopped
+writing logs for about an hour from 13:42; DrivAerML surface and HiLift
+lanes were unaffected, so the stall was on that dataset's files, not the
+nodes. The chains carry a 3,600 s distributed timeout and resume from their
+last checkpoint, so the cost is lost minutes per lane, not results; the
+watchers report block markers so that two consecutive links failing with
+identical collective-timeout fingerprints are recognised as a stall and
+resubmitted, not read as a failure. Separately, campaign A's lane 28
+(`campA_hl_transolver_n35_d3_seed43`) blocked because a checkpoint written
+during the stall was truncated ("neither a valid zip nor tar archive"); the
+file was quarantined under the run's `checkpoints/quarantine/`, the block
+marker cleared, and the chain resubmitted (job 692786), resuming from the
+previous checkpoint at epoch 11. Campaign A's launch record: 72 chains,
+pilots accepted at epoch 100 after one hour, the 210-case rule corrected
+before launch because the pool is 180 geometries × 7 angles rather than
+126 × 10 (`studies/campaign_a_draws/PREREG.md` carries the correction).
+
+## 2026-09-09 — Verdict: C3 — the identifiability floor is real and architecture-independent on an exact paired-condition problem, and a per-point condition input repairs it {#sec-nb-c3-verdict}
+
+The paired-condition control (`studies/paired_conditions/`, preregistered
+in its `PREREG.md`; reference and training on a compute node through
+`srun --overlap`, since the local host was saturated) built exterior
+potential flow on 41 bodies in free air and at 0.6 half-heights above a
+ground plane by the image method, qualified against the analytic sphere
+(4.4 × 10⁻⁵), with two instrument repairs recorded before training
+(collocation at exact surface points along facet-centroid directions with
+analytic normals, after a first pass that solved the polyhedron's flow; and
+per-case residual and refinement gates at 2 × 10⁻³ and 5 × 10⁻³, amended
+from 10⁻³ with the reason in the study notebook; 38 of 41 bodies pass) and
+a 3,000-step training length after a 600-step pass proved too weak (the
+in-distribution error exceeded the floor). Results on held-out shapes (seed
+means, relative L2 of C_p, free air / ground): current encoding trained on
+both conditions 0.075 / 0.123; with a per-point ground-proximity scalar
+0.045 / 0.058; free-air-only reference 0.040 / 0.157 out of condition;
+condition-blind multilayer perceptron 0.237 / 0.219; analytic equal-mixture
+floor 0.080 / 0.071. Repair CONFIRMED (1.14x and 1.46x the reference, bar
+1.5x; the conditioned model fits its training set at 1.49x). Floor: the
+blind model's paired error 0.099 is 1.31x the floor (≥ 0.8x met) and 2.49x
+the reference, below the 3x clause, which was miscalibrated (expected
+√(0.040² + 0.076²) / 0.040 = 2.15x); recorded as a preregistration
+calibration error, not rewritten. Architecture independence holds (the
+perceptron at 3.0x the floor). Signature: 78% of the blind model's squared
+error on ground cases in the lowest height quarter (57–88%). Chapter
+@sec-controls-paired states what this does and does not license about the
+DrivAerML → SHIFT-SUV compound shift.
+
+## 2026-09-09 — Ops: the interior-lane stall is a pinned-memory hang in the reader, not I/O; D1 and campaign-D chains held, workaround staged {#sec-nb-ops-pin}
+
+The density track's instrumented probe (stack dumps every ten minutes)
+located the stall reported in @sec-nb-ops-stall: on the stuck rank the main
+thread waits without timeout in the DataLoader prefetch hand-off
+(`physicsnemo/datapipes/protocols.py:366`, via `datapipes/dataloader.py`)
+for a prefetch worker that is inside `tensordict.pin_memory()` called from
+`DomainMeshReader.__getitem__` (`readers/mesh.py:690`); the other ranks then
+spin in the recipe's step-failure barrier, which is what the collective
+timeout reports. Every DrivAerML interior lane on the cluster hung this way
+from about 12:14; HiLift and DrivAerML surface lanes were unaffected. My
+six D1 links restarted from their checkpoints after the first timeout and
+deadlocked again within minutes at the same epochs (22 / 22 / 12 / 12 / 22
+/ 22), and the four campaign-D lanes before their first checkpoint, which
+is the signature of a hang on the first samples rather than a leak. Ten
+nodes were therefore burning idle; all ten chains were held (stalled links
+cancelled, chain-ahead links on hold). Workaround identified by the main
+session: the recipe key `dataloader.pin_memory` (true in `conf/base.yaml`;
+read by `datasets.py` and passed to the reader) as the per-lane override
+`dataloader.pin_memory=false`, no code change; it is added to
+`v0/v0_support_aga.sbatch` and `v0/v0_interior_d_aga.sbatch`, along with
+a 1,200 s collective timeout, and the chains will be released when the
+probe lane has stepped normally for fifteen minutes. Two records for the
+affected lanes: the pinned-to-pageable change costs a few percent per step
+at 10,000 + 10,000 tokens (to be measured on the probe lane), so the D1 and
+campaign-D step times are not comparable with the reference arm's 0.28 s
+without that caveat; and the hand-off's missing timeout is a robustness bug
+worth an upstream fix (`Future.result(timeout)` with a named error)
+independent of the pinning cause.
+
+**Released (addendum to @sec-nb-ops-pin).** The density track's probe lane
+(ISLA query tokens + SDF, density arm, seed 42) resumed from epoch 310 with
+`dataloader.pin_memory=false` and stepped normally for more than fifteen
+minutes past the point where four consecutive pinned attempts had hung
+(epochs 311–312), so the ten held chains were released; eight started at
+once, two wait on priority. Measured cost of the workaround on GB300 at
+10,000 surface plus 10,000 query tokens: 0.388 s per step against 0.287 s
+pinned, a 35% penalty, expected to be similar for GeoTransolver-volume.
+From this date every interior step time in this program is quoted as a
+pin_memory=false number, and the D1 and campaign-D cost readouts are
+compared with the reference arm's step time only after the same penalty is
+applied to it (or the reference is re-measured under the same setting); the
+root cause of the hang inside `TensorDict.pin_memory` in the reader's
+prefetch thread stays open.
+
+## 2026-09-09 — Ops: the released links still carried pinned memory and hung again at 17:34; nine cancelled, chain-ahead links carry the workaround {#sec-nb-ops-recancel}
+
+Releasing a held Slurm job does not re-read its batch script. The ten
+interior chains released in the addendum to @sec-nb-ops-pin therefore
+started their held links with the original script (`pin_memory: true` in
+each run's printed configuration, collective timeout 3,600 s), while only
+the links submitted after the edit carry `dataloader.pin_memory=false`.
+Nine of the ten held links stepped normally for about 35 minutes (D1
+support-12 arms to epochs 42–43, support-4 to 44–45, passive-12 to 35, the
+hidden-344 query-token carrier to 31, GeoTransolver-volume without local
+features to 33–35) and then all stopped logging within the same minute,
+17:33–17:34, and stayed silent for 40 minutes; the one link that had
+already rolled over to a post-edit script (hidden-344 carrier, seed 42,
+`pin_memory: false`) kept stepping at 0.48–0.51 s. The synchronized onset
+across nine nodes says the trigger is a shared event (a Lustre or fabric
+hiccup) that the pinned-memory hand-off cannot recover from, while the
+unpinned reader rides through it; that is consistent with the stack dumps
+in @sec-nb-ops-pin. It is not strictly cluster-wide: the main session
+reports that its two pinned interior links on the same cluster kept
+stepping through 17:34, so the hang is intermittent and pinned links are
+exposed to it while no unpinned link has shown it yet. At 18:14 the nine stalled links were cancelled so their
+successors (all verified to contain the override and the 1,200 s timeout)
+start at once; each chain link resubmits its successor, so no top-up is
+needed. Cost: one partial epoch per lane (checkpoints are per epoch) plus
+the 40 idle minutes on nine nodes. Lesson for the ops record: after editing
+a chain's script, cancel-and-resubmit the held links rather than releasing
+them.
+
+## 2026-09-09 — Protocol: D1 and campaign D compare only with references re-evaluated under the same code snapshot; re-evaluation launched {#sec-nb-evalpoints}
+
+The main session reports that one checkpoint re-evaluated under the newly
+merged code plus a recipe copy scored 6.1% differently from its
+training-time evaluation, and that every frozen cluster snapshot used by
+the program book (`code`, `code_isla2`–`code_isla5`) produces bit-identical
+sampled validation points, which is why the book's comparisons stand. The
+D1 and campaign-D lanes run from a new snapshot (`code_support` plus
+`recipe_support`), so their numbers may not be compared with the reference
+values recorded in @sec-nb-d1-launch (ISLA query tokens + SDF 0.0567 /
+0.0853 / 0.1215; GeoTransolver-volume 0.0620 / 0.1334 / 0.0939) until the
+sampled points are shown identical. Two checks, preregistered here before
+any D1 evaluation exists: (1) the four reference checkpoints
+(`v0_isla_qtsdfval_seed{42,43}`, `v0_gt_vol_seed{42,43}`) are re-evaluated
+under `code_support` + `recipe_support` on the 48 validation cars (job
+695764, launcher `v0/v0_ref_reeval_aga.sbatch`, outputs
+`$T/v0_evals_support/`, originals untouched); if their 48-car means match
+the recorded values to three decimals and the per-car interior points are
+`allclose` to the originals, the recorded references stand, otherwise the
+re-evaluated values become the references for every D1 and campaign-D
+comparison and the grading script is pointed at them. (2) Because the
+support transform moves the first 5,000 points of the reader's
+deterministic per-case sample into the support set, the 5,000 points each
+D1 arm is scored on must be a subset of the reference's 10,000-point sample
+for the same car; this is checked on the saved prediction artifacts for a
+few cars once the first D1 evaluation exists. A per-point relative L2 over
+a random half of the same sample is comparable with the full-sample value
+up to sampling noise, which the two-seed spread already exceeds.
+
+## 2026-09-09 — Verdict: the recorded V0 references stand under the D1 snapshot (per-car metrics bit-identical, sampled points identical) {#sec-nb-evalpoints-verdict}
+
+Check (1) of @sec-nb-evalpoints is complete. The four reference
+checkpoints (ISLA query tokens + SDF, seeds 42 and 43; GeoTransolver-volume,
+seeds 42 and 43) were re-evaluated on the 48 DrivAerML validation cars under
+`code_support` + `recipe_support` (job 695764, about two minutes per run
+on one GB300). Every per-car pressure, velocity and eddy-viscosity relative
+L2 agrees with the original evaluation (snapshot `code_isla2` + `recipe`)
+to the last printed digit, maximum per-car absolute difference 0.0, so the
+48-car means are unchanged: ISLA query tokens + SDF 0.0569 / 0.0850 /
+0.1172 (seed 42) and 0.0565 / 0.0855 / 0.1258 (seed 43), GeoTransolver-volume
+0.0622 / 0.1335 / 0.0934 and 0.0618 / 0.1332 / 0.0944; and the 10,000
+sampled interior points of three cars per run are identical between the
+two evaluations (`check_eval_points.py`, `allclose` at 10⁻⁶). The D1 and
+campaign-D lanes may therefore be compared with the recorded reference
+values, with one condition still to verify when the first D1 evaluation
+exists: that the 5,000 scored query points are the second half of the same
+10,000-point sample (check 2). Artifact:
+`studies/computational_support/ref_reeval_2026-09-09.json`; the
+re-evaluated outputs stay in `$T/v0_evals_support/`.
+
+## 2026-09-09 — Ops: the interior stall recurred at 19:22 with pinned memory off; pinning was a site, not the cause {#sec-nb-ops-stall3}
+
+Third synchronized stall of the day. Every DrivAerML interior lane on the
+cluster, mine (six D1, four campaign-D) and the main session's (density and
+neighbour arms, ISLA query-token seed 44), stopped logging between 19:22 and
+19:25, all running with `dataloader.pin_memory=false`; one D1 lane
+(support-12, seed 42) followed at 19:32. At the same minutes every surface
+and HiLift lane on the cluster (campaigns A, B and C, the scaling study, the
+main session's seven unit-drive DrivAerML surface lanes, which finished and
+evaluated normally) kept stepping, and a login-node directory listing on the
+same Lustre file system returned in 90 ms. The reading of @sec-nb-ops-pin,
+that pinned memory is the cause, is therefore superseded. The main session's
+latest stack dumps place the stuck rank inside the host-to-device copy of
+the loaded sample (`TensorDict.to(device)` from `domain_mesh.py`), with the
+other ranks waiting in the step barrier: one rank's CUDA context stops
+completing host-side operations, and pinning was merely where it first
+showed. Two facts constrain the cause: it is interior-only (the volume
+lanes are the only ones moving 10,000-point interior arrays per sample,
+with the largest host-to-device traffic), and the onset is synchronized
+across about fifteen nodes and two sessions (17:34, 19:22), which argues
+for a shared trigger rather than per-node driver state. Neither is fixable
+in user space; the main session is surfacing the driver-side question to
+Peter for the cluster team. Mitigation both sessions converge on: a short
+collective timeout so the ranks die instead of idling (my launchers go from
+1,200 s to 600 s for future links; the ranks reported NCCL timeouts at
+19:42–19:45 and the links exit and restart from the last epoch checkpoint)
+plus link recycling on a 15-minute idle log. Each stall costs one timeout
+plus one partial epoch per lane; at roughly one stall per 30–60 minutes per
+lane this is a 10–25% throughput loss on the interior campaigns, tolerable,
+and the reader hand-off's bounded wait remains a robustness fix worth
+carrying upstream independently.
+
+## 2026-09-09 — Campaign E launched: density-bias probe on the canonical unit-drive baselines (job 695840) {#sec-nb-campe-launch}
+
+The main session's canonical unit-drive DrivAerML surface baselines have
+trained and evaluated (GeoTransolver 0.0553 / 0.0561 / 0.0554 on seeds 42,
+43, 44, mean 0.0556; Transolver at learning rate 3e-3 0.0561 / 0.0564; both
+in `$T/iw_evals/uw_reduction.json`), which unblocks the eval-only campaign
+E. Preregistration `studies/campaign_e_evalonly/PREREG.md`, written before
+any probe evaluation: the 10:1 Poisson-biased sampling probe
+(`drivaer_probe_biased3`) against its uniform two-stage control
+(`drivaer_probe_unif2`), both at 10,000 cells on the 48 validation cars,
+scored for seven runs (the three unit-drive GeoTransolver seeds, the two
+Transolver seeds, and the ISLA reference `iw_mt2_lr1e3_seed{42,43}` so that
+ISLA's factor comes from the same protocol and code as the baselines; the
+existing ISLA number, 1.20, is from the similarity-gauge arm). Readout is
+the degradation factor, biased ÷ uniform pressure relative L2, per run and
+as a seed mean, with the absolute levels beside it. Bars: ISLA's density
+robustness holds against a fair baseline if GeoTransolver's factor is
+≥ 1.32 and ISLA's stays ≤ 1.24; it does not hold if GeoTransolver's factor
+is ≤ 1.24. Launcher `transfer/campaign_e_density_aga.sbatch` (tracked copy
+beside the preregistration), one run per array task, code snapshot `code`
+and the frozen recipe exactly as the main session's `uw_eval_aga.sbatch`;
+outputs `$T/transfer/campaign_e/<run>/{unif,biased}`.
+
+## 2026-09-09 — Campaign E, bf16 preview: only the similarity-gauge ISLA survives the 10:1 density bias; every input-matched baseline and both other ISLA configurations collapse; float32 rerun launched under the new reporting rule {#sec-nb-campe-bf16}
+
+**Protocol change first.** The main session's snapshot ladder found that
+the same checkpoint scores 0.0568 in float32 inference and 0.0588 or
+0.0624 under two different bf16 graphs (per car up to 31%), so bf16
+evaluation is not a stable instrument; float32 inference is now the
+reporting instrument for every comparative number in both programs (CLAIMS
+rule 31a069280, notebook #sec-nb-fp32-instrument in the program book), and
+bf16 numbers are kept only for a per-architecture offset table. Applied
+here: the campaign A eval launcher writes float32 to `hl_evals_fp32/` (its
+first five bf16 evaluations stay for the offset table and are redone in
+float32); the campaign B, D1 and campaign-D eval launchers evaluate each
+run in float32 (`*_evals_fp32/`) and bf16 side by side; D1 and campaign D
+will compare only with float32 references (`$T/v0_evals_fp32/`, main
+session), not with the bf16 0.0567 / 0.0853 / 0.1215 and 0.0620 / 0.1334 /
+0.0939, so the same-snapshot identity of @sec-nb-evalpoints-verdict is a
+bf16 statement and will be repeated in float32. The bf16 numbers below are
+therefore a preview; the float32 rerun of all eleven campaign-E runs is job
+696011 (`transfer/campaign_e_density_fp32_aga.sbatch`, outputs
+`$T/transfer/campaign_e_fp32/`).
+
+**Setting.** The density probe (@sec-nb-campe-launch) scores each
+checkpoint on the 48 DrivAerML validation cars twice: on a uniform draw of
+10,000 cells through the same two-stage 40,000 → 10,000 pipeline, and on a
+Poisson-biased draw whose inclusion probability is ten times higher on the
+front half of the car than on the back (exact Horvitz–Thompson weights,
+937 to 9,366 per cell, total measure preserved within 3%, centroid of the
+sample shifted 0.2 body lengths forward). The similarity-gauge ISLA's
+factor of 1.20 is the program book's density-robustness claim; the probe
+had never been run on an input-matched baseline.
+
+**Readout (bf16, 48 cars, pressure relative L2; factor = biased ÷ uniform).**
+
+| arm | seeds | uniform | biased | factor (per seed) |
+|---|---|---|---|---|
+| GeoTransolver, unit drive (`uw_gt_unit_lr1e3`) | 3 | 0.0554 | 0.480 | 8.7 (10.8, 7.2, 8.1) |
+| Transolver, unit drive, lr 3e-3 (`uw_transolver_unit_lr3e3`) | 2 | 0.0561 | 0.201 | 3.6 (2.1, 5.1) |
+| ISLA reference, constant gauge (`iw_mt2_lr1e3`) | 2 | 0.0579 | 0.675 | 11.6 (12.0, 11.3) |
+| ISLA similarity gauge (`iw_mt2_gauge`) | 2 | 0.0633 | 0.0762 | 1.203 (1.204, 1.202) |
+| ISLA weights off (`now_mt2_lr1e3`) | 2 | 0.0566 | 1.041 | 18.3 (22.0, 14.7) |
+
+: Every car is worse under the bias for every run of the first three arms and the weights-off arm; the gauge arm is worse on 44 and 46 of 48 cars. Artifact `$T/transfer/campaign_e/campaign_e_density.json` (reducer `studies/campaign_e_evalonly/reduce_campaign_e.py`). {#tbl-campe-bf16}
+
+**Instrument checks.** The gauge pair under this launcher reproduces the
+book's 0.063 / 0.076 (factor 1.203 against 1.20), and the constant-gauge
+ISLA at 11.6 sits in the book's recorded 13–14.5 band within seed
+variation, so the probe behaves as it did on 2026-09-02; the biased
+artifacts have the expected cell counts (9,969–10,094) and weights.
+
+**Reading, pending float32.** The preregistered "holds" clause named the
+ISLA reference configuration and required its factor ≤ 1.24; that
+configuration degrades 11.6x, so the clause is unmet by construction, a
+miscalibration recorded rather than rewritten: the book's 1.20 belongs to
+the gauge arm alone. Graded with the gauge arm as "ISLA", the claim holds
+by a wide margin: the input-matched unit-drive GeoTransolver degrades 8.7x
+(against 3.6x for the physical-drive GeoTransolver recorded in the book;
+a different trained model, so no contradiction, but the unit drive makes
+GeoTransolver less density-robust), Transolver 3.6x, and the two other ISLA
+configurations are the least robust of all, weights-off reaching an error
+above 1.0 (worse than predicting zero). Mechanism, stated as a hypothesis
+for the float32 verdict: the similarity gauge normalizes ISLA's kernel by
+the local measure so the HT weights are consumed correctly, whereas the
+constant-gauge ISLA's measure-weighted sums see a ten-fold weight range
+they were never trained on, the weights-off ISLA has no measure to correct
+the density at all, and GeoTransolver's radius-based local features are
+density statistics by construction. For the NOW-L decision (weights off as
+the best fair configuration) this is the cost side: weights off buys 2.8%
+on DrivAerML and loses all density robustness. Verdict and chapter text
+after job 696011.
+
+## 2026-09-09 — Verdict, campaign E density probe (float32): the similarity gauge is the only density-robust configuration (1.21x); unit-drive GeoTransolver 9.5x, Transolver 3.9x, constant-gauge ISLA 12.1x, weights-off ISLA 19.1x {#sec-nb-campe-verdict}
+
+**Readout (float32 inference, the reporting instrument; 48 DrivAerML
+validation cars; pressure relative L2; factor = biased ÷ uniform).**
+
+| arm | seeds | uniform | biased | factor (per seed) | bf16 uniform, for the offset table |
+|---|---|---|---|---|---|
+| GeoTransolver, unit drive | 3 | 0.0505 | 0.479 | 9.5 (11.8, 7.9, 8.8) | 0.0554 (+9.7%) |
+| Transolver, unit drive, lr 3e-3 | 2 | 0.0517 | 0.200 | 3.9 (2.2, 5.5) | 0.0561 (+8.5%) |
+| ISLA reference, constant gauge | 2 | 0.0558 | 0.675 | 12.1 (12.5, 11.7) | 0.0579 (+3.8%) |
+| ISLA similarity gauge | 2 | 0.0616 | 0.0746 | 1.21 (1.21, 1.21) | 0.0633 (+2.8%) |
+| ISLA weights off | 2 | 0.0544 | 1.043 | 19.1 (23.1, 15.2) | 0.0566 (+4.0%) |
+
+: Every car is worse under the bias for every run except the gauge arm's (47 and 46 of 48). Artifacts `studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json` (float32) and `campaign_e_density_bf16_2026-09-09.json` (bf16 preview, @tbl-campe-bf16); reducer `reduce_campaign_e.py`. {#tbl-campe-fp32}
+
+**Verdict.** By the letter of the preregistration the outcome is *between*,
+because the "holds" clause named the ISLA reference configuration, whose
+factor is 12.1; that clause could not have been met and is recorded as a
+miscalibration (the book's 1.20 belongs to the similarity-gauge arm, which
+this protocol reproduces at 1.21). Graded with the gauge arm as ISLA, the
+claim **holds by a wide margin**: the input-matched unit-drive
+GeoTransolver degrades 9.5x (its factor exceeds the 1.32 bar by a factor of
+seven), Transolver 3.9x, and the gauge's 1.21 is inside the 1.24 bar. The
+absolute levels are reported with the factors: the gauge arm pays 10–20% on
+the uniform draw for its robustness (0.0616 against 0.0505 for
+GeoTransolver and 0.0558 for the constant-gauge ISLA), so the trade is a
+fifth of the accuracy on well-sampled surfaces for an eight- to fifteen-fold
+smaller error under a ten-fold density skew. The two non-gauge ISLA
+configurations are the least robust of all five, and weights-off (the
+program's best fair configuration on canonical data, 2.8% ahead of weights
+on) has no measure to correct the density and reaches an error above 1.0,
+worse than predicting zero; that is the cost side of the weights-off
+decision, as the main session anticipated.
+
+**Mechanism, as far as this readout supports it.** The biased draw carries
+exact Horvitz–Thompson weights (ten-fold range) in the measure field. The
+similarity gauge normalizes ISLA's kernel by the local measure, so those
+weights are consumed as a quadrature correction and the field is
+reconstructed from the sparse half almost as well as from the dense half;
+the constant-gauge ISLA sees weights outside its training range in every
+measure-weighted sum; the weights-off ISLA discards them and sees the
+front-heavy token cloud as geometry; GeoTransolver's radius-based local
+features are neighbour-count statistics that shift ten-fold with density;
+Transolver's slice attention degrades more gracefully (2.2–5.5x) because
+its routing is by learned features rather than by counts. These are
+readings consistent with the numbers, not separately tested.
+
+**Instrument note.** The float32 uniform levels are 8.5–9.7% below the
+bf16 ones for GeoTransolver and Transolver but only 2.8–4.0% for the three
+ISLA configurations, so bf16 evaluation has been penalizing the baselines
+more than ISLA in every bf16 comparison of this program; a per-architecture
+offset that the main session's offset table now has five more entries for.
+
+**What changes.** The program book's density-robustness paragraph gains a
+fair comparison and survives, with the gauge named as the mechanism and its
+10–20% uniform-draw cost stated; the weights-off configuration is
+recommended for canonical benchmarks only. Next: no further node time on
+this question; the mechanism reading would be tested by a gauge arm with
+weights off (does the gauge alone suffice?) if the program wants it.
+
+## 2026-09-09 — Ops: the collective timeout does not kill a stalled link, and restarted links re-hang at the same sample; idle-link watchdog armed {#sec-nb-ops-watchdog}
+
+Two facts from the 19:22 stall's aftermath that change the guard. First,
+the NCCL collective timeout fired on every stalled rank at 19:42–19:45
+(@sec-nb-ops-stall3) and the ranks printed their failure, but the links did
+not exit: at 20:18 six of my ten links were still RUNNING two hours after
+their last training step (the failing rank never leaves the copy it is
+stuck in, so the process group's error path never completes), and the
+four that had been recycled by the 18:14 cancel were back in the same state
+within minutes of resuming. A short collective timeout is therefore not a
+sufficient guard; an external idle-link watchdog is (`watchdog_interior.sh`:
+every five minutes, cancel any running link older than fifteen minutes
+whose training log has no step for twenty minutes, all clock arithmetic on
+the cluster; the chain's pending successor restarts from the last epoch
+checkpoint). It cancelled eight links at 20:22–20:23 and all ten chains had
+fresh links stepping by 20:24. Second, a restarted link hangs at exactly
+the step where its predecessor hung: the last logged loss before successive
+stalls of the same lane is identical (0.012028 three times for support-12
+seed 42 between 13:44 and 16:07; 0.062525 three times for the hidden-344
+carrier; 0.017022 twice for passive-12 seed 43), so a specific sample in
+the replayed epoch order blocks until something outside the job clears,
+after which the lane moves on and later stalls at a different sample. With
+the main session's stack dumps (the stuck rank inside the host-to-device
+copy, or earlier inside `pin_memory`), the reading that fits all of it: the
+reader returns memory-mapped tensors whose pages are faulted in at the copy,
+and an intermittent Lustre-side stall on particular files of the volume
+dataset (the surface lanes read different files and never stall) turns
+that page fault into an indefinite wait. This is the third reading of the
+stall and is now with the cluster team through the main session; it also
+says the cost of each stall is bounded by the watchdog's twenty minutes
+plus a restart, and that recycling onto the same sample is harmless once
+the file is readable again.

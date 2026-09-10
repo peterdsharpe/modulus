@@ -1,0 +1,73 @@
+idx	arm	model	extra	dataset	lr	seed	tokens	run_id
+0	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw1_n35	1.0e-3	42	10000	campA_hl_gt_n35_d1_seed42
+1	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw1_n35	1.0e-3	43	10000	campA_hl_gt_n35_d1_seed43
+2	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw1_n35	1.0e-3	44	10000	campA_hl_gt_n35_d1_seed44
+3	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw1_n35	3.0e-3	42	10000	campA_hl_transolver_n35_d1_seed42
+4	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw1_n35	3.0e-3	43	10000	campA_hl_transolver_n35_d1_seed43
+5	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw1_n35	3.0e-3	44	10000	campA_hl_transolver_n35_d1_seed44
+6	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw1_n35	1.0e-3	42	10000	campA_hl_isla_n35_d1_seed42
+7	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw1_n35	1.0e-3	43	10000	campA_hl_isla_n35_d1_seed43
+8	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw1_n35	1.0e-3	44	10000	campA_hl_isla_n35_d1_seed44
+9	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw1_n35	1.0e-3	42	10000	campA_hl_islanw_n35_d1_seed42
+10	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw1_n35	1.0e-3	43	10000	campA_hl_islanw_n35_d1_seed43
+11	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw1_n35	1.0e-3	44	10000	campA_hl_islanw_n35_d1_seed44
+12	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw2_n35	1.0e-3	42	10000	campA_hl_gt_n35_d2_seed42
+13	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw2_n35	1.0e-3	43	10000	campA_hl_gt_n35_d2_seed43
+14	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw2_n35	1.0e-3	44	10000	campA_hl_gt_n35_d2_seed44
+15	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw2_n35	3.0e-3	42	10000	campA_hl_transolver_n35_d2_seed42
+16	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw2_n35	3.0e-3	43	10000	campA_hl_transolver_n35_d2_seed43
+17	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw2_n35	3.0e-3	44	10000	campA_hl_transolver_n35_d2_seed44
+18	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw2_n35	1.0e-3	42	10000	campA_hl_isla_n35_d2_seed42
+19	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw2_n35	1.0e-3	43	10000	campA_hl_isla_n35_d2_seed43
+20	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw2_n35	1.0e-3	44	10000	campA_hl_isla_n35_d2_seed44
+21	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw2_n35	1.0e-3	42	10000	campA_hl_islanw_n35_d2_seed42
+22	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw2_n35	1.0e-3	43	10000	campA_hl_islanw_n35_d2_seed43
+23	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw2_n35	1.0e-3	44	10000	campA_hl_islanw_n35_d2_seed44
+24	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw3_n35	1.0e-3	42	10000	campA_hl_gt_n35_d3_seed42
+25	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw3_n35	1.0e-3	43	10000	campA_hl_gt_n35_d3_seed43
+26	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw3_n35	1.0e-3	44	10000	campA_hl_gt_n35_d3_seed44
+27	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw3_n35	3.0e-3	42	10000	campA_hl_transolver_n35_d3_seed42
+28	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw3_n35	3.0e-3	43	10000	campA_hl_transolver_n35_d3_seed43
+29	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw3_n35	3.0e-3	44	10000	campA_hl_transolver_n35_d3_seed44
+30	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw3_n35	1.0e-3	42	10000	campA_hl_isla_n35_d3_seed42
+31	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw3_n35	1.0e-3	43	10000	campA_hl_isla_n35_d3_seed43
+32	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw3_n35	1.0e-3	44	10000	campA_hl_isla_n35_d3_seed44
+33	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw3_n35	1.0e-3	42	10000	campA_hl_islanw_n35_d3_seed42
+34	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw3_n35	1.0e-3	43	10000	campA_hl_islanw_n35_d3_seed43
+35	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw3_n35	1.0e-3	44	10000	campA_hl_islanw_n35_d3_seed44
+36	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw1_n210	1.0e-3	42	10000	campA_hl_gt_n210_d1_seed42
+37	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw1_n210	1.0e-3	43	10000	campA_hl_gt_n210_d1_seed43
+38	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw1_n210	1.0e-3	44	10000	campA_hl_gt_n210_d1_seed44
+39	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw1_n210	3.0e-3	42	10000	campA_hl_transolver_n210_d1_seed42
+40	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw1_n210	3.0e-3	43	10000	campA_hl_transolver_n210_d1_seed43
+41	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw1_n210	3.0e-3	44	10000	campA_hl_transolver_n210_d1_seed44
+42	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw1_n210	1.0e-3	42	10000	campA_hl_isla_n210_d1_seed42
+43	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw1_n210	1.0e-3	43	10000	campA_hl_isla_n210_d1_seed43
+44	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw1_n210	1.0e-3	44	10000	campA_hl_isla_n210_d1_seed44
+45	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw1_n210	1.0e-3	42	10000	campA_hl_islanw_n210_d1_seed42
+46	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw1_n210	1.0e-3	43	10000	campA_hl_islanw_n210_d1_seed43
+47	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw1_n210	1.0e-3	44	10000	campA_hl_islanw_n210_d1_seed44
+48	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw2_n210	1.0e-3	42	10000	campA_hl_gt_n210_d2_seed42
+49	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw2_n210	1.0e-3	43	10000	campA_hl_gt_n210_d2_seed43
+50	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw2_n210	1.0e-3	44	10000	campA_hl_gt_n210_d2_seed44
+51	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw2_n210	3.0e-3	42	10000	campA_hl_transolver_n210_d2_seed42
+52	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw2_n210	3.0e-3	43	10000	campA_hl_transolver_n210_d2_seed43
+53	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw2_n210	3.0e-3	44	10000	campA_hl_transolver_n210_d2_seed44
+54	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw2_n210	1.0e-3	42	10000	campA_hl_isla_n210_d2_seed42
+55	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw2_n210	1.0e-3	43	10000	campA_hl_isla_n210_d2_seed43
+56	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw2_n210	1.0e-3	44	10000	campA_hl_isla_n210_d2_seed44
+57	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw2_n210	1.0e-3	42	10000	campA_hl_islanw_n210_d2_seed42
+58	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw2_n210	1.0e-3	43	10000	campA_hl_islanw_n210_d2_seed43
+59	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw2_n210	1.0e-3	44	10000	campA_hl_islanw_n210_d2_seed44
+60	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw3_n210	1.0e-3	42	10000	campA_hl_gt_n210_d3_seed42
+61	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw3_n210	1.0e-3	43	10000	campA_hl_gt_n210_d3_seed43
+62	A	geotransolver_surface	forward_kwargs.global_embedding=global_data.U_inf_dir	highlift_surface_draw3_n210	1.0e-3	44	10000	campA_hl_gt_n210_d3_seed44
+63	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw3_n210	3.0e-3	42	10000	campA_hl_transolver_n210_d3_seed42
+64	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw3_n210	3.0e-3	43	10000	campA_hl_transolver_n210_d3_seed43
+65	A	transolver_surface	forward_kwargs.fx.source=global_data.U_inf_dir	highlift_surface_draw3_n210	3.0e-3	44	10000	campA_hl_transolver_n210_d3_seed44
+66	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw3_n210	1.0e-3	42	10000	campA_hl_isla_n210_d3_seed42
+67	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw3_n210	1.0e-3	43	10000	campA_hl_isla_n210_d3_seed43
+68	A	mt2_surface	model.out_scalars=3 model.out_vectors=2	highlift_surface_draw3_n210	1.0e-3	44	10000	campA_hl_isla_n210_d3_seed44
+69	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw3_n210	1.0e-3	42	10000	campA_hl_islanw_n210_d3_seed42
+70	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw3_n210	1.0e-3	43	10000	campA_hl_islanw_n210_d3_seed43
+71	A	mt2_surface	model.out_scalars=3 model.out_vectors=2 +model.use_measure_weights=false	highlift_surface_draw3_n210	1.0e-3	44	10000	campA_hl_islanw_n210_d3_seed44
