@@ -99,5 +99,29 @@
  "notes": [
   "The ISLA pose factor is 1.01 by construction (exact SE(3) covariance) and measured; the similarity gauge and weights-off rows inherit it.",
   "Few-shot gain: GeoTransolver 0.186 \u2192 0.128 (31%); ISLA 0.198 \u2192 0.187 (6%)."
- ]
+ ],
+ "scale_corner": {
+  "description": "the 512-wide, 80,000-cell corner of the scaling study (SCALE), float32, unit drive, DrivAerML 48 cars evaluated at 80,000 cells; density factor = biased \u00f7 uniform at the corner's own cell count (results/scaling/*_scale_reduction_2026-09-09.json, scaling synthesis a6c8a6058)",
+  "rows": {
+   "geotransolver_unit_512x80k": {
+    "label": "GeoTransolver, unit drive, 512 \u00d7 80k",
+    "in_family": 0.0419,
+    "density_factor": 4.2,
+    "gpu_hours": 13.0
+   },
+   "isla_constant_gauge_512x80k": {
+    "label": "ISLA, constant gauge, 512 \u00d7 80k (fast kernel)",
+    "in_family": 0.0428,
+    "density_factor": 16.7,
+    "gpu_hours": 22.5
+   },
+   "transolver_unit_512x80k": {
+    "label": "Transolver, unit drive, 512 \u00d7 80k",
+    "in_family": 0.0431,
+    "density_factor": 4.6,
+    "gpu_hours": 6.6
+   }
+  },
+  "pending": "ISLA similarity gauge at 512 \u00d7 80k (scale_isla_dr_g512x80k_seed{42,43}) \u2014 decisive for whether any corner configuration is density-invariant"
+ }
 }

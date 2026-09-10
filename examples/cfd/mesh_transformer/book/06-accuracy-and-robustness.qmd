@@ -471,6 +471,12 @@ for key in ("geotransolver_unit", "transolver_unit", "isla_reference_constant_ga
     pose = f(r["pose_factor"], "{:.2f}") + (" (augmented)" if r.get("pose_note") else "")
     out += (f"| {r['label']} | {r['in_family']:.4f} | {r['density_factor']:.1f} | {pose} "
             f"| {f(r['zero_shot_fastback'], '{:.2f}')} | {f(r['few_shot_gain'], '{:.0%}')} |\n")
+sc = M["scale_corner"]["rows"]
+out += "| *scale corner, 512 wide × 80,000 cells* | | | | | |\n"
+for key in ("geotransolver_unit_512x80k", "isla_constant_gauge_512x80k", "transolver_unit_512x80k"):
+    r = sc[key]
+    out += (f"| {r['label']} | {r['in_family']:.4f} | {r['density_factor']:.1f} | not measured "
+            f"| not measured | {r['gpu_hours']:.1f} GPU-h |\n")
 print(out)
 print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-drive "
       "inputs for every architecture. In-family: pressure rel-L2 on 48 validation cars "
@@ -483,6 +489,10 @@ print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-dr
       "training from scratch after fine-tuning on 20 fastback cases at matched learning "
       "rate. A configuration that reads the sampling distribution shows it in the "
       "density column; the weights-off ablation is the extreme case and is not adopted. "
+      "The scale-corner rows (width 512, 80,000 cells, evaluated at 80,000 cells) show the three "
+      "architectures within 3% of one another in-family with no density-invariant configuration "
+      "among them; their last column is training cost in GPU-hours, and the similarity-gauge corner "
+      "is pending. "
       "Learning rates are stated per row: the similarity-gauge checkpoints were trained at 3e-3, "
       "so their in-family error is not a price of the gauge (the rate-matched constant gauge scores 0.0620). "
       "Data: results/accuracy_consistency_matrix_2026-09-10.json (provenance per cell "
