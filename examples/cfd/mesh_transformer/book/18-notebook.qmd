@@ -13775,3 +13775,48 @@ scale, is the principled baseline this program has not yet built. The
 matrix rows, chapter 6 and chapter 12 are corrected accordingly; the
 "recommended repair" sentence narrows to "fixes the aggregation, not the
 frame".
+
+## 2026-09-10 — BENCH addendum: the measure-centred constant-gauge ISLA is the first configuration consistent across all three samplers (DrivAerML +3% / +3% at 40k; HiLift 35 cases −2% / +4% at 10k) {#sec-nb-bench-mcenter}
+
+The four measure-centring checkpoints of @sec-nb-center-lanes-verdict were
+run through the consistency benchmark's three samplers at 10,000 and 40,000
+cells (snapshot code_center, float32, no loader warnings; artifact
+results/consistency_bench/consistency_bench_mcenter_2026-09-10.json).
+
+| arm | 10k: unif / area / biased | 40k: unif / area / biased | D_area 10k → 40k | D_biased 10k → 40k |
+|---|---|---|---|---|
+| ISLA constant gauge, measure-weighted centring, DrivAerML | 0.0553 / 0.0650 / 0.0652 | 0.0523 / 0.0538 / 0.0537 | +18% → **+3%** | +18% → **+3%** |
+| ISLA constant gauge, measure-weighted centring, HiLift 35 | 0.1553 / 0.1526 / 0.1611 | 0.1513 / 0.1509 / 0.1523 | **-2%** → **-0%** | **+4%** → **+1%** |
+
+**Against the bars.** On DrivAerML both samplers pass the 3% consistency
+bar at 40,000 cells (+3% / +3%), the first arm in the benchmark to do so
+under the area sampler, converging from +18% at 10,000 cells. On the HiLift
+35-case rung, where every other configuration reads the sampling
+distribution by 150% to 4,000% (@sec-nb-bench-verdict), the measure-centred
+ISLA is consistent already at 10,000 cells (area −2%, bias +4%) and at
+40,000 (0%, +1%). The whole of the constant-gauge ISLA's sampler dependence
+on both datasets (+90% / +189% under area at 40k) was therefore its
+plain-mean centroid; with the centroid estimated from the measure, the
+measure-weighted routing integral gives the same field under a
+uniform-over-cells, an area-proportional and a 10:1-biased draw of the same
+wing, at fixed count and at the count the book's accuracy numbers use.
+
+**Two readings and one caution.** First, this is the consistency the
+principle asks for, measured: a model whose answer does not depend on how
+the surface was sampled, at 10,000 cells, on the hardest meshes in the
+program, at a 10% in-distribution price on those meshes and none on the
+cars. Second, on the frame question: the measure-weighted centroid is the
+Horvitz–Thompson estimate of the surface's geometric centroid ∫x dA / ∫dA,
+an integral property of the geometry, and the benchmark shows its estimate
+from the sample converging to the same value under three sampling laws; it
+is a *sample statistic* only in the sense that every quadrature is one,
+which is a different case from the plain mean that reads the distribution
+and from the RMS-radius scale. Whether Peter's ruling excludes it is a
+question for him, not for this entry; RELFRAME (no frame at all) remains the
+cleanest construction and is training. The caution: the benchmark's error
+is evaluated on the sampled points themselves, so the area and biased
+samplers also move the *metric's* point distribution (toward large cells
+and toward the dense half); that shift is common to every arm in a row and
+cannot produce a −2% by itself, but it means the HiLift number is
+consistency of the predicted field on the points drawn, not a claim about
+the unsampled gaps.

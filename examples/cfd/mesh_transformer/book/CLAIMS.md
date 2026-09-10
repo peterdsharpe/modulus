@@ -1387,3 +1387,11 @@ interior control @sec-nb-udrv-int-prereg.
   Lead sentence to reuse: "with like-for-like frames every configuration that centres on a sample statistic
   collapses 10–17x; only frames that do not read the sample survive; measure weighting repairs the
   aggregation, the frame is a separate defect, both must be fixed".
+- **BENCH mcenter addendum (2026-09-10; results/consistency_bench/consistency_bench_mcenter_2026-09-10.json).**
+  Measure-centred constant-gauge ISLA: DrivAerML D_area +18% → +3%, D_biased +18% → +3%;
+  HiLift 35 D_area -2% → -0%, D_biased +4% → +1%. First configuration consistent under all three
+  samplers (both datasets at 40k; HiLift already at 10k). Write "the constant gauge's sampler dependence was
+  entirely its plain-mean centroid". Caution to carry: the metric is evaluated on the sampled points, so the
+  samplers also move the metric's point distribution (common to all arms). Frame-ruling question for Peter:
+  the measure-weighted centroid is the HT estimate of ∫x dA / ∫dA (an integral property); whether the ruling
+  excludes it is his call; RELFRAME stays the cleanest construction.
