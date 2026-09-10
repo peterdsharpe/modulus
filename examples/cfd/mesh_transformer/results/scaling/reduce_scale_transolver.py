@@ -26,6 +26,9 @@ ARMS = {}
 for ds in ("hl", "dr"):
     for arm in ("w384", "w512", "t40k", "t80k", "c384x40k"):
         ARMS[f"{ds}_{arm}"] = [f"scale_transolver_{ds}_{arm}_seed{s}" for s in (42, 43)]
+# Coordinator amendment 2026-09-10: the ISLA 512 x 80k pilot (0.0428 fp32) sits below the Transolver 384 x 40k corner,
+# so the frontier needs Transolver at the same corner (DrivAerML only; rows 20-21 of the lane table).
+ARMS["dr_c512x80k"] = [f"scale_transolver_dr_c512x80k_seed{s}" for s in (42, 43)]
 REFS = {"hl_ref_unit_lr3e3": ("hl_evals", ["udrv_hl_transolver_full_lr3e3_seed42", "udrv_hl_transolver_full_lr3e3_seed43"]),
         "dr_ref_unit_lr3e3": ("iw_evals", ["uw_transolver_unit_lr3e3_seed42", "uw_transolver_unit_lr3e3_seed43"]),
         "dr_ref_unit_lr1e3": ("iw_evals", ["uw_transolver_unit_lr1e3_seed42", "uw_transolver_unit_lr1e3_seed43"])}
