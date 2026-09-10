@@ -12619,7 +12619,7 @@ lane tables' "numerics" column is a training label only. Reading (2), the
 1e-4 float32 floor of the middle-dimension kernel, stands and is noted in
 the helper's docstring.
 
-## 2026-09-10 — SCALE synthesis, DrivAerML half: at 512 wide × 80,000 cells all three architectures land within 3% of each other in float32 (GeoTransolver 0.0419, ISLA 0.0428, Transolver 0.0431); scale narrows the baselines' lead by 0.08 in ratio, past the 0.05 bar; none of the constant-gauge or baseline corners is density-invariant; the baselines reach that error at 0.3–0.6x ISLA's GPU-hours {#sec-nb-scale-drivaer-synthesis}
+## 2026-09-10 — SCALE synthesis, DrivAerML half: at 512 wide × 80,000 cells all three architectures land within 3% in float32 (GeoTransolver 0.0419, ISLA 0.0428 constant gauge / 0.0431 similarity gauge, Transolver 0.0431); scale narrows the baselines' lead by 0.08 in ratio, past the 0.05 bar; only ISLA's similarity-gauge corner is density-invariant (1.08x against 4x / 17x / 5x) at equal cost; the baselines reach that error at 0.3–0.6x ISLA's GPU-hours {#sec-nb-scale-drivaer-synthesis}
 
 **Setting.** The scaling study (@sec-nb-scale-prereg) asked whether the
 accuracy ordering the book reports at the frozen protocol's operating point
@@ -12661,7 +12661,7 @@ baselines have neither knob):
 | GeoTransolver, unit drive | 512 wide | 35.8M | **0.0419** (0.0419 / 0.0419) | 0.833 | 0.0460 | 0.211 s | 41.5 GB | 12.7 | **4.2** (6.5 / 1.9) | — |
 | ISLA, constant gauge, measure weights on, fast kernel | 512 wide, exact recompute | 60.2M | **0.0428** (0.0427 / 0.0429) | 0.768 | 0.0441 | 0.285 s | 22.8 GB | 22.5 | **16.7** (16.2 / 17.2) | 10.9 |
 | Transolver, unit drive | 512 wide | 23.9M | **0.0431** (0.0434 / 0.0428) | 0.833 | 0.0471 | 0.111 s | 27.6 GB | 6.6 | **4.6** (4.2 / 5.1) | 4.4 |
-| ISLA, similarity gauge, measure weights on, fast kernel | 512 wide, exact recompute | 60.2M | training (`g512x80k`, rows 30–31; bars in @sec-nb-scale-isla-launch) | | | | | | | |
+| ISLA, similarity gauge, measure weights on, fast kernel (`g512x80k`) | 512 wide, exact recompute | 60.2M | **0.0431** (0.0425 / 0.0437) | 0.700 (÷ gauge reference 0.0616); 0.774 ÷ constant-gauge reference | 0.0441 | 0.281 s | 22.9 GB | 20.2 | **1.08** | 1.53 |
 
 GeoTransolver's seed-42 probe is the resubmitted copy (the first output was
 displaced by another track's directory move and restored bit-identical;
@@ -12717,21 +12717,38 @@ scores 0.0663, worse than the 10k-trained reference's 0.0558 there. The
 baselines degrade 4–5x at the corner as at their references (GeoTransolver
 4.2x, seed-fragile 6.5x / 1.9x; Transolver 4.6x) and Transolver's corner
 pays +8% when queried at 10,000 cells (0.0465 against 0.0430). Scale buys
-capacity and resolution for every architecture and invariance for none; the
-one configuration in the program that is nearly density-invariant, ISLA's
-similarity gauge (1.21x at 10k, 1.01x at 80k, and monotone count
-generalization 0.0616 → 0.0574 from 10k to 80k cells), is the corner still
-training, with preregistered bars (within 5% of the constant-gauge corner,
-≤ 0.0449, **and** biased ÷ uniform ≤ 1.5 at 80k → principled scaling). The
-frontier statement the redirect asks for is therefore two-dimensional and
-currently reads: *at 512 × 80k on DrivAerML, GeoTransolver, ISLA and
-Transolver reach 0.042–0.043 in float32 with density sensitivities of 4x,
-17x and 5x respectively; whether any architecture reaches that error at a
-sensitivity near 1x is the pending gauge corner's question.* The 16.7x is
-not an ISLA property but a constant-gauge property (@sec-nb-centroid-derivation);
-the redirect makes the constant gauge inadmissible as a scaling result on
-its own, so ISLA's row in the bar-3 table is a capacity measurement, not a
-recommendation.
+capacity and resolution for every architecture and invariance for none of
+the constant configurations. **The similarity-gauge corner is the exception
+and the study's principled result.** ISLA with the similarity gauge (the
+program's one nearly density-invariant configuration: 1.21x at 10k and
+1.01x at 80k for its reference, with monotone count generalization
+0.0616 → 0.0574 from 10k to 80k cells) scaled to 512 wide × 80,000 cells
+scores **0.0431 in float32 (seeds 0.0425 / 0.0437) with biased ÷ uniform
+1.08 at its own 80,000 cells**, meeting both preregistered bars (≤ 0.0449,
+within 5% of the constant-gauge corner, and ≤ 1.5; neither failure bar
+fires) at the same cost as the constant-gauge corner (60.2M parameters,
+22.9 against 22.8 GB, 0.281 against 0.285 s, 20.2 against 22.5 GPU-hours).
+The gauge's 10% accuracy cost at the reference (0.0616 against 0.0558)
+vanishes at the corner (+0.7%), so the choice between the constant and the
+similarity gauge is no longer accuracy against invariance: at scale it is
+invariance for free. The one property the gauge does not buy is
+down-transfer: queried at 10,000 cells the gauge corner scores 0.0727
+(ratio 1.53), 1.69x its native error, as the constant corner's 0.0663 is
+1.55x its own; a model trained at 80,000 cells should be deployed at
+80,000. The frontier statement the redirect asks for now reads: *at
+512 × 80k on DrivAerML, GeoTransolver, ISLA and Transolver reach
+0.042–0.043 in float32; GeoTransolver and Transolver do so at density
+sensitivities of 4x and 5x, ISLA's constant gauge at 17x, and ISLA's
+similarity gauge at 1.08x — the only configuration in the study whose
+accuracy would survive a mesher that put ten times the cells on the front
+of the car.* The 16.7x is not an ISLA property but a constant-gauge
+property (@sec-nb-centroid-derivation); the redirect makes the constant
+gauge inadmissible as a scaling result on its own, so ISLA's constant-gauge
+row in the bar-3 table is a capacity measurement, and the gauge row is the
+configuration the program can adopt. Bar 3 read with the gauge row instead
+gives r = 0.0419 / 0.0431 = 0.972 (GeoTransolver) and 0.0431 / 0.0431 =
+1.000 (Transolver), shifts +0.069 and +0.072 from the constant-gauge
+reference, still past the 0.05 bar.
 
 **Bar 4, the cost frontier.** Read at matched error rather than at the
 endpoint: Transolver reaches 0.0431 for 6.6 GPU-hours (27.6 GB),
@@ -12776,8 +12793,11 @@ or more. The structural guards now in force: every evaluation imports
 `code_eval` and writes its snapshot beside its output; reducers refuse
 unnamed snapshots and skipped loads; infer.py refuses to write a summary
 outside the range of its own per-sample values (commit f9330f317). Pending
-for this entry: the ISLA 40,000-cell and 384 × 40k arms (rows 14–19,
-epoch ~330), the similarity-gauge corner and its probes (rows 30–31), and the HiLift half.
+for this entry: the ISLA 40,000-cell and 384 × 40k arms (rows 14–19, epoch
+~448, about two hours) and the HiLift half. Every ISLA evaluation and probe
+now names its snapshot per instrument (reference `code`; width arms
+`code_isla5`; token, constant-gauge corner and kernel control `code_perf`;
+gauge corner `code_eval`) and no evaluation tripped the summary guard.
 
 **What this does not say.** Nothing about HiLift (1,260 cases; training,
 I/O-bound, weeks), where the 35-case and 210-case rungs have ISLA ahead and
@@ -12785,7 +12805,10 @@ the scale question is different; nothing about learning-rate retuning
 (every arm at the protocol rate, none diverged); nothing about the interior.
 The bar-3 result says the DrivAerML surface ordering at 9M parameters and
 10,000 cells does not persist at 60M parameters and 80,000 cells; it does
-not say ISLA leads there (it does not, by 2% against GeoTransolver in
-float32), and under the redirect the constant-gauge corner that produced
-ISLA's row is a measurement of capacity, not a configuration the program
-adopts.
+not say ISLA leads there (it does not, by 2–3% against GeoTransolver in
+float32 in either gauge), and under the redirect the constant-gauge corner
+is a measurement of capacity while the similarity-gauge corner is the
+configuration the program can adopt: matched accuracy, an order of
+magnitude less density sensitivity than every other corner, equal cost.
+Whether the same holds on HiLift, where the two datasets' surface
+resolutions and case counts differ, is the pending half.
