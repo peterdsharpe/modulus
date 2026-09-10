@@ -135,9 +135,13 @@ direction scores 0.0533 in float32 (seeds 0.0532 / 0.0535) against ISLA's
 Transolver at its better rate 0.0582, 0.91x and lower on 145 of 180; the
 physical-drive GeoTransolver's 0.141 on the same cases, the 2.2x of the
 ladder, is 3.4x worse than its unit-drive self on 178 of 180 cases
-(`results/udrvl_210_reduction_2026-09-10.json`, @sec-nb-udrvl-210-verdict). The other rungs are
-reported in their sections below; only the 1,260-case rerun is still
-training. The fair-comparison protocol now requires every architecture to
+(`results/udrvl_210_reduction_2026-09-10.json`, @sec-nb-udrvl-210-verdict). The weights-off
+ablation of ISLA at this rung scores 0.0589 in float32, 0.92x of the
+weighted model and lower on 150 of 180 cases, which prices the measure
+semantics at 8% here; it remains behind the unit-drive GeoTransolver (0.91x
+of it) and at parity with Transolver (0.99x), and is not adopted
+(@sec-principle, @sec-nb-nowl-210-verdict). The other rungs are reported in
+their sections below; only the 1,260-case rerun is still training. The fair-comparison protocol now requires every architecture to
 receive the freestream at unit scale (@sec-protocol).
 
 How much of this ordering belongs to the particular 35 cases? The 35-case

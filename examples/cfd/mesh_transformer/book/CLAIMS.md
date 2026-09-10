@@ -1395,3 +1395,8 @@ interior control @sec-nb-udrv-int-prereg.
   samplers also move the metric's point distribution (common to all arms). Frame-ruling question for Peter:
   the measure-weighted centroid is the HT estimate of ∫x dA / ∫dA (an integral property); whether the ruling
   excludes it is his call; RELFRAME stays the cleanest construction.
+- **Weights-off ablation, 210 cases (2026-09-10, fp32, two seeds; results/nowl_210_reduction_2026-09-10.json).** 0.0589 (0.0581/0.0598) vs weighted
+  0.0643 → 0.916x, lower on 150/180: PERSISTS (bar ≤ 0.0611). vs unit GT 0.0533: 0.905x of weights-off (GT lower
+  149/180); vs unit Transolver 0.0582: 0.988x (parity; Transolver lower 128/180). Ablation tally: persists 35 (12%),
+  210 (8.4%), geo4 (17%), fixed (10.6%); fades DrivAerML (2.9%); pending geo21, 1,260, deflection. ABLATION ONLY —
+  write "prices the measure semantics at 8% at 210 cases"; never a configuration. NOW-L node DONE.

@@ -13820,3 +13820,36 @@ and toward the dense half); that shift is common to every arm in a row and
 cannot produce a −2% by itself, but it means the HiLift number is
 consistency of the predicted field on the points drawn, not a claim about
 the unsampled gaps.
+
+## 2026-09-10 — Verdict: the weights-off ablation persists at 210 HiLift cases (0.0589 against 0.0643 in float32, 150 of 180 cases); the measure semantics cost 8% here, and the ablation stays an ablation {#sec-nb-nowl-210-verdict}
+
+The NOW-L rung (@sec-nb-noweights-prereg, amended 2026-09-10: ablation only,
+the reference-configuration consequence retired) asks what ISLA's routing
+measure weights cost in distribution at 210 random HiLiftAeroML training
+cases. Two seeds of ISLA with the weights off (a35_hl_mt2_noweights_scarce),
+otherwise the frozen protocol, evaluated in float32 (zero skipped loads) with
+the bfloat16 pass alongside; the weighted reference is the three-seed float32
+mean. Artifact: `results/nowl_210_reduction_2026-09-10.json`.
+
+**Weights off scores 0.0589 (seeds 0.0581 / 0.0598) against 0.0643 for the
+weighted model: 0.916x, an 8.4% gain, lower on 150 of 180 validation cases
+(median weighted ÷ off 1.075).** The preregistered bars were 0.0611 or below
+to persist and 0.0624 or above to fade; the ablation persists. Velocity
+(0.0873 against 0.0937) and wall shear (0.1329 against 0.1441) move by the
+same 7–8%. Bfloat16 agrees (0.0593 against 0.0648). Against the unit-drive
+baselines of @sec-nb-udrvl-210-verdict the ablation remains behind
+GeoTransolver (0.0533, 0.905x of the weights-off model, GeoTransolver lower on
+149 of 180) and reaches parity with Transolver (0.0582, 0.988x, Transolver
+lower on 128 of 180).
+
+The ablation tally is now: persists at 35 cases (12%), 210 cases (8.4%), 4
+geometries (17%) and the fixed angle (10.6%); fades on DrivAerML (2.9%);
+pending at 21 geometries, 1,260 cases and the deflection split. Under
+@sec-principle these numbers price the measure semantics and decide nothing
+about the configuration: the weights stay on, because removing them makes
+the aggregate depend on the mesher's sampling density (19x under a 10:1
+bias, and flat rather than convergent under the area-proportional sampler in
+@sec-consistency-bench). The open mechanistic question, whether the price is
+estimator variance or the loss of a density signal, is the area-proportional
+sampling arm the generalization session is running. NOW-L closes as a node;
+its 21-geometry, 1,260-case and deflection lanes report under WAVE-3.
