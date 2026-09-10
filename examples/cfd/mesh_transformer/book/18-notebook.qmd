@@ -9902,3 +9902,19 @@ the case, so the readout is the fit to the *field* from 64 fixed views, and
 a comparison of the 10k-sample metric with the training loss shows how much
 of the floor is memorization of those views. Bars unchanged. Jobs
 695431/695433/695434; code snapshot `code_ovf`, recipe copy `recipe_ovf`.
+
+**Second amendment (2026-09-09).** The recipe's manifest resolver
+deduplicates repeated entries, so the 64-fold listing produced "Train
+samples: 1": each lane fit exactly one fixed 10,000-cell sample (cached), at
+0.02–0.23 s per step, but for only 320 steps, and every lane on DrivAerML
+and the interior finished in about three minutes with the loss still
+falling. This is the literal single-sample test, so it is kept in that form
+and lengthened: 20,000 single-step epochs on the one cached sample
+(checkpoints every 1,000), which is one to two hours per lane. Two readouts
+are then separated by construction: the training loss (fit to the fixed
+sample) and the evaluation, which draws its samples of the same case with a
+different sampler seed (7 against the training run's 42) at 10,000 and
+40,000 cells, so it measures the fit to the *field* from one view. The
+64-view variant would need a manifest resolver that keeps duplicates and is
+not pursued now. Bars unchanged; the 320-step runs are archived
+(`runs_ovf_attempt3/`).
