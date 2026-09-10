@@ -1213,3 +1213,45 @@ missing, in `code_support` on the cluster and in the repository, so that
 an evaluation can never again report a number for a model it did not
 load; the main session's CLAIMS carry the rule that an identical error
 from two checkpoints is a load failure.
+
+## 2026-09-10 — Resolved: the T3 ISLA fine-tune started from the correct weights (frozen-init lane reproduces the source's zero-shot error to four digits); the ISLA half of the few-shot verdict stands; loader fix committed {#sec-nb-snapshot-resolved}
+
+**Frozen-init probe (lane 28, `campC_probe_v3c_lr0`).** The T3 fine-tune's
+source checkpoint `mt2_v3c_seed42` was loaded through the campaign's
+`init_from` hook under `code_support`, trained one epoch at learning rate
+zero (five optimizer steps that change nothing), saved as
+`ISLA.0.1.mdlus`, and evaluated on the 99 fastback cases in float32 under
+`code_support`: pressure **0.9791**, wall shear 1.3956. The same source
+evaluated directly under `code` (snapshot probe 2, job 699070): pressure
+**0.9791**, wall shear 1.3956. The hook loaded the trained weights and the
+renamed class computes the same function as the legacy one to four
+digits; the fine-tune arms of @sec-nb-campc-t3-verdict started from the
+real DrivAerML model, and **the ISLA half of the T3 verdict stands as
+written** (pretraining at matched learning rate worth 6%, inside the
+"worth nothing" clause). The first-batch losses that raised the alarm
+(fine-tune 0.105 against scratch 0.080 on the fastback training cases)
+reflect the source's genuine zero-shot mismatch to the fastback family
+(0.98 relative L2, close to predicting zero), not a broken initialization.
+
+**Snapshot probe 2, the rest.** Cross-snapshot evaluation fails
+symmetrically: the code_support-trained T3 checkpoints (`ISLA.0.200.mdlus`)
+evaluated under `code` give an identical 1.5301 for the fine-tune and the
+scratch arm, the mirror image of the 1.5667 pair, because `code` looks for
+`MeshTransformer2.0.200.mdlus`. The single-family ISLA reference
+`iw_mt2_lr1e3_seed42` under `code` scores 0.7824 on the fastback cases
+zero-shot in float32 (the program book's bf16 0.99 was the constant-gauge
+`mt2_v3c` configuration; that checkpoint scores 0.9791 here), so T2's ISLA
+reference is re-evaluated for both seeds under `code` into the campaign's
+evaluation layout before T2 is graded.
+
+**Fix.** `physicsnemo/utils/checkpoint.py::load_checkpoint` now raises
+`FileNotFoundError` when a training checkpoint exists for the requested
+epoch but the named model's weights file does not, on both the
+non-distributed and the distributed path, with the expected file name and
+the files present in the message; a directory without a training
+checkpoint keeps the fresh-start skip. Regression test
+`test_load_checkpoint_refuses_uninitialized_model` reproduces the renamed
+class case and the fresh-directory case. Commit c50b87e0a, standalone for
+lifting into an upstream PR; the same patch is applied to `code_support`
+on the cluster (`transfer/patch_code_support_checkpoint.py`), which the D1,
+campaign D and campaign C evaluation launchers share.
