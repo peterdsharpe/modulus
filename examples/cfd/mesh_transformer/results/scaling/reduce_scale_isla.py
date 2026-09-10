@@ -131,7 +131,11 @@ for ds in ARMS:
 # highlift/hl_scale_isla_probe_fp32_aga.sbatch.
 PROBE = {"dr_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
          "dr_c512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
-         "dr_w512": [f"{T}/scale_probe_fp32/scale_isla_dr_w512_seed{s}" for s in (42, 43)]}
+         "dr_w512": [f"{T}/scale_probe_fp32/scale_isla_dr_w512_seed{s}" for s in (42, 43)],
+         # the same probe at 80,000 cells: resolution-generalization test (the 80k-trained model at its own density,
+         # and the 10k-trained reference queried 8x denser)
+         "dr_ref@80k": [f"{T}/scale_probe_fp32_80k/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_c512x80k@80k": [f"{T}/scale_probe_fp32_80k/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)]}
 
 
 def _probe_metric(d):

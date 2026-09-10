@@ -9866,3 +9866,27 @@ the transfer session's campaign E launcher) on the width 512 × 80,000-cell
 arm, the width 512 × 10,000-cell arm, and the reference (whose float32 probe
 campaign E already produced). Readout: biased ÷ uniform pressure error per
 arm, so the cost frontier carries the invariance property.
+
+**Density-bias probe, float32, 10,000 cells (biased ÷ uniform pressure
+error, two-seed means).** Reference width 192: uniform 0.0558, biased 0.675,
+ratio **12.1x**; width 512: 0.051 → 0.739, **14.5x**; width 512 × 80,000
+cells: 0.0663 → 0.721, **10.9x**. Width leaves the constant-gauge
+configuration's density sensitivity where the book found it (13–14.5x,
+@sec-robustness-density); none of the scaled arms is more invariant than
+the reference. The probe also exposes a second dependence: the model
+trained at 80,000 cells, queried at 10,000, scores 0.0663, worse than its
+native 0.0428 and worse than the reference's 0.0558 at the same 10,000. Part
+of the token-scaling gain is therefore tied to the training sampling density
+and does not transfer to a coarser query set, which under the program's
+redirect counts against it until the mirror test settles how much: the same
+probe at 80,000 cells for both the 80k-trained model (its own density) and
+the 10k-trained reference (queried 8x denser) is running
+(highlift/hl_scale_isla_probe80k_fp32_aga.sbatch). Bar for the mirror test,
+stated now: token scaling is *resolution-general* if the 80k-trained model
+keeps ≥ 80% of its in-distribution gain over the reference when both are
+evaluated at the other's density (i.e. the mean of its 10k-cell and 80k-cell
+uniform errors is ≤ 0.0531, halfway between 0.0428 and the reference's
+0.0558 adjusted for the reference's own 80k behaviour); *resolution-bound*
+if its 10k-cell error stays above the reference's 10k-cell error, as
+observed, and the reference queried at 80k does not degrade by more than
+5%.
