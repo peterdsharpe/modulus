@@ -116,6 +116,8 @@ for ds, arms in ARMS.items():
                 v = [t[k] for _, t in per if t and t.get(k) is not None]
                 a[k] = st.mean(v) if v else None
             a["numerics"] = "fast point-softmax (code_perf)" if arm in FAST_KERNEL else "reference kernel (code_isla5 / reference lanes)"
+            if arm == "w384nw":
+                a["label"] = "ablation (discretization-dependent; never a reference configuration)"
             out["arms"][f"{ds}_{arm}"] = a
 for ds in ARMS:
     ref = out["arms"].get(f"{ds}_ref")
@@ -124,6 +126,37 @@ for ds in ARMS:
             a = out["arms"].get(f"{ds}_{arm}")
             if a:
                 a["pressure_over_ref"] = a["pressure_l2"] / ref["pressure_l2"]
+# Density-bias probe (float32; 10:1 biased sampling vs the uniform control, both at 10,000 cells): biased / uniform
+# pressure error per arm. The reference arm's probe comes from the transfer session's campaign E; the SCALE arms from
+# highlift/hl_scale_isla_probe_fp32_aga.sbatch.
+PROBE = {"dr_ref": [f"{T}/transfer/campaign_e_fp32/iw_mt2_lr1e3_seed{s}" for s in (42, 43)],
+         "dr_c512x80k": [f"{T}/scale_probe_fp32/scale_isla_dr_c512x80k_seed{s}" for s in (42, 43)],
+         "dr_w512": [f"{T}/scale_probe_fp32/scale_isla_dr_w512_seed{s}" for s in (42, 43)]}
+
+
+def _probe_metric(d):
+    ps = glob.glob(f"{d}/*/metrics.jsonl") + glob.glob(f"{d}/*/*/metrics.jsonl")
+    if not ps:
+        return None
+    rows = [json.loads(l) for l in open(ps[0])]
+    rows = [r["metrics"]["pressure_l2"] for r in rows if r.get("phase") == "infer_step"]
+    return st.mean(rows) if rows else None
+
+
+out["density_probe"] = {}
+for arm, dirs in PROBE.items():
+    per = []
+    for d in dirs:
+        u, b = _probe_metric(f"{d}/unif"), _probe_metric(f"{d}/biased")
+        if u and b:
+            per.append({"uniform": u, "biased": b, "biased_over_uniform": b / u})
+    if per:
+        out["density_probe"][arm] = {"n_seeds": len(per), "uniform": st.mean(x["uniform"] for x in per), "biased": st.mean(x["biased"] for x in per),
+                                     "biased_over_uniform": st.mean(x["biased_over_uniform"] for x in per), "per_seed": per}
+        if arm in out["arms"]:
+            out["arms"][arm]["density_biased_over_uniform"] = out["density_probe"][arm]["biased_over_uniform"]
 json.dump(out, open(sys.argv[1], "w"), indent=1)
+for k, v in out["density_probe"].items():
+    print("probe", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk != "per_seed"})
 for k, v in out["arms"].items():
     print(k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk != "seed_pressure"})

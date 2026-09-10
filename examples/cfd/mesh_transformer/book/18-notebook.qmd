@@ -9794,11 +9794,14 @@ two-seed means).** Reference width 192 (8.9M) 0.0557 → width 384 (34.2M)
 0.0577 / 0.0544 / 0.0536 with fp32-over-bf16 shifts 0.965 / 0.949 / 0.949.
 Step times 0.273 / 0.274 / 0.278 s and peak memory 9.8 (older code) / 5.2 /
 6.1 GB: the 6.8x parameter increase is free in wall-clock at 10,000 tokens.
-The de-confound pair, width 384 with the routing measure weights off, scores
-0.0505 (0.979 of the weighted width-384 arm, within the 3% "fades" band of
+The width-384 arm with the routing measure weights off, an *ablation*
+(discretization-dependent; never a reference configuration), scores 0.0505
+(0.979 of the weighted width-384 arm, within the 3% "fades" band of
 @sec-nb-noweights-prereg): at full DrivAerML data and width 384 the weights
 cost 2%, against 12% at 35 HiLift cases, so the two knobs are nearly
-independent here and the width gain is not a weights artifact. Width bar 1
+independent here and the width gain is not a weights artifact. The
+reference ISLA in every table of this study is the measure-weighted
+configuration. Width bar 1
 on DrivAerML: **scales** (0.91 ≤ 0.95).
 
 **Kernel control: the fast point-softmax kernel is training-neutral.** The
@@ -9847,3 +9850,19 @@ DrivAerML lanes keep 20 minutes. The throttling above is the cost caveat
 for every HiLift row of this study; the DrivAerML half is the study's
 headline so far and its verdict is written when the 40,000-cell and
 384 × 40,000 arms land.
+
+**Program redirect (2026-09-10) applied to this track.** Accuracy must come
+from physically principled means that generalize; discretization-dependent
+shortcuts are never adopted on accuracy alone. Accordingly: the reference
+ISLA in every table here is the measure-weighted configuration, and the
+weights-off width-384 pair is labelled an ablation (discretization-dependent;
+never a reference configuration) in the reduction and above. Width and token
+count are capacity, not shortcuts, and stand. A discretization-invariance
+evaluation is added beside the accuracy row: the program's 10:1
+density-bias probe on DrivAerML (`drivaer_probe_biased3` against the uniform
+control `drivaer_probe_unif2`, 10,000 cells, float32, each run's own
+snapshot and flags; highlift/hl_scale_isla_probe_fp32_aga.sbatch, cloned from
+the transfer session's campaign E launcher) on the width 512 × 80,000-cell
+arm, the width 512 × 10,000-cell arm, and the reference (whose float32 probe
+campaign E already produced). Readout: biased ÷ uniform pressure error per
+arm, so the cost frontier carries the invariance property.
