@@ -10560,3 +10560,65 @@ GeoTransolver's rate at this rung), Transolver-unit ÷ ISLA 0.829, weights-off
 Transolver 0.114 < ISLA weights off 0.122 < ISLA weights on 0.138 stands
 in float32. The 35-case numbers in chapter 5 and the index may be quoted
 without a precision label; the table caption and the verdict row say so.
+
+## 2026-09-09 — FP32-REEVAL verdict, DrivAerML surface: float32 lowers the unit-drive baselines' errors by 8–10% and ISLA's by 3–4%; the offset is architecture-dependent and every DrivAerML ratio moves against ISLA {#sec-nb-fp32-reeval-verdict-drivaer}
+
+**Readout** (@sec-nb-fp32-reeval-prereg, group 3; 37 checkpoints with a
+completed bf16 evaluation on the 48 validation cars, sampled points
+bit-identical between the bf16 and float32 artifacts for every run;
+results/fp32_reeval/fp32_shift_drivaer_2026-09-09.json). Pressure relative
+L2, seed means; shift = float32 ÷ bf16 − 1 of the mean; per-case max =
+largest absolute per-case change in any seed; last column = arm ÷ ISLA
+reference under bf16 → float32.
+
+| arm | seeds | bf16 | float32 | shift | per-case max | ÷ ISLA reference (bf16 → fp32) |
+|---|---|---|---|---|---|---|
+| ISLA, reference (weights on, constant gauge) | 3 | 0.0578 | 0.0558 | -3.37% | 8.0% | 1.000 → 1.000 |
+| ISLA, measure weights off | 2 | 0.0561 | 0.0542 | -3.41% | 7.3% | 0.971 → 0.971 |
+| ISLA, similarity gauge | 2 | 0.0634 | 0.0616 | -2.85% | 9.0% | 1.097 → 1.103 |
+| ISLA, second-moment channel | 2 | 0.0583 | 0.0559 | -4.00% | 11.9% | 1.008 → 1.002 |
+| ISLA, 6,500 cells | 2 | 0.0684 | 0.0659 | -3.63% | 10.9% | 1.183 → 1.180 |
+| GeoTransolver, unit drive | 3 | 0.0556 | 0.0503 | -9.48% | 21.3% | 0.963 → 0.902 |
+| GeoTransolver, physical velocity | 2 | 0.0548 | 0.0498 | -9.09% | 17.6% | 0.949 → 0.893 |
+| Transolver, unit drive, lr 3e-3 | 2 | 0.0563 | 0.0517 | -8.18% | 20.7% | 0.974 → 0.925 |
+| Transolver, unit drive, lr 1e-3 | 2 | 0.0593 | 0.0548 | -7.61% | 13.8% | 1.026 → 0.981 |
+
+By configuration (all 37 runs, pressure):
+
+| configuration | runs | median shift | range | median per-case max |
+|---|---|---|---|---|
+| geotransolver_physical_drive | 4 | -5.28% | -9.10% to -0.31% | 11.1% |
+| geotransolver_unit_drive | 3 | -9.55% | -9.57% to -9.30% | 17.4% |
+| isla_reference | 7 | -3.63% | -4.30% to -3.14% | 8.6% |
+| isla_second_moment | 2 | -3.99% | -4.41% to -3.57% | 9.4% |
+| isla_similarity_gauge | 2 | -2.85% | -3.24% to -2.45% | 7.0% |
+| isla_variant | 12 | -2.98% | -4.14% to +0.08% | 6.1% |
+| isla_weights_off | 2 | -3.41% | -3.77% to -3.04% | 6.3% |
+| transolver_unit_drive | 4 | -7.83% | -8.33% to -7.60% | 16.0% |
+
+Per-architecture medians: GeoTransolver -9.10%, ISLA
+-3.24%, Transolver -7.83%.
+
+**Verdict.** No DrivAerML arm is reporting-equivalent by the mean bar: the
+unit-drive GeoTransolver's float32 error is 9.3–9.6% below its bf16 error
+(physical-drive 9.1%), the unit-drive Transolver's 7.6–8.3%, and ISLA's
+3.0–4.4% in every configuration (weights on or off, similarity gauge,
+second-moment channel, 6,500 cells); per-case changes reach 17–21% for the
+baselines and 5–12% for ISLA. The architecture-dependence bar fires (medians
+differ by 5–6 points), so the book's DrivAerML surface comparisons, all
+measured under bf16, understated the baselines' lead: under float32
+GeoTransolver-unit ÷ ISLA falls from 0.96 to 0.90, GeoTransolver-physical ÷
+ISLA from 0.95 to 0.89, Transolver-unit (3e-3) ÷ ISLA from 0.97 to 0.93,
+i.e. ISLA is about 10% behind GeoTransolver and 8% behind Transolver on
+DrivAerML surface pressure, not 4–5%. Within-ISLA comparisons move little:
+weights-off stays 3% better (0.971), the second-moment channel stays free
+(+0.2%), the similarity gauge stays 10% worse. The two learning-rate
+outliers (GeoTransolver at 1e-2, ISLA's odd head) shift by under 1.5%
+because their errors are dominated by large-scale failure, not rounding.
+Mechanism as far as this instrument shows it: the offset is a property of
+the trained checkpoint on this dataset (it was 0.1–0.3% for the same
+architectures at 35 HiLift cases), consistent with bf16 rounding in the
+baselines' 256-slice attention over 10,000 tokens at DrivAerML's tighter
+error levels (0.05) mattering where at 0.12–0.40 it did not. The transfer
+session's first look (float32 8.5–9.7% below bf16 for the baselines, 2.8–4.0%
+for ISLA) is reproduced here on the program's own evaluations.

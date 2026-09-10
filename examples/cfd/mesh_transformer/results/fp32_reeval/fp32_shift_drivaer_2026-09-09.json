@@ -1,0 +1,1146 @@
+{
+ "n_runs": 36,
+ "runs": {
+  "iw_gt_lr1e2_seed42": {
+   "root": "iw_evals",
+   "arch": "geotransolver",
+   "config": "geotransolver_physical_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.7390287046631178,
+     "fp32_mean": 0.7367422704895338,
+     "shift": -0.0030938367605439776,
+     "per_case_max_abs_shift": 0.014487323204950053,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": true
+  },
+  "iw_gt_lr1e2_seed43": {
+   "root": "iw_evals",
+   "arch": "geotransolver",
+   "config": "geotransolver_physical_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.22051680646836758,
+     "fp32_mean": 0.21725330222398043,
+     "shift": -0.014799344760397126,
+     "per_case_max_abs_shift": 0.055871606745052094,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_gt_lr1e3_seed42": {
+   "root": "iw_evals",
+   "arch": "geotransolver",
+   "config": "geotransolver_physical_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05461960992154976,
+     "fp32_mean": 0.04965121718123555,
+     "shift": -0.09096353392948653,
+     "per_case_max_abs_shift": 0.17569390058667966,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_gt_lr1e3_seed43": {
+   "root": "iw_evals",
+   "arch": "geotransolver",
+   "config": "geotransolver_physical_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.055013413773849607,
+     "fp32_mean": 0.05001904031572243,
+     "shift": -0.09078464897048855,
+     "per_case_max_abs_shift": 0.16684533136000312,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_gauge_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_similarity_gauge",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.06381868058815598,
+     "fp32_mean": 0.06225401636523505,
+     "shift": -0.024517338943721656,
+     "per_case_max_abs_shift": 0.04977296504310014,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_gauge_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_similarity_gauge",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.06294416931147377,
+     "fp32_mean": 0.060902180848643184,
+     "shift": -0.03244126477745679,
+     "per_case_max_abs_shift": 0.08984060364488267,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_lr1e2_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_reference",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.08737815481921037,
+     "fp32_mean": 0.08362360283111532,
+     "shift": -0.042969000614208386,
+     "per_case_max_abs_shift": 0.10907354385547663,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_lr1e2_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_reference",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.09139562072232366,
+     "fp32_mean": 0.08766599372029305,
+     "shift": -0.04080750229118624,
+     "per_case_max_abs_shift": 0.0858904279575402,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_lr1e3_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_reference",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05874508301106592,
+     "fp32_mean": 0.05681824932495753,
+     "shift": -0.032799914262533814,
+     "per_case_max_abs_shift": 0.06309201256823738,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_lr1e3_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_reference",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05672003515064716,
+     "fp32_mean": 0.054659611700723566,
+     "shift": -0.03632620192232172,
+     "per_case_max_abs_shift": 0.07961272606549863,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_lr1e3_seed44": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_reference",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05784916256864866,
+     "fp32_mean": 0.055995789278919496,
+     "shift": -0.03203803144997641,
+     "per_case_max_abs_shift": 0.07112008580534501,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_oddhead_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.7696471425394217,
+     "fp32_mean": 0.7702273577451706,
+     "shift": 0.0007538717077990587,
+     "per_case_max_abs_shift": 0.003031963401567639,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": true
+  },
+  "iw_mt2_oddhead_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.7611471824347973,
+     "fp32_mean": 0.7610219890872637,
+     "shift": -0.00016447981470957274,
+     "per_case_max_abs_shift": 0.0018070459134780226,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": true
+  },
+  "iw_mt2_parity2_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.0671718754650404,
+     "fp32_mean": 0.06531212897971272,
+     "shift": -0.027686386191428936,
+     "per_case_max_abs_shift": 0.053080594134848225,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_parity2_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.06697573450704415,
+     "fp32_mean": 0.06472067868647476,
+     "shift": -0.03366974378358212,
+     "per_case_max_abs_shift": 0.06745007151229043,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_parity_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.07057833050688107,
+     "fp32_mean": 0.0680086655387034,
+     "shift": -0.03640869583798312,
+     "per_case_max_abs_shift": 0.14739804855744976,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_parity_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.06668269409177204,
+     "fp32_mean": 0.06494892427387337,
+     "shift": -0.02600029650140656,
+     "per_case_max_abs_shift": 0.06191306804364183,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_true5_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.07168984700304766,
+     "fp32_mean": 0.06918916928892334,
+     "shift": -0.03488189497765304,
+     "per_case_max_abs_shift": 0.10303781785642296,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_true5_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.06965075006398062,
+     "fp32_mean": 0.06742385984398425,
+     "shift": -0.031972236019723765,
+     "per_case_max_abs_shift": 0.05974388728410018,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_true7_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.07292684237472713,
+     "fp32_mean": 0.06991026325461765,
+     "shift": -0.04136445541696565,
+     "per_case_max_abs_shift": 0.08336161889553584,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_true7_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.07031917859179278,
+     "fp32_mean": 0.06804524447458486,
+     "shift": -0.03233732479169371,
+     "per_case_max_abs_shift": 0.0836786787115773,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_v3c_r6500_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_reference",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.06967578975794216,
+     "fp32_mean": 0.06748985243029892,
+     "shift": -0.03137298242671249,
+     "per_case_max_abs_shift": 0.10919186135853365,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_v3c_r6500_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_reference",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.06704664897794525,
+     "fp32_mean": 0.06427138213378687,
+     "shift": -0.0413930731284019,
+     "per_case_max_abs_shift": 0.09188433341944424,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_v5a4_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.20889283219973245,
+     "fp32_mean": 0.20627235900610685,
+     "shift": -0.012544581669130861,
+     "per_case_max_abs_shift": 0.030299189773911772,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "iw_mt2_v5a4_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_variant",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "iw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.22128851960102716,
+     "fp32_mean": 0.2193076160425941,
+     "shift": -0.008951677936137492,
+     "per_case_max_abs_shift": 0.02137738613368645,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": true
+  },
+  "mom2_mt2_lr1e3_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_second_moment",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "mom2",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.057686803940062724,
+     "fp32_mean": 0.0556255365566661,
+     "shift": -0.035732043424321236,
+     "per_case_max_abs_shift": 0.06843550166846146,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "mom2_mt2_lr1e3_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_second_moment",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "mom2",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05882316695836683,
+     "fp32_mean": 0.05622633437936505,
+     "shift": -0.04414642586040529,
+     "per_case_max_abs_shift": 0.11890537423640657,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "now_mt2_lr1e3_seed42": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_weights_off",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "now_mt2",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05689293146133423,
+     "fp32_mean": 0.054749150993302464,
+     "shift": -0.03768096339856786,
+     "per_case_max_abs_shift": 0.07347601792758296,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "now_mt2_lr1e3_seed43": {
+   "root": "iw_evals",
+   "arch": "isla",
+   "config": "isla_weights_off",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "now_mt2",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05533433829744657,
+     "fp32_mean": 0.053649566136300564,
+     "shift": -0.030447136678306563,
+     "per_case_max_abs_shift": 0.052328333409300654,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "uw_gt_unit_lr1e3_seed42": {
+   "root": "iw_evals",
+   "arch": "geotransolver",
+   "config": "geotransolver_unit_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "uw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05532941548153758,
+     "fp32_mean": 0.05004335598399242,
+     "shift": -0.0955379602611024,
+     "per_case_max_abs_shift": 0.17436626171988379,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "uw_gt_unit_lr1e3_seed43": {
+   "root": "iw_evals",
+   "arch": "geotransolver",
+   "config": "geotransolver_unit_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "uw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05614980643925568,
+     "fp32_mean": 0.05077577359043062,
+     "shift": -0.09570884014780756,
+     "per_case_max_abs_shift": 0.16748495654805773,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "uw_gt_unit_lr1e3_seed44": {
+   "root": "iw_evals",
+   "arch": "geotransolver",
+   "config": "geotransolver_unit_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "uw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05536517330134908,
+     "fp32_mean": 0.05021573711807529,
+     "shift": -0.09300858059715156,
+     "per_case_max_abs_shift": 0.21265526736547913,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "uw_transolver_unit_lr1e3_seed42": {
+   "root": "iw_evals",
+   "arch": "transolver",
+   "config": "transolver_unit_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "uw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.058923958567902446,
+     "fp32_mean": 0.05443447781726718,
+     "shift": -0.07619109204045926,
+     "per_case_max_abs_shift": 0.1377637672061397,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "uw_transolver_unit_lr1e3_seed43": {
+   "root": "iw_evals",
+   "arch": "transolver",
+   "config": "transolver_unit_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "uw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05967064465706547,
+     "fp32_mean": 0.05513450068732103,
+     "shift": -0.07601969101916395,
+     "per_case_max_abs_shift": 0.1381899085519901,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "uw_transolver_unit_lr3e3_seed42": {
+   "root": "iw_evals",
+   "arch": "transolver",
+   "config": "transolver_unit_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "uw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05608987257195016,
+     "fp32_mean": 0.051580434354643025,
+     "shift": -0.08039665648237271,
+     "per_case_max_abs_shift": 0.20721886679951496,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  },
+  "uw_transolver_unit_lr3e3_seed43": {
+   "root": "iw_evals",
+   "arch": "transolver",
+   "config": "transolver_unit_drive",
+   "dataset": "drivaerml",
+   "rung": "drivaerml_435",
+   "family": "uw",
+   "n_cases": 48,
+   "fields": {
+    "pressure_l2": {
+     "bf16_mean": 0.05644874041900039,
+     "fp32_mean": 0.051747696939855814,
+     "shift": -0.0832798649580182,
+     "per_case_max_abs_shift": 0.1816202210663902,
+     "n": 48
+    }
+   },
+   "points": {
+    "checked": 6,
+    "identical": true,
+    "mismatches": []
+   },
+   "reporting_equivalent": false
+  }
+ },
+ "by_architecture": {
+  "geotransolver": {
+   "n_runs": 7,
+   "median_shift": -0.09096353392948653,
+   "min_shift": -0.09570884014780756,
+   "max_shift": -0.0030938367605439776,
+   "median_per_case_max": 0.16748495654805773,
+   "n_not_reporting_equivalent": 6,
+   "n_points_mismatch": 0
+  },
+  "isla": {
+   "n_runs": 25,
+   "median_shift": -0.03244126477745679,
+   "min_shift": -0.04414642586040529,
+   "max_shift": 0.0007538717077990587,
+   "median_per_case_max": 0.07112008580534501,
+   "n_not_reporting_equivalent": 22,
+   "n_points_mismatch": 0
+  },
+  "transolver": {
+   "n_runs": 4,
+   "median_shift": -0.07829387426141599,
+   "min_shift": -0.0832798649580182,
+   "max_shift": -0.07601969101916395,
+   "median_per_case_max": 0.15990506480919014,
+   "n_not_reporting_equivalent": 4,
+   "n_points_mismatch": 0
+  }
+ },
+ "by_family": {
+  "iw": {
+   "n_runs": 25,
+   "median_shift": -0.03233732479169371,
+   "min_shift": -0.09096353392948653,
+   "max_shift": 0.0007538717077990587,
+   "median_per_case_max": 0.07112008580534501,
+   "n_not_reporting_equivalent": 21,
+   "n_points_mismatch": 0
+  },
+  "mom2": {
+   "n_runs": 2,
+   "median_shift": -0.039939234642363264,
+   "min_shift": -0.04414642586040529,
+   "max_shift": -0.035732043424321236,
+   "median_per_case_max": 0.09367043795243402,
+   "n_not_reporting_equivalent": 2,
+   "n_points_mismatch": 0
+  },
+  "now_mt2": {
+   "n_runs": 2,
+   "median_shift": -0.03406405003843721,
+   "min_shift": -0.03768096339856786,
+   "max_shift": -0.030447136678306563,
+   "median_per_case_max": 0.0629021756684418,
+   "n_not_reporting_equivalent": 2,
+   "n_points_mismatch": 0
+  },
+  "uw": {
+   "n_runs": 7,
+   "median_shift": -0.0832798649580182,
+   "min_shift": -0.09570884014780756,
+   "max_shift": -0.07601969101916395,
+   "median_per_case_max": 0.17436626171988379,
+   "n_not_reporting_equivalent": 7,
+   "n_points_mismatch": 0
+  }
+ },
+ "by_config": {
+  "geotransolver_physical_drive": {
+   "n_runs": 4,
+   "median_shift": -0.052791996865442836,
+   "min_shift": -0.09096353392948653,
+   "max_shift": -0.0030938367605439776,
+   "median_per_case_max": 0.11135846905252761,
+   "n_not_reporting_equivalent": 3,
+   "n_points_mismatch": 0
+  },
+  "geotransolver_unit_drive": {
+   "n_runs": 3,
+   "median_shift": -0.0955379602611024,
+   "min_shift": -0.09570884014780756,
+   "max_shift": -0.09300858059715156,
+   "median_per_case_max": 0.17436626171988379,
+   "n_not_reporting_equivalent": 3,
+   "n_points_mismatch": 0
+  },
+  "isla_reference": {
+   "n_runs": 7,
+   "median_shift": -0.03632620192232172,
+   "min_shift": -0.042969000614208386,
+   "max_shift": -0.03137298242671249,
+   "median_per_case_max": 0.0858904279575402,
+   "n_not_reporting_equivalent": 7,
+   "n_points_mismatch": 0
+  },
+  "isla_second_moment": {
+   "n_runs": 2,
+   "median_shift": -0.039939234642363264,
+   "min_shift": -0.04414642586040529,
+   "max_shift": -0.035732043424321236,
+   "median_per_case_max": 0.09367043795243402,
+   "n_not_reporting_equivalent": 2,
+   "n_points_mismatch": 0
+  },
+  "isla_similarity_gauge": {
+   "n_runs": 2,
+   "median_shift": -0.028479301860589223,
+   "min_shift": -0.03244126477745679,
+   "max_shift": -0.024517338943721656,
+   "median_per_case_max": 0.0698067843439914,
+   "n_not_reporting_equivalent": 2,
+   "n_points_mismatch": 0
+  },
+  "isla_variant": {
+   "n_runs": 12,
+   "median_shift": -0.02982931110557635,
+   "min_shift": -0.04136445541696565,
+   "max_shift": 0.0007538717077990587,
+   "median_per_case_max": 0.060828477663871006,
+   "n_not_reporting_equivalent": 9,
+   "n_points_mismatch": 0
+  },
+  "isla_weights_off": {
+   "n_runs": 2,
+   "median_shift": -0.03406405003843721,
+   "min_shift": -0.03768096339856786,
+   "max_shift": -0.030447136678306563,
+   "median_per_case_max": 0.0629021756684418,
+   "n_not_reporting_equivalent": 2,
+   "n_points_mismatch": 0
+  },
+  "transolver_unit_drive": {
+   "n_runs": 4,
+   "median_shift": -0.07829387426141599,
+   "min_shift": -0.0832798649580182,
+   "max_shift": -0.07601969101916395,
+   "median_per_case_max": 0.15990506480919014,
+   "n_not_reporting_equivalent": 4,
+   "n_points_mismatch": 0
+  }
+ },
+ "by_architecture_dataset": {
+  "geotransolver|drivaerml": {
+   "n_runs": 7,
+   "median_shift": -0.09096353392948653,
+   "min_shift": -0.09570884014780756,
+   "max_shift": -0.0030938367605439776,
+   "median_per_case_max": 0.16748495654805773,
+   "n_not_reporting_equivalent": 6,
+   "n_points_mismatch": 0
+  },
+  "isla|drivaerml": {
+   "n_runs": 25,
+   "median_shift": -0.03244126477745679,
+   "min_shift": -0.04414642586040529,
+   "max_shift": 0.0007538717077990587,
+   "median_per_case_max": 0.07112008580534501,
+   "n_not_reporting_equivalent": 22,
+   "n_points_mismatch": 0
+  },
+  "transolver|drivaerml": {
+   "n_runs": 4,
+   "median_shift": -0.07829387426141599,
+   "min_shift": -0.0832798649580182,
+   "max_shift": -0.07601969101916395,
+   "median_per_case_max": 0.15990506480919014,
+   "n_not_reporting_equivalent": 4,
+   "n_points_mismatch": 0
+  }
+ },
+ "by_architecture_rung": {
+  "geotransolver|drivaerml_435": {
+   "n_runs": 7,
+   "median_shift": -0.09096353392948653,
+   "min_shift": -0.09570884014780756,
+   "max_shift": -0.0030938367605439776,
+   "median_per_case_max": 0.16748495654805773,
+   "n_not_reporting_equivalent": 6,
+   "n_points_mismatch": 0
+  },
+  "isla|drivaerml_435": {
+   "n_runs": 25,
+   "median_shift": -0.03244126477745679,
+   "min_shift": -0.04414642586040529,
+   "max_shift": 0.0007538717077990587,
+   "median_per_case_max": 0.07112008580534501,
+   "n_not_reporting_equivalent": 22,
+   "n_points_mismatch": 0
+  },
+  "transolver|drivaerml_435": {
+   "n_runs": 4,
+   "median_shift": -0.07829387426141599,
+   "min_shift": -0.0832798649580182,
+   "max_shift": -0.07601969101916395,
+   "median_per_case_max": 0.15990506480919014,
+   "n_not_reporting_equivalent": 4,
+   "n_points_mismatch": 0
+  }
+ },
+ "by_config_rung": {
+  "geotransolver_physical_drive|drivaerml_435": {
+   "n_runs": 4,
+   "median_shift": -0.052791996865442836,
+   "min_shift": -0.09096353392948653,
+   "max_shift": -0.0030938367605439776,
+   "median_per_case_max": 0.11135846905252761,
+   "n_not_reporting_equivalent": 3,
+   "n_points_mismatch": 0
+  },
+  "geotransolver_unit_drive|drivaerml_435": {
+   "n_runs": 3,
+   "median_shift": -0.0955379602611024,
+   "min_shift": -0.09570884014780756,
+   "max_shift": -0.09300858059715156,
+   "median_per_case_max": 0.17436626171988379,
+   "n_not_reporting_equivalent": 3,
+   "n_points_mismatch": 0
+  },
+  "isla_reference|drivaerml_435": {
+   "n_runs": 7,
+   "median_shift": -0.03632620192232172,
+   "min_shift": -0.042969000614208386,
+   "max_shift": -0.03137298242671249,
+   "median_per_case_max": 0.0858904279575402,
+   "n_not_reporting_equivalent": 7,
+   "n_points_mismatch": 0
+  },
+  "isla_second_moment|drivaerml_435": {
+   "n_runs": 2,
+   "median_shift": -0.039939234642363264,
+   "min_shift": -0.04414642586040529,
+   "max_shift": -0.035732043424321236,
+   "median_per_case_max": 0.09367043795243402,
+   "n_not_reporting_equivalent": 2,
+   "n_points_mismatch": 0
+  },
+  "isla_similarity_gauge|drivaerml_435": {
+   "n_runs": 2,
+   "median_shift": -0.028479301860589223,
+   "min_shift": -0.03244126477745679,
+   "max_shift": -0.024517338943721656,
+   "median_per_case_max": 0.0698067843439914,
+   "n_not_reporting_equivalent": 2,
+   "n_points_mismatch": 0
+  },
+  "isla_variant|drivaerml_435": {
+   "n_runs": 12,
+   "median_shift": -0.02982931110557635,
+   "min_shift": -0.04136445541696565,
+   "max_shift": 0.0007538717077990587,
+   "median_per_case_max": 0.060828477663871006,
+   "n_not_reporting_equivalent": 9,
+   "n_points_mismatch": 0
+  },
+  "isla_weights_off|drivaerml_435": {
+   "n_runs": 2,
+   "median_shift": -0.03406405003843721,
+   "min_shift": -0.03768096339856786,
+   "max_shift": -0.030447136678306563,
+   "median_per_case_max": 0.0629021756684418,
+   "n_not_reporting_equivalent": 2,
+   "n_points_mismatch": 0
+  },
+  "transolver_unit_drive|drivaerml_435": {
+   "n_runs": 4,
+   "median_shift": -0.07829387426141599,
+   "min_shift": -0.0832798649580182,
+   "max_shift": -0.07601969101916395,
+   "median_per_case_max": 0.15990506480919014,
+   "n_not_reporting_equivalent": 4,
+   "n_points_mismatch": 0
+  }
+ },
+ "bars": {
+  "reporting_equivalent": "|shift| <= 1% and per-case max <= 5% (pressure)",
+  "architecture_dependent": "per-architecture medians differ by > 1 pt"
+ }
+}
