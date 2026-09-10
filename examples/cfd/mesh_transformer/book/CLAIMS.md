@@ -900,3 +900,10 @@ interior control @sec-nb-udrv-int-prereg.
   or after 2026-09-09 runs with `dataloader.pin_memory=false` (+35% step time: 0.388 s vs
   0.287 s for the 10k-query ISLA arm on GB300). Never compare such a step time to an earlier
   pinned one without saying so; the 0.28 s / 6.3 GiB eager QT numbers are pinned-memory numbers.
+- **Cost row HOLD (2026-09-09).** The point-over-slices softmax layout was 85–95% of every ISLA
+  step (old kernel). "ISLA's step is 3.7x slower" and every ISLA step time in the book were
+  measured with the old kernel; hold that row until the matched harness is rerun with the fast
+  kernel (#sec-nb-cost-matched-fast, scaling session). Every trained ISLA checkpoint used the old
+  kernel; bf16 outputs differ 1.0–1.5% between kernels, so evaluations of existing checkpoints
+  keep the old kernel (fast_point_softmax must stay off in evaluation snapshots) until an
+  eval-time neutrality check on a trained checkpoint is recorded.
