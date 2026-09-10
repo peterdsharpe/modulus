@@ -12446,3 +12446,176 @@ training kernel. Evaluation logs now state the instantiated kernel, and the
 lane tables' "numerics" column is a training label only. Reading (2), the
 1e-4 float32 floor of the middle-dimension kernel, stands and is noted in
 the helper's docstring.
+
+## 2026-09-10 — SCALE synthesis, DrivAerML half: at 512 wide × 80,000 cells all three architectures land within 3% of each other in float32 (GeoTransolver 0.0419, ISLA 0.0428, Transolver 0.0431); scale narrows the baselines' lead by 0.08 in ratio, past the 0.05 bar; none of the constant-gauge or baseline corners is density-invariant; the baselines reach that error at 0.3–0.6x ISLA's GPU-hours {#sec-nb-scale-drivaer-synthesis}
+
+**Setting.** The scaling study (@sec-nb-scale-prereg) asked whether the
+accuracy ordering the book reports at the frozen protocol's operating point
+(about 9M parameters, 10,000 sampled surface cells per case) survives when
+the three architectures are given the memory a 288 GB device offers. Three
+tracks ran the arms (ISLA @sec-nb-scale-isla-launch, GeoTransolver
+@sec-nb-scale-gt-verdict, Transolver @sec-nb-scale-transolver-verdict) on
+DrivAerML at full data (435 cars, 48 validation cars), two seeds per arm,
+the frozen 500-epoch protocol, the unit-drive freestream for the baselines,
+and the corner 512 wide × 80,000 cells added for all three after ISLA's
+pilot. This entry answers bars 3 and 4 of the preregistration (does scale
+change the ordering; which architecture reaches a given error cheapest) and
+adds the program redirect's requirement (@sec-nb-principle-audit): every
+accuracy is reported beside its discretization-invariance reading, the
+biased ÷ uniform pressure error under a 10:1 sampling-density bias. The
+HiLift half is training under the reader contention described in
+@sec-nb-hilift-io (25–68 epochs per day; one to two weeks at full protocol,
+no epoch cut) and is not in this entry.
+
+**Instrument.** Float32 inference is the headline for every number
+(@sec-nb-fp32-instrument); bfloat16 is shown where the offset matters. All
+evaluations of the corner arms and every density probe ran under the
+program-wide guarded evaluation snapshot `code_eval`
+(@sec-nb-code-eval-adopted); the earlier single-knob arms were evaluated
+under their training snapshots and their float32 numbers were reproduced per
+case by `code_eval` in the identity check. Every reducer refuses a run whose
+evaluation log shows a skipped checkpoint load, an unnamed snapshot, or a
+tripped inference summary guard (zero hits across the 44 GeoTransolver,
+44 Transolver and all ISLA logs). Pressure relative L2, 48 cars, two-seed
+means; seed spreads are under 1.5% on every accuracy row.
+
+**The corner, 512 wide × 80,000 cells** (GPU-hours = 500 epochs × 108 steps
+× median step × 4 GPUs; ISLA's rows state the routing measure weights and
+the point-softmax kernel because both are configuration choices; the
+baselines have neither knob):
+
+| architecture | configuration | params | pressure fp32 (seeds) | ÷ own reference | pressure bf16 | step | peak memory | GPU-h | biased ÷ uniform at 80k (seeds) | at 10k |
+|---|---|---|---|---|---|---|---|---|---|---|
+| GeoTransolver, unit drive | 512 wide | 35.8M | **0.0419** (0.0419 / 0.0419) | 0.833 | 0.0460 | 0.22 s | 41 GB | 13 | **4.2** (6.5 / 1.9) | — |
+| ISLA, constant gauge, measure weights on, fast kernel | 512 wide, exact recompute | 60.2M | **0.0428** (0.0427 / 0.0429) | 0.768 | 0.0441 | 0.285 s | 22.8 GB | 22.5 | **16.7** (16.2 / 17.2) | 10.9 |
+| Transolver, unit drive | 512 wide | 23.9M | **0.0431** (0.0434 / 0.0428) | 0.833 | 0.0471 | 0.111 s | 27.6 GB | 6.6 | **4.6** (4.2 / 5.1) | 4.4 |
+| ISLA, similarity gauge, measure weights on, fast kernel | 512 wide, exact recompute | 60.2M | training (`g512x80k`, rows 30–31; bars in @sec-nb-scale-isla-launch) | | | | | | | |
+
+GeoTransolver's step time and memory are the launch record's first-link
+values; the track's reduction replaces them when it lands, and its seed-42
+probe is the resubmitted copy (the first output was displaced by another
+track's directory move and restored bit-identical; both copies read 0.2738
+biased / 0.0419 uniform).
+
+**The references and the single-knob arms, for the same readers** (the
+reference row of each architecture is the book's operating point; ratios are
+÷ that architecture's own reference):
+
+| architecture | reference (width × cells) | fp32 | bf16 | step | memory | GPU-h | biased ÷ uniform at 10k | width 384 | width 512 | 40k cells | 80k cells | 384 × 40k |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| GeoTransolver, unit drive | 256 × 10k, 9.0M | 0.0503 | 0.0556 | 0.15 s | 4.1 GB | 8.7 | 9.5 (11.8 / 7.9 / 8.8) | 0.915 | 0.893 | 0.943 | 0.916 | 0.878 |
+| ISLA, constant gauge, weights on | 192 × 10k, 8.9M | 0.0557 | 0.0577 | 0.273 s | 9.8 GB | 21.3 | 12.1 (12.5 / 11.7) | 0.926 | 0.912 | training (`t40k`) | 0.840 (fast kernel) | training (`c384x40k`) |
+| Transolver, unit drive, lr 3e-3 | 256 × 10k, 6.0M | 0.0517 | 0.0563 | 0.097 s | 3.2 GB | 5.8 | 3.9 (2.2 / 5.5) | 0.928 | 0.913 | 0.932 | 0.921 | 0.880 |
+| ISLA, similarity gauge, weights on (`iw_mt2_gauge`) | 192 × 10k, 8.9M | 0.0616 | — | as constant gauge | | | **1.21** (1.21 / 1.21); 1.01 at 80k | — | — | — | — | — |
+
+Width scales for all three (bar 1: 9–11% at 512 wide, met everywhere) and
+all three are resolution-limited (bar 2: 8% for the baselines at 80,000
+cells, 16% for ISLA). The two knobs are close to additive for every
+architecture, so the corner is each architecture's best DrivAerML
+configuration in this study, with no sign of saturation at 512 wide or
+80,000 cells.
+
+**Bar 3, does scale change the ordering.** With r = baseline ÷ ISLA at the
+matched arm, in float32:
+
+| pair | r at the reference (10k, reference widths) | r at the corner (512 × 80k) | shift | bar (±0.05) |
+|---|---|---|---|---|
+| GeoTransolver ÷ ISLA | 0.0503 / 0.0557 = **0.903** | 0.0419 / 0.0428 = **0.979** | **+0.076** | scale favours ISLA |
+| Transolver ÷ ISLA | 0.0517 / 0.0557 = **0.928** | 0.0431 / 0.0428 = **1.007** | **+0.079** | scale favours ISLA |
+
+Both shifts exceed the preregistered 0.05 bar in ISLA's favour: at the
+operating point the unit-drive baselines lead ISLA by 7–10% on DrivAerML
+(@sec-nb-fp32-drivaer-regrade); at the corner the three architectures sit
+within 3% of each other, GeoTransolver 2% ahead of ISLA and Transolver 1%
+behind. The mechanism is the token knob, not width: ISLA gains 16% from
+80,000 cells at the reference width against 8% for either baseline, while
+the width gains are the same 9–11% for all three. The book's DrivAerML
+accuracy ordering is therefore an ordering at 9M parameters and 10,000
+cells, and the recommendation section gains the scale clause the
+preregistration anticipated. Under bfloat16 the same corner would read
+ISLA 0.0441 ahead of GeoTransolver 0.0460 and Transolver 0.0471: the
+instrument, not the models, decides a 4–6% "lead" there, which is why the
+float32 rule exists.
+
+**The redirect's reading: accuracy × invariance.** None of the three
+constant-configuration corners is discretization-invariant. ISLA's
+constant-gauge corner degrades 16.7x under the 10:1 bias at its own
+80,000 cells (10.9x at 10,000), the same class as its reference's 12.1x, and
+its 80k-cell token gain does not transfer down: queried at 10,000 cells it
+scores 0.0663, worse than the 10k-trained reference's 0.0558 there. The
+baselines degrade 4–5x at the corner as at their references (GeoTransolver
+4.2x, seed-fragile 6.5x / 1.9x; Transolver 4.6x) and Transolver's corner
+pays +8% when queried at 10,000 cells (0.0465 against 0.0430). Scale buys
+capacity and resolution for every architecture and invariance for none; the
+one configuration in the program that is nearly density-invariant, ISLA's
+similarity gauge (1.21x at 10k, 1.01x at 80k, and monotone count
+generalization 0.0616 → 0.0574 from 10k to 80k cells), is the corner still
+training, with preregistered bars (within 5% of the constant-gauge corner,
+≤ 0.0449, **and** biased ÷ uniform ≤ 1.5 at 80k → principled scaling). The
+frontier statement the redirect asks for is therefore two-dimensional and
+currently reads: *at 512 × 80k on DrivAerML, GeoTransolver, ISLA and
+Transolver reach 0.042–0.043 in float32 with density sensitivities of 4x,
+17x and 5x respectively; whether any architecture reaches that error at a
+sensitivity near 1x is the pending gauge corner's question.* The 16.7x is
+not an ISLA property but a constant-gauge property (@sec-nb-centroid-derivation);
+the redirect makes the constant gauge inadmissible as a scaling result on
+its own, so ISLA's row in the bar-3 table is a capacity measurement, not a
+recommendation.
+
+**Bar 4, the cost frontier.** Read at matched error rather than at the
+endpoint: Transolver reaches 0.0431 for 6.6 GPU-hours (27.6 GB),
+GeoTransolver 0.0419 for about 13 GPU-hours (41 GB), ISLA 0.0428 for 22.5
+GPU-hours (22.8 GB, with the exact recompute). The baselines reach the
+corner error at 0.3–0.6x of ISLA's GPU-hours because their attention runs
+over 256 slices and widening is nearly free in step time (GeoTransolver
+0.15 → 0.22 s, Transolver 0.097 → 0.111 s from reference to corner), while
+ISLA's per-point relational geometry makes its step 0.285 s at the corner
+(1.3x GeoTransolver, 2.6x Transolver) even with the fast point-softmax
+kernel, which is what made the 80k arms affordable at all (3.4 s per step
+before it, @sec-nb-isla-perf-verdict). ISLA is the most memory-efficient of
+the three at the corner (22.8 against 27.6 and 41 GB) because of the exact
+activation recompute, and every corner uses under 15% of the device; the
+binding cost on this hardware is step time, not memory, for all three. At
+matched GPU-hours the frontier reads: for about 6–7 GPU-hours Transolver
+gives 0.043; for 13 GeoTransolver gives 0.042; ISLA's cheapest
+configuration in the study, the reference at 21 GPU-hours, gives 0.056, and
+its corner at 22.5 gives 0.043. The cost-matched comparison of
+@sec-nb-cost-matched-fast (ISLA 1.09x GeoTransolver's step at the operating
+point) holds at 10,000 cells; at 80,000 the gap widens to 1.3x because the
+relational-geometry cost is per point.
+
+**The bfloat16 offset, one sentence.** Across the six DrivAerML reference
+and corner rows the bfloat16 − float32 offset is an additive floor per
+architecture rather than a percentage: GeoTransolver +0.0041 to +0.0053,
+Transolver +0.0040 to +0.0046, ISLA +0.0013 to +0.0020 (per-case up to
++0.011 for the baselines), so as errors fall from 0.05 to 0.042 the relative
+offset grows from 8–10% to 10–11% for the baselines and stays 3–4% for
+ISLA; every close comparison in this study moved toward the baselines when
+read in float32, and the corner ordering inverted (above).
+
+**Struck and pending, stated.** Two 80,000-cell readings of the 10k-trained
+ISLA references (0.814 / 0.892) produced under the legacy `code` snapshot are
+struck: the same checkpoints on the same datasets read 0.0528 and 0.0574
+under `code_eval`, the saved predictions of the struck runs are identical to
+the healthy ones per car, and the defect was in the legacy snapshot's
+metric aggregation (@sec-nb-softmax-dim1-test; the ISLA track's entry lists
+every 80k reading with its snapshot and job). No number in any chapter was
+produced by an evaluation under a pre-`code_eval` snapshot at 65,536 points
+or more. The structural guards now in force: every evaluation imports
+`code_eval` and writes its snapshot beside its output; reducers refuse
+unnamed snapshots and skipped loads; infer.py refuses to write a summary
+outside the range of its own per-sample values (commit f9330f317). Pending
+for this entry: the ISLA 40,000-cell and 384 × 40k arms (rows 14–19,
+epoch ~330), the similarity-gauge corner and its probes (rows 30–31), the
+GeoTransolver track's reduced corner cost, and the HiLift half.
+
+**What this does not say.** Nothing about HiLift (1,260 cases; training,
+I/O-bound, weeks), where the 35-case and 210-case rungs have ISLA ahead and
+the scale question is different; nothing about learning-rate retuning
+(every arm at the protocol rate, none diverged); nothing about the interior.
+The bar-3 result says the DrivAerML surface ordering at 9M parameters and
+10,000 cells does not persist at 60M parameters and 80,000 cells; it does
+not say ISLA leads there (it does not, by 2% against GeoTransolver in
+float32), and under the redirect the constant-gauge corner that produced
+ISLA's row is a measurement of capacity, not a configuration the program
+adopts.
