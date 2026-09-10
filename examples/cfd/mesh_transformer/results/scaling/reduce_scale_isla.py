@@ -40,10 +40,20 @@ FAST_KERNEL = {"t80k", "c512x80k", "kernelctrl", "g512x80k"}
 STEP = re.compile(r"Epoch (\d+) \[(\d+)/(\d+)\] Loss: ([0-9.eE+-]+|nan) Step: ([0-9.]+)s Mem: ([0-9.]+)GB")
 
 
+def _log_clean(root, run):
+    """Refuse a run whose evaluation log records a skipped checkpoint load (the evaluation would be of the seeded init)."""
+    for lg in glob.glob(f"{T}/{root}/{run}.log") + glob.glob(f"{T}/{root}/{run}/*.log"):
+        txt = open(lg, errors="ignore").read()
+        if "skipping load" in txt or "Could not find valid model file" in txt:
+            raise AssertionError(f"{root}/{run}: evaluation log records a skipped checkpoint load ({lg}); number struck")
+    return True
+
+
 def _metrics_in(root, run):
     ps = glob.glob(f"{T}/{root}/{run}/*/metrics.jsonl") or glob.glob(f"{T}/{root}/{run}/metrics.jsonl")
     if not ps:
         return None
+    _log_clean(root, run)
     rows = [json.loads(l) for l in open(ps[0])]
     rows = [r["metrics"] for r in rows if r.get("phase") == "infer_step"]
     return {f: st.mean(r[f] for r in rows) for f in F if f in rows[0]} | {"n_cases": len(rows)}
@@ -151,6 +161,10 @@ def _probe_metric(d):
     ps = glob.glob(f"{d}/*/metrics.jsonl") + glob.glob(f"{d}/*/*/metrics.jsonl")
     if not ps:
         return None
+    for lg in glob.glob(f"{d}.log"):
+        txt = open(lg, errors="ignore").read()
+        if "skipping load" in txt or "Could not find valid model file" in txt:
+            return None  # skipped checkpoint load: the probe evaluated the seeded initialization; struck
     rows = [json.loads(l) for l in open(ps[0])]
     rows = [r["metrics"]["pressure_l2"] for r in rows if r.get("phase") == "infer_step"]
     return st.mean(rows) if rows else None
