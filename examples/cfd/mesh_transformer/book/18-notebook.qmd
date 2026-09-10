@@ -9746,3 +9746,17 @@ started a minute earlier without the flag and were cancelled, their run
 directories (startup logs only) deleted, and their chains left to restart
 from the flagged rows. All other ISLA lanes in this study run the
 reference kernel.
+
+**Acceptance of the fast-kernel lanes** (first link, four GPUs per lane):
+
+| arm (fast point-softmax kernel) | peak memory per GPU | step time | projected training time |
+|---|---|---|---|
+| DrivAerML kernel control (width 192, 10k) | 3.7 GB | 0.11 s | ~1.7 hours |
+| HiLift width 192, 80k | 12.3 GB | 0.31 s | ~13.5 hours (was ~6.3 days) |
+| DrivAerML width 192, 80k | 12.3 GB | 0.26 s | ~4 hours (was ~2.1 days) |
+| HiLift width 512, 80k | 22.4 GB | 0.34 s | ~15 hours |
+| DrivAerML width 512, 80k | 22.4 GB | 0.29 s | ~4.5 hours |
+
+The point-over-slices softmax was the step, not the invariants: with it
+replaced, an 80,000-token ISLA at width 512 costs a tenth more per step
+than the reference configuration did, at 22 GB of the 288 available.
