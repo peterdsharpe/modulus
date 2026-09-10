@@ -9884,3 +9884,21 @@ metric itself has a floor at 10k points).
 **Launch.** Launcher $T/overfit_aga.sbatch (array 0–2, four single-GPU lanes
 per node), evaluation $T/overfit_eval_aga.sbatch; job prefix ovf-, run ids
 ovf_*; code snapshot code_isla5. About two hours per lane.
+
+**Amendment before readout (2026-09-09).** The first launch was
+input-bound: with one case per epoch the pipeline re-read a fresh 10,000-cell
+sample from the full boundary mesh every step, at 11.3 s per step on
+HiLiftAeroML and 2.5 s on DrivAerML (the HiLift arms would have taken 63
+hours). Those lanes were cancelled at epochs 46–94 and their run directories
+archived (`runs_ovf_attempt1/`, not used). The instrument now matches the
+literal form of the test: `MeshDataset` gained a `cache_host` option (a
+host-side cache of the reader's output by index, plumbed through the recipe
+as `dataloader.cache_host`; commit c98121f22 with a unit test), the training
+case is listed 64 times in the manifest so that 64 *distinct fixed*
+subsamples are read once and then cycled, and training runs 320 epochs of
+64 cached samples (20,480 single-sample steps) with checkpoints every 20
+epochs. The evaluation still draws fresh 10,000- and 40,000-cell samples of
+the case, so the readout is the fit to the *field* from 64 fixed views, and
+a comparison of the 10k-sample metric with the training loss shows how much
+of the floor is memorization of those views. Bars unchanged. Jobs
+695431/695433/695434; code snapshot `code_ovf`, recipe copy `recipe_ovf`.
