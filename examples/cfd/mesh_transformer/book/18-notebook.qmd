@@ -10861,6 +10861,47 @@ protocol; per the coordinator's decision they run unshortened and unheld,
 and the HiLift half of this verdict is written when they land. The
 DrivAerML half above is complete.
 
+**Sample-frame probe (2026-09-10, program ruling).** The pool-frame probe
+datasets centred the mesh *before* the biased draw, so GeoTransolver and
+Transolver, which consume absolute centred coordinates, were handed the
+unbiased pool mean; a biased mesher would deliver the sample's own mean.
+The canonical sample-frame datasets (`drivaer_probe_{biased3,unif2}_sf`, 40k
+pool, and `_sf_80k`, 320k pool; the pool-frame files with the CenterMesh
+block moved to directly after the sampler) are run in float32 under
+`code_eval` for the corner at 80,000 and at 10,000 cells (the design point,
+like-for-like with the reference) and for the unit-drive reference at 10,000
+(the control: the generalization session measured about 12x there against
+9.5x pool-frame), seven units, two draws each, outputs under the
+track-private `hl_evals_probe_fp32/gt_sf/`. Readout: biased ÷ uniform as
+"sample frame (pool frame)" per arm and seed, reducer key
+`density_probe_sf`; results appended below when they land.
+
+**Sample-frame probe readout** (float32, `code_eval`; 14 unit logs, zero
+failures, zero skipped loads, guard silent; 74 logs checked in total;
+results/scaling/gt_scale_reduction_2026-09-09.json, key `density_probe_sf`):
+
+| arm | cells at evaluation | seed | uniform pressure | biased pressure | biased ÷ uniform, sample frame (pool frame) |
+|---|---|---|---|---|---|
+| reference uw_gt_unit (256 wide, trained at 10,000) | 10,000 | 42 / 43 / 44 | 0.0502 / 0.0506 / 0.0503 | 0.603 / 0.604 / 0.628 | **12.0 / 11.9 / 12.5** (11.8 / 7.9 / 8.8) |
+| corner c512x80k (512 wide, trained at 80,000) | 80,000 | 42 / 43 | 0.0421 / 0.0420 | 0.391 / 0.485 | **9.3 / 11.6** (6.5 / 1.9) |
+| corner c512x80k | 10,000 (design point) | 42 / 43 | 0.0457 / 0.0451 | 0.421 / 0.503 | **9.2 / 11.1** (—) |
+
+The control reproduces the generalization session's figure (about 12x for
+the unit-drive reference in the sample frame; 12.0–12.5 here, tight across
+seeds where the pool frame gave 7.9–11.8), which validates the launcher.
+With the pool-mean artifact removed, the corner is as density-sensitive as
+the reference: 9–12x at its own 80,000 cells and 9–11x at the 10,000-cell
+design point, against 12x for the reference. The apparent improvement in the
+pool-frame probe (6.5 / 1.9) was the centring artifact, not a property of
+the larger model; the seed asymmetry disappears with it. Two further facts
+from the same runs: evaluating the 80,000-cell-trained corner at 10,000
+cells costs 8% on the uniform draw (0.0454 against 0.0421), so the corner's
+accuracy is tied to its training resolution; and GeoTransolver at every
+scale tried loses an order of magnitude under a 10:1 sampling bias once the
+frame is the sample's own. Under the program's redirect, no GeoTransolver
+configuration in this study passes the invariance test, and the width and
+token gains are reported as capacity, not as adoptable configurations.
+
 ## 2026-09-10 — Float32 re-grade of the interior headline: bfloat16 inflated GeoTransolver-volume's errors by 20–23%, so its pressure lead over ISLA's query-token configuration was hidden; in float32 ISLA leads on velocity only {#sec-nb-fp32-interior-regrade}
 
 **Source.** The transfer session's same-snapshot float32 re-evaluation of the
@@ -11172,6 +11213,35 @@ the 40k/80k-cell arms under the HiLift reader contention (measured over the
 first 15 h), so they finish in about one to two weeks at the full protocol;
 per the coordinator no epoch cut is applied. Their verdict is appended here
 when they land.
+
+**Addendum (2026-09-10): sample-frame density probe.** The pool-frame probe
+datasets centre the mesh *before* the biased draw, so models that consume
+absolute centred coordinates (Transolver, GeoTransolver) were handed the
+unbiased pool's mean; a biased mesher would deliver the sample's own mean.
+The program's canonical sample-frame variants (`drivaer_probe_{biased3,unif2}_sf`
+with a 40,000-cell pool for 10,000-cell probes, `_sf_80k` with a 320,000-cell
+pool for 80,000-cell probes; CenterMesh moved to directly after the sampler,
+nothing else changed) were run in float32 under `code_eval` with the snapshot
+sidecar in every output directory (hl_evals_probe_fp32/transolver_sf/), two
+seeds each. Readout: biased ÷ uniform pressure error, **sample frame (pool
+frame)**.
+
+| arm | probe cells | uniform fp32 | biased fp32 | biased ÷ uniform, seed 42 | seed 43 | mean |
+|---|---|---|---|---|---|---|
+| reference (256, 10k) | 10,000 | 0.0518 | 0.601 | **10.2** (2.2) | **13.0** (5.5) | **11.6** (3.9) |
+| c512x80k at the design point | 10,000 | 0.0467 | 0.642 | **12.2** (3.9) | **15.3** (4.9) | **13.7** (4.4) |
+| c512x80k at its own resolution | 80,000 | 0.0433 | 0.644 | **13.0** (4.2) | **16.8** (5.1) | **14.9** (4.6) |
+
+The reference's sample-frame ratio (10–13x) reproduces the generalization
+session's independent measurement within seed noise, which validates the
+launcher. The pool-frame probe under-reported every ratio by 2.5–3x by
+leaking the unbiased centre. In the honest frame the largest Transolver is
+*more* sensitive to sampling density than the reference (13–17x against
+10–13x), with the same seed fragility; its biased-sample error (0.64) is
+fifteen times its uniform error, so the corner arm's 16.7% accuracy gain
+carries no discretization invariance and slightly worsens it. Provenance:
+56 logs checked, zero skipped-load or summary-guard hits; sidecar present in
+all six output directories.
 
 ## 2026-09-10 — FP32-REEVAL verdict, all groups: 209 checkpoints re-evaluated in float32 on bit-identical points; the bf16 offset is small where errors are large and grows to 8–18% where errors are small, always more for the baselines than for ISLA {#sec-nb-fp32-reeval-verdict-all}
 
@@ -12051,6 +12121,170 @@ down-transfer cost that every 80k-trained arm shows. Reducer fix recorded
 with this entry: the bf16 side's snapshot name was named and checked by the
 guard but dropped from the per-arm `snapshot` field (shown as `?`); it is
 now carried, so every arm row names both instruments' snapshots.
+
+## 2026-09-10 — Verdict SCALE (ISLA), DrivAerML half complete: width scales (512-wide 0.91x) and the protocol is resolution-limited (80,000 cells 0.84x); both corners reach 0.77x, and only the similarity-gauge corner is adoptable; HiLift half training, input-bound, weeks {#sec-nb-scale-isla-verdict}
+
+**Instrument.** Every number below is float32 evaluation on the 48
+validation cars (bf16 alongside; the two artifacts sampled bit-identical
+points on all 48 cars for every arm), two seeds, final checkpoint, frozen
+protocol (500 epochs, learning rate 1e-3, no augmentation). Every
+evaluation names its snapshot (sidecar or manifest), every log is free of
+skipped checkpoint loads, and no evaluation tripped the recipe's
+summary-range guard. Costs are read from each lane's own training log:
+parameters, peak memory, median step time, and GPU-hours as the sum of
+logged step times over four GPUs. Reduction:
+results/scaling/isla_scale_reduction_2026-09-09.json.
+
+**DrivAerML, all configurations (ISLA, 435 cars).**
+
+| arm | hidden | cells | params | pressure L2 fp32 (seeds) | ÷ ref | bf16 | peak mem GB | step s | GPU-h | biased ÷ uniform 10k / 80k | training numerics | eval snapshot |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| reference | 192 | 10,000 | 8.87M | **0.0557** (0.0568 / 0.0547) | 1.00 | 0.0577 | 9.81 | 0.273 | 21.3 | 12.1x / 12.7x | reference kernel (`code`) | `code` |
+| width ×2 | 384 | 10,000 | 34.2M | **0.0516** (0.0519 / 0.0513) | 0.93 | 0.0544 | 5.17 | 0.274 | 22.3 | — | reference kernel (`code_isla5`) | `code_isla5` |
+| width ×2.7 | 512 | 10,000 | 60.2M | **0.0508** (0.0511 / 0.0506) | 0.91 | 0.0536 | 6.10 | 0.278 | 22.7 | 14.5x / — | reference kernel (`code_isla5`) | `code_isla5` |
+| tokens ×4 | 192 | 40,000 | 8.87M | **0.0492** (0.0496 / 0.0488) | 0.88 | 0.0511 | 6.72 | 1.28 | 86.4 | — | reference kernel + exact recompute (`code_isla5`) | `code_eval` |
+| tokens ×8 | 192 | 80,000 | 8.87M | **0.0468** (0.0472 / 0.0464) | 0.84 | 0.0484 | 12.9 | 0.272 | 21.7 | — | fast point-softmax + exact recompute (`code_perf`) | `code_perf` |
+| corner | 384 | 40,000 | 34.2M | **0.0452** (0.0453 / 0.0451) | 0.81 | 0.0469 | 10.0 | 1.29 | 86.4 | — | reference kernel + exact recompute (`code_isla5`) | `code_eval` |
+| corner, pilot | 512 | 80,000 | 60.2M | **0.0428** (0.0427 / 0.0429) | 0.77 | 0.0441 | 22.8 | 0.285 | 22.5 | 10.9x / 16.7x | fast point-softmax + exact recompute (`code_perf`) | `code_perf` |
+| corner, similarity gauge | 512 | 80,000 | 60.2M | **0.0431** (0.0426 / 0.0437) | 0.77 | 0.0441 | 22.9 | 0.281 | 20.2 | **1.53x / 1.08x** | fast point-softmax + exact recompute (`code_perf`) | `code_eval` |
+| kernel control | 192 | 10,000 | 8.87M | 0.0567 (0.0567 / 0.0567) | 1.02 | 0.0596 | 3.89 | 0.161 | 19.0 | — | fast point-softmax (`code_perf`) | `code_perf` |
+| ablation: weights off (never a reference configuration) | 384 | 10,000 | 34.2M | 0.0505 (0.0514 / 0.0496) | 0.91 | 0.0537 | 5.17 | 0.275 | 23.1 | — | reference kernel (`code_isla5`) | `code_isla5` |
+
+Two cost columns need their provenance stated. Peak memory is not
+comparable across snapshots: the reference lanes trained under the legacy
+`code` snapshot (9.81 GB at width 192) while the kernel control, the same
+configuration under `code_perf`, peaks at 3.89 GB, so the 5–6 GB of the
+wide arms reflects the newer snapshots' allocator behaviour, not a memory
+saving from width; within a snapshot the ordering is as expected (width 512
+above 384; 80,000 cells with exact recompute 12.9 GB at width 192 and 22.9
+GB at width 512). GPU-hours follow the kernel: the two 40,000-cell arms
+trained on the reference point-softmax kernel at 1.28 s per step (86
+GPU-hours) because the fast kernel was adopted after they launched, while
+the 80,000-cell arms on the fast kernel ran at 0.28 s (21–23 GPU-hours),
+the same step time as the 10,000-cell arms. The cost frontier below
+therefore reads the 40,000-cell points as measured and notes that on the
+fast kernel they would sit near the reference's cost.
+
+**Bars (preregistered in @sec-nb-scale-prereg; e_ref = 0.0557 in the
+float32 instrument, 0.0577 in bf16; both instruments give the same
+verdicts).**
+
+1. *Width scales.* The 512-wide arm is 8.8% better than the reference
+   (0.0508; bf16 7.1%), past the 5% bar. The gain is front-loaded: 384 takes
+   7.4% and the step from 384 to 512 adds 1.6%, inside the seed spread, so
+   width is scaling but flattening by 512 at 10,000 cells. Cost of width at
+   this count: 6.8x the parameters for 2% more step time (attention over
+   10,000 points, not the width, sets the step).
+2. *Resolution-limited.* The 80,000-cell arm at the reference width is 16.0%
+   better (0.0468; bf16 16.1%), past the 5% bar by a wide margin; 40,000
+   cells takes 11.7%. The frozen protocol's 10,000 cells per car is the
+   binding limit on DrivAerML, not the parameter count: the count lever
+   (16%) is twice the width lever (9%) at equal GPU-hours on the fast
+   kernel.
+3. *Ordering* (bar 3) and the *cross-architecture frontier* (bar 4) belong
+   to the synthesis entry; ISLA's own frontier, GPU-hours against error, is
+   (21.3, 0.0557) → (22.7, 0.0508) → (21.7, 0.0468) → (22.5, 0.0428): at
+   equal cost on the fast kernel, every configuration on the frontier is a
+   token-count step, and width pays only at the corner.
+4. *Corners.* Width and count compose: 384 × 40,000 reaches 0.0452 (0.81x)
+   and 512 × 80,000 reaches 0.0428 (0.77x), against 0.91x and 0.84x for the
+   two levers alone, so the levers are close to independent (the product of
+   the single-lever ratios, 0.77, equals the measured corner).
+5. *Kernel control.* The fast point-softmax kernel at the reference
+   configuration scores 0.0567 against 0.0557 (+1.8%, seeds 0.0567 / 0.0567
+   against 0.0568 / 0.0547): training-neutral within the seed spread, so the
+   fast-kernel arms are comparable with the reference-kernel arms.
+
+**Density sensitivity and what is adoptable.** The 10:1 density-bias
+probe (float32; the ratio of the error under the biased sampler to the
+uniform control) is 11–17x for every constant-gauge configuration at every
+width and count measured (reference 12.1x at 10k and 12.7x at 80k; width 512
+14.5x; the 512 × 80,000 corner 10.9x at 10k and 16.7x at its native 80k), so
+neither lever moves the constant gauge's dependence on the sampling
+distribution. The similarity-gauge corner holds 1.08x at its native count
+and 1.53x at 10,000 cells while matching the constant-gauge corner's
+accuracy (0.0431 against 0.0428) at equal parameters, memory and step time.
+Under the 2026-09-10 redirect (principled generalization over accuracy) the
+constant-gauge gains are recorded as measurements of the levers, and the
+similarity-gauge corner is the one scaled configuration the program may
+adopt. The count asymmetry recorded earlier stands for both corners: the
+80k-trained models lose accuracy at an eighth of their count (0.0663 and
+0.0727 at 10,000 cells) while the 10k-trained references improve
+monotonically to 80,000 (0.0528 and 0.0574).
+
+**Consequence for the book.** ISLA's DrivAerML pressure error of 0.0557
+(0.0577 bf16) is a number at 8.9M parameters and 10,000 cells per car; at
+60M parameters and 80,000 cells it is 0.0431 with the density invariance
+kept. The accuracy ordering the chapters report is an ordering at the
+frozen operating point until the synthesis entry places the baselines'
+scaling beside this one; the recommendation section gains a scale clause
+either way.
+
+**HiLift half: training, input-bound, weeks.** Fourteen HiLiftAeroML lanes
+(1,260 cases) are running under the fleet's reader contention; measured at
+2026-09-10 13:46 PDT, about 23 hours after launch:
+
+| HiLift arm | lanes | epoch of 500 | recent median step | epochs per day | remaining |
+|---|---|---|---|---|---|
+| width 384, width 512, width 384 weights-off | 6 | 58–62 | 1.2–2.0 s | 60–64 | about 7 days |
+| 40,000 cells (192 and 384 wide) | 4 | 27–31 | 1.8–2.1 s | 28–32 | about 16 days |
+| 80,000 cells (192 and 512 wide, fast kernel) | 4 | 26–31 | 3.0–3.5 s | 27–32 | about 16 days |
+
+The coordinating session's decision stands: full protocol, no hold, no
+epoch cut (stall threshold 45 minutes, chain-ahead restarts). The HiLift
+reference is 0.0405 in float32 (0.0413 bf16; 262 GPU-hours at 0.57 s per
+step). The HiLift half of this entry is written when the lanes land,
+evaluated in both precisions the same way; the bars are the same with
+e_ref = 0.0405.
+
+**Open item appended when reduced:** the coordinating session's sample-frame
+density probe (canonical `drivaer_probe_{biased3,unif2}_sf{,_80k}.yaml`,
+CenterMesh moved to directly after the sampler; ISLA centres internally, so
+its ratios are expected to equal the pool-frame values) on the two corners
+at 80,000 and 10,000 cells and the two references at 10,000 cells, twelve
+units under `code_eval` in float32 (job 704888, output
+`scale_probe_fp32_sf{,_80k}/`, reducer key `density_probe_sample_frame`,
+reported as "sample frame (pool frame)").
+
+**Sample-frame probe: ISLA's ratios are unchanged, as expected, and the
+model is translation-invariant to float32 roundoff.** Twelve units, all
+loaded, all `code_eval`, no guard trips; two-seed means, float32, biased ÷
+uniform in the sample frame with the pool-frame value in parentheses, and
+the uniform-sampling error the same way:
+
+| model | trained at | cells evaluated | biased ÷ uniform, sample frame (pool frame) | uniform error, sample frame (pool frame) |
+|---|---|---|---|---|
+| constant-gauge reference (192) | 10,000 | 10,000 | 11.99x (12.08x) | 0.0560 (0.0558) |
+| similarity-gauge reference (192) | 10,000 | 10,000 | 1.21x (1.21x) | 0.0624 (0.0616) |
+| constant-gauge corner (512 × 80k) | 80,000 | 10,000 | 10.76x (10.88x) | 0.0670 (0.0663) |
+| similarity-gauge corner (512 × 80k) | 80,000 | 10,000 | 1.56x (1.53x) | 0.0688 (0.0727) |
+| constant-gauge corner (512 × 80k) | 80,000 | 80,000 | 16.62x (16.70x) | 0.0430 (0.0427) |
+| similarity-gauge corner (512 × 80k) | 80,000 | 80,000 | 1.09x (1.08x) | 0.0433 (0.0431) |
+
+Every ratio agrees with its pool-frame value within 2%. The uniform errors
+agree within 1.3% except the similarity-gauge corner at 10,000 cells, which
+reads 5% lower in the sample frame (seeds 0.0680 / 0.0695 against 0.0742 /
+0.0712; its per-seed ratios 1.56 / 1.55 against 1.40 / 1.66). That
+difference is sampling variance, not a frame effect, shown two ways.
+First, the two probe families drew *different cells*: of the 10,000
+uniform cells per car the sample-frame and pool-frame evaluations share 0–4
+(125–312 of 80,000), and the biased draws differ in count per car (Poisson
+inclusion; e.g. 10,213 against 10,094), so the two evaluations are
+independent random samples of each car, and the gauge corner at an eighth
+of its training count is the configuration with the largest
+sample-to-sample variance (its seed spread there is 4%). The frame shift
+itself (pool centre minus sample centre) is 0.002–0.004 in nondimensional
+units. Second, a direct test: the gauge corner's checkpoint evaluated on
+three cars with every point translated by (0.37, −0.21, 0.11), about a
+hundred times the frame shift, changes its output by 4.9–6.0 × 10⁻⁶
+relative (float32 roundoff; `highlift/infer_translation_test.py`, a copy of
+the recipe's `infer.py` with the check inserted; nothing in the recipe
+modified). ISLA's forward receives points, normals, the drive and the
+measure weights; the stored centre is not an input, so the frame in which
+the dataset centres the mesh cannot reach the model. The ISLA rows of the
+density-bias tables are therefore the same in either frame, and the
+finding that motivated the canonical sample-frame datasets (the baselines
+had been handed the pool's unbiased mean) is a baseline-only correction.
 
 ## 2026-09-09 — Preregistered: QTDENS, does GeoTransolver-volume's eddy-viscosity lead come from reading the interior sample's density, and does an ISLA-native query-neighbour channel close the gap? {#sec-nb-qt-density-prereg}
 
@@ -12998,7 +13232,7 @@ lane tables' "numerics" column is a training label only. Reading (2), the
 1e-4 float32 floor of the middle-dimension kernel, stands and is noted in
 the helper's docstring.
 
-## 2026-09-10 — SCALE synthesis, DrivAerML half: at 512 wide × 80,000 cells all three architectures land within 3% in float32 (GeoTransolver 0.0419, ISLA 0.0428 constant gauge / 0.0431 similarity gauge, Transolver 0.0431); scale narrows the baselines' lead by 0.08 in ratio, past the 0.05 bar; only ISLA's similarity-gauge corner is density-invariant (1.08x against 4x / 17x / 5x) at equal cost; the baselines reach that error at 0.3–0.6x ISLA's GPU-hours {#sec-nb-scale-drivaer-synthesis}
+## 2026-09-10 — SCALE synthesis, DrivAerML half: at 512 wide × 80,000 cells all three architectures land within 3% in float32 (GeoTransolver 0.0419, ISLA 0.0428 constant gauge / 0.0431 similarity gauge, Transolver 0.0431); scale narrows the baselines' lead by 0.08 in ratio, past the 0.05 bar; only ISLA's similarity-gauge corner is density-invariant (1.09x against 10.5x / 16.6x / 14.9x in the sample frame) at equal cost; the baselines reach that error at 0.3–0.6x ISLA's GPU-hours {#sec-nb-scale-drivaer-synthesis}
 
 **Setting.** The scaling study (@sec-nb-scale-prereg) asked whether the
 accuracy ordering the book reports at the frozen protocol's operating point
@@ -13035,12 +13269,12 @@ means; seed spreads are under 1.5% on every accuracy row.
 the point-softmax kernel because both are configuration choices; the
 baselines have neither knob):
 
-| architecture | configuration | params | pressure fp32 (seeds) | ÷ own reference | pressure bf16 | step | peak memory | GPU-h | biased ÷ uniform at 80k (seeds) | at 10k |
+| architecture | configuration | params | pressure fp32 (seeds) | ÷ own reference | pressure bf16 | step | peak memory | GPU-h | biased ÷ uniform at 80k, sample frame (pool frame) | at 10k, sample frame (pool frame) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| GeoTransolver, unit drive | 512 wide | 35.8M | **0.0419** (0.0419 / 0.0419) | 0.833 | 0.0460 | 0.211 s | 41.5 GB | 12.7 | **4.2** (6.5 / 1.9) | — |
-| ISLA, constant gauge, measure weights on, fast kernel | 512 wide, exact recompute | 60.2M | **0.0428** (0.0427 / 0.0429) | 0.768 | 0.0441 | 0.285 s | 22.8 GB | 22.5 | **16.7** (16.2 / 17.2) | 10.9 |
-| Transolver, unit drive | 512 wide | 23.9M | **0.0431** (0.0434 / 0.0428) | 0.833 | 0.0471 | 0.111 s | 27.6 GB | 6.6 | **4.6** (4.2 / 5.1) | 4.4 |
-| ISLA, similarity gauge, measure weights on, fast kernel (`g512x80k`) | 512 wide, exact recompute | 60.2M | **0.0431** (0.0425 / 0.0437) | 0.700 (÷ gauge reference 0.0616); 0.774 ÷ constant-gauge reference | 0.0441 | 0.281 s | 22.9 GB | 20.2 | **1.08** | 1.53 |
+| GeoTransolver, unit drive | 512 wide | 35.8M | **0.0419** (0.0419 / 0.0419) | 0.833 | 0.0460 | 0.211 s | 41.5 GB | 12.7 | **10.5** (9.3 / 11.6) (pool 4.2: 6.5 / 1.9) | 10.2 (9.2 / 11.1) (—) |
+| ISLA, constant gauge, measure weights on, fast kernel | 512 wide, exact recompute | 60.2M | **0.0428** (0.0427 / 0.0429) | 0.768 | 0.0441 | 0.285 s | 22.8 GB | 22.5 | **16.6** (pool 16.7: 16.2 / 17.2) | 10.8 (pool 10.9) |
+| Transolver, unit drive | 512 wide | 23.9M | **0.0431** (0.0434 / 0.0428) | 0.833 | 0.0471 | 0.111 s | 27.6 GB | 6.6 | **14.9** (13.0 / 16.8) (pool 4.6: 4.2 / 5.1) | 13.7 (12.2 / 15.3) (pool 4.4) |
+| ISLA, similarity gauge, measure weights on, fast kernel (`g512x80k`) | 512 wide, exact recompute | 60.2M | **0.0431** (0.0425 / 0.0437) | 0.700 (÷ gauge reference 0.0616); 0.774 ÷ constant-gauge reference | 0.0441 | 0.281 s | 22.9 GB | 20.2 | **1.09** (pool 1.08) | 1.56 (pool 1.53) |
 
 GeoTransolver's seed-42 probe is the resubmitted copy (the first output was
 displaced by another track's directory move and restored bit-identical;
@@ -13051,19 +13285,26 @@ track's reduction (results/scaling/*_scale_reduction_2026-09-09.json).
 reference row of each architecture is the book's operating point; ratios are
 ÷ that architecture's own reference):
 
-| architecture | reference (width × cells) | fp32 | bf16 | step | memory | GPU-h | biased ÷ uniform at 10k | width 384 | width 512 | 40k cells | 80k cells | 384 × 40k |
+| architecture | reference (width × cells) | fp32 | bf16 | step | memory | GPU-h | biased ÷ uniform at 10k, sample frame (pool frame) | width 384 | width 512 | 40k cells | 80k cells | 384 × 40k |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| GeoTransolver, unit drive | 256 × 10k, 9.0M | 0.0503 | 0.0556 | 0.15 s | 4.1 GB | 8.7 | 9.5 (11.8 / 7.9 / 8.8) | 0.915 | 0.893 | 0.943 | 0.916 | 0.878 |
-| ISLA, constant gauge, weights on | 192 × 10k, 8.9M | 0.0557 | 0.0577 | 0.273 s | 9.8 GB | 21.3 | 12.1 (12.5 / 11.7) | 0.926 | 0.912 | training (`t40k`) | 0.840 (fast kernel) | training (`c384x40k`) |
-| Transolver, unit drive, lr 3e-3 | 256 × 10k, 6.0M | 0.0517 | 0.0563 | 0.097 s | 3.2 GB | 5.8 | 3.9 (2.2 / 5.5) | 0.928 | 0.913 | 0.932 | 0.921 | 0.880 |
-| ISLA, similarity gauge, weights on (`iw_mt2_gauge`) | 192 × 10k, 8.9M | 0.0616 | — | as constant gauge | | | **1.21** (1.21 / 1.21); 1.01 at 80k | — | — | — | — | — |
+| GeoTransolver, unit drive | 256 × 10k, 9.0M | 0.0503 | 0.0556 | 0.15 s | 4.1 GB | 8.7 | **12.1** (12.0 / 11.9 / 12.5) (pool 9.5: 11.8 / 7.9 / 8.8) | 0.915 | 0.893 | 0.943 | 0.916 | 0.878 |
+| ISLA, constant gauge, weights on | 192 × 10k, 8.9M | 0.0557 | 0.0577 | 0.273 s | 9.8 GB | 21.3 | **12.0** (pool 12.1: 12.5 / 11.7) | 0.926 | 0.912 | 0.883 (reference kernel, 1.28 s/step) | 0.840 (fast kernel) | 0.811 (reference kernel) |
+| Transolver, unit drive, lr 3e-3 | 256 × 10k, 6.0M | 0.0517 | 0.0563 | 0.097 s | 3.2 GB | 5.8 | **11.6** (10.2 / 13.0) (pool 3.9: 2.2 / 5.5) | 0.928 | 0.913 | 0.932 | 0.921 | 0.880 |
+| ISLA, similarity gauge, weights on (`iw_mt2_gauge`) | 192 × 10k, 8.9M | 0.0616 | — | as constant gauge | | | **1.21** (pool 1.21); 1.01 at 80k | — | — | — | — | — |
 
-Width scales for all three (bar 1: 9–11% at 512 wide, met everywhere) and
-all three are resolution-limited (bar 2: 8% for the baselines at 80,000
-cells, 16% for ISLA). The two knobs are close to additive for every
-architecture, so the corner is each architecture's best DrivAerML
-configuration in this study, with no sign of saturation at 512 wide or
-80,000 cells.
+Width scales for all three (bar 1: 9–11% at 512 wide, met everywhere;
+ISLA's 384 → 512 step is 1.6%, inside seed spread, so its width gain is
+flattening by 512) and all three are resolution-limited (bar 2: 8% for the
+baselines at 80,000 cells, 16% for ISLA, with 12% already at 40,000). The
+two knobs compose nearly independently for every architecture (ISLA:
+0.912 × 0.840 = 0.766 against the measured corner 0.768), so the corner is
+each architecture's best DrivAerML configuration in this study, with no
+sign of saturation at 80,000 cells. Two ISLA cost caveats from its track:
+the two 40k arms trained on the reference kernel before the fast kernel was
+adopted (1.28 s per step, 86 GPU-hours against 21–23 for every other arm),
+and peak memory is not comparable across training snapshots (the reference
+reads 9.8 GB under the legacy snapshot and the same configuration 3.9 GB
+under `code_perf`), so memory is ordered within a snapshot only.
 
 **Bar 3, does scale change the ordering.** With r = baseline ÷ ISLA at the
 matched arm, in float32:
@@ -13089,13 +13330,16 @@ float32 rule exists.
 
 **The redirect's reading: accuracy × invariance.** None of the three
 constant-configuration corners is discretization-invariant. ISLA's
-constant-gauge corner degrades 16.7x under the 10:1 bias at its own
-80,000 cells (10.9x at 10,000), the same class as its reference's 12.1x, and
+constant-gauge corner degrades 16.6x under the 10:1 bias at its own
+80,000 cells (10.8x at 10,000), the same class as its reference's 12.0x, and
 its 80k-cell token gain does not transfer down: queried at 10,000 cells it
 scores 0.0663, worse than the 10k-trained reference's 0.0558 there. The
-baselines degrade 4–5x at the corner as at their references (GeoTransolver
-4.2x, seed-fragile 6.5x / 1.9x; Transolver 4.6x) and Transolver's corner
-pays +8% when queried at 10,000 cells (0.0465 against 0.0430). Scale buys
+baselines, probed in the sample frame (the frame a biased mesher delivers;
+see the frame-convention paragraph below), degrade 10–15x at the corner as
+at their references (GeoTransolver 10.5x at 80k and 10.2x at 10k against
+12.1x for its reference; Transolver 14.9x and 13.7x against 11.6x), and both
+corners pay +8% when queried at 10,000 cells (GeoTransolver's uniform error
+rises 8%; Transolver 0.0465 against 0.0430). Scale buys
 capacity and resolution for every architecture and invariance for none of
 the constant configurations. **The similarity-gauge corner is the exception
 and the study's principled result.** ISLA with the similarity gauge (the
@@ -13117,8 +13361,9 @@ down-transfer: queried at 10,000 cells the gauge corner scores 0.0727
 80,000. The frontier statement the redirect asks for now reads: *at
 512 × 80k on DrivAerML, GeoTransolver, ISLA and Transolver reach
 0.042–0.043 in float32; GeoTransolver and Transolver do so at density
-sensitivities of 4x and 5x, ISLA's constant gauge at 17x, and ISLA's
-similarity gauge at 1.08x — the only configuration in the study whose
+sensitivities of 10.5x and 14.9x, ISLA's constant gauge at 16.6x, and ISLA's
+similarity gauge at 1.09x (sample frame; pool frame 4.2x / 4.6x / 16.7x /
+1.08x) — the only configuration in the study whose
 accuracy would survive a mesher that put ten times the cells on the front
 of the car.* The 16.7x is not an ISLA property but a constant-gauge
 property (@sec-nb-centroid-derivation); the redirect makes the constant
@@ -13128,6 +13373,37 @@ configuration the program can adopt. Bar 3 read with the gauge row instead
 gives r = 0.0419 / 0.0431 = 0.972 (GeoTransolver) and 0.0431 / 0.0431 =
 1.000 (Transolver), shifts +0.069 and +0.072 from the constant-gauge
 reference, still past the 0.05 bar.
+
+**Frame convention (added the same day, when the sample-frame probes
+landed).** The density probes the tracks first ran (`drivaer_probe_{biased3,unif2}{,_80k}`)
+centre the mesh by the plain mean of the reader's uniform pool *before* the
+biased draw, so GeoTransolver and Transolver, which consume absolute centred
+coordinates, were handed an unbiased frame the pipeline computed for them;
+a biased mesher would deliver the mean of the cells it produced. ISLA
+centres inside the model on the sample it receives, so its frame was
+already the sample's. The generalization session found this and the
+program adopted the sample-frame probes
+(`drivaer_probe_{biased3,unif2}_sf{,_80k}`: the same files with the
+CenterMesh block moved to directly after the sampler, in both columns;
+generator transfer/make_postcenter_probes.py) as canonical; every ratio in
+this entry is now stated as *sample frame (pool frame)*, sample frame the
+headline. All three tracks re-probed their corners and references under
+`code_eval`, two seeds, float32, with each reference as the launcher
+control. The controls reproduce the generalization session's readings
+(GeoTransolver reference 12.0 / 11.9 / 12.5, Transolver 10.2 / 13.0; ISLA's
+11.99 and 1.21 equal to its pool-frame values within 2%, and a direct
+translation test on the gauge corner checkpoint moves its output by
+5–6 × 10⁻⁶ relative, results/scaling/isla_translation_check_2026-09-10.json).
+What changes: the pool-frame probe had under-reported the baselines'
+sensitivity by 2.5–3x (Transolver 3.9x → 11.6x at the reference;
+GeoTransolver 9.5x → 12.1x) and had manufactured the GeoTransolver corner's
+apparent improvement and seed asymmetry (6.5 / 1.9 → 9.3 / 11.6); in the
+honest frame no baseline configuration in the study is less sensitive than
+its reference, Transolver's corner is more so (14.9x against 11.6x), and
+the uniform errors are unchanged by the frame (the uniform draw's mean is
+the pool's). ISLA's rows move by under 2%. The redirect's reading above is
+unchanged in kind and sharpened in degree: at 512 × 80k the similarity
+gauge's 1.09x stands against 10.5x, 14.9x and 16.6x.
 
 **Bar 4, the cost frontier.** Read at matched error rather than at the
 endpoint: Transolver reaches 0.0431 for 6.6 GPU-hours (27.6 GB),
@@ -13171,9 +13447,9 @@ produced by an evaluation under a pre-`code_eval` snapshot at 65,536 points
 or more. The structural guards now in force: every evaluation imports
 `code_eval` and writes its snapshot beside its output; reducers refuse
 unnamed snapshots and skipped loads; infer.py refuses to write a summary
-outside the range of its own per-sample values (commit f9330f317). Pending
-for this entry: the ISLA 40,000-cell and 384 × 40k arms (rows 14–19, epoch
-~448, about two hours) and the HiLift half. Every ISLA evaluation and probe
+outside the range of its own per-sample values (commit f9330f317). Every DrivAerML
+arm of the preregistration is now in this entry; pending: the sample-frame
+density probes at the corner (below, when they land) and the HiLift half. Every ISLA evaluation and probe
 now names its snapshot per instrument (reference `code`; width arms
 `code_isla5`; token, constant-gauge corner and kernel control `code_perf`;
 gauge corner `code_eval`) and no evaluation tripped the summary guard.
@@ -13305,7 +13581,8 @@ not say ISLA leads there (it does not, by 2–3% against GeoTransolver in
 float32 in either gauge), and under the redirect the constant-gauge corner
 is a measurement of capacity while the similarity-gauge corner is the
 configuration the program can adopt: matched accuracy, an order of
-magnitude less density sensitivity than every other corner, equal cost.
+magnitude less density sensitivity than every other corner (1.09x against
+10–17x in the sample frame), equal cost.
 Whether the same holds on HiLift, where the two datasets' surface
 resolutions and case counts differ, is the pending half.
 
