@@ -1072,3 +1072,11 @@ interior control @sec-nb-udrv-int-prereg.
   flag; bf16 evaluation of a pre-2026-09-10 checkpoint must still pass `fast_point_softmax=false`.
   Never pool arms trained on different kernels in one comparison without labelling both (the SCALE
   ISLA study labels its fast-kernel 80k and 512×80k arms). Supersedes "stays default False" above.
+- **QTDENS falsified (2026-09-10; float32, 48 cars, two seeds; results/qtdens_reduction_2026-09-10.json).**
+  Reference ISLA query-token+SDF: pressure 0.0548 / velocity 0.0801 / ν_t 0.1122 (1.28x
+  GeoTransolver-volume's 0.0877); + query-density scalar 0.0542 / 0.0779 / 0.1155 (1.32x);
+  + query-neighbour channel (k=16) 0.0541 / 0.0795 / 0.1138 (1.30x). Bars: ≤ 0.0967 closes, ≥ 0.1099
+  fails; both fail. Write "the eddy-viscosity gap is not in query-side inputs at this width; the
+  'GeoTransolver reads the mesh density' hypothesis is weakened, not refuted"; never "the gap is
+  discretization" or "the gap is capacity" (capacity is the candidate left standing, untested at
+  matched width). `query_density_feature` / `query_neighbor_features` stay flag-gated, default off.

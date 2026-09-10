@@ -477,7 +477,9 @@ training query count of 10,000 and is consumed below it,
 @sec-interior-companion); and DrivAerML's hybrid RANS/LES closure makes the
 modeled viscosity depend on the mesh, so a local aggregation over
 neighbouring interior points may recover discretization rather than
-physics, which is a hypothesis to test, not a result.
+physics; giving ISLA the local query density or a neighbour channel
+directly did not close the eddy-viscosity gap (@sec-interior-arms), which
+weakens that reading without settling it.
 
 ### Exact query independence costs 3.0–3.7x and is not in the reference configuration {#sec-limits-query-independence}
 

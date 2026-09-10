@@ -726,7 +726,21 @@ does not close it: eddy viscosity 1.36x GeoTransolver-volume in float32
 preregistered 1.25 falsifier), pressure and velocity unchanged within 1%
 (results/a35_v0_reduction_2026-09-08b.json). What GeoTransolver aggregates
 locally is the neighbouring interior points, not the surface; that, or its
-parameters, is where the last 1.27x lives. A width increase narrows it
+parameters, is where the last 1.27x lives. The neighbour reading was then
+tested directly and does not close it either. Two flag-gated channels give
+the query-token model what a local aggregation could read from the query
+cloud: a scalar with the local density of queries within a ball of radius
+0.05 (the count and its logarithm), and an ISLA-native channel of invariants
+over each query's 16 nearest queries (distances, relative directions dotted
+with the drive and the normal). In float32 on two seeds the density scalar
+stands at 1.32x GeoTransolver-volume on eddy viscosity and the neighbour
+channel at 1.30x, against 1.28x for the same model without either; the
+preregistered bars were 1.10x to close and 1.25x to fail
+(results/qtdens_reduction_2026-09-10.json, @sec-nb-qt-density-verdict).
+Pressure and velocity move by less than 5%. Handing the model the sample
+density outright gains nothing, so the gap is not in what the query side is
+told about its own discretization at this width, and capacity is the
+candidate left standing. A width increase narrows it
 without closing it: the same configuration at hidden width 256 (about 15.7M
 parameters) stands at 1.17x GeoTransolver-volume on eddy viscosity in
 float32 (1.26x in bfloat16), inside the preregistered inconclusive band
@@ -744,9 +758,10 @@ is an ordering under that centering and not a statement about physical
 viscosity error. And DrivAerML's closure is a hybrid RANS/LES model whose
 modeled viscosity depends on a grid or filter length, so a query's
 neighbours in the volume mesh carry information about the discretization as
-well as about the flow; that GeoTransolver's local aggregation recovers
-discretization information rather than a physical wall feature is a
-hypothesis to discriminate, not a finding. For the passive decode, neither
+well as about the flow. That GeoTransolver's local aggregation recovers
+discretization information rather than a physical wall feature was the
+hypothesis behind the density and neighbour channels above; their null
+weakens it without ruling out a mechanism those channels do not reproduce. For the passive decode, neither
 construction of a query normal closes the gap, the SDF gradient is the
 better of the two by 1.2x, and the distance stratification shows the excess
 error concentrated at the wall with a ratio that grows away from it
