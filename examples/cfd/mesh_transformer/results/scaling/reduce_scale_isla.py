@@ -203,7 +203,7 @@ for model, keys in (("reference_10k_trained", ("dr_ref", "dr_ref@40k", "dr_ref@8
         out["convergence"][model] = curve
 json.dump(out, open(sys.argv[1], "w"), indent=1)
 for k, v in out["convergence"].items():
-    print("convergence", k, {c: {kk: round(x, 4) for kk, x in d.items()} for c, d in v.items()})
+    print("convergence", k, {c: {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in d.items()} for c, d in v.items()})
 for k, v in out["density_probe"].items():
     print("probe", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk != "per_seed"})
 for k, v in out["arms"].items():

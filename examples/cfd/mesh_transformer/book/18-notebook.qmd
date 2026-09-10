@@ -9965,3 +9965,32 @@ log); the reference's 10k probe under `code` (campaign E); the running true
 `code_perf_eval` (= `code_perf` + the raising loader) and the two legacy
 references under `code`, all valid. The reducer's skipped-load guard applies
 to every path regardless of snapshot.
+
+**True 80,000-cell probe (float32; 320,000-cell pool; every checkpoint
+loaded, logs clean, seeds distinct).** Two-seed means, uniform sampling
+unless stated:
+
+| model | trained at | 10,000 cells | 80,000 cells | biased ÷ uniform at 10k | at 80k |
+|---|---|---|---|---|---|
+| reference, constant gauge | 10,000 | 0.0558 | **0.814** (seeds 0.8146 / 0.8141) | 12.1x | 1.54x |
+| reference, similarity gauge (`iw_mt2_gauge`) | 10,000 | 0.0616 | **0.892** (0.8924 / 0.8916) | **1.21x** | 1.00x |
+| width 512 × 80,000, constant gauge | 80,000 | 0.0663 | 0.0427 (its native) | 10.9x | 16.7x |
+
+Three readings. (1) Queried at eight times their training count, *both*
+10k-trained references collapse to near a mean-field predictor (0.81 and
+0.89; the biased ÷ uniform ratio near 1 at 80k is the signature of a model
+that has stopped depending on the sample). The similarity gauge, which
+removes the 10:1 *bias* sensitivity at fixed count (1.21x against 12.1x),
+does not remove the *count* sensitivity: bias robustness and count
+generalization are different properties, and the program's density-robustness
+result (@sec-robustness-density) speaks only to the first. (2) The
+80k-trained constant-gauge model is the mirror image: 1.5x worse at an
+eighth of its count and native at 80k. (3) Bias sensitivity of the constant
+gauge is as large at 80k as at 10k (16.7x), so width and count change none of
+it. Under the redirect, the constant-gauge token-scaling gain remains
+inadmissible on its own, and the open question for the similarity-gauge
+corner `g512x80k` is now sharper: whether a gauge model trained at 80,000
+keeps its accuracy at 10,000 (count generalization), not only whether it
+holds its 1.2x bias robustness. A 40,000-cell re-probe of the two references
+under the corrected snapshot is running to place the middle point of the
+count curve (the earlier 40k reference reading was a failed load).
