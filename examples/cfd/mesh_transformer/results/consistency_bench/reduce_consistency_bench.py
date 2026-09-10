@@ -91,6 +91,9 @@ ARM_INFO = {
     "now_hl_mt2_single_aoa_12": ("ISLA (MeshTransformer2), weights-off ablation", "highlift_surface_single_aoa_12"),
     "udrv_hl_gt_single_aoa_12": ("GeoTransolver, unit drive, no measure", "highlift_surface_single_aoa_12"),
     "udrv_hl_transolver_single_aoa_12_lr3e3": ("Transolver, unit drive, no measure", "highlift_surface_single_aoa_12"),
+    # Follow-up wave (coordinator, 2026-09-10): measure-centering checkpoints, counts 10k / 40k only.
+    "cg_dr_mt2_mcenter": ("ISLA (MeshTransformer2), constant gauge, measure weights on, center_mode=measure", "drivaer_ml_surface"),
+    "cg_hl_mt2_mcenter_super_scarce": ("ISLA (MeshTransformer2), constant gauge, measure weights on, center_mode=measure", "highlift_surface_super_scarce"),
 }
 
 

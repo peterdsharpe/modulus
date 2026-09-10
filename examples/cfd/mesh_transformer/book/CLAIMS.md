@@ -1326,3 +1326,18 @@ interior control @sec-nb-udrv-int-prereg.
   sampling-consistent frame is the variance of the frame estimate, not the length scale"; never "measure
   centering is free" without "on DrivAerML". Next prereg: FRAME-FULL (frame from the full geometry as
   global data). HiLift density of the cg_hl checkpoints: pending BENCH samplers.
+- **BENCH verdict (2026-09-10; results/consistency_bench/consistency_bench_2026-09-10.json).** At 40,000
+  cells only the similarity-gauge ISLA under the 10:1 bias on DrivAerML passes the ≤ 3% consistency bar
+  (+2.8%); every other arm × sampler reads the sampling distribution (D_area at 40k: gauge +18%, constant
+  +90%, Transolver +213%, GT +562%, weights-off +1176% on DrivAerML; HiLift arms +147% to +4119%). Under
+  the area sampler only the measure-weighted ISLA arms on DrivAerML CONVERGE toward the uniform answer
+  (2.63x / 3.50x fall from 2.5k to 40k); all other area curves are flat. RULES: never write "consistent"
+  or "mesher-transferable" for any configuration at 10,000 cells; write convergence rates; the area
+  sampler is a thousands-fold distribution change (HT max/min 1,000–37,000; 21–33% of kept cells at the
+  clamp at 40k) and starves refined regions, so its fixed-count failures are information/variance
+  statements, not shortcut statements; the bias probe (factor 10) understates distance from consistency.
+- **Peter's frame ruling (2026-09-10).** ONE flagship configuration, never dataset-dependent. No sample
+  statistic in the frame: no centering by plain or weighted mean, no scaling by sample RMS radius.
+  Translation invariance from relative positions only (RELFRAME); length scale = stated reference length
+  or √(total surface measure). FRAME-FULL is a diagnostic of the variance mechanism, not a candidate.
+  Write "reference under decision until RELFRAME reads out"; never "DrivAerML adopts measure centering".

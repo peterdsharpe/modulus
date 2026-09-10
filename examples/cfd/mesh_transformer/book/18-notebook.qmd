@@ -13419,3 +13419,152 @@ datasets it becomes the reference configuration on both, ending the
 dataset-dependent reference; if only DrivAerML passes, the HiLift reference
 stays under decision with the FRAME-FULL numbers stated. Artifact:
 results/frame_full_2026-09-10.json.
+
+## 2026-09-10 — Verdict, BENCH: no configuration is consistent across sampling distributions at 10,000 cells; only the similarity-gauge ISLA converges toward consistency (D_area +122% → +18%, D_biased +20% → +2.8% from 10k to 40k), every other arm is flat {#sec-nb-bench-verdict}
+
+The consistency benchmark of @sec-nb-bench-prereg evaluated every reference
+checkpoint of the three architectures on the same validation surfaces under
+three samplers (uniform over cells, area-proportional, 10:1 front/back
+biased; exact Horvitz–Thompson weights in every case) at 2,500 to 40,000
+cells, in float32 under each checkpoint's training snapshot (390 lanes, 0
+loader warnings, seeds distinct in every cell, the 10,000-cell uniform
+numbers reproduce campaign E to 0.0004). Artifact:
+results/consistency_bench/consistency_bench_2026-09-10.json; reducer beside
+it; cluster $T/bench, $T/bench_evals, recipe copy $T/recipe_bench.
+
+**Pressure rel-L2, seed means, at 10,000 and 40,000 cells** (unif / area /
+biased):
+
+| arm | dataset | 10k: unif / area / biased | 40k: unif / area / biased | D_area 40k | D_biased 40k |
+|---|---|---|---|---|---|
+| ISLA constant gauge | DrivAerML | 0.0561 / 0.1832 / 0.6740 | 0.0530 / 0.1008 / 0.6693 | +90% | +1162% |
+| ISLA similarity gauge | DrivAerML | 0.0618 / 0.1370 / 0.0742 | 0.0579 / 0.0683 / 0.0595 | +18% | **+2.8%** |
+| ISLA weights off (ablation) | DrivAerML | 0.0544 / 0.7319 / 1.044 | 0.0518 / 0.6602 / 1.033 | +1176% | +1895% |
+| GeoTransolver, unit drive | DrivAerML | 0.0509 / 0.3623 / 0.4957 | 0.0506 / 0.3351 / 0.5210 | +562% | +930% |
+| Transolver, unit drive | DrivAerML | 0.0520 / 0.1869 / 0.2014 | 0.0518 / 0.1617 / 0.1995 | +213% | +286% |
+| ISLA constant gauge | HiLift 35 | 0.1390 / 0.4317 / 0.4576 | 0.1362 / 0.3938 / 0.4599 | +189% | +238% |
+| ISLA weights off (ablation) | HiLift 35 | 0.1226 / 0.9254 / 0.5914 | 0.1201 / 0.9145 / 0.5933 | +662% | +394% |
+| GeoTransolver, unit drive | HiLift 35 | 0.1104 / 0.2931 / 0.3615 | 0.1100 / 0.2716 / 0.3628 | +147% | +230% |
+| Transolver, unit drive | HiLift 35 | 0.1148 / 0.3607 / 0.4078 | 0.1145 / 0.3212 / 0.4090 | +181% | +257% |
+| ISLA constant gauge | HiLift fixed angle | 0.0361 / 0.4850 / 0.5018 | 0.0338 / 0.3583 / 0.5020 | +960% | +1385% |
+| ISLA weights off (ablation) | HiLift fixed angle | 0.0313 / 1.293 / 0.5282 | 0.0293 / 1.236 / 0.5210 | +4119% | +1679% |
+| GeoTransolver, unit drive | HiLift fixed angle | 0.0274 / 0.4084 / 0.3322 | 0.0270 / 0.2734 / 0.3310 | +912% | +1125% |
+| Transolver, unit drive | HiLift fixed angle | 0.0308 / 0.3031 / 0.2669 | 0.0304 / 0.3343 / 0.2643 | +1001% | +770% |
+
+**Against the bars.** At the headline count of 40,000 cells only one cell
+of the whole benchmark passes the ≤ 3% consistency bar: the similarity-gauge
+ISLA under the 10:1 bias on DrivAerML (+2.8%, worse than uniform on 36 of 48
+cars). Every other arm × sampler reads the sampling distribution by the ≥
+10% bar, most by an order of magnitude. Prediction 1 (measure-weighted ISLA
+consistent under the area sampler at every count) is falsified for both
+gauges on both datasets; prediction 4 held in direction (the baselines read
+the distribution everywhere) but not in the DrivAerML-versus-HiLift
+contrast; prediction 5 (weights-off fails) held on both datasets.
+
+**What the area sampler is.** The area-proportional draw is a far harsher
+change of discretization than the 10:1 bias. DrivAerML and HiLiftAeroML
+cell areas span three to four decades, so an inclusion probability
+proportional to area gives Horvitz–Thompson weights whose max/min ratio is
+about 1,000–3,000 on the cars and 8,000–37,000 on the wings (the bias
+probe's is exactly 10), and at 40,000 cells the largest 21% (cars) to 33%
+(wings) of kept cells sit at the clamp. The refined regions, mirrors, slat
+and flap gaps, are nearly unsampled: an area-uniform point cloud of 10,000
+points does not resolve them at all. The measure-consistent estimator is
+unbiased under this draw, but its variance is enormous where the geometry
+is fine, so the failure of the measure-weighted ISLA arms under `area` at
+fixed count is an information and variance statement, not a shortcut
+statement: no method with a 10,000-point budget can read a slat gap from a
+sample that contains none of it. That is why Peter's definition of the
+property matters (@sec-principle): consistency is convergence in the
+fine-mesh limit, and the discriminating readout is the *trend* with count.
+
+**Convergence.** Under uniform sampling every arm's error falls
+monotonically with count (ISLA 1.50x from 2,500 to 40,000 cells on
+DrivAerML, GeoTransolver 1.17x, Transolver 1.12x; the measure-weighted
+integral estimator gains most from refinement). Under the area sampler
+only the two measure-weighted ISLA arms on DrivAerML converge toward the
+uniform answer: the constant gauge's area error falls 2.63x from 2,500 to
+40,000 cells and the similarity gauge's 3.50x (fine-mesh gaps 0.048 and
+0.010), while every other area curve is flat (ratios 0.9–1.6): the
+baselines' and the weights-off ablation's answers under a different
+sampling distribution do not approach their uniform-sampling answers as the
+sample grows, which is the operational meaning of "reads the sampling
+distribution". The similarity gauge on DrivAerML is the one configuration
+on a path to consistency: D_area +226% → +18% and D_biased +20% → +2.8% from
+10k to 40k, with the curve still falling. The ordering by
+sampling-distribution dependence on DrivAerML at 40k is clean: similarity
+gauge (+18%) < constant gauge (+90%) < Transolver (+213%) < GeoTransolver
+(+562%) < weights-off ablation (+1176%).
+
+**HiLift.** No arm converges under the area sampler on either HiLift rung
+within 40,000 cells (the constant-gauge ISLA's fixed-angle area error does
+fall, 0.51 → 0.36, but from ten times its uniform error); the wings'
+refinement spans more decades than the cars', so the fine-mesh limit is
+further away than the benchmark's largest count. The similarity gauge and
+the measure-centred checkpoints on the HiLift rungs are being added (24
+lanes, job 703803, snapshot code_center for the latter) to complete the
+HiLift picture.
+
+**Reading for the program.** (1) The density-bias probe at 10,000 cells,
+the number the book has been quoting, understates how far every
+configuration is from consistency: the bias probe changes the distribution
+by a factor of ten; a different mesher changes it by thousands. (2) The
+similarity gauge is the only existing configuration that converges toward
+the same field under both distribution changes, and it does so slowly; the
+frame work (@sec-nb-center-lanes-verdict, RELFRAME) addresses the frame
+part of the remaining dependence, while the variance of the
+measure-weighted estimator under extreme weights is a second, separate
+limit that a count budget alone cannot fix. (3) A "mesher-transfer" claim
+for any of the three architectures at 10,000 cells would be false; the
+honest statement is a convergence rate, and only ISLA with measure weights
+has one. Chapter 6 gains the curves.
+
+
+## 2026-09-10 — Peter's ruling on the frame, and RELFRAME preregistered: translation invariance from relative positions only, a length scale from the geometry's measure, no sample statistic anywhere {#sec-nb-relframe-prereg}
+
+Peter ruled on the reference-configuration question raised by
+@sec-nb-center-lanes-verdict: there will be no dataset-dependent reference
+configuration, and centering by a sample statistic (plain or measure-weighted
+mean) or scaling by one (RMS radius) injects the point distribution, a
+non-physical input, into the model, so both are out. Translation invariance
+is to come from relative positions alone, and the length scale from the
+physics or from an integral property of the geometry. FRAME-FULL
+(@sec-nb-frame-full-prereg) is kept as the *diagnostic* of the
+variance mechanism, not as a candidate reference.
+
+**Where the centroid enters ISLA.** In the constant-gauge forward pass the
+center c enters exactly six scalars. Seed features per point (four):
+|r| and log|r| (distance from the center; carry the point's position in the
+body, front/rear/top/bottom, in a rotation-invariant way), r̂·d̂ (whether the
+point lies upstream or downstream of the center along the freestream) and
+r̂·n̂ (whether the surface faces toward or away from the center: convexity
+sense). Relational invariants per point–anchor pair (two of eight): z_mag
+(the anchor's radius from the center) and ẑ·d̂ (the anchor's upstream /
+downstream position). The other six relational invariants (point–anchor
+distance and its log, the unit relative vector dotted with the drive, the
+point normal and the anchor normal, the point normal dotted with the anchor
+normal) and both second-moment terms are anchor-relative and translation
+invariant with no frame at all; the anchor's own orientation information
+survives through m̂_s·d̂. **RELFRAME** drops the six center-dependent terms
+(`frame_mode="relative"`: seeds reduce to n̂·d̂ plus the measure; the
+relational set to its six frame-free members) and sets the length scale to
+either the constant reference length (a stated problem parameter) or the
+square root of the total surface measure Σ w_i (an integral of the geometry,
+sampling-consistent under the Horvitz–Thompson weights; `scale_mode`).
+
+**Arms** (ISLA, unit drive, lr 1e-3, 500 epochs): relative + reference
+length, and relative + √(total measure); DrivAerML 435 cars and HiLift 35
+cases; two seeds; eight lanes (rf_dr_mt2_{ref,meas}_seed{42,43},
+rf_hl_mt2_{ref,meas}_super_scarce_seed{42,43}). **Bars (joint, float32).**
+Within 3% of the constant gauge's 0.1377 / 0.0557 and biased ÷ uniform ≤
+1.2x on DrivAerML; the BENCH samplers on the trained checkpoints give the
+area-sampler trend. **Prediction.** The A35B ablation showed the invariant
+seed set is not load-bearing (raw seeds 0.99x), so dropping the centroid
+seeds costs little: constant-gauge accuracy at ≤ 1.2x on both datasets, which
+would make RELFRAME the single flagship. **Falsifier.** A price ≥ 7% at 35
+HiLift cases with the density bar passed means the center-dependent terms
+carry in-distribution information the anchor-relative set does not (which
+of the six is answered by adding them back one at a time), and the price is
+then a stated cost of the principle, not a reason to reinstate a sample
+statistic. The reference stays "under decision" in every chapter until
+RELFRAME reads out.
