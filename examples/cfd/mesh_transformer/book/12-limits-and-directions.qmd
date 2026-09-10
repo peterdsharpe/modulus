@@ -505,25 +505,24 @@ families; what moves cross-family error is the diversity of the training
 data** (@tbl-frontier in @sec-full-data). The failure is not identical across
 the two architectures — on the held-out fastback family GeoTransolver trained
 on DrivAerML alone scores 0.59 where ISLA scores 0.95–0.99 (1.0 is the mean
-predictor) — but neither is usable, and a second training family moves both
+predictor; the unit-drive ISLA checkpoint at learning rate 1e-3 scores 0.78
+in float32) — but neither is usable, and a second training family moves both
 to 0.11–0.13. Few-shot adaptation separates them further: fine-tuned on 20
 labelled fastback cases for 1,000 steps, the unit-drive GeoTransolver
-reaches 0.128 against 0.186 trained from scratch on those cases (float32;
-research/transfer_program, #sec-nb-campc-t3-verdict). The ISLA half of that
-comparison (0.187 fine-tuned against 0.198 from scratch) is under review: the
-code snapshot that ran the fine-tune evaluates legacy ISLA checkpoints at
-their initialization (two different checkpoints give the identical error
-1.567 through it, against 0.057 and 0.062 through the snapshot that trained
-them), so whether the fine-tune started from the trained weights is being
-tested directly (a frozen-initialization lane and a re-evaluation under the
-original snapshot). Until that lands, the few-shot result says only that
-GeoTransolver's DrivAerML representation is a useful starting point for a
-new family; whether ISLA's is a worse one is open. The mixed-family ISLA
-that does transfer (0.129 on the fastback) pays 33% in-family (0.074 against
-0.056 on one seed). With the zero-shot force error of 1.6x and the
-constant-gauge density collapse, the evidence that ISLA's learned
-representation is family-specific rests on two signs, with the third
-pending. The similarity
+reaches 0.128 against 0.186 trained from scratch on those cases, while ISLA
+reaches 0.187 against 0.198 (float32, matched learning rate;
+research/transfer_program, #sec-nb-campc-t3-verdict), so what GeoTransolver
+learns on DrivAerML is a better starting point for a new family than what
+ISLA learns there (the two source checkpoints differ in drive input and
+learning rate as well as architecture, a caveat stated with the result).
+That the ISLA fine-tune started from its trained weights was checked
+directly after a checkpoint-loading hazard surfaced (#sec-nb-snapshot-resolved):
+the source model passed through the fine-tuning loader at zero learning rate
+reproduces its own zero-shot error to four digits (0.9791 both ways). The
+mixed-family ISLA that does transfer (0.129 on the fastback) pays 33%
+in-family (0.074 against 0.056 on one seed). With the zero-shot force error
+of 1.6x and the constant-gauge density collapse, this is the third
+independent sign that ISLA's learned representation is family-specific. The similarity
 gauge, which fixes the constant-gauge configuration's sampling-density
 failure (@sec-robustness-density), leaves zero-shot transfer unchanged. A claim of family-portable surface physics from any of these
 architectures would need a corpus in which geometry, pose, scale and regime

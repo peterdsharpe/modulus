@@ -1024,13 +1024,16 @@ interior control @sec-nb-udrv-int-prereg.
 - **Few-shot transfer (2026-09-10, transfer session campaign C T3, float32; research/transfer_program
   #sec-nb-campc-t3-verdict).** Fine-tuning on 20 labelled fastback cases (1,000 steps, lr 1e-3):
   GeoTransolver from the unit-drive DrivAerML checkpoint 0.128 vs 0.186 from scratch (31% better);
-  ISLA from mt2_v3c (lr 3e-3 checkpoint) 0.187 vs 0.198 (6%) — **ISLA half PROVISIONAL
-  (2026-09-10)**: see the snapshot hazard below; the fine-tune may have started from an unloaded
-  init (first-epoch loss 0.105 above the scratch arm's 0.080). Until the frozen-init lane and the
-  `code` re-evaluation land, write only the GeoTransolver half; do NOT write "ISLA's DrivAerML
-  representation transfers less" or count T3 as the third sign of family-specific learning (two
-  signs stand: 1.6x zero-shot force error, constant-gauge density collapse). The mixed-435 ISLA
-  pays 33% in-family (T2 preview, one seed).
+  ISLA from mt2_v3c (lr 3e-3 checkpoint) 0.187 vs 0.198 (6%). RESOLVED 2026-09-10: the frozen-init
+  lane (camp-c-28: source loaded through the fine-tuning hook, one epoch at lr 0, re-evaluated)
+  scores 0.9791 / wss 1.3956, identical to the source evaluated under `code`, so the fine-tune
+  started from the trained weights and the ISLA half STANDS. Write "ISLA's DrivAerML
+  representation transfers less than GeoTransolver's" with the checkpoint asymmetry caveat; T3 is
+  the third sign of family-specific learning (with the 1.6x zero-shot force error and the
+  constant-gauge density collapse). The first-batch-loss gap (0.105 vs 0.080) is the source's
+  genuine fastback mismatch (zero-shot 0.98), not a broken init. Zero-shot fastback under `code`:
+  iw_mt2_lr1e3_seed42 0.7824 fp32 (the book's 0.99 is mt2_v3c); T2 ISLA references being
+  re-evaluated for both seeds. The mixed-435 ISLA pays 33% in-family (T2 preview, one seed).
 - **Snapshot hazard for legacy surface ISLA checkpoints (2026-09-10; transfer session probe job
   699026, float32, 48 cars).** iw_mt2_lr1e3_seed42 and mt2_v3c_seed42 evaluate to 0.0568 / 0.0620
   under `code` but to an identical 1.5667 (wss 1.8713) under `code_support`. Mechanism (confirmed
@@ -1043,8 +1046,11 @@ interior control @sec-nb-udrv-int-prereg.
   fine-tune's init went through the campaign hook (explicit .mdlus glob, `Module.load(strict=True)`,
   succeeded), so it most likely started from the trained weights; frozen-init lane camp-c-28
   settles it. GeoTransolver unaffected. Fix in flight (transfer session): `load_checkpoint` raises
-  FileNotFoundError when a requested model's weights file is absent (cluster `code_support` +
-  repository; commit to be cited here). RULES: evaluate legacy surface ISLA checkpoints only under the
+  FileNotFoundError when a training checkpoint exists for the epoch but the model's weights file
+  does not (fresh directories keep the skip); regression test
+  test_load_checkpoint_refuses_uninitialized_model; standalone commit c50b87e0a
+  (worktree-transfer-program), same patch applied to cluster `code_support`. Cross-snapshot
+  failure is symmetric (code_support-trained ISLA.*.mdlus under `code` → identical 1.5301). RULES: evaluate legacy surface ISLA checkpoints only under the
   snapshot that trained them (`code`, `code_isla*`); the fp32 campaign used `code` for these and
   stands; any legacy-ISLA number produced through `code_support` or later is invalid; an identical
   error from two different checkpoints is a load failure, never a result; make the state-dict load
