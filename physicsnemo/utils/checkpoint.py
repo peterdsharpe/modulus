@@ -132,6 +132,42 @@ def _unwrapped_class_name(model: torch.nn.Module) -> str:
     return type(inner).__name__
 
 
+def _refuse_if_training_checkpoint_exists(
+    fs, path: str, name: str, file_name: str | None, epoch: int | None
+) -> None:
+    """Raise when a training checkpoint exists for the requested epoch but the
+    named model's weights file does not.
+
+    Skipping the model load in that situation returns the model at its random
+    initialization while the optimizer, scheduler and epoch are restored, and
+    the caller sees "loaded checkpoint (epoch N)". Observed when a model class
+    was renamed after the checkpoint was written (the weights file name is
+    derived from the class name), which made two different checkpoints
+    evaluate to the identical error of the seeded initialization. A directory
+    with no training checkpoint (a fresh run, or a directory holding only some
+    models' files) keeps the skip-and-warn behaviour.
+    """
+    training_ckpt = _get_checkpoint_filename(path, index=epoch, model_type="pt")
+    if not fs.exists(training_ckpt):
+        return
+    try:
+        present = sorted(
+            os.path.basename(p)
+            for pattern in ("*.mdlus", "*.pt")
+            for p in fs.glob(os.path.join(path, pattern))
+        )
+    except Exception:  # listing is diagnostic only
+        present = []
+    expected = f" ({file_name})" if file_name else ""
+    raise FileNotFoundError(
+        f"Training checkpoint {training_ckpt} exists but no weights file for model "
+        f"'{name}'{expected} was found; refusing to continue with an uninitialized "
+        f"model. Files present: {present[:20]}. If the model class was renamed "
+        "since the checkpoint was written, load the weights file explicitly "
+        "(physicsnemo.utils.load_model_weights) or use the code that wrote it."
+    )
+
+
 def _cpu_offload_state_dict(state_dict: dict[str, Any]) -> dict[str, Any]:
     """Move every tensor in *state_dict* to CPU (shallow copy)."""
     out: dict[str, Any] = {}
@@ -1102,7 +1138,8 @@ def load_checkpoint(
             path, name, index=epoch, model_type=model_type
         )
         if not fs.exists(file_name):
-            checkpoint_logging.error(
+            _refuse_if_training_checkpoint_exists(fs, path, name, file_name, epoch)
+            checkpoint_logging.warning(
                 f"Could not find valid model file {file_name}, skipping load"
             )
             continue
@@ -1315,7 +1352,9 @@ def _load_checkpoint_distributed(
     # Distribute model state dicts via DCP
     for name, model in named_models.items():
         if model_file_info.get(name) is None:
-            checkpoint_logging.error(
+            # Every rank sees the same filesystem, so this raises (or not) on all ranks together.
+            _refuse_if_training_checkpoint_exists(fs, path, name, None, epoch)
+            checkpoint_logging.warning(
                 f"Could not find valid model file for {name}, skipping load"
             )
             continue

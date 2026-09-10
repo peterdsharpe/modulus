@@ -233,6 +233,41 @@ def test_load_model_weights(
     assert torch.allclose(ref_output, loaded_output, rtol=rtol, atol=atol)
 
 
+def test_load_checkpoint_refuses_uninitialized_model(tmp_path):
+    """A training checkpoint whose model weights file is missing must raise, not
+    silently restore epoch and optimizer around an untrained model.
+
+    Reproduces the failure seen when a model class was renamed after its
+    checkpoint was written: the weights file name is derived from the class
+    name, the loader could not find it, skipped the model, and two different
+    checkpoints then evaluated to the identical error of the seeded
+    initialization. A directory without a training checkpoint keeps the
+    skip-and-warn behaviour (fresh start).
+    """
+    from physicsnemo.utils import load_checkpoint, save_checkpoint
+
+    if not DistributedManager.is_initialized():
+        DistributedManager.initialize()
+
+    model = FullyConnected(in_features=8, out_features=8, num_layers=2, layer_size=8)
+    optimizer = torch.optim.Adam(model.parameters())
+    ckpt_dir = tmp_path / "run"
+    save_checkpoint(str(ckpt_dir), models=model, optimizer=optimizer, epoch=3)
+    weights = list(ckpt_dir.glob("FullyConnected.0.3.mdlus"))
+    assert len(weights) == 1
+    # Simulate the class rename: the weights file carries the old class name.
+    weights[0].rename(ckpt_dir / "LegacyName.0.3.mdlus")
+
+    fresh = FullyConnected(in_features=8, out_features=8, num_layers=2, layer_size=8)
+    with pytest.raises(FileNotFoundError, match="uninitialized"):
+        load_checkpoint(str(ckpt_dir), models=fresh)
+
+    # Fresh directory: no training checkpoint, nothing to refuse -> epoch 0 as before.
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert load_checkpoint(str(empty), models=fresh) == 0
+
+
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 def test_compiled_model_checkpointing(
     tmp_path, device, rtol: float = 1e-3, atol: float = 1e-3
