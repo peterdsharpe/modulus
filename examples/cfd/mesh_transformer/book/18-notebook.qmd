@@ -10811,6 +10811,56 @@ The reference already has its probe (transfer/campaign_e_fp32): uniform
 10,000 cells loses an order of magnitude under a 10:1 density bias. The
 corner arm's probe runs when its chains finish; the reducer carries both.
 
+
+**Provenance (2026-09-10).** Thirty-six evaluation and probe logs (ten
+lanes in two precisions, the reference lanes, and the reference probes) were
+scanned for a silently skipped checkpoint load ("skipping load" / "Could not
+find valid model file"): zero hits. The ten lanes and the references were
+evaluated under the training snapshot `code`; from this date the evaluation,
+fp32 and probe launchers import the program-wide evaluation snapshot
+`code_eval`, identity-checked by the main session on
+`uw_gt_unit_lr1e3_seed42` (bitwise identical to `code` in float32, zero
+skipped loads), so both sets of evaluations are the same function. Wall
+shear (fp32, two-seed means) moves with pressure: wss_x 0.0540 / 0.0533 /
+0.0541 / 0.0530 / 0.0518 for w384 / w512 / t40k / t80k / c384x40k against
+the same components under bf16 about 10% higher.
+
+**Corner and density-bias probe (2026-09-10; DrivAerML half complete).**
+The 512-wide, 80,000-cell corner (`scale_gt_dr_c512x80k_seed{42,43}`)
+scores **0.0419** in float32 (seeds 0.0419 / 0.0418; bf16 0.0460, shift
+−9.1%, per-case max 16%; points bit-identical), **0.833 of the reference**
+0.0503, at 41.5 GB logged peak memory, 0.211 s per step and 12.7 GPU-hours
+per run: the largest configuration is the most accurate, 16.7% below the
+protocol's operating point, and still at 1.5x its GPU-hours. Wall shear
+follows (wss_x 0.0503 against the reference's 0.0540 in fp32).
+
+| arm (fp32) | width | cells | pressure | ÷ reference | 10:1 density-bias probe, biased ÷ uniform (fp32) |
+|---|---|---|---|---|---|
+| reference (uw_gt_unit, three seeds) | 256 | 10,000 | 0.0503 | 1.000 | 11.8 / 7.9 / 8.8 (uniform 0.0503 / 0.0510 / 0.0504; biased 0.592 / 0.401 / 0.445) |
+| c512x80k (two seeds) | 512 | 80,000 | 0.0419 | 0.833 | **6.5 / 1.9** (uniform 0.0419 / 0.0418; biased 0.274 / 0.079) |
+
+**Discretization invariance, GeoTransolver.** Neither configuration passes
+the probe: the reference loses an order of magnitude under a 10:1 sampling
+bias and the corner loses 1.9–6.5x, with a seed spread larger than any
+accuracy difference in this study (seed 42 collapses to 0.274, seed 43 to
+0.079 from the same 0.042). The larger model at eight times the cells is
+less density-sensitive than the reference, which is consistent with a
+per-point map that sees more of the surface, but a factor of 2–6.5 is still
+a shortcut on the sampling distribution, not invariance. Under the
+program's redirect the corner's accuracy is therefore reported with this
+property attached and is not an adoptable configuration on its own; the
+probe pool for the 80,000-cell variants is 320,000 cells (4x), shared with
+the ISLA track. Provenance: 52 evaluation and probe logs checked, zero
+skipped loads; summary-range guard silent on every corner and probe log
+(zero "inconsistent" lines).
+
+**HiLift half: training; I/O-bound, weeks.** The ten HiLift lanes advance
+25–44 epochs per day (2.5–3.4 s per step against 0.15 s of GPU compute, the
+285M-cell boundary reads), so they complete in two to three weeks at full
+protocol; per the coordinator's decision they run unshortened and unheld,
+and the HiLift half of this verdict is written when they land. The
+DrivAerML half above is complete.
+
 ## 2026-09-10 — Float32 re-grade of the interior headline: bfloat16 inflated GeoTransolver-volume's errors by 20–23%, so its pressure lead over ISLA's query-token configuration was hidden; in float32 ISLA leads on velocity only {#sec-nb-fp32-interior-regrade}
 
 **Source.** The transfer session's same-snapshot float32 re-evaluation of the
@@ -12860,16 +12910,15 @@ baselines have neither knob):
 
 | architecture | configuration | params | pressure fp32 (seeds) | ÷ own reference | pressure bf16 | step | peak memory | GPU-h | biased ÷ uniform at 80k (seeds) | at 10k |
 |---|---|---|---|---|---|---|---|---|---|---|
-| GeoTransolver, unit drive | 512 wide | 35.8M | **0.0419** (0.0419 / 0.0419) | 0.833 | 0.0460 | 0.22 s | 41 GB | 13 | **4.2** (6.5 / 1.9) | — |
+| GeoTransolver, unit drive | 512 wide | 35.8M | **0.0419** (0.0419 / 0.0419) | 0.833 | 0.0460 | 0.211 s | 41.5 GB | 12.7 | **4.2** (6.5 / 1.9) | — |
 | ISLA, constant gauge, measure weights on, fast kernel | 512 wide, exact recompute | 60.2M | **0.0428** (0.0427 / 0.0429) | 0.768 | 0.0441 | 0.285 s | 22.8 GB | 22.5 | **16.7** (16.2 / 17.2) | 10.9 |
 | Transolver, unit drive | 512 wide | 23.9M | **0.0431** (0.0434 / 0.0428) | 0.833 | 0.0471 | 0.111 s | 27.6 GB | 6.6 | **4.6** (4.2 / 5.1) | 4.4 |
 | ISLA, similarity gauge, measure weights on, fast kernel | 512 wide, exact recompute | 60.2M | training (`g512x80k`, rows 30–31; bars in @sec-nb-scale-isla-launch) | | | | | | | |
 
-GeoTransolver's step time and memory are the launch record's first-link
-values; the track's reduction replaces them when it lands, and its seed-42
-probe is the resubmitted copy (the first output was displaced by another
-track's directory move and restored bit-identical; both copies read 0.2738
-biased / 0.0419 uniform).
+GeoTransolver's seed-42 probe is the resubmitted copy (the first output was
+displaced by another track's directory move and restored bit-identical;
+both copies read 0.2738 biased / 0.0419 uniform). Cost columns are each
+track's reduction (results/scaling/*_scale_reduction_2026-09-09.json).
 
 **The references and the single-knob arms, for the same readers** (the
 reference row of each architecture is the book's operating point; ratios are
@@ -12938,16 +12987,16 @@ recommendation.
 
 **Bar 4, the cost frontier.** Read at matched error rather than at the
 endpoint: Transolver reaches 0.0431 for 6.6 GPU-hours (27.6 GB),
-GeoTransolver 0.0419 for about 13 GPU-hours (41 GB), ISLA 0.0428 for 22.5
+GeoTransolver 0.0419 for 12.7 GPU-hours (41.5 GB), ISLA 0.0428 for 22.5
 GPU-hours (22.8 GB, with the exact recompute). The baselines reach the
 corner error at 0.3–0.6x of ISLA's GPU-hours because their attention runs
 over 256 slices and widening is nearly free in step time (GeoTransolver
-0.15 → 0.22 s, Transolver 0.097 → 0.111 s from reference to corner), while
+0.15 → 0.211 s, Transolver 0.097 → 0.111 s from reference to corner), while
 ISLA's per-point relational geometry makes its step 0.285 s at the corner
 (1.3x GeoTransolver, 2.6x Transolver) even with the fast point-softmax
 kernel, which is what made the 80k arms affordable at all (3.4 s per step
 before it, @sec-nb-isla-perf-verdict). ISLA is the most memory-efficient of
-the three at the corner (22.8 against 27.6 and 41 GB) because of the exact
+the three at the corner (22.8 against 27.6 and 41.5 GB) because of the exact
 activation recompute, and every corner uses under 15% of the device; the
 binding cost on this hardware is step time, not memory, for all three. At
 matched GPU-hours the frontier reads: for about 6–7 GPU-hours Transolver
@@ -12980,8 +13029,7 @@ or more. The structural guards now in force: every evaluation imports
 unnamed snapshots and skipped loads; infer.py refuses to write a summary
 outside the range of its own per-sample values (commit f9330f317). Pending
 for this entry: the ISLA 40,000-cell and 384 × 40k arms (rows 14–19,
-epoch ~330), the similarity-gauge corner and its probes (rows 30–31), the
-GeoTransolver track's reduced corner cost, and the HiLift half.
+epoch ~330), the similarity-gauge corner and its probes (rows 30–31), and the HiLift half.
 
 **What this does not say.** Nothing about HiLift (1,260 cases; training,
 I/O-bound, weeks), where the 35-case and 210-case rungs have ISLA ahead and
