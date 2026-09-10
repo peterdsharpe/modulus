@@ -1319,7 +1319,8 @@ interior control @sec-nb-udrv-int-prereg.
   length + measure centering) is decided by the centering lanes and Peter.
 - **Measure-centering lanes (2026-09-10, fp32; results/center_lanes_2026-09-10.json).** DrivAerML: constant
   gauge + center_mode="measure" 0.0548 (0.0550/0.0545) vs plain 0.0557 → 0.98x; density 1.17x (1.168/1.184)
-  → JOINT PASS; adopt as the DrivAerML reference configuration once written into the chapters. HiLift 35:
+  → JOINT PASS; adopted as the DrivAerML reference configuration. HiLift reference: UNDER DECISION (Peter), not
+  "stays constant gauge" — a configuration failing the consistency test is not kept as flagship for 10% accuracy. HiLift 35:
   0.1520 (0.1519/0.1521) vs 0.1377 → 1.10x, accuracy bar FAILED ("invariant but costly"); similarity gauge
   pays 7.6% on the same rung (0.1482, three seeds). Write "on heterogeneous meshes the price of a
   sampling-consistent frame is the variance of the frame estimate, not the length scale"; never "measure

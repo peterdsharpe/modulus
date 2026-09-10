@@ -13357,11 +13357,17 @@ sampling-independent by construction, has no estimator variance, and costs
 nothing at inference. That configuration ("full-geometry frame", FRAME-FULL)
 is the next preregistration: prediction, constant-gauge accuracy recovered
 at 35 HiLift cases (within 3% of 0.1377) with the density ratio ≤ 1.2x on
-DrivAerML. Until it is measured, the reference-configuration decision reads:
-on DrivAerML the measure-centered constant gauge is adopted as the reference
-(accuracy kept, consistency gained); on HiLiftAeroML the constant gauge
-stays the accuracy reference with its density dependence stated beside
-every number, and the similarity gauge and measure centering are reported
-as the consistent configurations at their 7–10% price. The HiLift
-consistency of the measure-centered checkpoints under the BENCH samplers is
-being measured to complete their row.
+DrivAerML. The reference-configuration decision therefore reads: on
+DrivAerML the measure-centered constant gauge is adopted as the reference
+(accuracy kept, consistency gained). On HiLiftAeroML the constant gauge is
+the configuration behind every number to date and fails the consistency
+test; keeping it as the flagship because it is 10% more accurate in
+distribution would be the trade @sec-principle rules out, so the HiLift
+reference is *under decision*, not settled: the chapters present the two
+consistent configurations (measure centering at a 10% price, the similarity
+gauge at 7.6%) beside the constant gauge's numbers, and the FRAME-FULL
+prediction. A dataset-dependent reference would itself be a warning sign,
+which is a second reason to let FRAME-FULL decide. The HiLift density ratio
+of the measure-centered checkpoints is being measured under the BENCH
+samplers and will complete their row (the density column above is empty for
+that reason, not because the test was skipped).
