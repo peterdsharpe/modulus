@@ -40,6 +40,47 @@ FAST_KERNEL = {"t80k", "c512x80k", "kernelctrl", "g512x80k"}
 STEP = re.compile(r"Epoch (\d+) \[(\d+)/(\d+)\] Loss: ([0-9.eE+-]+|nan) Step: ([0-9.]+)s Mem: ([0-9.]+)GB")
 
 
+# Snapshot provenance. Launchers write <OUTDIR>/SNAPSHOT_USED (the first PYTHONPATH entry) since 2026-09-10; evaluations
+# made before that are named here from the launcher versions in force when they ran. A number without a nameable snapshot
+# is refused. Pre-sidecar manifest (root, run-prefix or dir) -> snapshot:
+PRE_SIDECAR_SNAPSHOTS = {
+    # float32/bf16 headline evaluations of the SCALE arms (code_isla5 launcher for the reference-kernel arms, code_perf for
+    # the fast-kernel arms; both loaded their own checkpoints, 0 skipped loads)
+    ("hl_evals", "scale_isla_dr_w384_"): "code_isla5", ("hl_evals_fp32", "scale_isla_dr_w384_"): "code_isla5",
+    ("hl_evals", "scale_isla_dr_w512_"): "code_isla5", ("hl_evals_fp32", "scale_isla_dr_w512_"): "code_isla5",
+    ("hl_evals", "scale_isla_dr_w384nw_"): "code_isla5", ("hl_evals_fp32", "scale_isla_dr_w384nw_"): "code_isla5",
+    ("hl_evals", "scale_isla_dr_t80k_"): "code_perf", ("hl_evals_fp32", "scale_isla_dr_t80k_"): "code_perf",
+    ("hl_evals", "scale_isla_dr_c512x80k_"): "code_perf", ("hl_evals_fp32", "scale_isla_dr_c512x80k_"): "code_perf",
+    ("hl_evals", "scale_isla_dr_kernelctrl_"): "code_perf", ("hl_evals_fp32", "scale_isla_dr_kernelctrl_"): "code_perf",
+    # reference arms: fp32 re-evaluation campaign (main session) and legacy bf16 evaluations, both under the snapshot that wrote them
+    ("iw_evals_fp32", "iw_mt2_lr1e3_"): "code", ("iw_evals", "iw_mt2_lr1e3_"): "code",
+    ("hl_evals_fp32", "mt2_hl_lr1_"): "code", ("hl_evals", "mt2_hl_lr1_"): "code",
+    ("hl_evals", "floor_hl_mt2_full_20k_"): "code", ("hl_evals_fp32", "floor_hl_mt2_full_20k_"): "code",
+    # density probes: 10k probes of the SCALE arms under code_isla5 / code_perf; campaign E (transfer session) under code;
+    # the first true-80k probe (job 700105) under code_perf_eval (corner) and code (references) -> the reference rows are STRUCK
+    ("scale_probe_fp32", "scale_isla_dr_w512_"): "code_isla5", ("scale_probe_fp32", "scale_isla_dr_c512x80k_"): "code_perf",
+    ("transfer/campaign_e_fp32", "iw_mt2_"): "code",
+    ("scale_probe_fp32_80k", "scale_isla_dr_c512x80k_"): "code_perf_eval", ("scale_probe_fp32_80k", "iw_mt2_"): "code (STRUCK: legacy snapshot at 80,000 cells)",
+    ("scale_probe_fp32_40k", "scale_isla_dr_c512x80k_"): "code_perf_eval", ("scale_probe_fp32_40k", "iw_mt2_"): "code_eval",
+    ("scale_probe_fp32_20k", "iw_mt2_"): "code_eval", ("scale_probe_fp32_40kv80", "iw_mt2_"): "code_eval",
+    ("scale_probe_fp32_60k", "iw_mt2_"): "code_eval", ("scale_probe_fp32_65k", "iw_mt2_"): "code_eval", ("scale_probe_fp32_70k", "iw_mt2_"): "code_eval",
+    ("scale_probe_fp32_80kx", "iw_mt2_"): "code_eval", ("scale_probe_fp32_80kx", "scale_isla_dr_c512x80k_"): "code_eval",
+}
+
+
+def snapshot_of(root, run, outdir=None):
+    """Name the evaluation snapshot of a run: sidecar first, then the pre-sidecar manifest; None if unknown."""
+    import os
+    for d in ([outdir] if outdir else []) + [f"{T}/{root}/{run}"]:
+        sc = f"{d}/SNAPSHOT_USED"
+        if os.path.exists(sc):
+            return os.path.basename(open(sc).read().strip().rstrip("/"))
+    for (r, prefix), snap in PRE_SIDECAR_SNAPSHOTS.items():
+        if r == root and run.startswith(prefix):
+            return snap
+    return None
+
+
 def _log_clean(root, run):
     """Refuse a run whose evaluation log records a skipped checkpoint load (the evaluation would be of the seeded init)."""
     for lg in glob.glob(f"{T}/{root}/{run}.log") + glob.glob(f"{T}/{root}/{run}/*.log"):
@@ -54,9 +95,12 @@ def _metrics_in(root, run):
     if not ps:
         return None
     _log_clean(root, run)
+    snap = snapshot_of(root, run)
+    if snap is None:
+        raise AssertionError(f"{root}/{run}: evaluation snapshot cannot be named (no SNAPSHOT_USED sidecar, not in the manifest); number refused")
     rows = [json.loads(l) for l in open(ps[0])]
     rows = [r["metrics"] for r in rows if r.get("phase") == "infer_step"]
-    return {f: st.mean(r[f] for r in rows) for f in F if f in rows[0]} | {"n_cases": len(rows)}
+    return {f: st.mean(r[f] for r in rows) for f in F if f in rows[0]} | {"n_cases": len(rows), "snapshot": snap}
 
 
 def _points_identical(run):
@@ -120,6 +164,7 @@ for ds, arms in ARMS.items():
             a = {f: st.mean(m[f] for m, _ in per) for f in F if all(f in m for m, _ in per)}
             a["n_seeds"] = len(per); a["seed_pressure"] = [m["pressure_l2"] for m, _ in per]
             a["instrument"] = sorted({m["instrument"] for m, _ in per})
+            a["snapshot"] = sorted({m.get("snapshot", "?") for m, _ in per} | {m["bf16"].get("snapshot", "?") for m, _ in per if "bf16" in m})
             if all("bf16" in m for m, _ in per):
                 a["bf16_pressure_l2"] = st.mean(m["bf16"]["pressure_l2"] for m, _ in per)
                 a["fp32_over_bf16_pressure"] = st.mean(m["fp32_over_bf16_pressure"] for m, _ in per)
@@ -177,6 +222,12 @@ def _probe_metric(d):
     ps = glob.glob(f"{d}/*/metrics.jsonl") + glob.glob(f"{d}/*/*/metrics.jsonl")
     if not ps:
         return None
+    import os
+    root = os.path.relpath(os.path.dirname(os.path.dirname(d)), T); run = os.path.basename(os.path.dirname(d))
+    snap = snapshot_of(root, run, outdir=d)
+    if snap is None:
+        raise AssertionError(f"{d}: probe snapshot cannot be named; number refused")
+    _probe_metric.last_snapshot = snap
     for lg in glob.glob(f"{d}.log"):
         txt = open(lg, errors="ignore").read()
         if "skipping load" in txt or "Could not find valid model file" in txt:
@@ -192,10 +243,11 @@ for arm, dirs in PROBE.items():
     for d in dirs:
         u, b = _probe_metric(f"{d}/unif"), _probe_metric(f"{d}/biased")
         if u and b:
-            per.append({"uniform": u, "biased": b, "biased_over_uniform": b / u})
+            per.append({"uniform": u, "biased": b, "biased_over_uniform": b / u, "snapshot": _probe_metric.last_snapshot})
     if per:
         out["density_probe"][arm] = {"n_seeds": len(per), "uniform": st.mean(x["uniform"] for x in per), "biased": st.mean(x["biased"] for x in per),
-                                     "biased_over_uniform": st.mean(x["biased_over_uniform"] for x in per), "per_seed": per}
+                                     "biased_over_uniform": st.mean(x["biased_over_uniform"] for x in per), "per_seed": per,
+                                     "snapshot": sorted({x["snapshot"] for x in per})}
         if arm in out["arms"]:
             out["arms"][arm]["density_biased_over_uniform"] = out["density_probe"][arm]["biased_over_uniform"]
 # Convergence curves (coordinator addition): for the 10k-trained reference and the 80k-trained models, the float32
