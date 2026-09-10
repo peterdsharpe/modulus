@@ -128,7 +128,7 @@ def metrics(run):
     head = dict(fp32 if fp32 else bf16)
     head["instrument"] = "float32" if fp32 else "bf16 (fp32 re-evaluation not yet available)"
     if fp32 and bf16:
-        head["bf16"] = {f: bf16[f] for f in F if f in bf16}
+        head["bf16"] = {f: bf16[f] for f in F if f in bf16} | {"snapshot": bf16["snapshot"]}  # carry the bf16 side's snapshot name (was dropped -> shown as "?")
         head["fp32_over_bf16_pressure"] = fp32["pressure_l2"] / bf16["pressure_l2"]
         head["points_identical_cases"] = _points_identical(run)
     return head

@@ -10188,3 +10188,50 @@ computes every headline from the per-sample rows, never from the summary
 line, so it is unaffected by a missing summary and would have been immune to
 the wrong one had it read per-sample values under the legacy snapshot; the
 guard closes the path for every launcher that reads the summary.
+
+**Similarity-gauge corner `g512x80k`: principled scaling (both bars met).**
+ISLA at width 512 with the similarity gauge, trained on 80,000 cells per
+car (seeds 42/43, `code_perf`, fast point-softmax kernel, exact activation
+recompute), evaluated under `code_eval` in both precisions (snapshot
+sidecars present on every evaluation and probe, loads clean, seeds
+distinct: 0.0425 / 0.0437 in float32) and probed for density bias at its
+native 80,000 cells and at 10,000. Against the preregistered bars:
+
+| bar (float32) | threshold | measured | standing |
+|---|---|---|---|
+| error within 5% of the constant-gauge corner | ≤ 0.0449 | **0.0431** (constant corner 0.0428; +0.7%) | met |
+| biased ÷ uniform at 80,000 cells | ≤ 1.5 | **1.08** (constant corner 16.7x) | met |
+| gauge fails at scale | ratio ≥ 3 | 1.08 | does not fire |
+| gauge costs accuracy | ratio ≤ 1.5 and error > 0.0470 | 0.0431 | does not fire |
+
+The similarity gauge's accuracy cost at the reference configuration (0.0616
+against 0.0558 at width 192 × 10,000 cells, 10%) is gone at the corner
+(0.0431 against 0.0428, under 1%), while the density sensitivity that the
+constant gauge carries unchanged through every width and count (11–17x)
+stays at 1.08x. Relative to the two 10k-trained references the gauge corner
+is 0.77x the constant-gauge reference (0.0557) and 0.70x the gauge reference
+(0.0616), at equal GPU-hours (20–23 for every DrivAerML arm). Cost of the
+gauge at the corner: none measurable — 60.2M parameters (equal), peak
+training memory 22.86 against 22.84 GB, median step 0.281 against 0.285 s;
+bf16 evaluation 0.0441 for both corners (float32 ÷ bf16 0.98). The
+DrivAerML count curve of the gauge corner (float32, uniform sampling,
+biased ÷ uniform in parentheses) beside the constant-gauge corner:
+
+| cells evaluated | width 512 × 80k, constant gauge (trained at 80k) | width 512 × 80k, similarity gauge (trained at 80k) |
+|---|---|---|
+| 10,000 | 0.0663 (10.9x) | 0.0727 (1.53x) |
+| 40,000 | 0.0447 (pool exhausted; bias n/a) | not measured |
+| 80,000 (native) | 0.0427 (16.7x) | 0.0431 (1.08x) |
+
+Queried at an eighth of its training count the gauge corner loses more
+accuracy than the constant corner (1.69x its native error against 1.55x)
+and its bias ratio rises from 1.08 to 1.53; the down-transfer asymmetry
+recorded for the constant corner (high-count training does not transfer
+down; low-count training transfers up) holds for the gauge as well. Under
+the redirect this is the one scaled configuration the program may adopt:
+its gain over the reference comes with the density invariance intact, and
+nothing about it depends on the training discretization beyond the
+down-transfer cost that every 80k-trained arm shows. Reducer fix recorded
+with this entry: the bf16 side's snapshot name was named and checked by the
+guard but dropped from the per-arm `snapshot` field (shown as `?`); it is
+now carried, so every arm row names both instruments' snapshots.
