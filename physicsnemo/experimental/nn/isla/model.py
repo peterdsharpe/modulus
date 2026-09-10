@@ -177,7 +177,7 @@ class _SliceBlock(nn.Module):
     def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
                  use_relational_geo: bool = True, geo_checkpoint: bool = False,
                  second_moment: bool = False, anchor_topk: int = 0,
-                 fast_point_softmax: bool = True) -> None:
+                 fast_point_softmax: bool = False) -> None:
         super().__init__()
         self.use_relational_geo = use_relational_geo
         self.fast_point_softmax = bool(fast_point_softmax)
@@ -380,7 +380,7 @@ class ISLA(Module):
         reference_length: float = 8.0,
         use_measure_weights: bool = True,
         measure_weight_power: float = 1.0,
-        fast_point_softmax: bool = True,
+        fast_point_softmax: bool = False,
         use_local_features: bool = False,
         local_radii: tuple[float, ...] = (0.01, 0.03),
         n_boundary_scalars: int = 0,

@@ -9986,3 +9986,23 @@ arms; and, for the SCALE ISLA lanes already training at the slow kernel,
 the coordinator's call whether to let the six-day 80k arm finish or restart
 it from the fast snapshot (a restart changes numerics at bf16 roundoff and
 must be declared in the arm's provenance).
+
+**Addendum (2026-09-09, coordinator).** Two amendments before the merge.
+*Default.* The fast kernel ships with `fast_point_softmax=False` as the
+default: under bf16 its outputs differ from the old kernel by 1.0–1.5%
+relative L2, the same order as several comparisons in the book (ISLA
+against the unit-drive GeoTransolver at 35 cases is 10%; the DrivAerML
+weights-off difference is 2.8%; interior seed spreads are about 1%), and
+every checkpoint and evaluation in the book used the old kernel. The scaled
+lanes and the neutrality control enable it explicitly
+(`+model.fast_point_softmax=true`). The default flips only after two checks
+land: the DrivAerML neutrality pair (`scale_isla_dr_kernelctrl_seed{42,43}`,
+within 3% of 0.0577) and an evaluation-only check of an existing trained
+checkpoint (`iw_mt2_lr1e3_seed42`) with both kernels showing the metric
+moves by ≤ 0.3%; both numbers are written here when they land.
+*Attribution.* The sparse-routing entry (@sec-nb-sparse-routing-verdict)
+attributed ISLA's step cost to the per-slice geometry tensors and concluded
+that routing to fewer anchors could not recover it; the profile shows the
+cost was the softmax kernel's launch geometry, not the invariant tensors, so
+that entry's mechanism was wrong while its verdict (sparse routing is not the
+lever) stands.
