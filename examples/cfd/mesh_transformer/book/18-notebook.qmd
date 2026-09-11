@@ -14496,3 +14496,73 @@ conjecture (the downstream coordinate is only implicit in ISLA's seed) is
 the remaining candidate; a near-wall or pressure regression beyond 3% is
 the objective-reweighting cost and is reported as such. Owner: this
 session.
+
+## 2026-09-11 — WAVE-4 fixed-angle rung: the similarity gauge costs 14% at a fixed angle (0.0398 against 0.0348, float32, rate-matched), the top of the "known price" band and the largest price on the ladder so far {#sec-nb-wave4-fixed-angle}
+
+The WAVE-4 ladder (@sec-nb-wave4-prereg) trains the similarity-gauge ISLA
+(centroid and reference length taken from the measure-weighted point set,
+so the routing geometry is normalized per sample) on every HiLiftAeroML
+rung the constant-gauge reference has, at the same learning rate (1e-3),
+seeds, token count and epochs, with `+model.similarity_gauge=true` the only
+change. The fixed-angle rung is the dataset's `single_aoa_12` split: 126
+geometries at 12° angle of attack for training, 18 never-seen geometries at
+the same angle for validation, so it isolates geometry generalization from
+angle generalization. Two lanes (w4_hl_mt2_gauge_single_aoa_12_seed{42,43},
+snapshot code) finished 500 epochs and were evaluated in float32 under the
+same snapshot (jobs 708622_8/9; bf16 twins 708621_8/9; no loader warnings,
+no "skipping load"). Constant-gauge twins: mech_hl_mt2_single_aoa_12_seed{42,43}
+(lr 1e-3 confirmed in their resolved configs).
+
+| model, fixed angle (18 never-seen geometries) | pressure rel-L2, float32 (42 / 43 → mean) | vs constant-gauge ISLA | vs unit-drive GeoTransolver 0.0270 | vs unit-drive Transolver 0.0298 |
+|---|---|---|---|---|
+| ISLA, similarity gauge (lr 1e-3) | 0.0411 / 0.0385 → **0.0398** | **1.144x** | 1.47x | 1.33x |
+| ISLA, constant gauge (lr 1e-3, reference) | 0.0342 / 0.0353 → **0.0348** | 1 | 1.29x | 1.17x |
+
+The bf16 evaluation reads 0.0418 / 0.0391 → 0.0405 for the gauge, the
+usual 2% offset for ISLA (@sec-nb-fp32-first-look).
+
+**Against the bars.** +14.4% is inside the preregistered 5–15% "known
+price" band, at its top, and is the largest in-distribution price on the
+ladder: 35 cases +7.6% (three seeds), 4 training geometries +7.4%,
+DrivAerML −2.5% (parity, @sec-nb-wave4-drivaer-note). The fixed angle is
+already the rung where ISLA is behind the baselines (the unit-drive
+GeoTransolver 0.78x and Transolver 0.86x of the constant-gauge ISLA in
+float32, @sec-nb-udrv-single-verdict), and the gauge widens that gap to
+1.47x and 1.33x.
+
+**Reading, with its discriminator.** The rung where the gauge costs most is
+the one whose whole task is geometry generalization at a fixed drive
+direction, and the gauge is the one configuration on the ladder that
+discards the absolute size of the geometry (it divides positions by the
+measure-weighted root-mean-square radius of the sample). The
+Latin-hypercube wing geometries differ in span, chord and flap settings,
+and at a fixed angle those size differences are a large part of what
+distinguishes one case's pressure field from another's; a model that sees
+every wing at unit radius must recover the size from secondary cues. This
+is a hypothesis, not a result. The discriminating experiment is the pair of
+frames that remove the plain-mean centroid but keep the absolute scale: the
+measure-centred constant-length frame (center_mode=measure,
+@sec-nb-center-lanes-verdict) and the relative frame with the stated
+reference length (RELFRAME "ref", @sec-nb-relframe-verdict), neither of
+which has been trained at the fixed angle. If either lands within 5% of
+0.0348 there, the gauge's fixed-angle price is its scale normalization; if
+both pay 10–15% as well, the price is the centroid (the mesh-density
+content of the plain-mean frame, 0.131 body lengths on HiLift), the same
+reading FRAME-FULL is testing at 35 cases. Not launched: the reference
+decision is governed by Peter's frame ruling and FRAME-FULL, and the gauge
+is a sample-statistic frame either way; the pair is the first follow-up
+once the reference is settled.
+
+**Consistency half.** The constant-gauge ISLA at the fixed angle is the
+benchmark's worst-behaved trained arm: D_area +960% and D_biased +1385% at
+40,000 cells (10.6x and 14.9x; results/consistency_bench/consistency_bench_2026-09-10.json,
+arm mech_hl_mt2_single_aoa_12). The gauge checkpoints' 30 BENCH lanes
+(three samplers, five counts, two seeds; lane table bench/bench_lanes_w4fa.tsv,
+jobs 708692 and 708718, float32) are running; the prereg's decision rule for this rung
+is that the gauge passes the consistency bars where the constant gauge
+fails them, at a stated price of 14%.
+
+*Ladder status.* Seven of thirteen HiLift lanes trained and read
+(super_scarce ×3, geometry_super_scarce ×2, single_aoa_12 ×2); scarce and
+geometry_scarce at epoch ~280 of 500; full and deflection at epoch ~50
+(days). Evaluations follow each pair as it lands.

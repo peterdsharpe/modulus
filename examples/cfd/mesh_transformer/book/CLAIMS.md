@@ -1491,3 +1491,9 @@ interior control @sec-nb-udrv-int-prereg.
   GT 3.1, Transolver 7.6, ISLA 2.7, off 1.8. Curated draw typical except GT (easiest). Baselines trade places vs 35:
   GT 0.91→0.87, T 0.87→0.90. Quote 210-case ratios WITH these intervals. Campaign A CLOSED; transfer session has nothing
   running.
+- **WAVE-4 fixed-angle rung (2026-09-11, fp32, rate-matched lr 1e-3).** Similarity gauge 0.0411/0.0385 → 0.0398 vs
+  constant gauge 0.0342/0.0353 → 0.0348: **+14.4%**, top of the 5–15% "known price" band; largest on the ladder
+  (35 cases +7.6%, 4 geometries +7.4%, DrivAerML −2.5%). vs unit-drive GT 0.0270 → 1.47x; Transolver 0.0298 → 1.33x.
+  Constant gauge at fixed angle collapses under BENCH (D_area +960%, D_biased +1385% at 40k); gauge BENCH lanes
+  708692/708718 pending. Scale-normalization hypothesis is a HYPOTHESIS (discriminator: mcenter / RELFRAME-ref at fixed
+  angle, not launched). Never write "the gauge is free on HiLift".
