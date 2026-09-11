@@ -1544,3 +1544,9 @@ interior control @sec-nb-udrv-int-prereg.
   constant (clamp holds ~1/3 of kept wing cells). Reading: uniform advantage = estimator variance + mesh-pattern content; mesh-pattern dominates
   what weights-off learned → stays an ablation. Clean separation pending: MIX area-trained ISLA-on vs uniform on/off on one sampler at 40k
   (variance predicts area-on ≈ uniform-off ≈ 0.88x uniform-on). Do NOT launch a weights-off area-trained pair (tests the clamp only).
+- **Count-dependence discriminator (2026-09-11, fork, uniform sampler, BENCH artifact).** Weights-off ÷ weights-on ISLA vs cell count 2.5k→40k:
+  DrivAerML constant gauge 0.889→0.949→0.969→0.975→0.976 (advantage 11%→2.4%: VARIANCE-like, nearly gone at 40k); HiLift 35 0.887/0.883/0.882/
+  0.887/0.882 and fixed angle 0.863/0.867/0.867/0.871/0.867 (FLAT 12–13%: mesh-pattern content, variance cannot be count-independent). Write:
+  car off-advantage = estimator variance; wing off-advantage = mesh-pattern content (and collapses under area sampling). Triple confound: the only
+  uniform-trained weights-off is constant gauge at lr 1e-3; matched pair is gauge uniform-on (iw_mt2_gauge) vs gauge area-on (MIX); read the
+  triple under the UNIFORM sampler at 40k only (area-sampler uniform-off is collapsed 0.66–0.76; area-trained model off-law swap 1.63x at 10k).

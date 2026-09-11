@@ -433,11 +433,20 @@ two seeds). Both checkpoints are scored off their training sampling law,
 so this mixes the routing computation with what each set of parameters
 learned to expect; the reading that fits is that the uniform-sampler
 advantage is estimator variance plus mesh-pattern content, and the
-mesh-pattern part dominates what weights-off learned. The clean
-separation is the area-trained ISLA of the mixed-sampling study: the
-variance mechanism predicts it recovers the weights-off advantage on a
-common sampler; if it does not, the advantage is mesh-pattern content
-alone. That readout is pending. This is the program's rule in @sec-principle read from the data:
+mesh-pattern part dominates what weights-off learned. The two parts
+separate by their dependence on cell count, because estimator variance
+shrinks as more cells are drawn and mesh-pattern content does not. On
+the uniform sampler the weights-off-to-weights-on ratio on DrivAerML
+rises from 0.89 at 2,500 cells to 0.98 at 40,000, so the car advantage
+behaves as variance and is nearly gone at the highest count; on
+HiLiftAeroML at 35 cases (0.88) and on the fixed-angle split (0.87) the
+ratio is flat across the same sixteen-fold range, which variance cannot
+produce. On the wings, then, the ablation's advantage is mesh-pattern
+content, and the wings are where its collapse under area sampling is
+worst. The area-trained ISLA of the mixed-sampling study is being run
+through the same benchmark as a further check, read under the uniform
+sampler at 40,000 cells where both models' off-law penalties are
+smallest. This is the program's rule in @sec-principle read from the data:
 accuracy is to be recovered by capacity and principled construction, not
 by tuning to a dataset, and the single-case floor is the instrument that
 separates the two. The interior pair of the same study is pending.

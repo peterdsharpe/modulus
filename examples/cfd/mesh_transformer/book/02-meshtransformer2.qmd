@@ -550,7 +550,11 @@ over a uniform-over-cells draw has an effective sample size of
 $N/(1+\mathrm{CV}^2)$ of the cell areas, about one fifth of the points
 on either dataset, so each slice state is a noisier estimate of the same
 integral and moves about twice as much when the surface is resampled
-(@sec-limits-mechanism). The cure consistent with the requirement is a
+(@sec-limits-mechanism). That variance part shrinks with cell count and
+is nearly gone at 40,000 cells on DrivAerML; the part that does not
+shrink, on the wings, is mesh-pattern content the ablation learned from
+the mesher, and it is exactly what collapses when the sampler changes
+(@sec-consistency-bench). The cure consistent with the requirement is a
 lower-variance draw (area-proportional sampling makes the weights
 constant), not dropping the weights. The constant-gauge
 configuration behind the accuracy results fails the sampling-density probe
