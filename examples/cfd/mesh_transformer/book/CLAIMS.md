@@ -1526,3 +1526,13 @@ interior control @sec-nb-udrv-int-prereg.
   "per unit surface area" when quoting the metric. Fixed single sample = memorization test (rel-L2 0.12–0.36 on a resampling
   even at zero training loss); 64 views → 0.03–0.11. 10k→40k: car baselines insensitive, ISLA arms −19–20%; wing all arms
   −5–28% (convergence check, not a defect). Interior pair pending (~6 h).
+- **OVERFIT-1 routing probe (2026-09-11, forward passes on the four 64-view ISLA checkpoints; results/overfit_routing_probe_2026-09-11.json,
+  overfit_slice_state_variance_2026-09-11.json).** Measure-weight cost mechanism = ESTIMATOR VARIANCE under uniform-over-cells sampling, NOT
+  logit saturation, NOT open-surface starvation. Per-slice effective token count on = 0.21x off (540 vs 2,030 wing; 390 vs 1,980 car); flat-logit
+  floor N/(1+CV^2) of areas = 862/9,983 wing (CV 3.25; 4.4% of cells carry half the area), 1,637/10,000 car (CV 2.26); learned routing never
+  exceeds the floor. Ten cells never carry >18% of a slice's mass (saturation refuted). Large-cell slices not token-poorer (starvation refuted).
+  Slice-state movement across resamplings 1.85x (wing) / 2.31x (car) higher with weights on; distinct slice states unchanged (27 vs 30; 28 vs 34
+  of 256). Whether 2x state noise accounts for the full 17% gap is NOT established. measure_weight_power alpha: N_eff 2,118/4,564/7,873 wing at
+  0.75/0.5/0.25 — consistency exact only at alpha=1 (do not adopt alpha<1 as flagship). PREDICTION (falsifiable, no new code): under the BENCH
+  area-proportional sampler weights are constant, on/off coincide, weights-off advantage must vanish. Principled target: sampler or
+  variance-reduced consistent quadrature, not weights-off. Never write "saturation" or "starvation" as the mechanism.

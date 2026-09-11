@@ -398,13 +398,32 @@ The same ordering is visible in the training losses on ISLA's own
 views, so the gap is present before any generalization question arises.
 Two further facts locate it. With the data fixed, the weights-off
 ablation still beats the reference by 17% on both datasets, so the
-measure-weight cost measured on the ladder is a representational cost,
-not a few-sample effect (it remains an ablation, @sec-principle). And
-split by facing distance, the deficit sits on the mid- and far-field
-open surfaces (baseline-to-ISLA ratios 0.64–0.83) and is smallest at the
-gaps (0.88): what ISLA lacks is capacity for the smooth, large-cell
-regions that dominate the area-weighted metric of @sec-metrics, not gap
-physics. This is the program's rule in @sec-principle read from the data:
+measure-weight cost measured on the ladder is not a few-sample effect
+(it remains an ablation, @sec-principle). A forward-pass probe of the
+trained single-case checkpoints identified its mechanism as estimator
+variance, not saturation or starvation (companion notebook, routing
+probe, 2026-09-11). Uniform-over-cells sampling draws a heavy tail of
+cell areas (4.4% of the wing's cells carry half the sampled area), and a
+quadrature-weighted mean over such a draw has an effective sample size
+of $N/(1+\mathrm{CV}^2)$ of the areas: 862 of 9,983 wing cells, 1,637 of
+10,000 car cells. The learned routing sits at that floor, so each slice
+state with weights on is a mean over about one fifth as many effective
+tokens as with weights off, and over four resamplings of the same
+surface the slice states move 1.9–2.3x more relative to their spread,
+while the number of distinct slice states is unchanged. No slice is
+dominated by a few large cells (ten cells never carry more than 18% of a
+slice's mass), and slices routed to large cells are not poorer in
+tokens than others, so neither saturation nor open-surface starvation
+holds. Split by facing distance, the deficit sits on the mid- and
+far-field open surfaces (baseline-to-ISLA ratios 0.64–0.83) and is
+smallest at the gaps (0.88), which is where a uniform noise floor shows
+most: on the smooth regions where the residual is smallest and which
+dominate the area-weighted metric of @sec-metrics. The principled target
+is therefore the sampler or a variance-reduced consistent quadrature,
+not the weights: under an area-proportional sampler the quadrature
+weights are constant and the on and off configurations coincide by
+construction, a prediction the consistency lanes of
+@sec-consistency-bench can check with no new code. This is the program's rule in @sec-principle read from the data:
 accuracy is to be recovered by capacity and principled construction, not
 by tuning to a dataset, and the single-case floor is the instrument that
 separates the two. The interior pair of the same study is pending.

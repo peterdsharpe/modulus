@@ -544,7 +544,15 @@ mesher placed, and a uniformly generated point cloud or a different mesher
 would change the answer (@sec-principle). Turning the routing weights off
 gives 0.88x and turning the similarity gauge on gives 1.08x at 35 cases
 (@sec-mechanism); the first number is the in-distribution price of the
-requirement, measured as an ablation and never adopted. The constant-gauge
+requirement, measured as an ablation and never adopted. The price has a
+known mechanism and it is not in the weights: a quadrature-weighted mean
+over a uniform-over-cells draw has an effective sample size of
+$N/(1+\mathrm{CV}^2)$ of the cell areas, about one fifth of the points
+on either dataset, so each slice state is a noisier estimate of the same
+integral and moves about twice as much when the surface is resampled
+(@sec-limits-mechanism). The cure consistent with the requirement is a
+lower-variance draw (area-proportional sampling makes the weights
+constant), not dropping the weights. The constant-gauge
 configuration behind the accuracy results fails the sampling-density probe
 for a different and now identified reason: it centers the point cloud by
 the plain mean of the sampled points, the one quantity in its forward pass
