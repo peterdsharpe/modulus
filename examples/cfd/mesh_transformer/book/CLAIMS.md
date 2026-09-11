@@ -1514,6 +1514,42 @@ interior control @sec-nb-udrv-int-prereg.
   WRITE: "count augmentation reduces the request-size dependence by ~40% at a 3.7% cost and does not remove it; the
   dependence is partly intrinsic to the interacting decode; deploy at the training count". Never "count augmentation
   removes the dependence" (retire the D1-era 'deployment repair is augmentation' wording).
+- **OVERFIT-1 surface verdict (2026-09-11, single-sample session, fp32 at 10k cells, 64-view form; results/overfit_single_case_2026-09-11.json
+  + overfit_hlreg_*_2026-09-11.json).** Single-case floors: HiLift ISLA 1.37x unit Transolver / 1.27x GT (bf16-trained arms),
+  1.55x in the fp32-trained pair; DrivAerML 1.31x / 1.39x → "between" band (bf16 arms), over the 1.5x capacity bar (fp32 pair);
+  no comparison within 1.15x. Single-case gap WIDER than the 35-case gap (1.20x / 1.11x) → the deficit is not a data limit; it
+  is representational, visible in training losses on ISLA's own views (0.0062 vs 0.0034–0.0036). Weights off beats on by 17%
+  with data fixed → measure-weight cost is representational, not a few-sample effect (ablation only). Facing-distance split:
+  deficit on mid/far open surfaces (baseline÷ISLA 0.64–0.83), smallest at the gaps (0.88) → missing capacity is on smooth
+  large-cell regions, not gap physics. INSTRUMENT NOTE for every chapter: the recipe's pressure_l2 is CELL-AREA WEIGHTED (a
+  surface integral); per-point RMS ratios differ (T÷ISLA 0.87 per point vs 0.73 per unit area, verified to 3 digits) — say
+  "per unit surface area" when quoting the metric. Fixed single sample = memorization test (rel-L2 0.12–0.36 on a resampling
+  even at zero training loss); 64 views → 0.03–0.11. 10k→40k: car baselines insensitive, ISLA arms −19–20%; wing all arms
+  −5–28% (convergence check, not a defect). Interior pair pending (~6 h).
+- **OVERFIT-1 routing probe (2026-09-11, forward passes on the four 64-view ISLA checkpoints; results/overfit_routing_probe_2026-09-11.json,
+  overfit_slice_state_variance_2026-09-11.json).** Measure-weight cost mechanism = ESTIMATOR VARIANCE under uniform-over-cells sampling, NOT
+  logit saturation, NOT open-surface starvation. Per-slice effective token count on = 0.21x off (540 vs 2,030 wing; 390 vs 1,980 car); flat-logit
+  floor N/(1+CV^2) of areas = 862/9,983 wing (CV 3.25; 4.4% of cells carry half the area), 1,637/10,000 car (CV 2.26); learned routing never
+  exceeds the floor. Ten cells never carry >18% of a slice's mass (saturation refuted). Large-cell slices not token-poorer (starvation refuted).
+  Slice-state movement across resamplings 1.85x (wing) / 2.31x (car) higher with weights on; distinct slice states unchanged (27 vs 30; 28 vs 34
+  of 256). Whether 2x state noise accounts for the full 17% gap is NOT established. measure_weight_power alpha: N_eff 2,118/4,564/7,873 wing at
+  0.75/0.5/0.25 — consistency exact only at alpha=1 (do not adopt alpha<1 as flagship). PREDICTION (falsifiable, no new code): under the BENCH
+  area-proportional sampler weights are constant, on/off coincide, weights-off advantage must vanish. Principled target: sampler or
+  variance-reduced consistent quadrature, not weights-off. Never write "saturation" or "starvation" as the mechanism.
+- **BENCH on/off under area sampling (2026-09-11, Generalization fork, from results/consistency_bench/consistency_bench_2026-09-10.json; fp32,
+  two seeds, uniform-trained checkpoints, 2.5k→40k).** Weights-off ÷ weights-on ISLA pressure: uniform sampler DrivAerML 0.89→0.98, HiLift 35
+  0.88, fixed angle 0.87 (known off advantage); AREA-PROPORTIONAL sampler 2.9→6.6 / 2.1→2.3 / 2.5→3.4 — the off advantage INVERTS 2–7x;
+  weights-off absolute errors 0.66–1.29 (worse than predicting zero) vs weights-on 0.10–0.51; weights-on falls with count (0.27→0.10 DrivAerML),
+  off flat. Biased 10:1: 1.54 / 1.29 / 1.04. Caveats: both scored off their training sampler; HT weights under the area sampler are not exactly
+  constant (clamp holds ~1/3 of kept wing cells). Reading: uniform advantage = estimator variance + mesh-pattern content; mesh-pattern dominates
+  what weights-off learned → stays an ablation. Clean separation pending: MIX area-trained ISLA-on vs uniform on/off on one sampler at 40k
+  (variance predicts area-on ≈ uniform-off ≈ 0.88x uniform-on). Do NOT launch a weights-off area-trained pair (tests the clamp only).
+- **Count-dependence discriminator (2026-09-11, fork, uniform sampler, BENCH artifact).** Weights-off ÷ weights-on ISLA vs cell count 2.5k→40k:
+  DrivAerML constant gauge 0.889→0.949→0.969→0.975→0.976 (advantage 11%→2.4%: VARIANCE-like, nearly gone at 40k); HiLift 35 0.887/0.883/0.882/
+  0.887/0.882 and fixed angle 0.863/0.867/0.867/0.871/0.867 (FLAT 12–13%: mesh-pattern content, variance cannot be count-independent). Write:
+  car off-advantage = estimator variance; wing off-advantage = mesh-pattern content (and collapses under area sampling). Triple confound: the only
+  uniform-trained weights-off is constant gauge at lr 1e-3; matched pair is gauge uniform-on (iw_mt2_gauge) vs gauge area-on (MIX); read the
+  triple under the UNIFORM sampler at 40k only (area-sampler uniform-off is collapsed 0.66–0.76; area-trained model off-law swap 1.63x at 10k).
 - **MWAW verdict (2026-09-11, fp32, 48 cars, 10k; results/mwaw_2026-09-11.json).** GT-mwaw 0.0505 vs plain-frame twin 0.0498 (+1.2%);
   T-mwaw 0.0528 vs 0.0522 (+1.1%) → EQUAL. Sample-frame density: HT centre (cell_measures) 1.04x / 1.03x;
   raw-area centre 9.2x / 6.0x (count bias — never call use_area_weighting alone "HT" under a biased draw). Write "the

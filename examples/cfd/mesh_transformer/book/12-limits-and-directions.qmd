@@ -381,6 +381,76 @@ not where the *input* information that produces it lives, and at 35 cases
 there is no error advantage to localize; the instrument is retained for any
 rung at which the unit-drive reruns leave one.
 
+**The remaining deficit is representational, not a shortage of training
+cases.** The cleanest test of a data limit is to remove the data axis:
+train each architecture on a single case, presented as 64 independent
+10,000-cell views of the same surface, until its training loss stops
+falling, and read the floor it reaches on a fresh resampling of that same
+case (companion notebook, single-case study, 2026-09-11; float32; the
+arms carry the unit-drive input, and the fp32-trained pair is the
+like-for-like comparison). If the 35-case gap were a data limit, the gap
+at one case should be smaller or vanish; it is wider. On the HiLiftAeroML
+wing ISLA's single-case floor is 1.27x GeoTransolver's and 1.37x
+Transolver's in the bfloat16-trained arms and 1.55x in the fp32-trained
+pair, against a 35-case gap of 1.11–1.20x; on the DrivAerML car it is
+1.31–1.39x, over the pre-registered 1.5x capacity bar in the fp32 pair.
+The same ordering is visible in the training losses on ISLA's own
+views, so the gap is present before any generalization question arises.
+Two further facts locate it. With the data fixed, the weights-off
+ablation still beats the reference by 17% on both datasets, so the
+measure-weight cost measured on the ladder is not a few-sample effect
+(it remains an ablation, @sec-principle). A forward-pass probe of the
+trained single-case checkpoints identified its mechanism as estimator
+variance, not saturation or starvation (companion notebook, routing
+probe, 2026-09-11). Uniform-over-cells sampling draws a heavy tail of
+cell areas (4.4% of the wing's cells carry half the sampled area), and a
+quadrature-weighted mean over such a draw has an effective sample size
+of $N/(1+\mathrm{CV}^2)$ of the areas: 862 of 9,983 wing cells, 1,637 of
+10,000 car cells. The learned routing sits at that floor, so each slice
+state with weights on is a mean over about one fifth as many effective
+tokens as with weights off, and over four resamplings of the same
+surface the slice states move 1.9–2.3x more relative to their spread,
+while the number of distinct slice states is unchanged. No slice is
+dominated by a few large cells (ten cells never carry more than 18% of a
+slice's mass), and slices routed to large cells are not poorer in
+tokens than others, so neither saturation nor open-surface starvation
+holds. Split by facing distance, the deficit sits on the mid- and
+far-field open surfaces (baseline-to-ISLA ratios 0.64–0.83) and is
+smallest at the gaps (0.88), which is where a uniform noise floor shows
+most: on the smooth regions where the residual is smallest and which
+dominate the area-weighted metric of @sec-metrics. The principled target
+is therefore the sampler or a variance-reduced consistent quadrature,
+not the weights. The consistency benchmark of @sec-consistency-bench
+already shows what the weights-off ablation learned instead. Evaluated
+on the area-proportional sampler, where the quadrature weights are
+nearly constant, the uniform-trained weights-off checkpoints do not
+merely lose their 2–13% uniform-sampler advantage, they collapse: their
+errors are 0.66–1.29 (worse than predicting zero) against 0.10–0.51 for
+weights on, a 2–7x inversion on all three datasets, and weights-on's
+error keeps falling with cell count while weights-off's stays flat
+(`results/consistency_bench/consistency_bench_2026-09-10.json`, float32,
+two seeds). Both checkpoints are scored off their training sampling law,
+so this mixes the routing computation with what each set of parameters
+learned to expect; the reading that fits is that the uniform-sampler
+advantage is estimator variance plus mesh-pattern content, and the
+mesh-pattern part dominates what weights-off learned. The two parts
+separate by their dependence on cell count, because estimator variance
+shrinks as more cells are drawn and mesh-pattern content does not. On
+the uniform sampler the weights-off-to-weights-on ratio on DrivAerML
+rises from 0.89 at 2,500 cells to 0.98 at 40,000, so the car advantage
+behaves as variance and is nearly gone at the highest count; on
+HiLiftAeroML at 35 cases (0.88) and on the fixed-angle split (0.87) the
+ratio is flat across the same sixteen-fold range, which variance cannot
+produce. On the wings, then, the ablation's advantage is mesh-pattern
+content, and the wings are where its collapse under area sampling is
+worst. The area-trained ISLA of the mixed-sampling study is being run
+through the same benchmark as a further check, read under the uniform
+sampler at 40,000 cells where both models' off-law penalties are
+smallest. This is the program's rule in @sec-principle read from the data:
+accuracy is to be recovered by capacity and principled construction, not
+by tuning to a dataset, and the single-case floor is the instrument that
+separates the two. The interior pair of the same study is pending.
+
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 
 **Neither architecture generalizes across a flow-regime boundary, and ISLA's

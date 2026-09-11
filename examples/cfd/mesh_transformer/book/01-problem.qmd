@@ -401,7 +401,16 @@ $$
 $$ {#eq-rel-l2}
 
 where $\lVert\cdot\rVert$ is the vector norm for vector fields (velocity,
-wall shear) and the absolute value for scalars. The fields enter as the
+wall shear) and the absolute value for scalars. Because the weights $w_j$
+are cell areas (or cell volumes in the interior), the metric is a surface
+integral: it scores error *per unit surface area*, so the large, smooth
+cells of an open surface count for more than the many small cells packed
+into a slot or a corner. A per-point root-mean-square over the same
+samples weights every cell equally and can rank two models differently;
+the single-case study of the companion notebook found the two
+conventions give baseline-to-ISLA ratios of 0.73 per unit area and 0.87
+per point on the same predictions. Every ratio in this book is the
+area-weighted one unless a caption says otherwise. The fields enter as the
 training pipeline presents them — each field shifted and scaled by dataset
 statistics — so the denominator is the norm of the standardized label, not
 of the raw pressure. The reported error is the arithmetic mean of
