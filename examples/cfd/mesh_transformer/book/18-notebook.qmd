@@ -15060,3 +15060,158 @@ single-car floor is ≥ 1.25x GeoTransolver-volume's, not if within 1.10x) when
 the two lanes finish and evaluate; it decides whether the interior lead that
 survived the unit-drive control (@sec-nb-udrv-verdict) is also a capacity
 lead.
+
+## 2026-09-11 — OVERFIT-1 mechanism addendum: the measure weights cut each slice's effective token count to a fifth through the sampler's heavy area tail, not by saturating on a few cells; slice states then move about twice as much between resamplings of the same surface {#sec-nb-overfit-routing-probe}
+
+**Setting.** The OVERFIT-1 verdict (@sec-nb-overfit-verdict) found that ISLA
+with its measure weights on fits a single case 17% worse than the same
+network with the weights off, on both datasets, and that the deficit sits on
+the coarsely meshed open surfaces once the error is measured per unit area.
+This inverts the naive expectation: the measure weights put the log of each
+sampled cell's area into the point-to-slice routing, so the large open-surface
+cells get *more* routing mass, and the slices should track exactly the regions
+that dominate the area-weighted metric. ISLA Main proposed a mechanism and a
+falsifier before any further work: a handful of very large cells saturate each
+slice's softmax over points, collapsing the effective number of tokens per
+slice and starving the slices of the diversity needed to fit smooth variation.
+The falsifier: the per-slice effective token count (the participation ratio
+1 / Σ_i a_is² of the routing weights, the number of equally weighted points
+that would give the same concentration) should be several-fold lower with
+weights on than off, and lower on the open surfaces than at the gaps; near 1
+and the hypothesis is dead.
+
+**Derivation first.** In ISLA a slice state is z_s = Σ_i a_is h_i with
+a_is = w_i e^{l_is} / Σ_j w_j e^{l_js}: a softmax over points of the routing
+logits l plus log w, that is, a measure-weighted mean of the point features,
+which is what makes the state a surface integral rather than a sample average.
+With flat logits the routing reduces to the measure itself and the effective
+token count is (Σw)² / Σw² = N / (1 + CV²), where CV is the coefficient of
+variation of the cell areas in the sample. This bound depends only on the
+sampler and the mesh. In the 10,000-cell uniform-over-cells samples used here
+the area tail is heavy: on the HiLift wing the CV is 3.25, the largest cell is
+630 times the median, 4.4% of the cells carry half the sampled area, and the
+flat-routing effective count is 862 of 9,983 cells; on the DrivAerML car the
+CV is 2.26, 6.8% of the cells carry half the area, and the count is 1,637 of
+10,000. A surface integral estimated this way has 3.4x (wing) and 2.5x (car)
+the standard error of a plain point mean of the same sample. This is the
+classic importance-weight degeneracy: the quadrature is consistent (it
+converges to the surface integral under any sampler as the sample grows) but
+at 10,000 cells it is a high-variance estimate. Under an area-proportional
+sampler the weights would be constant and the two configurations would
+coincide by construction. The exponent option `measure_weight_power` scales the
+tail: N_eff is 2,118 / 4,564 / 7,873 on the wing and 2,747 / 4,767 / 7,927 on
+the car at exponents 0.75 / 0.5 / 0.25, with the consistency property held
+exactly only at exponent 1. These numbers describe the sampler; they are not a
+proposal.
+
+**Instrument.** Two forward-pass probes on the trained 64-view checkpoints
+(ISLA weights on and off, HiLift and DrivAerML; float32; 10,000 cells), run
+through the recipe's `infer.py` unchanged with two monkeypatches: the ISLA
+forward records the per-point measure, and every point-softmax records
+per-slice statistics of its routing weights (each of the 12 slice blocks
+computes two: a seed pass with feature logits only, then the pass with the
+relational bias that forms the slice states; the state-forming pass is
+reported). Probe 1 (one view, sampler seed 7): the effective token count per
+slice, the mass on the ten largest weights, the slice's effective covered area
+fraction A_eff,s / A = exp(−Σ_i a_is log(a_is / w_i)) (the area of the region
+when a slice integrates uniformly over a region, one cell's area when it
+collapses onto that cell), and the count split by the slice's mean log-area
+quartile (large-cell against small-cell slices). Probe 2 (four views, sampler
+seeds 7–10): the raw slice states z_s and anchor positions of every block, and
+from them V_view (how much a slice's state moves when the surface is
+resampled) relative to V_slice (how much the slices differ from each other on
+one view), the effective number of distinct slice states (participation ratio
+of the across-slice covariance spectrum), and the anchors' across-view jitter
+relative to their across-slice spread. Scripts `$T/overfit/probe_routing.py`,
+`reduce_probe.py`, `reduce_probe2.py`, `measure_tail.py`; raw outputs under
+`$T/ovf_probe/` and `$T/ovf_probe2/`.
+
+**Probe 1: the count bar is met, the saturation and localization readings are
+not.** Median over the 12 state-forming passes:
+
+| Quantity (median over layers) | HiLift on | HiLift off | DrivAerML on | DrivAerML off |
+|---|---|---|---|---|
+| Effective tokens per slice | 540 | 2,030 | 390 | 1,980 |
+| Ratio on / off | **0.21** | | **0.21** | |
+| Ratio on / flat-routing floor (862; 1,637) | 0.63 | | 0.24 | |
+| Mass on the ten largest weights | 0.085 | 0.027 | 0.11 | 0.033 |
+| Effective covered area fraction | 0.48 | 0.070 | 0.36 | 0.088 |
+
+Per layer the count ratio runs 0.09–0.48 on the wing and 0.17–0.44 on the car,
+so **the several-fold bar is met in every layer on both datasets**. But the
+reduction is not saturation: ten cells never carry more than 18% of a slice's
+mass (0.03–0.18 with weights on against 0.003–0.10 off), and the weights-on
+count never exceeds the flat-routing floor set by the measure (0.10–1.00 of
+it, reaching the floor exactly in the last wing layer). The learned logits
+concentrate the routing *within* what the heavy area tail already allows; the
+tail sets the ceiling. The localization prediction fails: slices routed to the
+large-cell quartile are not systematically poorer in tokens than those routed
+to the small-cell quartile (wing, layers 1–12, large/small: 0.54, 0.53, 0.73,
+1.1, 0.53, 2.1, 3.3, 11, 3.4, 0.98, 1.2, 0.47; the car is equally mixed). The
+effective covered area tells what the weights do instead: with weights on each
+slice integrates over 24–93% of the surface area (0.75–0.93 in the first two
+and last three layers), with weights off over 4–18%, which is about the area
+fraction of the finely meshed regions, so a uniform-over-points routing is in
+effect a mean over the gap regions. Yet the weights-off model, whose slice
+states barely see the open surfaces, fits the open surfaces *better* per unit
+area (@sec-nb-overfit-verdict): the smooth open-surface field is not
+reconstructed from slice coverage of those surfaces, so "starving the smooth
+regions" cannot be the mechanism.
+
+**Probe 2: the states are noisier, about twofold, and no less diverse.**
+Resampling the same surface four times and comparing slice states:
+
+| Quantity (median over layers) | HiLift on | HiLift off | DrivAerML on | DrivAerML off |
+|---|---|---|---|---|
+| V_view / V_slice (resampling movement relative to slice spread) | 0.052 | 0.035 | 0.065 | 0.022 |
+| Ratio on / off | **1.85** | | **2.31** | |
+| Effective number of distinct slice states (of 256) | 27 | 30 | 28 | 34 |
+| Anchor jitter / anchor spread | 0.16 | 0.09 | 0.22 | 0.14 |
+
+The ratio exceeds 1.5 in 8 of 12 wing layers and 11 of 12 car layers and
+never falls to 1.2 (minimum 1.17 and 1.46); it reaches 3.5–4.2 in the last two
+wing layers and 5.5–7.0 in the last two car layers, where the routing is
+flattest and the quadrature argument applies most directly. The anchors move
+1.5–1.8x more between views with the weights on. But the effective number of
+distinct slice states is the same with the weights on or off (27 against 30 on
+the wing, 28 against 34 on the car; both far below 256), so the weights do
+*not* starve the slices of diversity, and the twofold excess is well short of
+the fivefold the token-count ratio alone would predict for pure sampling
+noise: the routing is not flat and the point features are not independent
+draws, so most of the quadrature variance does not reach the states.
+
+**Verdict on the hypothesis.** Supported in kind, refuted in mechanism and
+short in magnitude. (1) *Confirmed*: the measure weights cut each slice's
+effective token count to about a fifth. (2) *Refuted*: the cut is not a
+collapse onto a handful of very large cells, and it is not concentrated on the
+open surfaces; it is the heavy area tail of a uniform-over-cells sample acting
+through the quadrature, bounded by N / (1 + CV²). (3) *Refuted*: slice
+diversity is unchanged. (4) *Supported*: the consequence that survives is
+variance. A slice state and its anchor move about twice as much when the same
+surface is resampled, so the same surface point receives a different context
+on every view, which is an irreducible noise floor when fitting one fixed
+field from 64 views, and it is largest in relative terms where the residual is
+smallest, on the open surfaces (near-gap residual 1.4–1.6 Pa against
+0.25–0.32 Pa far from any facing surface). Whether a twofold excess in state
+noise accounts for the whole 17% floor difference is not established here;
+the direction and the localization match, the magnitude is a single measurement.
+
+**What it changes.** The weights-off ablation's advantage on a single case has
+a named cause that lives in the *sampler*, not in ISLA's integral semantics:
+under uniform-over-cells sampling the consistent quadrature is the
+high-variance one. The program already has an area-proportional sampler in the
+BENCH instrument; under it the measure weights are constant and the two
+configurations coincide exactly, so the weights-off advantage must vanish there
+by construction, which is a falsifiable prediction the sampler-consistency
+lanes can check without new code. Whatever remedy the main session considers,
+the constraint is the one Peter set: the model must answer the same on either
+sampling of the same surface, so any variance reduction must keep the
+fine-mesh-limit consistency that the exponent-1 quadrature has and the
+weights-off point mean does not. This entry proposes no change; the mechanistic
+argument and the discretization-consistency tests belong to the main session.
+
+**Artifacts.**
+`examples/cfd/mesh_transformer/results/overfit_routing_probe_2026-09-11.json`
+(probe 1, per layer, on and off, both datasets, with the measure floors) and
+`results/overfit_slice_state_variance_2026-09-11.json` (probe 2, per layer:
+V_view, V_slice, effective distinct states, anchor jitter and spread).
