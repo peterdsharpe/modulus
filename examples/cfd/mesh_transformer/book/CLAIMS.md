@@ -1477,3 +1477,10 @@ interior control @sec-nb-udrv-int-prereg.
   then apply the rule in chapters 2, 6, 12 and the index reference rows (announce first). Baselines'
   datapipe frame: area-weighted CenterMesh acceptable only if it buys accuracy over the plain mean
   (MWAW lanes, #sec-nb-mwaw-prereg).
+- **FARWAKE preregistered (2026-09-10; Peter approved).** Transform `SdfBiasedSubsampleInteriorPoints` (recipe; tests
+  pass): interior pool 40k (reader `interior_n_points_range=(40000,40000)`, boundaries unchanged) → SDF-band inclusion
+  weights 1 / 3 / 8 at edges 0.05 / 0.4 L → expected 10k queries; far band 10% → ~32%, ≥0.4 L 2.2% → ~14%; exact π stored
+  as point_data.inclusion_pi; loss is a plain mean (objective reweighted toward the far field, stated). Bars (band units):
+  far-band ν_t ≤ 0.085 supported / ≥ 0.095 falsified; near-wall + recipe p/v within 3%. Never write it as adopted before
+  its uniform-sampler consistency check. Status: the older PLANNED QCOUNT node/row (duplicate id) removed in favour of
+  the running one.
