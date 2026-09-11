@@ -88,7 +88,7 @@ def _compose(model: str, dataset: str, overrides: list[str]):
     return cfg, targets
 
 
-@pytest.mark.parametrize("overrides", [[], ["+model.scale_mode=global"]])
+@pytest.mark.parametrize("overrides", [[], ["model.scale_mode=global"]])
 def test_isla_surface_frame_template_reads_the_frame_from_global_data(overrides: list[str]) -> None:
     """The template's forward_kwargs deliver global_data.frame_center / frame_scale
     to ISLA(center_mode=global); arm B adds scale_mode=global. Shifting the cloud

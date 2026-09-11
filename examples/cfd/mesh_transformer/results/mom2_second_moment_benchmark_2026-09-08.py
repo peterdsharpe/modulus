@@ -139,7 +139,7 @@ for arm, kw in ARMS.items():
         with torch.no_grad():
             for (a, b) in pairs:
                 pa, na = cloud([0, 120, 240, a, a + 180]); pb, nb = cloud([0, 120, 240, b, b + 180])
-                oa, ob = m(pa, na, drive, weights)[0, :8], m(pb, nb, drive, weights)[0, :8]
+                oa, ob = m(points=pa, normals=na, drive=drive, measure_weights=weights)[0, :8], m(points=pb, normals=nb, drive=drive, measure_weights=weights)[0, :8]
                 diffs.append(float((oa - ob).abs().max()))
                 sep_by_dphi.append((abs(a - b), diffs[-1]))
                 X.append(oa.reshape(-1).numpy()); y.append(0); phis.append(a)
@@ -147,8 +147,8 @@ for arm, kw in ARMS.items():
             ctrl = []
             for (a, psi) in controls:
                 pa, na = cloud([0, 120, 240, a, a + 180]); R = rot_z(psi)
-                oa = m(pa, na, drive, weights)[0, :8]
-                ob = m(pa @ R.T, na @ R.T, drive @ R.T, weights)[0, :8]
+                oa = m(points=pa, normals=na, drive=drive, measure_weights=weights)[0, :8]
+                ob = m(points=pa @ R.T, normals=na @ R.T, drive=drive @ R.T, measure_weights=weights)[0, :8]
                 ctrl.append(float((oa[..., :1] - ob[..., :1]).abs().max()))  # scalar output on the common component
         ### Preregistered probe (kept for the record): phi and phi' are exchangeable
         ### draws, so the family label is arbitrary and no arm can beat chance.

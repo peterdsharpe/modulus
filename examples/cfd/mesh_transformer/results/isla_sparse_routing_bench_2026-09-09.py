@@ -56,7 +56,7 @@ def bench(k, ckpt):
     def step():
         opt.zero_grad(set_to_none=True)
         with torch.autocast("cuda", dtype=torch.bfloat16):
-            out = m(pts, nrm, drv, w)
+            out = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
         out.float().square().mean().backward()
         opt.step()
 
@@ -88,9 +88,9 @@ torch.manual_seed(0)
 m = ISLA(hidden=192, n_layers=12, n_slices=256, out_scalars=1, out_vectors=1).to(dev).eval()
 pts, nrm, drv, w = inputs(N, seed=3)
 with torch.no_grad():
-    set_k(m, 0); ref = m(pts, nrm, drv, w).float()
+    set_k(m, 0); ref = m(points=pts, normals=nrm, drive=drv, measure_weights=w).float()
     for k in KS[1:]:
-        set_k(m, k); o = m(pts, nrm, drv, w).float()
+        set_k(m, k); o = m(points=pts, normals=nrm, drive=drv, measure_weights=w).float()
         res["init_output_change"][f"k{k}"] = {"rel_l2_all": float((o - ref).norm() / ref.norm()), "rel_l2_scalar": float((o[..., 0] - ref[..., 0]).norm() / ref[..., 0].norm())}
         print("init", k, res["init_output_change"][f"k{k}"], flush=True)
 del m
@@ -116,10 +116,10 @@ if run_dir:
             wt = mm(f"{base}/boundaries/vehicle/_tensordict/cell_data/_measure_weights.memmap").reshape(1, -1).to(dev)
             d_ = mm(f"{base}/global_data/U_inf_dir.memmap").reshape(1, 3).to(dev)
             with torch.no_grad():
-                set_k(tm, 0); ref = tm(p, n_, d_, wt).float()
+                set_k(tm, 0); ref = tm(points=p, normals=n_, drive=d_, measure_weights=wt).float()
                 row = {}
                 for k in KS[1:]:
-                    set_k(tm, k); o = tm(p, n_, d_, wt).float()
+                    set_k(tm, k); o = tm(points=p, normals=n_, drive=d_, measure_weights=wt).float()
                     row[f"k{k}"] = {"rel_l2_all": float((o - ref).norm() / ref.norm()), "rel_l2_scalar": float((o[..., 0] - ref[..., 0]).norm() / ref[..., 0].norm())}
             per_case[os.path.basename(cd)] = row
             print("ckpt", os.path.basename(cd)[:30], {k: round(v["rel_l2_scalar"], 4) for k, v in row.items()}, flush=True)

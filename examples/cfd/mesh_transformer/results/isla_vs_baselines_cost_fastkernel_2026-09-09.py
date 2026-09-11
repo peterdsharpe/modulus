@@ -89,7 +89,7 @@ def run(name, desc, build, fwd, kw, n):
 
 
 def isla_fwd(m, pts, nrm, mw, drive):
-    return m(pts, nrm, drive, measure_weights=mw)
+    return m(points=pts, normals=nrm, drive=drive, measure_weights=mw)
 
 
 def gt_fwd(m, pts, nrm, mw, drive):

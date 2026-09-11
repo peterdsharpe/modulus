@@ -83,8 +83,8 @@ for seed in (0, 1, 2):
     model = make_model(seed)
     with torch.no_grad():
         # ---- T1: full-problem mirror ----
-        s1, v1 = split(model(pts, nrm, d_full))
-        s2, v2 = split(model(mpts, mnrm, d_full @ M.T))
+        s1, v1 = split(model(points=pts, normals=nrm, drive=d_full))
+        s2, v2 = split(model(points=mpts, normals=mnrm, drive=d_full @ M.T))
         t1_scalar = rel_diff(s2, s1)
         t1_vector = rel_diff(v2, v1 @ M.T)  # vs the physically correct mirror
 
@@ -96,20 +96,20 @@ for seed in (0, 1, 2):
             for row in (1 + 4, 1 + 6):
                 model_ab.head.weight[row].zero_()
                 model_ab.head.bias[row].zero_()
-        s1a, v1a = split(model_ab(pts, nrm, d_full))
-        s2a, v2a = split(model_ab(mpts, mnrm, d_full @ M.T))
+        s1a, v1a = split(model_ab(points=pts, normals=nrm, drive=d_full))
+        s2a, v2a = split(model_ab(points=mpts, normals=mnrm, drive=d_full @ M.T))
         t1b_vector = rel_diff(v2a, v1a @ M.T)
 
         # ---- T2: same drive, Md = d ----
-        sA, _ = split(model(pts, nrm, d_in))
-        sB, _ = split(model(mpts, mnrm, d_in))
+        sA, _ = split(model(points=pts, normals=nrm, drive=d_in))
+        sB, _ = split(model(points=mpts, normals=mnrm, drive=d_in))
         t2_scalar = rel_diff(sB, sA)
 
         # ---- T3: same drive, Md != d ----
-        sC, _ = split(model(pts, nrm, d_yaw))
-        sD, _ = split(model(mpts, mnrm, d_yaw))
+        sC, _ = split(model(points=pts, normals=nrm, drive=d_yaw))
+        sD, _ = split(model(points=mpts, normals=mnrm, drive=d_yaw))
         t3_sep = rel_diff(sD, sC)
-        sE, _ = split(model(pts, nrm, d_yaw @ M.T))  # original geom, mirrored drive
+        sE, _ = split(model(points=pts, normals=nrm, drive=d_yaw @ M.T))  # original geom, mirrored drive
         t3_ident = rel_diff(sD, sE)
 
         # ---- T4: control, seed-invariant-preserving scramble ----
@@ -146,8 +146,8 @@ for seed in (0, 1, 2):
         assert torch.allclose(ra[..., 2], rb[..., 2], atol=1e-12)  # r.d
         assert torch.allclose(n4[..., 2], n4s[..., 2], atol=1e-12)  # n.d
         geom_change = rel_diff(p4s, p4)
-        sF, _ = split(model(p4, n4, d4))
-        sG, _ = split(model(p4s, n4s, d4))
+        sF, _ = split(model(points=p4, normals=n4, drive=d4))
+        sG, _ = split(model(points=p4s, normals=n4s, drive=d4))
         t4_sep = rel_diff(sG, sF)
 
         # ---- T5: aerodynamic instance of T4 -- straight vs helically
@@ -184,15 +184,15 @@ for seed in (0, 1, 2):
         torch.manual_seed(200 + seed)
         p_twist, n_twist = fin_body(twist_rate=torch.pi / 2)  # 90 deg/unit len
         d_axial = torch.tensor([0.0, 0.0, 1.0])
-        s_st, _ = split(model(p_straight, n_straight, d_axial))
-        s_tw, _ = split(model(p_twist, n_twist, d_axial))
+        s_st, _ = split(model(points=p_straight, normals=n_straight, drive=d_axial))
+        s_tw, _ = split(model(points=p_twist, normals=n_twist, drive=d_axial))
         t5_blind = rel_diff(s_tw, s_st)
         t5_yaw = {}
         for deg in (1.0, 5.0, 10.0):
             a_ = math.radians(deg)
             d_y = torch.tensor([math.sin(a_), 0.0, math.cos(a_)])
-            s1_, _ = split(model(p_straight, n_straight, d_y))
-            s2_, _ = split(model(p_twist, n_twist, d_y))
+            s1_, _ = split(model(points=p_straight, normals=n_straight, drive=d_y))
+            s2_, _ = split(model(points=p_twist, normals=n_twist, drive=d_y))
             t5_yaw[deg] = rel_diff(s2_, s1_)
 
         # ---- T6: v4 local features (inter-point distances) break the

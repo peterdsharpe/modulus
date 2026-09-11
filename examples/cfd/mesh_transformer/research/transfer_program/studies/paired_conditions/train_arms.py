@@ -63,7 +63,7 @@ def make(arm, seed):
 
 def predict(m, arm, c, cond):
     pts, nrm, w, y, s = tensors(c, cond)
-    out = m(pts, nrm, drive, w, boundary_scalars=s) if arm in ("B",) else (m(pts, nrm, drive, w) if arm != "M" else m(pts, nrm, drive, w))
+    out = m(points=pts, normals=nrm, drive=drive, measure_weights=w, boundary_scalars=s) if arm in ("B",) else (m(points=pts, normals=nrm, drive=drive, measure_weights=w) if arm != "M" else m(points=pts, normals=nrm, drive=drive, measure_weights=w))
     return out[..., :1], y
 
 

@@ -50,6 +50,10 @@ Contracts, all by construction rather than per-layer enforcement:
   queries are decoded by passive read blocks and a prediction at one point
   does not depend on which other points are queried.
 
+Every constructor argument and every ``forward`` input is keyword-only, so a
+call reads as the recipe's ``forward_kwargs`` mapping does and models can be
+swapped without positional bookkeeping.
+
 ``MeshTransformer2`` is retained as a backward-compatible alias of
 :class:`ISLA`.
 """
@@ -410,6 +414,7 @@ class ISLA(Module):
 
     def __init__(
         self,
+        *,
         out_scalars: int = 1,
         out_vectors: int = 1,
         hidden: int = 256,
@@ -1013,6 +1018,7 @@ class ISLA(Module):
 
     def forward(
         self,
+        *,
         points: Float[torch.Tensor, "batch tokens 3"],
         normals: Float[torch.Tensor, "batch tokens 3"],
         drive: Float[torch.Tensor, "batch 3"] | Float[torch.Tensor, " 3"],

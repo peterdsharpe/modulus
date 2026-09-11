@@ -78,8 +78,8 @@ def test_fast_point_softmax_is_exact_in_float64(kw):
     elif kw.get("query_independent"):
         extra = dict(query_points=pts[:, :50] + 0.3, query_normals=nrm[:, :50])
     with torch.no_grad():
-        a = fast(pts, nrm, drv, w, **extra)
-        b = native(pts, nrm, drv, w, **extra)
+        a = fast(points=pts, normals=nrm, drive=drv, measure_weights=w, **extra)
+        b = native(points=pts, normals=nrm, drive=drv, measure_weights=w, **extra)
     assert torch.allclose(a, b, atol=1e-11), float((a - b).abs().max())
 
 
@@ -91,7 +91,7 @@ def test_fast_point_softmax_float32_difference_is_roundoff():
     native = ISLA(**_CENTERED, hidden=64, n_layers=3, n_slices=32, fast_point_softmax=False).eval()
     native.load_state_dict(fast.state_dict())
     with torch.no_grad():
-        a, b = fast(pts, nrm, drv, w), native(pts, nrm, drv, w)
+        a, b = fast(points=pts, normals=nrm, drive=drv, measure_weights=w), native(points=pts, normals=nrm, drive=drv, measure_weights=w)
     assert ((a - b).norm() / b.norm()).item() < 1e-5
 
 
@@ -104,9 +104,9 @@ def test_fast_point_softmax_keeps_contracts():
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        moved = m(pts @ q.T + 1.5, nrm @ q.T, drv @ q.T, w)
-        scaled_w = m(pts, nrm, drv, 2.5 * w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        moved = m(points=pts @ q.T + 1.5, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
+        scaled_w = m(points=pts, normals=nrm, drive=drv, measure_weights=2.5 * w)
     assert torch.allclose(moved[..., :1], base[..., :1], atol=1e-10)
     assert torch.allclose(moved[..., 1:4], base[..., 1:4] @ q.T, atol=1e-10)
     assert torch.allclose(scaled_w, base, atol=1e-10)

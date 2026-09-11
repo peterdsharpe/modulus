@@ -47,7 +47,7 @@ def setup():
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
     return m, pts, nrm, drv, w, base
 
 
@@ -61,7 +61,7 @@ def test_rotation_equivariance(setup):
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        rot = m(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+        rot = m(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
     p0, v0 = _split(base)
     p1, v1 = _split(rot)
     assert torch.allclose(p1, p0, atol=1e-10)
@@ -72,7 +72,7 @@ def test_translation_invariance(setup):
     m, pts, nrm, drv, w, base = setup
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        tr = m(pts + shift, nrm, drv, w)
+        tr = m(points=pts + shift, normals=nrm, drive=drv, measure_weights=w)
     assert torch.allclose(tr, base, atol=1e-10)
 
 
@@ -80,21 +80,21 @@ def test_translation_invariance(setup):
 def test_drive_degree_one(setup, k):
     m, pts, nrm, drv, w, base = setup
     with torch.no_grad():
-        sc = m(pts, nrm, drv * k, w)
+        sc = m(points=pts, normals=nrm, drive=drv * k, measure_weights=w)
     assert torch.allclose(sc, base * k, atol=1e-10)
 
 
 def test_measure_weight_scale_invariance(setup):
     m, pts, nrm, drv, w, base = setup
     with torch.no_grad():
-        ws = m(pts, nrm, drv, w * 137.0)
+        ws = m(points=pts, normals=nrm, drive=drv, measure_weights=w * 137.0)
     assert torch.allclose(ws, base, atol=1e-9)
 
 
 def test_collated_input_shapes(setup):
     m, pts, nrm, drv, w, base = setup
     with torch.no_grad():
-        out = m(pts, nrm, drv[:, None, :], w[..., None].squeeze(-1))
+        out = m(points=pts, normals=nrm, drive=drv[:, None, :], measure_weights=w[..., None].squeeze(-1))
     assert torch.allclose(out, base, atol=1e-12)
 
 
@@ -119,7 +119,7 @@ def setup_local():
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
     return m, pts, nrm, drv, w, base
 
 
@@ -129,7 +129,7 @@ def test_local_rotation_equivariance(setup_local):
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        rot = m(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+        rot = m(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
     p0, v0 = _split(base)
     p1, v1 = _split(rot)
     assert torch.allclose(p1, p0, atol=1e-10)
@@ -139,7 +139,7 @@ def test_local_rotation_equivariance(setup_local):
 def test_local_drive_degree_one(setup_local):
     m, pts, nrm, drv, w, base = setup_local
     with torch.no_grad():
-        sc = m(pts, nrm, drv * 2.0, w)
+        sc = m(points=pts, normals=nrm, drive=drv * 2.0, measure_weights=w)
     assert torch.allclose(sc, base * 2.0, atol=1e-10)
 
 
@@ -175,8 +175,8 @@ def test_query_set_independence(setup_qi):
     q_big = torch.cat([qa, pts[:, 200:300]], dim=1)
     n_big = torch.cat([na, nrm[:, 200:300]], dim=1)
     with torch.no_grad():
-        out_small = m(pts, nrm, drv, w, query_points=qa, query_normals=na)
-        out_big = m(pts, nrm, drv, w, query_points=q_big, query_normals=n_big)
+        out_small = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qa, query_normals=na)
+        out_big = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=q_big, query_normals=n_big)
     ### Mathematically exact; allclose(1e-12) rather than bitwise because
     ### GEMM tiling reorders reductions when the query count changes.
     assert torch.allclose(out_small, out_big[:, :50], atol=1e-12, rtol=0.0)
@@ -188,8 +188,8 @@ def test_qi_rotation_equivariance(setup_qi):
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        rot = m(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        rot = m(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
     p0, v0 = _split(base)
     p1, v1 = _split(rot)
     assert torch.allclose(p1, p0, atol=1e-10)
@@ -199,8 +199,8 @@ def test_qi_rotation_equivariance(setup_qi):
 def test_qi_drive_degree_one(setup_qi):
     m, pts, nrm, drv, w = setup_qi
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        sc = m(pts, nrm, drv * 2.0, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        sc = m(points=pts, normals=nrm, drive=drv * 2.0, measure_weights=w)
     assert torch.allclose(sc, base * 2.0, atol=1e-10)
 
 
@@ -224,12 +224,12 @@ def test_boundary_scalar_channel_contracts():
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     bs = torch.randn(1, n, 2, dtype=torch.float64)
     with torch.no_grad():
-        base = m(pts, nrm, drv, w, boundary_scalars=bs)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w, boundary_scalars=bs)
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        rot = m(pts @ q.T, nrm @ q.T, drv @ q.T, w, boundary_scalars=bs)
+        rot = m(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w, boundary_scalars=bs)
     assert torch.allclose(rot[..., :1], base[..., :1], atol=1e-10)
     assert torch.allclose(rot[..., 1:4], base[..., 1:4] @ q.T, atol=1e-10)
 
@@ -257,9 +257,9 @@ def test_scale_conditioning_rotation_equivariance():
         q[:, 0] = -q[:, 0]
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w)
-        double = m(pts * 2.0, nrm, drv, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        rot = m(points=pts @ q.T + shift, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
+        double = m(points=pts * 2.0, normals=nrm, drive=drv, measure_weights=w)
     p0, v0 = _split(base)
     p1, v1 = _split(rot)
     assert torch.allclose(p1, p0, atol=1e-10)
@@ -294,8 +294,8 @@ def test_anchor_conditioned_decode_query_independence():
     q_big = torch.cat([qa, pts[:, 200:300]], dim=1)
     n_big = torch.cat([na, nrm[:, 200:300]], dim=1)
     with torch.no_grad():
-        out_small = m(pts, nrm, drv, w, query_points=qa, query_normals=na)
-        out_big = m(pts, nrm, drv, w, query_points=q_big, query_normals=n_big)
+        out_small = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qa, query_normals=na)
+        out_big = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=q_big, query_normals=n_big)
     assert torch.allclose(out_small, out_big[:, :50], atol=1e-12, rtol=0.0)
 
     ### rotation equivariance must survive the anchor subset
@@ -303,8 +303,8 @@ def test_anchor_conditioned_decode_query_independence():
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        rot = m(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        rot = m(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
     p0, v0 = _split(base)
     p1, v1 = _split(rot)
     assert torch.allclose(p1, p0, atol=1e-10)
@@ -338,10 +338,10 @@ def test_parity_fix_reflection_equivariance():
     broken = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16).double().eval()
 
     with torch.no_grad():
-        base = fixed(pts, nrm, drv, w)
-        mirr = fixed(pts @ M.T, nrm @ M.T, drv @ M.T, w)
-        base_b = broken(pts, nrm, drv, w)
-        mirr_b = broken(pts @ M.T, nrm @ M.T, drv @ M.T, w)
+        base = fixed(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        mirr = fixed(points=pts @ M.T, normals=nrm @ M.T, drive=drv @ M.T, measure_weights=w)
+        base_b = broken(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        mirr_b = broken(points=pts @ M.T, normals=nrm @ M.T, drive=drv @ M.T, measure_weights=w)
     p0, v0 = _split(base)
     p1, v1 = _split(mirr)
     assert torch.allclose(p1, p0, atol=1e-10)
@@ -373,9 +373,9 @@ def test_true_vector_basis_reflection_and_rotation(basis):
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        mirr = m(pts @ M.T, nrm @ M.T, drv @ M.T, w)
-        rot = m(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        mirr = m(points=pts @ M.T, normals=nrm @ M.T, drive=drv @ M.T, measure_weights=w)
+        rot = m(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
     p0, v0 = _split(base)
     p1, v1 = _split(mirr)
     p2, v2 = _split(rot)
@@ -403,9 +403,9 @@ def test_odd_head_reflection_rotation_and_translation():
         q[:, 0] = -q[:, 0]
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        mirr = m(pts @ M.T, nrm @ M.T, drv @ M.T, w)
-        rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        mirr = m(points=pts @ M.T, normals=nrm @ M.T, drive=drv @ M.T, measure_weights=w)
+        rot = m(points=pts @ q.T + shift, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
     p0, v0 = _split(base)
     p1, v1 = _split(mirr)
     p2, v2 = _split(rot)
@@ -415,8 +415,8 @@ def test_odd_head_reflection_rotation_and_translation():
     ### non-zero, and must remain exactly reflection-covariant
     with torch.no_grad():
         m.odd_gate.weight.normal_(0.0, 0.1)
-        base2 = m(pts, nrm, drv, w)
-        mirr2 = m(pts @ M.T, nrm @ M.T, drv @ M.T, w)
+        base2 = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        mirr2 = m(points=pts @ M.T, normals=nrm @ M.T, drive=drv @ M.T, measure_weights=w)
     _, v0b = _split(base2)
     _, v1b = _split(mirr2)
     assert not torch.allclose(v0b, v0, atol=1e-6)
@@ -434,7 +434,7 @@ def test_head_variants_run_under_bf16_autocast(kw):
     drv = torch.nn.functional.normalize(torch.randn(1, 3), dim=-1)
     w = torch.rand(1, 128) + 0.5
     with torch.autocast("cpu", dtype=torch.bfloat16):
-        out = m(pts, nrm, drv, w)
+        out = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
     out.float().sum().backward()
     assert torch.isfinite(out.float()).all()
 
@@ -460,10 +460,10 @@ def test_similarity_gauge_geometric_scale_equivariance():
     k = 2.7
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        a = mg(pts, nrm, drv, w)
-        bsc = mg(k * pts + shift, nrm, drv, k * k * w)
-        a0 = m0(pts, nrm, drv, w)
-        b0 = m0(k * pts, nrm, drv, k * k * w)
+        a = mg(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        bsc = mg(points=k * pts + shift, normals=nrm, drive=drv, measure_weights=k * k * w)
+        a0 = m0(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        b0 = m0(points=k * pts, normals=nrm, drive=drv, measure_weights=k * k * w)
     assert torch.allclose(bsc, a, atol=1e-10)
     assert not torch.allclose(b0, a0, atol=1e-3)
 
@@ -483,8 +483,8 @@ def test_raw_coord_channel_breaks_equivariance_by_design():
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        rot = m(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        rot = m(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
     p0, _ = _split(base)
     p1, _ = _split(rot)
     assert torch.isfinite(base).all()
@@ -510,9 +510,9 @@ def test_interior_queries_contracts():
         q[:, 0] = -q[:, 0]
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        base = m(pts, nrm, drv, w, query_points=qpts)
-        rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w, query_points=qpts @ q.T + shift)
-        sub = m(pts, nrm, drv, w, query_points=qpts[:, :50])
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts)
+        rot = m(points=pts @ q.T + shift, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w, query_points=qpts @ q.T + shift)
+        sub = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts[:, :50])
     assert torch.isfinite(base).all()
     p0, v0 = _split(base)
     p1, v1 = _split(rot)
@@ -542,10 +542,10 @@ def test_latent_volume_tokens_contracts():
         q[:, 0] = -q[:, 0]
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        base = m(pts, nrm, drv, w, query_points=qpts)
-        rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w, query_points=qpts @ q.T + shift)
-        sub = m(pts, nrm, drv, w, query_points=qpts[:, :40])
-        plain = m0(pts, nrm, drv, w, query_points=qpts)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts)
+        rot = m(points=pts @ q.T + shift, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w, query_points=qpts @ q.T + shift)
+        sub = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts[:, :40])
+        plain = m0(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts)
     assert torch.isfinite(base).all()
     p0, v0 = _split(base); p1, v1 = _split(rot)
     assert torch.allclose(p1, p0, atol=1e-10) and torch.allclose(v1, v0 @ q.T, atol=1e-10)
@@ -586,12 +586,12 @@ def test_context_tokens_with_query_tokens_contracts(flag):
     torch.manual_seed(1)
     m0 = ISLA(**{**_CENTERED, **kw}).double().eval()
     with torch.no_grad():
-        base = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
-        rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w, query_points=qpts @ q.T + shift, query_normals=qnrm @ q.T)
-        scaled_w = m(pts, nrm, drv, w * 7.3, query_points=qpts, query_normals=qnrm)
-        split = m(torch.cat([pts, pts], 1), torch.cat([nrm, nrm], 1), drv, torch.cat([w, w], 1) / 2,
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts, query_normals=qnrm)
+        rot = m(points=pts @ q.T + shift, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w, query_points=qpts @ q.T + shift, query_normals=qnrm @ q.T)
+        scaled_w = m(points=pts, normals=nrm, drive=drv, measure_weights=w * 7.3, query_points=qpts, query_normals=qnrm)
+        split = m(points=torch.cat([pts, pts], 1), normals=torch.cat([nrm, nrm], 1), drive=drv, measure_weights=torch.cat([w, w], 1) / 2,
                   query_points=qpts, query_normals=qnrm)
-        plain = m0(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+        plain = m0(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts, query_normals=qnrm)
     assert base.shape == (1, qpts.shape[1], 4) and torch.isfinite(base).all()
     p0, v0 = _split(base)
     p1, v1 = _split(rot)
@@ -600,7 +600,7 @@ def test_context_tokens_with_query_tokens_contracts(flag):
     assert torch.allclose(split, base, atol=1e-8)
     assert not torch.allclose(base, plain, atol=1e-6)
     m.train()
-    out = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+    out = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts, query_normals=qnrm)
     out.square().mean().backward()
     missing = [k for k, p in m.named_parameters() if p.grad is None]
     assert not missing, missing
@@ -629,8 +629,8 @@ def test_wake_tokens_extent_is_sampling_invariant():
     pi = torch.where(front, torch.full((n,), 0.5, dtype=torch.float64), torch.full((n,), 0.05, dtype=torch.float64))
     keep = torch.rand(n, dtype=torch.float64) < pi
     with torch.no_grad():
-        full = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
-        biased = m(pts[:, keep], nrm[:, keep], drv, w[:, keep] / pi[keep], query_points=qpts, query_normals=qnrm)
+        full = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts, query_normals=qnrm)
+        biased = m(points=pts[:, keep], normals=nrm[:, keep], drive=drv, measure_weights=w[:, keep] / pi[keep], query_points=qpts, query_normals=qnrm)
     s = pts[0, :, 0]
     s_b, wb = s[keep], 1.0 / pi[keep]
     ell_full = s.std(unbiased=False)
@@ -658,11 +658,11 @@ def test_a35b_ablation_flags_run_and_differ():
     nogeo = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, use_relational_geo=False).double().eval()
     raw = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, seed_mode="raw").double().eval()
     with torch.no_grad():
-        o_ref = ref(pts, nrm, drv, w)
-        o_ng = nogeo(pts, nrm, drv, w)
-        o_ng_rot = nogeo(pts @ q.T, nrm @ q.T, drv @ q.T, w)
-        o_raw = raw(pts, nrm, drv, w)
-        o_raw_rot = raw(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+        o_ref = ref(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        o_ng = nogeo(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        o_ng_rot = nogeo(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
+        o_raw = raw(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        o_raw_rot = raw(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
     assert torch.isfinite(o_ng).all() and torch.isfinite(o_raw).all()
     assert not torch.allclose(o_ng, o_ref, atol=1e-6)
     p0, v0 = _split(o_ng); p1, v1 = _split(o_ng_rot)
@@ -685,7 +685,7 @@ def test_all_parameters_receive_gradients(kw):
     nrm = torch.nn.functional.normalize(torch.randn(1, 128, 3), dim=-1)
     drv = torch.nn.functional.normalize(torch.randn(1, 3), dim=-1)
     w = torch.rand(1, 128) + 0.5
-    m(pts, nrm, drv, w).sum().backward()
+    m(points=pts, normals=nrm, drive=drv, measure_weights=w).sum().backward()
     unused = [n for n, p in m.named_parameters() if p.grad is None]
     assert not unused, unused
 
@@ -727,7 +727,7 @@ def test_geo_checkpoint_is_exact(extra):
         fk = dict(query_points=torch.randn(1, 17, 3, dtype=torch.float64), query_normals=torch.nn.functional.normalize(torch.randn(1, 17, 3, dtype=torch.float64), dim=-1))
     outs = []
     for m in (ref, ckp):
-        out = m(pts, nrm, drive, measure_weights=w, **fk)
+        out = m(points=pts, normals=nrm, drive=drive, measure_weights=w, **fk)
         out.square().sum().backward()
         outs.append(out)
     assert torch.equal(outs[0], outs[1])
@@ -753,30 +753,30 @@ def test_query_scalars_contracts():
     q = torch.randn(1, 12, 3, dtype=torch.float64)
     qn = torch.nn.functional.normalize(torch.randn(1, 12, 3, dtype=torch.float64), dim=-1)
     sdf = torch.randn(1, 12, dtype=torch.float64) * 0.3
-    out = m(pts, nrm, drive, measure_weights=w, query_points=q, query_normals=qn, query_scalars=sdf)
+    out = m(points=pts, normals=nrm, drive=drive, measure_weights=w, query_points=q, query_normals=qn, query_scalars=sdf)
     assert out.shape == (1, 12, 4)
     ### scalar channel is live
-    out2 = m(pts, nrm, drive, measure_weights=w, query_points=q, query_normals=qn, query_scalars=sdf * 2)
+    out2 = m(points=pts, normals=nrm, drive=drive, measure_weights=w, query_points=q, query_normals=qn, query_scalars=sdf * 2)
     assert not torch.allclose(out, out2)
     ### rotation + translation covariance (scalars ride along unchanged)
     R = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))[0]
     if torch.det(R) < 0:
         R[:, 0] = -R[:, 0]
     t = torch.tensor([0.4, -1.1, 2.0], dtype=torch.float64)
-    rot = m(pts @ R.T + t, nrm @ R.T, drive @ R.T, measure_weights=w, query_points=q @ R.T + t,
+    rot = m(points=pts @ R.T + t, normals=nrm @ R.T, drive=drive @ R.T, measure_weights=w, query_points=q @ R.T + t,
             query_normals=qn @ R.T, query_scalars=sdf)
     assert torch.allclose(rot[..., 0], out[..., 0], atol=1e-10)
     assert torch.allclose(rot[..., 1:], out[..., 1:] @ R.T, atol=1e-10)
     ### geometric-scale equivariance: lengths scale, so must the scalar
     s = 3.7
-    sc = m(pts * s, nrm, drive, measure_weights=w * s**2, query_points=q * s, query_normals=qn,
+    sc = m(points=pts * s, normals=nrm, drive=drive, measure_weights=w * s**2, query_points=q * s, query_normals=qn,
            query_scalars=sdf * s)
     assert torch.allclose(sc, out, atol=1e-10)
     ### gradients reach the scalar embedding
     out.square().sum().backward()
     assert all(p.grad is not None and p.grad.abs().sum() > 0 for p in m.qt_scalar_embed.parameters())
     with pytest.raises(ValueError):
-        m(pts, nrm, drive, measure_weights=w, query_points=q, query_normals=qn)
+        m(points=pts, normals=nrm, drive=drive, measure_weights=w, query_points=q, query_normals=qn)
     with pytest.raises(ValueError):
         ISLA(**_CENTERED, out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, n_query_scalars=1)
 
@@ -800,25 +800,25 @@ def test_query_local_features_contracts():
     qn = torch.nn.functional.normalize(torch.randn(1, 12, 3, dtype=torch.float64), dim=-1)
     sdf = torch.randn(1, 12, dtype=torch.float64) * 0.3
     args = dict(measure_weights=w, query_points=q, query_normals=qn, query_scalars=sdf)
-    out = m(pts, nrm, drive, **args)
+    out = m(points=pts, normals=nrm, drive=drive, **args)
     assert out.shape == (1, 12, 4)
     R = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))[0]
     if torch.det(R) < 0:
         R[:, 0] = -R[:, 0]
     t = torch.tensor([0.4, -1.1, 2.0], dtype=torch.float64)
-    rot = m(pts @ R.T + t, nrm @ R.T, drive @ R.T, measure_weights=w, query_points=q @ R.T + t,
+    rot = m(points=pts @ R.T + t, normals=nrm @ R.T, drive=drive @ R.T, measure_weights=w, query_points=q @ R.T + t,
             query_normals=qn @ R.T, query_scalars=sdf)
     assert torch.allclose(rot[..., 0], out[..., 0], atol=1e-10)
     assert torch.allclose(rot[..., 1:], out[..., 1:] @ R.T, atol=1e-10)
     s = 2.3
-    sc = m(pts * s, nrm, drive, measure_weights=w * s**2, query_points=q * s, query_normals=qn,
+    sc = m(points=pts * s, normals=nrm, drive=drive, measure_weights=w * s**2, query_points=q * s, query_normals=qn,
            query_scalars=sdf * s)
     assert torch.allclose(sc, out, atol=1e-10)
     out.square().sum().backward()
     assert all(p.grad is not None and p.grad.abs().sum() > 0 for p in m.qt_local_embed.parameters())
     ### channel is live: zeroing its embedding output recovers the no-channel model's function
     m0.load_state_dict({k: v for k, v in m.state_dict().items() if not k.startswith("qt_local_embed")})
-    assert not torch.allclose(m0(pts, nrm, drive, **args), out)
+    assert not torch.allclose(m0(points=pts, normals=nrm, drive=drive, **args), out)
     with pytest.raises(ValueError):
         ISLA(**_CENTERED, out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, query_local_features=True)
 
@@ -850,9 +850,9 @@ def test_query_tokens_contracts():
         q[:, 0] = -q[:, 0]
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        base = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
-        rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w, query_points=qpts @ q.T + shift, query_normals=qnrm @ q.T)
-        sub = m(pts, nrm, drv, w, query_points=qpts[:, :50], query_normals=qnrm[:, :50])
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts, query_normals=qnrm)
+        rot = m(points=pts @ q.T + shift, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w, query_points=qpts @ q.T + shift, query_normals=qnrm @ q.T)
+        sub = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts[:, :50], query_normals=qnrm[:, :50])
     assert base.shape == (1, nq, 4) and torch.isfinite(base).all()
     p0, v0 = _split(base)
     p1, v1 = _split(rot)
@@ -862,7 +862,7 @@ def test_query_tokens_contracts():
     assert not torch.allclose(sub, base[:, :50], atol=1e-6)
     # every parameter receives a gradient (DDP safety)
     m.train()
-    out = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
+    out = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=qpts, query_normals=qnrm)
     out.square().mean().backward()
     missing = [k for k, p in m.named_parameters() if p.grad is None]
     assert not missing, missing
@@ -893,17 +893,18 @@ def test_query_mass_source_total_refinement_invariance(extra):
     total = ISLA(query_mass="source_total", **{**_CENTERED, **kw}).double().eval()
     torch.manual_seed(0)
     default = ISLA(**{**_CENTERED, **kw}).double().eval()
-    refined = (pts.repeat_interleave(2, 1), nrm.repeat_interleave(2, 1), drv, w.repeat_interleave(2, 1) / 2)
+    refined = dict(points=pts.repeat_interleave(2, 1), normals=nrm.repeat_interleave(2, 1), drive=drv,
+                   measure_weights=w.repeat_interleave(2, 1) / 2)
     s = 3.7
     scaled_fk = {**fk, "query_points": q * s}
     if extra:
         scaled_fk["query_scalars"] = fk["query_scalars"] * s
     with torch.no_grad():
-        a = total(pts, nrm, drv, w, **fk)
-        b = total(*refined, **fk)
-        c = total(pts * s, nrm, drv, w * s**2, **scaled_fk)
-        a0 = default(pts, nrm, drv, w, **fk)
-        b0 = default(*refined, **fk)
+        a = total(points=pts, normals=nrm, drive=drv, measure_weights=w, **fk)
+        b = total(**refined, **fk)
+        c = total(points=pts * s, normals=nrm, drive=drv, measure_weights=w * s**2, **scaled_fk)
+        a0 = default(points=pts, normals=nrm, drive=drv, measure_weights=w, **fk)
+        b0 = default(**refined, **fk)
     assert torch.allclose(b, a, atol=1e-10, rtol=0.0)
     assert torch.allclose(c, a, atol=1e-10, rtol=0.0)
     ### regression guard: the default convention is unchanged (and therefore
@@ -936,8 +937,8 @@ def test_similarity_gauge_local_features_scale_equivariance(extra):
     fk = dict(query_points=pts[:, :50], query_normals=nrm[:, :50]) if extra else {}
     fk_sc = {**fk, "query_points": k * fk["query_points"] + shift} if extra else {}
     with torch.no_grad():
-        a = m(pts, nrm, drv, w, **fk)
-        b = m(k * pts + shift, nrm, drv, k * k * w, **fk_sc)
+        a = m(points=pts, normals=nrm, drive=drv, measure_weights=w, **fk)
+        b = m(points=k * pts + shift, normals=nrm, drive=drv, measure_weights=k * k * w, **fk_sc)
     assert torch.allclose(b, a, atol=1e-10, rtol=0.0)
 
 
@@ -965,8 +966,8 @@ def test_passive_decode_seed_and_head_options(kw):
         with torch.no_grad():
             m.odd_gate.weight.normal_(0.0, 0.1)  # make the odd channels live
     with torch.no_grad():
-        out = m(pts, nrm, drv, w, query_points=q, query_normals=qn)
-        sub = m(pts, nrm, drv, w, query_points=q[:, :8], query_normals=qn[:, :8])
+        out = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=q, query_normals=qn)
+        sub = m(points=pts, normals=nrm, drive=drv, measure_weights=w, query_points=q[:, :8], query_normals=qn[:, :8])
     assert out.shape == (1, 17, 4) and torch.isfinite(out).all()
     assert torch.allclose(sub, out[:, :8], atol=1e-12, rtol=0.0)
 
@@ -985,12 +986,12 @@ def test_passive_decode_boundary_scalars():
     m = ISLA(**_CENTERED, hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2,
              n_boundary_scalars=2).double().eval()
     with torch.no_grad():
-        out = m(pts, nrm, drv, w, boundary_scalars=bs)
-        out2 = m(pts, nrm, drv, w, boundary_scalars=bs * 2)
+        out = m(points=pts, normals=nrm, drive=drv, measure_weights=w, boundary_scalars=bs)
+        out2 = m(points=pts, normals=nrm, drive=drv, measure_weights=w, boundary_scalars=bs * 2)
     assert out.shape == (1, 60, 4) and torch.isfinite(out).all()
     assert not torch.allclose(out, out2, atol=1e-6)  # the channel is live on the query side
     with pytest.raises(ValueError):
-        m(pts, nrm, drv, w, boundary_scalars=bs, query_points=pts[:, :17], query_normals=nrm[:, :17])
+        m(points=pts, normals=nrm, drive=drv, measure_weights=w, boundary_scalars=bs, query_points=pts[:, :17], query_normals=nrm[:, :17])
 
 
 def _rot_z(deg):
@@ -1038,9 +1039,9 @@ def test_second_moment_features_contracts(extra):
         q[:, 0] = -q[:, 0]
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        moved = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w)
-        rescaled_w = m(pts, nrm, drv, 3.7 * w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        moved = m(points=pts @ q.T + shift, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
+        rescaled_w = m(points=pts, normals=nrm, drive=drv, measure_weights=3.7 * w)
     p0, v0 = _split(base)
     p1, v1 = _split(moved)
     assert torch.allclose(p1, p0, atol=1e-10)
@@ -1048,7 +1049,7 @@ def test_second_moment_features_contracts(extra):
     assert torch.allclose(rescaled_w, base, atol=1e-10)
     if extra.get("similarity_gauge"):
         with torch.no_grad():
-            scaled = m(2.7 * pts, nrm, drv, 2.7**2 * w)
+            scaled = m(points=2.7 * pts, normals=nrm, drive=drv, measure_weights=2.7**2 * w)
         assert torch.allclose(scaled, base, atol=1e-10)
     # the channel is live: outputs differ from the eight-invariant model with the same seed
     torch.manual_seed(0)
@@ -1065,14 +1066,14 @@ def test_second_moment_features_separate_first_moment_collision():
     torch.manual_seed(0)
     mom2 = ISLA(**_CENTERED, hidden=64, n_layers=4, n_slices=32, second_moment_features=True).double().eval()
     with torch.no_grad():
-        a0, b0 = base(p1, n1, d, w), base(p2, n2, d, w)
-        a2, b2 = mom2(p1, n1, d, w), mom2(p2, n2, d, w)
+        a0, b0 = base(points=p1, normals=n1, drive=d, measure_weights=w), base(points=p2, normals=n2, drive=d, measure_weights=w)
+        a2, b2 = mom2(points=p1, normals=n1, drive=d, measure_weights=w), mom2(points=p2, normals=n2, drive=d, measure_weights=w)
     assert (a0[:, :8] - b0[:, :8]).abs().max() < 1e-12  # blind by construction
     assert (a2[:, :8] - b2[:, :8]).abs().max() > 1e-4  # separated
     # congruent control: the same arrangement rotated about the drive is identical
     R = _rot_z(37.0)
     with torch.no_grad():
-        rot = mom2(p1 @ R.T, n1 @ R.T, d @ R.T, w)
+        rot = mom2(points=p1 @ R.T, normals=n1 @ R.T, drive=d @ R.T, measure_weights=w)
     assert torch.allclose(rot[..., :1], a2[..., :1], atol=1e-10)
 
 
@@ -1095,11 +1096,11 @@ def test_measure_weight_power_contracts(alpha):
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        rot = m(pts @ q.T + 2.0, nrm @ q.T, drv @ q.T, w)
-        scaled_w = m(pts, nrm, drv, 4.1 * w)
-        off = m_off(pts, nrm, drv, w)
-        ref = m_ref(pts, nrm, drv, w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        rot = m(points=pts @ q.T + 2.0, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
+        scaled_w = m(points=pts, normals=nrm, drive=drv, measure_weights=4.1 * w)
+        off = m_off(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        ref = m_ref(points=pts, normals=nrm, drive=drv, measure_weights=w)
     p0, v0 = _split(base); p1, v1 = _split(rot)
     assert torch.allclose(p1, p0, atol=1e-10) and torch.allclose(v1, v0 @ q.T, atol=1e-10)
     assert torch.allclose(scaled_w, base, atol=1e-10)
@@ -1133,12 +1134,12 @@ def test_query_cloud_channels_contracts(kw):
         R[:, 0] = -R[:, 0]
     t = torch.tensor([2.0, -1.0, 3.0], dtype=torch.float64)
     with torch.no_grad():
-        base = m(p, n, d, w, query_points=q, query_normals=qn, **extra)
-        moved = m(p @ R.T + t, n @ R.T, d @ R.T, w, query_points=q @ R.T + t, query_normals=qn @ R.T, **extra)
-        scaled_w = m(p, n, d, 2.5 * w, query_points=q, query_normals=qn, **extra)
+        base = m(points=p, normals=n, drive=d, measure_weights=w, query_points=q, query_normals=qn, **extra)
+        moved = m(points=p @ R.T + t, normals=n @ R.T, drive=d @ R.T, measure_weights=w, query_points=q @ R.T + t, query_normals=qn @ R.T, **extra)
+        scaled_w = m(points=p, normals=n, drive=d, measure_weights=2.5 * w, query_points=q, query_normals=qn, **extra)
         sc_extra = {"query_scalars": 1.7 * extra["query_scalars"]} if extra else {}
-        scaled = m(1.7 * p, n, d, 1.7**2 * w, query_points=1.7 * q, query_normals=qn, **sc_extra)
-        plain = m0(p, n, d, w, query_points=q, query_normals=qn, **extra)
+        scaled = m(points=1.7 * p, normals=n, drive=d, measure_weights=1.7**2 * w, query_points=1.7 * q, query_normals=qn, **sc_extra)
+        plain = m0(points=p, normals=n, drive=d, measure_weights=w, query_points=q, query_normals=qn, **extra)
     s0, v0 = base[..., :1], base[..., 1:4]
     s1, v1 = moved[..., :1], moved[..., 1:4]
     assert torch.allclose(s1, s0, atol=1e-10) and torch.allclose(v1, v0 @ R.T, atol=1e-10)
@@ -1178,20 +1179,20 @@ def test_center_mode_contracts():
     torch.manual_seed(1)
     m_meas = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, center_mode="measure").double().eval()
     with torch.no_grad():
-        a = m_default(pts, nrm, drv, w)
-        a_plain = m_plain(pts, nrm, drv, w)
-        a_meas = m_meas(pts, nrm, drv, w)
-        a_meas_unif = m_meas(pts, nrm, drv, torch.ones_like(w))
-        a_plain_unif = m_plain(pts, nrm, drv, torch.ones_like(w))
-        a_meas_now = m_meas(pts, nrm, drv, None)
-        a_plain_now = m_plain(pts, nrm, drv, None)
+        a = m_default(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        a_plain = m_plain(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        a_meas = m_meas(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        a_meas_unif = m_meas(points=pts, normals=nrm, drive=drv, measure_weights=torch.ones_like(w))
+        a_plain_unif = m_plain(points=pts, normals=nrm, drive=drv, measure_weights=torch.ones_like(w))
+        a_meas_now = m_meas(points=pts, normals=nrm, drive=drv, measure_weights=None)
+        a_plain_now = m_plain(points=pts, normals=nrm, drive=drv, measure_weights=None)
     assert torch.equal(a_plain, a)
     assert torch.allclose(a_meas_unif, a_plain_unif, atol=1e-12)
     assert torch.allclose(a_meas_now, a_plain_now, atol=1e-12)
     assert not torch.allclose(a_meas, a_plain, atol=1e-6)  # non-uniform weights: a live channel
     with torch.no_grad():
-        assert torch.allclose(m_plain(pts + shift, nrm, drv, w), a_plain, atol=1e-10)
-        assert torch.allclose(m_meas(pts + shift, nrm, drv, w), a_meas, atol=1e-10)
+        assert torch.allclose(m_plain(points=pts + shift, normals=nrm, drive=drv, measure_weights=w), a_plain, atol=1e-10)
+        assert torch.allclose(m_meas(points=pts + shift, normals=nrm, drive=drv, measure_weights=w), a_meas, atol=1e-10)
     with pytest.raises(ValueError):
         ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, center_mode="weighted")
 
@@ -1230,10 +1231,10 @@ def test_center_mode_measure_is_sampling_bias_robust():
         assert (c_meas - c_full).norm() < 0.15 * radius  # ~4 sigma of the HT estimate
         assert (c_plain - c_full).norm() > 0.3 * radius
         with torch.no_grad():
-            o_pu = m_plain(p_u, nrm[:, iu], drv, w_u, query_points=q, query_normals=qn)
-            o_pb = m_plain(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn)
-            o_mu = m_meas(p_u, nrm[:, iu], drv, w_u, query_points=q, query_normals=qn)
-            o_mb = m_meas(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn)
+            o_pu = m_plain(points=p_u, normals=nrm[:, iu], drive=drv, measure_weights=w_u, query_points=q, query_normals=qn)
+            o_pb = m_plain(points=p_b, normals=nrm[:, ib], drive=drv, measure_weights=w_b, query_points=q, query_normals=qn)
+            o_mu = m_meas(points=p_u, normals=nrm[:, iu], drive=drv, measure_weights=w_u, query_points=q, query_normals=qn)
+            o_mb = m_meas(points=p_b, normals=nrm[:, ib], drive=drv, measure_weights=w_b, query_points=q, query_normals=qn)
         wins += int((o_mb - o_mu).norm() < (o_pb - o_pu).norm())
     assert wins == 4
 
@@ -1271,22 +1272,22 @@ def test_global_frame_contracts():
     c = pts.mean(dim=1)  # (1, 3)
     s = torch.full((1,), 8.0, dtype=torch.float64)
     with torch.no_grad():
-        base = m_plain(pts, nrm, drv, w)
-        assert torch.allclose(m_c(pts, nrm, drv, w, frame_center=c), base, atol=1e-12)
-        assert torch.allclose(m_cs(pts, nrm, drv, w, frame_center=c, frame_scale=s), base, atol=1e-12)
+        base = m_plain(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        assert torch.allclose(m_c(points=pts, normals=nrm, drive=drv, measure_weights=w, frame_center=c), base, atol=1e-12)
+        assert torch.allclose(m_cs(points=pts, normals=nrm, drive=drv, measure_weights=w, frame_center=c, frame_scale=s), base, atol=1e-12)
         with pytest.raises(ValueError):
-            m_c(pts, nrm, drv, w)
+            m_c(points=pts, normals=nrm, drive=drv, measure_weights=w)
         with pytest.raises(ValueError):
-            m_cs(pts, nrm, drv, w, frame_center=c)
+            m_cs(points=pts, normals=nrm, drive=drv, measure_weights=w, frame_center=c)
         c2 = c + torch.tensor([[0.5, -0.2, 0.1]], dtype=torch.float64)  # any supplied frame
-        a = m_cs(pts, nrm, drv, w, frame_center=c2, frame_scale=s * 1.3)
-        assert torch.allclose(m_cs(pts + shift, nrm, drv, w, frame_center=c2 + shift, frame_scale=s * 1.3), a, atol=1e-10)
+        a = m_cs(points=pts, normals=nrm, drive=drv, measure_weights=w, frame_center=c2, frame_scale=s * 1.3)
+        assert torch.allclose(m_cs(points=pts + shift, normals=nrm, drive=drv, measure_weights=w, frame_center=c2 + shift, frame_scale=s * 1.3), a, atol=1e-10)
         q = _rotation()
-        rot = m_cs(pts @ q.T, nrm @ q.T, drv @ q.T, w, frame_center=c2 @ q.T, frame_scale=s * 1.3)
+        rot = m_cs(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w, frame_center=c2 @ q.T, frame_scale=s * 1.3)
         assert torch.allclose(rot[..., :1], a[..., :1], atol=1e-10)
         assert torch.allclose(rot[..., 1:4], a[..., 1:4] @ q.T, atol=1e-10)
         ### the supplied frame is a live input, not ignored
-        assert not torch.allclose(m_cs(pts, nrm, drv, w, frame_center=c2, frame_scale=s), base, atol=1e-6)
+        assert not torch.allclose(m_cs(points=pts, normals=nrm, drive=drv, measure_weights=w, frame_center=c2, frame_scale=s), base, atol=1e-6)
     with pytest.raises(ValueError):
         ISLA(frame_mode="centered", hidden=64, n_layers=2, n_slices=16, similarity_gauge=True, scale_mode="global")
     with pytest.raises(ValueError):
@@ -1313,18 +1314,18 @@ def test_relative_frame_contracts():
     assert m.read_blocks[0].geo_logit.in_features == 6
     with torch.no_grad():
         for model in (m, m_tm):
-            base = model(pts, nrm, drv, w)
+            base = model(points=pts, normals=nrm, drive=drv, measure_weights=w)
             assert torch.isfinite(base).all()
-            assert torch.allclose(model(pts + shift, nrm, drv, w), base, atol=1e-12)
+            assert torch.allclose(model(points=pts + shift, normals=nrm, drive=drv, measure_weights=w), base, atol=1e-12)
             q = _rotation()
-            rot = model(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+            rot = model(points=pts @ q.T, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
             assert torch.allclose(rot[..., :1], base[..., :1], atol=1e-10)
             assert torch.allclose(rot[..., 1:4], base[..., 1:4] @ q.T, atol=1e-10)
-        base = m_tm(pts, nrm, drv, w)
-        assert torch.allclose(m_tm(pts * 2.5, nrm, drv, w * 2.5**2), base, atol=1e-10)
-        assert not torch.allclose(m_tm(pts * 2.5, nrm, drv, w), base, atol=1e-3)  # the total measure IS the scale
+        base = m_tm(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        assert torch.allclose(m_tm(points=pts * 2.5, normals=nrm, drive=drv, measure_weights=w * 2.5**2), base, atol=1e-10)
+        assert not torch.allclose(m_tm(points=pts * 2.5, normals=nrm, drive=drv, measure_weights=w), base, atol=1e-3)  # the total measure IS the scale
         with pytest.raises(ValueError):
-            m_tm(pts, nrm, drv, None)
+            m_tm(points=pts, normals=nrm, drive=drv, measure_weights=None)
     for bad in ({"similarity_gauge": True}, {"odd_head": True}, {"seed_mode": "raw"},
                 {"center_mode": "measure"}, {"scale_conditioning": True}):
         with pytest.raises(ValueError):
@@ -1372,12 +1373,12 @@ def test_frame_modes_are_sampling_consistent(kw):
         p_u2, w_u2, iu2 = _biased_poisson_subsample(pts, w, n_sub, 1.0, g)
         p_b, w_b, ib = _biased_poisson_subsample(pts, w, n_sub, 10.0, g)
         with torch.no_grad():
-            o_pu = m_plain(p_u, nrm[:, iu], drv, w_u, query_points=q, query_normals=qn)
-            o_pu2 = m_plain(p_u2, nrm[:, iu2], drv, w_u2, query_points=q, query_normals=qn)
-            o_pb = m_plain(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn)
-            o_u = m(p_u, nrm[:, iu], drv, w_u, query_points=q, query_normals=qn, **frame)
-            o_u2 = m(p_u2, nrm[:, iu2], drv, w_u2, query_points=q, query_normals=qn, **frame)
-            o_b = m(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn, **frame)
+            o_pu = m_plain(points=p_u, normals=nrm[:, iu], drive=drv, measure_weights=w_u, query_points=q, query_normals=qn)
+            o_pu2 = m_plain(points=p_u2, normals=nrm[:, iu2], drive=drv, measure_weights=w_u2, query_points=q, query_normals=qn)
+            o_pb = m_plain(points=p_b, normals=nrm[:, ib], drive=drv, measure_weights=w_b, query_points=q, query_normals=qn)
+            o_u = m(points=p_u, normals=nrm[:, iu], drive=drv, measure_weights=w_u, query_points=q, query_normals=qn, **frame)
+            o_u2 = m(points=p_u2, normals=nrm[:, iu2], drive=drv, measure_weights=w_u2, query_points=q, query_normals=qn, **frame)
+            o_b = m(points=p_b, normals=nrm[:, ib], drive=drv, measure_weights=w_b, query_points=q, query_normals=qn, **frame)
         d_bias.append(float((o_b - o_u).norm()))
         d_noise.append(float((o_u2 - o_u).norm()))
         d_plain.append(float((o_pb - o_pu).norm()))
@@ -1405,3 +1406,20 @@ def test_default_is_relative_total_measure():
     assert m.blocks[0].geo_logit.in_features == 6
     m_c = ISLA(**_CENTERED, hidden=32, n_layers=2, n_slices=8)
     assert m_c.embed[0].in_features == 5 and m_c.blocks[0].geo_logit.in_features == 8
+
+
+def test_constructor_and_forward_are_keyword_only():
+    """Every constructor argument and every forward input is keyword-only
+    (ruling 2026-09-11: inputs read as the recipe's forward_kwargs mapping and
+    models can be hot-swapped without positional bookkeeping)."""
+    pts = torch.randn(1, 16, 3)
+    nrm = torch.nn.functional.normalize(torch.randn(1, 16, 3), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3), dim=-1)
+    w = torch.rand(1, 16) + 0.5
+    with pytest.raises(TypeError):
+        ISLA(1, 1)
+    m = ISLA(hidden=32, n_layers=1, n_slices=8)
+    with pytest.raises(TypeError):
+        m(pts, nrm, drv, w)
+    out = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+    assert out.shape == (1, 16, 4) and torch.isfinite(out).all()

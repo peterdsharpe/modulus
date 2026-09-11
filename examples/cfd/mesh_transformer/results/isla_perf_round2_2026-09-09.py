@@ -71,7 +71,7 @@ def bench(hidden, n, ckpt, compiled):
     def step():
         opt.zero_grad(set_to_none=True)
         with torch.autocast("cuda", dtype=torch.bfloat16):
-            out = m(pts, nrm, drv, w)
+            out = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
         out.float().square().mean().backward()
         opt.step()
 
@@ -84,7 +84,7 @@ def bench(hidden, n, ckpt, compiled):
         torch.cuda.synchronize(); t0 = time.perf_counter(); step(); torch.cuda.synchronize(); times.append(time.perf_counter() - t0)
     m.eval()
     with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
-        out = m(pts, nrm, drv, w).float().clone()
+        out = m(points=pts, normals=nrm, drive=drv, measure_weights=w).float().clone()
     r = {"hidden": hidden, "tokens": n, "geo_checkpoint": ckpt, "compiled_geo": compiled,
          "step_s_median": float(np.median(times)), "incremental_allocated_gib": (torch.cuda.max_memory_allocated() - resident) / 2**30,
          "peak_allocated_gib": torch.cuda.max_memory_allocated() / 2**30}

@@ -60,7 +60,7 @@ def run(hidden, n, ckpt, do_profile):
     def step():
         opt.zero_grad(set_to_none=True)
         with torch.autocast("cuda", dtype=torch.bfloat16):
-            out = m(pts, nrm, drv, w)
+            out = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
         out.float().square().mean().backward()
         opt.step()
 

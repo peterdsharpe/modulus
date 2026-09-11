@@ -57,7 +57,7 @@ def test_anchor_topk_full_is_exact(extra):
     sparse = ISLA(hidden=64, n_layers=3, n_slices=32, anchor_topk=32, **{**_CENTERED, **extra}).double().eval()
     sparse.load_state_dict(dense.state_dict())
     with torch.no_grad():
-        a, b = dense(pts, nrm, drv, w), sparse(pts, nrm, drv, w)
+        a, b = dense(points=pts, normals=nrm, drive=drv, measure_weights=w), sparse(points=pts, normals=nrm, drive=drv, measure_weights=w)
     assert torch.allclose(a, b, atol=1e-10, rtol=0)
 
 
@@ -73,9 +73,9 @@ def test_anchor_topk_contracts(extra):
         q[:, 0] = -q[:, 0]
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
-        base = m(pts, nrm, drv, w)
-        moved = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w)
-        rescaled_w = m(pts, nrm, drv, 3.7 * w)
+        base = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
+        moved = m(points=pts @ q.T + shift, normals=nrm @ q.T, drive=drv @ q.T, measure_weights=w)
+        rescaled_w = m(points=pts, normals=nrm, drive=drv, measure_weights=3.7 * w)
     p0, v0 = _split(base)
     p1, v1 = _split(moved)
     assert torch.allclose(p1, p0, atol=1e-10)
@@ -83,15 +83,15 @@ def test_anchor_topk_contracts(extra):
     assert torch.allclose(rescaled_w, base, atol=1e-10)
     if extra.get("similarity_gauge"):
         with torch.no_grad():
-            scaled = m(2.7 * pts, nrm, drv, 2.7**2 * w)
+            scaled = m(points=2.7 * pts, normals=nrm, drive=drv, measure_weights=2.7**2 * w)
         assert torch.allclose(scaled, base, atol=1e-10)
     torch.manual_seed(0)
     dense = ISLA(hidden=64, n_layers=3, n_slices=32, **{**_CENTERED, **extra}).double().eval()
     with torch.no_grad():
-        ref = dense(pts, nrm, drv, w)
+        ref = dense(points=pts, normals=nrm, drive=drv, measure_weights=w)
     assert not torch.allclose(ref, base, atol=1e-6)  # k = 8 of 32 anchors changes the output
     m.train()
-    out = m(pts, nrm, drv, w)
+    out = m(points=pts, normals=nrm, drive=drv, measure_weights=w)
     out.square().mean().backward()
     assert all(p.grad is not None for name, p in m.named_parameters() if "geo_" in name)
 
