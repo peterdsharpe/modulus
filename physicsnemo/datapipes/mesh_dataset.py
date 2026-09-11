@@ -82,6 +82,8 @@ class MeshDataset(DatasetBase):
         transforms: Sequence[MeshTransform] | None = None,
         device: str | torch.device | None = None,
         num_workers: int = 1,
+        cache_host: bool = False,
+        cache_host_views: int = 1,
     ) -> None:
         """
         Parameters
@@ -97,9 +99,30 @@ class MeshDataset(DatasetBase):
             run :meth:`_load_host` (disk read + pin_memory) concurrently;
             GPU operations (H2D transfer, transforms) always run on the
             main thread in :meth:`_consume`.
+        cache_host : bool, default=False
+            Keep every sample returned by the reader in host memory after
+            its first read and serve later requests for the same index
+            from that cache, so a dataset of a few (possibly repeated)
+            samples is read from disk once. Intended for single-sample or
+            few-sample fitting runs; the cached sample is the reader's
+            output for that index (including any subsampling the reader
+            applied), so repeated indices return the identical sample.
+            Requires the device transfer or non-mutating transforms, since
+            the cached object is handed out again on the next request.
+        cache_host_views : int, default=1
+            With ``cache_host``, the number of distinct reads of each index
+            to keep. Readers that subsample stochastically return a
+            different view of the same sample on each read (their generator
+            advances per epoch), so with ``k > 1`` the first ``k`` requests
+            for an index read ``k`` views from disk and later requests cycle
+            through them in order. ``1`` is the plain fixed-sample cache.
         """
         super().__init__(num_workers=num_workers)
         self.reader = reader
+        self.cache_host = bool(cache_host)
+        self.cache_host_views = max(1, int(cache_host_views))
+        self._host_cache: dict[int, list[tuple[Any, dict[str, Any]]]] = {}
+        self._host_cache_cursor: dict[int, int] = {}
         self.transforms = list(transforms) if transforms else []
         self._device = torch.device(device) if isinstance(device, str) else device
 
@@ -178,7 +201,7 @@ class MeshDataset(DatasetBase):
     ) -> tuple[Union[Mesh, DomainMesh, TensorDict], dict[str, Any]]:
         """Synchronous load: reader -> device transfer -> transforms."""
         with torch.profiler.record_function("MeshDataset._load: reader[index]"):
-            data, metadata = self.reader[index]
+            data, metadata = self._read_host(index)
 
         if self._device is not None:
             with torch.profiler.record_function("MeshDataset._load: data.to(device)"):
@@ -202,6 +225,19 @@ class MeshDataset(DatasetBase):
     # Producer / consumer split (overrides DatasetBase defaults)
     # ------------------------------------------------------------------
 
+    def _read_host(self, index: int) -> tuple[Union[Mesh, DomainMesh, TensorDict], dict[str, Any]]:
+        """Read one sample from the reader, through the host cache when enabled."""
+        if self.cache_host:
+            views = self._host_cache.setdefault(index, [])
+            if len(views) >= self.cache_host_views:
+                cursor = self._host_cache_cursor.get(index, 0)
+                self._host_cache_cursor[index] = (cursor + 1) % len(views)
+                return views[cursor]
+        data, metadata = self.reader[index]
+        if self.cache_host:
+            self._host_cache[index].append((data, metadata))
+        return data, metadata
+
     def _load_host(self, work_item: int) -> HostPayload:
         """Producer stage: read a mesh sample on a worker thread.
 
@@ -221,7 +257,7 @@ class MeshDataset(DatasetBase):
             error.
         """
         try:
-            data, metadata = self.reader[work_item]
+            data, metadata = self._read_host(work_item)
             return HostPayload(work_item=work_item, data=data, metadata=metadata)
         except Exception as e:  # noqa: BLE001
             return HostPayload(work_item=work_item, error=e)

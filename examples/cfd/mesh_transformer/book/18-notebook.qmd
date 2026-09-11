@@ -14693,3 +14693,130 @@ and the unit-drive reference `udrv_hl_gt_full_seed{42,43}` at 10,000;
 kernel-assigned ports; outputs under the track-private
 `hl_evals_probe_fp32/gt_hl_sf/`) is prepared and is submitted when those
 HiLift lanes have trained.
+
+## 2026-09-09 — Preregistered and launched: OVERFIT-1, train each architecture on one case to separate representational capacity from data limits {#sec-nb-overfit-prereg}
+
+**Why.** With fair inputs ISLA trails the unit-drive Transolver by 17% and
+GeoTransolver by 10% at 35 HiLift cases, and by 8.5% behind GeoTransolver
+on DrivAerML at full data. Two readings are open: ISLA *cannot represent*
+these fields as well (capacity), or it *generalizes* worse from few cases
+(inductive bias and optimization). Training on a single case removes
+generalization from the problem: the floor each architecture reaches on one
+field, given unlimited passes over it, is a direct measure of representational
+capacity for this data, and where the residual sits (gap regions against open
+surfaces; pressure against wall shear) says which capacity is missing. The
+same run tests the measure-weight variance reading with the data held fixed:
+if weights-off is still better on one field, the cost is not a few-sample
+effect.
+
+**Instrument.** One HiLift case (`geo_LHC020_AoA_12`, a validation case at
+the middle angle) and one DrivAerML car (`run_112`, a validation car), each
+used as both the training and the validation set (manifests under
+$T/overfit/, dataset variants `highlift_surface_overfit`,
+`drivaer_ml_surface_overfit`, `drivaer_ml_volume_overfit`; pipelines
+otherwise identical to the frozen ones). Every step draws a fresh 10,000-cell
+sample of the case, so the model fits the *field*, not a fixed point set;
+validation draws its own fresh sample every 1,000 epochs. 20,000 single-step
+epochs (one case, batch 1, one GPU per lane), the reference learning rates
+(ISLA and GeoTransolver 1e-3, Transolver 3e-3 on HiLift and 1e-3 on
+DrivAerML), bf16, no augmentation, unit drive for every baseline,
+`dataloader.pin_memory=false` throughout. Arms (seed 42): ISLA weights on,
+ISLA weights off, GeoTransolver, Transolver on each dataset (8 lanes); and
+on the DrivAerML interior task ISLA query tokens + SDF against
+GeoTransolver-volume with the unit drive (2 lanes; ~365 surface cells as in
+every interior arm). Readouts: the training loss curve; the recipe's
+per-point relative L2 of standardized pressure (and velocity, wall shear) on
+the same case at 10,000 and at a dense 40,000 sampled cells; the
+facing-distance band split of the residual (instrument of
+@sec-nb-hlreg-amendment) on the HiLift arms.
+
+**Bars, in readout units (10k-sample relative L2 on the training case).**
+*Capacity-limited* if ISLA's floor is ≥ 1.5x the unit-drive Transolver's on
+the same case (the 35-case gap is 1.2x, so a single-case gap larger than the
+data-limited gap says representation, not data). *Not capacity-limited* if
+ISLA's floor is within 1.15x of the better baseline's (then the 35-case gap
+is generalization). Between: partial, with the band split deciding whether
+the missing capacity is local (gap regions ≥ 1.5x the open-surface ratio) or
+global. *Weights are a representational cost* if weights-off beats weights-on
+by ≥ 5% on one field; *a few-sample effect* if within 2%. Interior:
+*capacity-limited on ν_t* if ISLA's single-car ν_t floor is ≥ 1.25x
+GeoTransolver-volume's; not if within 1.10x. Every floor is also reported
+against zero (a field that no architecture fits below 0.02 says the sampled
+metric itself has a floor at 10k points).
+
+**Launch.** Launcher $T/overfit_aga.sbatch (array 0–2, four single-GPU lanes
+per node), evaluation $T/overfit_eval_aga.sbatch; job prefix ovf-, run ids
+ovf_*; code snapshot code_isla5. About two hours per lane.
+
+**Amendment before readout (2026-09-09).** The first launch was
+input-bound: with one case per epoch the pipeline re-read a fresh 10,000-cell
+sample from the full boundary mesh every step, at 11.3 s per step on
+HiLiftAeroML and 2.5 s on DrivAerML (the HiLift arms would have taken 63
+hours). Those lanes were cancelled at epochs 46–94 and their run directories
+archived (`runs_ovf_attempt1/`, not used). The instrument now matches the
+literal form of the test: `MeshDataset` gained a `cache_host` option (a
+host-side cache of the reader's output by index, plumbed through the recipe
+as `dataloader.cache_host`; commit c98121f22 with a unit test), the training
+case is listed 64 times in the manifest so that 64 *distinct fixed*
+subsamples are read once and then cycled, and training runs 320 epochs of
+64 cached samples (20,480 single-sample steps) with checkpoints every 20
+epochs. The evaluation still draws fresh 10,000- and 40,000-cell samples of
+the case, so the readout is the fit to the *field* from 64 fixed views, and
+a comparison of the 10k-sample metric with the training loss shows how much
+of the floor is memorization of those views. Bars unchanged. Jobs
+695431/695433/695434; code snapshot `code_ovf`, recipe copy `recipe_ovf`.
+
+**Second amendment (2026-09-09).** The recipe's manifest resolver
+deduplicates repeated entries, so the 64-fold listing produced "Train
+samples: 1": each lane fit exactly one fixed 10,000-cell sample (cached), at
+0.02–0.23 s per step, but for only 320 steps, and every lane on DrivAerML
+and the interior finished in about three minutes with the loss still
+falling. This is the literal single-sample test, so it is kept in that form
+and lengthened: 20,000 single-step epochs on the one cached sample
+(checkpoints every 1,000), which is one to two hours per lane. Two readouts
+are then separated by construction: the training loss (fit to the fixed
+sample) and the evaluation, which draws its samples of the same case with a
+different sampler seed (7 against the training run's 42) at 10,000 and
+40,000 cells, so it measures the fit to the *field* from one view. The
+64-view variant would need a manifest resolver that keeps duplicates and is
+not pursued now. Bars unchanged; the 320-step runs are archived
+(`runs_ovf_attempt3/`).
+
+**Third amendment (2026-09-09): float32 is the reporting instrument.** The
+program adopted float32 inference as its reporting instrument after the
+scaling study found that one ISLA checkpoint scores 0.0568 in float32 but
+0.0588 or 0.0624 under two bf16 evaluation graphs, up to 31% per case
+(@sec-nb-fp32-instrument). A single-sample floor is exactly the quantity such
+an offset would corrupt, so every OVERFIT-1 readout is evaluated in float32
+(with the bf16 evaluation alongside, for the offset table), and the bars
+apply to the float32 numbers. Because training itself runs in bf16, four
+float32-*training* arms were added on the HiLift case (ISLA weights on and
+off, unit-drive GeoTransolver, unit-drive Transolver; run ids with the
+suffix `_fp32`, array task 3, job 696023): if the bf16-trained floors sit
+above their float32-trained twins by more than the seed-level 2%, the bf16
+floor is numerical, not representational, and the bars are applied to the
+float32-trained arms.
+
+**Fourth amendment (2026-09-10): the schedule, not the model, set the
+attempt-4 floors.** The frozen protocol's scheduler is StepLR with a step
+size of 100 *epochs* and gamma 0.1, advanced once per epoch. With one sample
+per epoch that is one step per epoch, so the learning rate had fallen to
+1e-6 by step 300 and every lane's loss was flat from there to step 20,000
+(0.036 for ISLA on DrivAerML at step 319 and at step 19,999 alike). The
+evaluation confirmed that those checkpoints had not fitted even their own
+training sample: relative L2 0.59 on the training sampler's draw and 0.61
+on a fresh draw (float32), against 0.13 for models trained on 35 cases.
+Attempt 4 is archived (`runs_ovf_attempt4/`, `ovf_evals_attempt4/`) and is
+not a result. The relaunch scales the schedule to the step count
+(`training.scheduler.step_size=4000`, the same one-decade-per-fifth
+structure as 100 of 500 epochs) and runs both forms side by side from the
+same launcher: *fixed sample* (one cached 10k-cell sample, run ids `_v1`)
+and *64 views* (`cache_host_views=64`: 64 distinct subsamples of the case
+read once and cycled, run ids `_v64`), ten architecture arms each plus two
+float32-training arms (ISLA weights on, unit-drive Transolver) on the HiLift
+case; 20,000 steps; jobs 697144–697149. The fixed-sample form measures
+memorization capacity and the 64-view form the field-fit capacity; the
+preregistered bars apply to the 64-view float32 readouts, with the
+fixed-sample numbers reported alongside. A general note for the recipe: any
+run whose epoch count is not about 500 needs the scheduler rescaled, which
+the per-epoch StepLR makes easy to forget.
