@@ -15629,7 +15629,10 @@ DrivAerML 435 cars −2.5%, 21 geometries +2.9%, 4 geometries +7.4%, 35
 cases +7.6%, fixed angle +14.4%. The price does not track training-set size
 (210 cases here against 35 at the 35-case rung and 40 at 4 geometries, yet
 cheaper than both) and is largest where the task is geometry at a fixed
-drive direction; the scale-normalization reading of
+drive direction *(superseded the same day by @sec-nb-wave4-scarce210: with
+the 210-case rung read, the price does fall with training-set size along
+each HiLift ladder, and the fixed angle is the outlier)*; the
+scale-normalization reading of
 @sec-nb-wave4-fixed-angle is being tested by the reference configuration's
 two scales on that rung (@sec-nb-relframe-ladder-prereg). The gauge is a
 sample-statistic frame and not the reference; this is its matrix row for
