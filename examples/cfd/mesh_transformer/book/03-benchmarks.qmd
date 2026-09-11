@@ -87,6 +87,8 @@ campA210 = json.load(open(RP / "campaign_a_draws" / "campaign_a_n210_fp32_2026-0
 poseB = json.load(open(RP / "campaign_b_pose" / "campaign_b_fp32_2026-09-10.json"))
 campD = json.load(open(RP / "computational_support" / "campaign_d_verdict_2026-09-10.json"))["per_arm"]
 cost = J("isla_vs_baselines_cost_fastkernel_2026-09-09.json")
+fw = J("farwake_reduction_2026-09-11.json")
+fs = J("farwake_far_field_shells_2026-09-11.json")["arms"]
 
 # ---- surface rungs: seed lists in float32 -------------------------------
 S = {}
@@ -630,7 +632,25 @@ trains it on the fixed-angle and 4-geometry rungs is in progress, and
 until it lands every other ISLA number is the prior configuration's
 record. The baselines' consistency has been shown with a Horvitz–Thompson
 centroid on DrivAerML only. And the far-wake deficit that carries ISLA's
-interior eddy-viscosity gap is under a preregistered test of
-measure-consistent far-field oversampling. No row above depends on the
-weights-off ablation, on a bfloat16 evaluation, or on a physical-drive
-baseline.
+interior eddy-viscosity gap remains open: the one remedy tested,
+oversampling the far field in the interior training queries with exact
+measure weights, is closed as a negative. Trained that way and scored on
+the standard uniform interior sample, ISLA is worse than its reference on
+every field and in every wall-distance band (recipe pressure, velocity and
+eddy viscosity
+`{python} f"{fw['two_seed_mean']['pressure_l2']/fw['reference_three_seed_fp32']['pressure_l2']-1:+.0%}"`,
+`{python} f"{fw['two_seed_mean']['velocity_l2']/fw['reference_three_seed_fp32']['velocity_l2']-1:+.0%}"` and
+`{python} f"{fw['two_seed_mean']['nut_l2']/fw['reference_three_seed_fp32']['nut_l2']-1:+.0%}"`;
+far-shell eddy viscosity beyond 0.4 body lengths
+`{python} f"{fs['isla_farwake']['mean']['nut']['>=0.4L']['rel_l2']:.3f}"` against
+`{python} f"{fs['isla_ref']['mean']['nut']['>=0.4L']['rel_l2']:.3f}"` for the
+reference and
+`{python} f"{fs['gt_unit']['mean']['nut']['>=0.4L']['rel_l2']:.3f}"` for
+GeoTransolver-volume; float32, two seeds,
+`results/farwake_reduction_2026-09-11.json` and
+`results/farwake_far_field_shells_2026-09-11.json`). The arm trains the
+interacting decode on one query law and scores it on another, so it
+settles the deployable question and not the mechanism, and it has no
+baseline twin, which is why it is a closed line here and not a row above.
+No row above depends on the weights-off ablation, on a bfloat16
+evaluation, or on a physical-drive baseline.
