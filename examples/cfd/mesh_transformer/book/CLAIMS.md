@@ -1613,3 +1613,7 @@ interior control @sec-nb-udrv-int-prereg.
   property in the comparison; never write them as recommendations, options, or deployable models. Every transferable finding is written as a pro
   of ISLA, the new architecture. Resolves the open "baselines' frame in the fair comparison" question: released baselines = deployable comparison;
   MW/MWAW variants = diagnostic, labelled as such wherever they appear.
+- **RULING QUESTION CLOSED (2026-09-11).** The MWAW line's "RULING QUESTION OPEN: adopt HT CenterMesh as the baselines' frame" is MOOT:
+  released GeoTransolver/Transolver are not modified (#sec-nb-ruling-released-baselines). MW / MWAW = "research variant, not the
+  released model", diagnostic only; never a recommendation. Transferable findings are written as pros of ISLA. No further baseline
+  lanes. CenterMesh use_measure_weighting = general library flag (default off), not a recipe change.

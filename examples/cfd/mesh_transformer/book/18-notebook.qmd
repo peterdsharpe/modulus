@@ -15280,7 +15280,10 @@ recommendation put to Peter through ISLA Main: adopt the HT-weighted
 `CenterMesh` (`use_measure_weighting`) as the baselines' datapipe frame in
 the fair comparison, state it beside every baseline consistency number,
 and keep the plain-mean numbers as the record of the published datapipe.
-Until he rules, the chapters report both frames.
+Until he rules, the chapters report both frames. *Superseded 2026-09-11 by
+Peter's ruling (@sec-nb-ruling-released-baselines): the released models are
+not modified, so the recommendation is withdrawn; the MWAW arms stay as the
+diagnostic that locates the property.*
 
 ## 2026-09-11 — MIX follow-up under refinement: the area-trained measure-weighted ISLA's swap penalty falls from 2.9x at 2,500 cells to 1.05x at 40,000, and under uniform sampling it lands at the uniform-trained model's level (+2%), not at the weights-off level {#sec-nb-mix-refinement}
 
@@ -15841,3 +15844,29 @@ discriminating cell: *≥ 8% there confirms recurrence; ≤ 3% refutes it and
 puts the 35-case price down to data quantity, with the 35-case rung then
 the only expensive one for the reference.* Bands as before (≤ 5% / 5–15% /
 > 15%).
+
+## 2026-09-11 — Ruling: the released GeoTransolver and Transolver are not modified; measure-weighted and HT-centred baselines are research variants that locate a property, and every transferable finding is written as a pro of ISLA {#sec-nb-ruling-released-baselines}
+
+Peter's ruling, relayed by ISLA Main and binding on both sessions.
+GeoTransolver and Transolver as released in PhysicsNeMo are stable, in use
+and published; they will not be modified, and back-porting ISLA's findings
+to them is engineering-infeasible (it would need a follow-on paper).
+Consequences for this fork's work: (1) the measure-weighted slice pooling
+(MW, @sec-nb-mw-verdict) and the HT-centred datapipe frame (MWAW,
+@sec-nb-mwaw-verdict) remain in the book as *research variants, not the
+released models*, whose only role is to locate a property in the fair
+comparison: consistency under resampling is a property of the frame and
+the aggregation, not of the attention; they are never written as
+recommendations or deployable options. (2) The open question of the
+baselines' datapipe frame in the fair comparison is closed as moot: the
+released datapipe is the comparison, the MW and MWAW rows are the
+diagnostic; the recommendation in @sec-nb-mwaw-verdict is withdrawn. (3)
+Every transferable finding, measure-consistent aggregation,
+frame-free or HT-consistent frames, sampler consistency in the fine-mesh
+limit, is a pro of ISLA, the architecture people will adopt. (4) No further
+baseline-modification lanes; the reference ladder
+(@sec-nb-relframe-ladder-prereg) and the WAVE-4 remainder are unaffected.
+(5) Engineering focus moves to ISLA productization: the reference
+configuration, defaults, kernel speed, recipe integration. The repository's
+`CenterMesh(use_measure_weighting=True)` stays a general library
+improvement (default off), not a change to the released recipes.
