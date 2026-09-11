@@ -1942,16 +1942,169 @@ on the recipe metric, is inside the reference's seed spread.
 **What changes.** The interior-context direction closes for this program;
 the wake-token and latent-volume-token code stays in the repository as the
 runnable record of a refuted configuration (flag-gated, defaults
-unchanged). The preregistration's fallback hypothesis becomes the next
-candidate: the readout itself. ISLA's interior query reads its
-neighbourhood through a kernel whose radius is fixed in gauge units; far
-from the surface, where the flow varies on the wake's scale rather than the
-body's, that radius may simply be too small, which would produce exactly
-the pattern seen (near wall and mid band fine, far band deficient,
-insensitive to where the anchors are). A discriminating test is a readout
-radius that scales with signed distance, which is a physically principled,
-discretization-invariant change under the 2026-09-10 ruling; it is not
-launched by this track. For the program book: ISLA at hidden 344 remains
-ahead of GeoTransolver-volume on interior pressure and velocity and 18%
-behind on eddy viscosity, with the far field as the located cause and no
-repair in hand.
+unchanged). For the program book: ISLA at hidden 344 remains ahead of
+GeoTransolver-volume on interior pressure and velocity and 18% behind on
+eddy viscosity, with the far field as the located cause and no repair in
+hand. The next candidate is derived from the code in the addendum below;
+an earlier draft of this entry named "the readout kernel radius, fixed in
+gauge units" from the preregistration's fallback text, and that candidate
+is withdrawn there.
+
+**Addendum (same day): what the interacting path actually offers a far
+query, derived from the code, and the corrected next candidate.** The
+preregistration's fallback ("the kernel readout radius is fixed in gauge
+units and may be too small far from the surface") does not apply to the
+configuration evaluated. In `physicsnemo/experimental/nn/isla/model.py`
+the Gaussian kernel readout and its radius `local_readout_rho` exist only
+in the passive `query_independent` decoder (`_ReadBlock`,
+`_kernel_readout`). With `query_tokens=True`, the mode of every hidden-344
+interior run, interior queries are interacting tokens in the same slice
+blocks as the surface: each token is routed to slices by a softmax whose
+logits are its own state plus a learned linear bias on eight relational
+invariants to each slice anchor (distance, log distance, the direction to
+the anchor dotted with the drive, with the token normal and with the
+anchor normal, token normal dotted with anchor normal, anchor radius,
+anchor direction dotted with the drive), and reads back the mixed slice
+states. There is no kernel and no radius. Two consequences. First, slice
+anchors are measure-weighted means of the positions of every token
+assigned to the slice, query tokens included (their routing weight is a
+learned fraction of the surface measure), so anchors can already sit in
+the volume; wake and latent-volume tokens move an anchor only if they are
+routed to it with enough mass, and this entry's falsification carries the
+caveat that their received mass was not verified (a probe on the trained
+checkpoints is running: `transfer/probe_routing_mass.py`). Second, for a
+far query the distance and direction to every anchor are nearly the same,
+so the eight invariants stop discriminating slices and the routing falls
+back on the query's own seed: |r|, log |r|, r̂·d, r̂·n̂ (n̂ the SDF
+gradient), n̂·d and the SDF value. That seed is blind to the azimuth about
+the drive axis: two far-field points at equal distance, equal SDF and
+equal angle to the drive, one above the car and one beside it, differ only
+through r̂·n̂. GeoTransolver-volume reads the raw position and keeps the
+azimuth. Tokens on the drive axis cannot supply azimuth by construction,
+which is consistent with the wake arm's small effect, and undirected
+off-surface anchors need not help. The candidate that does carry
+far-field azimuth is already implemented and flag-gated:
+`second_moment_features` (2026-09-08) appends r̂ᵀC_s r̂ and tr C_s, the
+slice's measure-weighted second moment seen from the query's direction,
+which varies with azimuth when distance and direction do not; it has been
+trained on the DrivAerML surface only (pressure 0.0583 against 0.0577,
+ISLA Main) and never in an interior configuration. Before it is
+preregistered, a diagnostic on the saved predictions decomposes the far
+band by distance shell and by azimuth about the drive axis
+(`transfer/far_field_shells.py`): the azimuth reading predicts that ISLA's
+far-field deficit relative to GeoTransolver-volume is concentrated off the
+symmetry plane (beside and below the car) rather than above it, and grows
+with distance. Both diagnostics ran the same evening; their verdict is the
+next entry, and it withdraws this candidate too.
+
+## 2026-09-10 — Diagnostics: ISLA's eddy-viscosity deficit is confined to the far wake beyond 0.4 L downstream (0.108 vs 0.071; ISLA leads in every shell inside 0.4 L), and the slice anchors were already interior and query-dominated, so the anchor-resolution class of explanations is closed; no candidate in hand {#sec-nb-far-wake}
+
+**Setting.** After the wake-token and latent-volume-token arms were
+falsified (@sec-nb-wake-verdict), two cheap diagnostics on the saved
+float32 predictions and trained checkpoints asked where exactly ISLA's
+far-field eddy-viscosity deficit against the unit-drive
+GeoTransolver-volume sits, and whether the slice anchors that the
+anchor-resolution reading blamed are what that reading assumed. Both are
+derivations from the artifacts, not new training.
+
+**Instrument 1, distance shells and regions
+(`studies/computational_support/far_field_shells.py`, artifact
+`far_field_shells_2026-09-10.json`).** The far band (SDF ≥ 0.05 L, 10% of
+the points) is split into shells of signed distance and, in the dataset
+frame (a diagnostic frame, not a model input; drive +x, up +z), into
+azimuth sectors about the car's axis and into downstream (x more than
+0.5 L behind the near-wall centroid), around, and upstream regions.
+Per-case relative L2 averaged over the 48 cars, two-seed means.
+
+| eddy viscosity, region (share of all points) | ISLA h344 | ISLA h344 + wake tokens | ISLA h344 + latent volume tokens | GeoTransolver-volume |
+|---|---|---|---|---|
+| shell 0.05–0.1 L (2.7%) | 0.047 | 0.048 | 0.047 | 0.067 |
+| shell 0.1–0.2 L (2.6%) | 0.042 | 0.042 | 0.041 | 0.053 |
+| shell 0.2–0.4 L (2.5%) | 0.038 | 0.038 | 0.037 | 0.038 |
+| shell ≥ 0.4 L (2.2%) | **0.108** | 0.101 | 0.132 | **0.071** |
+| far, downstream x > 0.5 L (6.7%) | **0.102** | 0.096 | 0.123 | **0.070** |
+| far, around the car (2.8%) | 0.034 | 0.035 | 0.034 | 0.050 |
+| far, upstream (0.5%) | 0.046 | 0.043 | 0.040 | 0.108 |
+| far, above the car, azimuth > 60° (1.4%) | 0.078 | 0.075 | 0.080 | 0.062 |
+| far, oblique 20–60° (2.6%) | 0.062 | 0.063 | 0.062 | 0.054 |
+| far, beside the car, |azimuth| < 20° (4.2%) | **0.091** | 0.087 | 0.108 | **0.064** |
+| far, below, azimuth < −20° (1.9%) | 0.077 | 0.068 | 0.096 | 0.077 |
+
+: Eddy-viscosity relative L2 by far-field region, float32, two-seed means. Pressure shows a uniform 15–25% ISLA deficit in every far shell (0.059 / 0.095 / 0.110 / 0.213 against 0.045 / 0.078 / 0.090 / 0.189) that does not grow with distance; velocity shows ISLA ahead inside 0.1 L and behind beyond it (0.033 against 0.022 at ≥ 0.4 L). Both fields' far-band squared error is under 5% of their totals. {#tbl-far-wake-shells}
+
+**Instrument 2, routing-mass probe
+(`studies/computational_support/routing_mass/probe_routing_mass.py`, one
+validation case, float32, the training snapshot `code_wake`; artifacts
+`routing_mass/*.json`).** The recipe's own inference construction is
+reproduced and the final point-to-slice assignment of every one of the
+twelve slice blocks is recorded. Read per layer: the fraction of each
+slice's mass held by the interior query tokens and by the context tokens,
+the number of the 256 slices each group dominates (more than half the
+mass), where the resulting anchors sit (distance to the nearest surface
+token in body lengths L_b) and how many lie downstream of the rear.
+
+| run | slices dominated by query tokens (range over 12 layers) | anchors more than 0.05 L_b from the surface | anchors more than 0.2 L_b | anchors downstream of the rear | context tokens' mass (slice-units of 256) | slices dominated by context tokens |
+|---|---|---|---|---|---|---|
+| ISLA h344, reference | 224–256 | 48–86% | 0–13% | 0–44 | — | — |
+| ISLA h344 + wake tokens, seed 42 | 186–253 | 26–75% | 0–20% | 9–89 | 15–71 | 3–53 |
+| ISLA h344 + wake tokens, seed 43 | 188–256 | 16–83% | 0–16% | 0–72 | 7–71 | 0–46 |
+| ISLA h344 + latent volume tokens, seed 42 | 187–253 | 50–89% | 0–10% | 0–28 | 6–58 | 1–37 |
+
+: One case (the first validation car); a context token holding one slice-unit is the whole mass of one slice. {#tbl-routing-mass}
+
+**Reading.** Three things the two instruments settle. (1) **The deficit is
+the far wake, and only the far wake.** ISLA at matched parameters is
+*ahead* of GeoTransolver-volume on eddy viscosity in every shell out to
+0.4 L (by 30% at 0.05–0.1 L, 21% at 0.1–0.2 L, level at 0.2–0.4 L), ahead
+around and upstream of the car, and behind only beyond 0.4 L downstream
+(0.108 against 0.071, 2.2% of the points), where the error is largest
+beside the car (0.091 against 0.064) and absent below it. The far-band
+verdict of @sec-nb-bands was a mixture of this deficit with regions where
+ISLA leads. (2) **The anchors were never surface anchors.** In the
+reference model the interior query tokens dominate 224–256 of the 256
+slices in every layer; half to nine tenths of the anchors are already more
+than 0.05 body lengths off the surface and up to 44 sit downstream of the
+rear. The mechanism written into @sec-nb-bands and the preregistration of
+the wake arms ("far from the body every *surface* anchor looks alike") was
+false at the outset: anchors follow the query mass, which is why so few
+(0–13%) reach beyond 0.2 body lengths, where 2% of the sample lives.
+(3) **The wake tokens were used, heavily, and still did not help.** Three
+wake tokens took 7–71 slice-units and dominated up to 53 slices in a
+layer; the anchors downstream of the rear rose to 60–89 in several layers
+and those beyond 0.2 body lengths to 16–20%. The falsification's caveat is
+closed the other way: the far wake was given anchors of its own, in bulk,
+and the far-wake error moved 6%. So the whole class of explanations that
+puts the deficit in the geometry seen by a far query, whether "anchor
+resolution", the azimuth-blind seed of the previous addendum, or the
+second-moment channel that would sharpen it, is not supported: a far-wake
+query in the wake-token model had anchors beside it and read them, and
+predicted the eddy viscosity no better. The second-moment interior arm
+is therefore **not preregistered**. The candidate named in the previous
+addendum is withdrawn with this entry.
+
+**What remains open, stated as hypotheses without a launch.** The
+far-wake eddy viscosity is a flow structure two metres or more from any
+surface, predicted by both models from geometry alone, and
+GeoTransolver-volume does it better while doing everything inside 0.4 L
+worse. Two readings survive the diagnostics and would be discriminated by
+different experiments: (a) *sample density*: the ≥ 0.4 L shell holds 2.2%
+of the training queries and ISLA's slices are placed by that mass, so the
+far wake is under-resolved in both the training signal and the routing;
+a measure-consistent oversampling of the far field at training time
+(Poisson inclusion rising with signed distance, exact inverse-inclusion
+weights in the query measure, the construction campaign E already uses)
+would raise ISLA's far-wake accuracy more than GeoTransolver's if this is
+the cause; (b) *representation of the drive-aligned coordinate*: the wake
+is organized by downstream distance along the drive, which ISLA's query
+seed holds only implicitly, as the product of |r| and r̂·d (the angle
+saturates far downstream while the magnitude grows), and its relational
+features hold as distance and direction to each anchor; GeoTransolver
+reads the coordinate directly. The information is present, so (b) is a
+conjecture about what the network extracts, weaker than (a), and its
+test (the signed coordinate r·d in gauge units as an explicit seed
+channel, an invariant since d is an input vector) is cheap but its
+mechanism is not sharp. Neither is launched by this track; the program's
+priority is the planned scaling and benchmark work, and the interior
+comparison stands as recorded: ISLA at hidden 344 leads
+GeoTransolver-volume on pressure and velocity, and on eddy viscosity
+everywhere except the far wake.
