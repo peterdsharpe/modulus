@@ -15811,3 +15811,33 @@ configuration's price should be small on every never-seen-geometry rung
 recur (35, 210, 1,260 cases), which the remaining ladder rungs can
 falsify. Reference ladder so far (float32, vs the constant-gauge prior):
 DrivAerML 435 cars −0.9%, 4 geometries +1.0%, 35 cases +11.0%.
+
+## 2026-09-11 — RELFRAME-LADDER amendment: the 21-geometry and 210-case rungs launched, with the recurrence prediction stated before they read {#sec-nb-relframe-ladder-amend}
+
+The 4-geometry result (@sec-nb-relframe-ladder-geo4) turned the ladder's
+open question into a prediction: the plain-mean frame's mesher pattern
+should be worth something to the constant gauge only where validation
+geometries recur in training. The next two rungs discriminate it directly.
+**21 geometries** (`geometry_scarce`, 210 training cases, 180 validation
+cases from 18 never-seen geometries): same case count as the 210-case rung,
+unseen geometries. **210 cases** (`scarce`, 210 training cases drawn across
+geometries and angles, validation geometries recurring): same case count,
+recurring geometries. Lanes rf_hl_mt2_meas_geometry_scarce_seed{42,43} and
+rf_hl_mt2_meas_scarce_seed{42,43} (reference configuration: relative frame,
+total-measure scale; unit drive, lr 1e-3, 500 epochs, snapshot code_frame,
+recipe_frame; lane table frame/rf_lanes.tsv rows 10–13, jobs 714206–714209;
+evaluation snapshot code_eval_frame, eval lane table rows 14–17). Priors
+(constant gauge, float32): 21 geometries 0.1014 (seeds 0.1002 / 0.1026); 210
+cases 0.0643 (three seeds 0.0617 / 0.0661 / 0.0652). Similarity gauge on the
+same rungs: +2.9% and +2.0%.
+
+**Predictions, stated before either reads.** Under the recurrence reading:
+21 geometries ≤ 3% (cheap, as at 4 geometries); 210 cases 8–12% (as at 35
+cases, where geometries recur). Under the alternative that the price is a
+data-quantity effect (the gauge's ladder fell from 7–8% at 35–40 cases to
+2–3% at 210): both rungs ≤ 3%. The two readings agree on the 21-geometry
+rung and disagree on the 210-case rung, which is therefore the
+discriminating cell: *≥ 8% there confirms recurrence; ≤ 3% refutes it and
+puts the 35-case price down to data quantity, with the 35-case rung then
+the only expensive one for the reference.* Bands as before (≤ 5% / 5–15% /
+> 15%).

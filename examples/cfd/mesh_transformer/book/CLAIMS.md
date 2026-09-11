@@ -1605,3 +1605,6 @@ interior control @sec-nb-udrv-int-prereg.
   0.2599/0.2440 → 0.2519 vs constant prior 0.2496 → **+0.9%** (parity, inside seed spread; prediction 5–10% falsified downward); vs gauge
   0.2680 → 0.940x; vs unit GT 0.1884 → 1.34x, Transolver 0.1928 → 1.31x. Reference ladder: DrivAerML −0.9%, 4 geo +1.0%, 35 cases +11.0%.
   Hypothesis (stated, not shown): the mesher pattern sells only where validation geometries recur in training. Fixed angle pending.
+- **RELFRAME-LADDER amendment (2026-09-11).** Lanes rf_hl_mt2_meas_{geometry_scarce,scarce}_seed{42,43} (jobs 714206–714209). PREDICTIONS:
+  recurrence reading → 21 geo ≤ 3%, 210 cases 8–12%; data-quantity reading → both ≤ 3%. Discriminating cell = 210 cases (≥ 8% confirms
+  recurrence; ≤ 3% refutes → 35-case price is data quantity). Priors: 21 geo 0.1014; 210 cases 0.0643. Do not grade before both land.
