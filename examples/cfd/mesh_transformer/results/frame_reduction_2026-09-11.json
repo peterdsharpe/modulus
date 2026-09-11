@@ -323,6 +323,38 @@
    "tau_wall_y_l2": 0.5143653061654833,
    "tau_wall_z_l2": 0.3056321168939273,
    "tau_wall_l2": 0.27425214697917305
+  },
+  "rf_hl_mt2_ref_single_aoa_12_seed42": null,
+  "rf_hl_mt2_ref_single_aoa_12_seed43": null,
+  "rf_hl_mt2_meas_single_aoa_12_seed42": null,
+  "rf_hl_mt2_meas_single_aoa_12_seed43": null,
+  "rf_hl_mt2_meas_geometry_super_scarce_seed42": {
+   "n": 180,
+   "pressure_l2": 0.2599062309910854,
+   "temperature_l2": 0.21454812404182222,
+   "density_l2": 0.3091516869349612,
+   "velocity_x_l2": 0.18509240046971373,
+   "velocity_y_l2": 0.570842724541823,
+   "velocity_z_l2": 0.3636650039917893,
+   "velocity_l2": 0.23991257064044474,
+   "tau_wall_x_l2": 0.28791196776760947,
+   "tau_wall_y_l2": 0.5973780588971244,
+   "tau_wall_z_l2": 0.4312459475464291,
+   "tau_wall_l2": 0.3574970493714015
+  },
+  "rf_hl_mt2_meas_geometry_super_scarce_seed43": {
+   "n": 180,
+   "pressure_l2": 0.24396929699513648,
+   "temperature_l2": 0.20968091901805666,
+   "density_l2": 0.28919307792352306,
+   "velocity_x_l2": 0.18390220540265242,
+   "velocity_y_l2": 0.5655568217237791,
+   "velocity_z_l2": 0.35325213000178335,
+   "velocity_l2": 0.23659812410672507,
+   "tau_wall_x_l2": 0.28167899350325265,
+   "tau_wall_y_l2": 0.5843954905867577,
+   "tau_wall_z_l2": 0.42073037624359133,
+   "tau_wall_l2": 0.3490988736351331
   }
  }
 }

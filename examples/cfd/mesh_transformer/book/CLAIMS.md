@@ -1601,3 +1601,7 @@ interior control @sec-nb-udrv-int-prereg.
   −11% (u), +61% (nut) → nut ratio 2.02 at 40k (QCOUNT dependence at its most visible). bf16 offsets: GT-volume +19–28% (largest in program),
   ISLA +2.5–10%. Fixed single sample: no interior arm memorizes in bf16; both near-useless on a resampling (0.34–0.68). Whole OVERFIT-1 picture:
   surface deficits + interior nut deficit = capacity; interior velocity lead = capacity; interior pressure lead = generalization. OVERFIT node DONE.
+- **RELFRAME-LADDER 4-geometry rung (2026-09-11, fp32; results/frame_reduction_2026-09-11.json hilift_val).** Reference (rf_hl_mt2_meas_geometry_super_scarce_seed{42,43})
+  0.2599/0.2440 → 0.2519 vs constant prior 0.2496 → **+0.9%** (parity, inside seed spread; prediction 5–10% falsified downward); vs gauge
+  0.2680 → 0.940x; vs unit GT 0.1884 → 1.34x, Transolver 0.1928 → 1.31x. Reference ladder: DrivAerML −0.9%, 4 geo +1.0%, 35 cases +11.0%.
+  Hypothesis (stated, not shown): the mesher pattern sells only where validation geometries recur in training. Fixed angle pending.

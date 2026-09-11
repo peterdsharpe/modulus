@@ -15771,3 +15771,43 @@ complete.
 interior arms (keys `v1:v0`, `v64:v0`); evaluations under
 `$T/ovf_evals/ovf_v0_*`; training runs `$T/runs/ovf_v0_*` (jobs
 697148/697149 → 709128/709130 → 711244/711277 → the fourth links).
+
+## 2026-09-11 — RELFRAME-LADDER, 4-geometry rung: the reference configuration is at parity with the constant-gauge prior (0.2520 against 0.2496, +1.0%, inside seed spread); the prediction of a 5–10% price is falsified downward {#sec-nb-relframe-ladder-geo4}
+
+First rung of the reference-configuration ladder
+(@sec-nb-relframe-ladder-prereg) to read out: four training geometries
+(`geometry_super_scarce`, 40 training cases, 180 validation cases from 18
+never-seen geometries). Two lanes (rf_hl_mt2_meas_geometry_super_scarce_seed{42,43};
+relative frame, total-measure scale, unit drive, lr 1e-3, 500 epochs,
+snapshot code_frame), evaluated in float32 under code_eval_frame (job
+713976, no loader warnings). Artifact `results/frame_reduction_2026-09-11.json` (block hilift_val).
+Constant-gauge prior on the rung: 0.2496 (seeds 0.2478 / 0.2513); similarity
+gauge 0.2680 (+7.4%, @sec-nb-wave4-prereg's ladder); unit-drive
+GeoTransolver 0.1884, Transolver 0.1928.
+
+| 4 training geometries (180 val, float32) | pressure rel-L2 (42 / 43 → mean) | vs constant-gauge prior | vs similarity gauge | vs unit GeoTransolver | vs unit Transolver |
+|---|---|---|---|---|---|
+| **ISLA, reference (relative frame, total-measure scale)** | 0.2599 / 0.2440 → **0.2519** | **+0.9%** | 0.940x | 1.34x | 1.31x |
+| ISLA, constant gauge (prior) | 0.2478 / 0.2513 → 0.2496 | 1 | 0.931x | 1.32x | 1.29x |
+
+**Against the bars.** +1.0% is the "cheap" band and inside the seed
+spreads of both configurations (the reference's two seeds straddle the
+prior's mean); the preregistered prediction of a 5–10% price on this rung
+is falsified in the cheap direction. The reference is also 7% more
+accurate than the similarity gauge here. **Reading.** With four training
+geometries the plain-mean frame's mesher pattern buys the constant gauge
+nothing measurable, where at 35 cases across geometries and angles it
+bought 11% (@sec-nb-frame-full-verdict). The two rungs differ in what the
+validation asks: here every validation geometry is unseen, so the mesher's
+cell-density pattern of the training wings, which encodes where *their*
+leading edges and flaps sit, does not transfer to new wings and the frame
+that carries it has nothing to sell; at 35 cases the validation shares
+geometries with training and the pattern is directly reusable. That is the
+same asymmetry the fixed-angle rung will test from the other side (126
+training geometries, 18 unseen, the reference-length and total-measure
+arms at epoch ~200 of 500). Under this reading the reference
+configuration's price should be small on every never-seen-geometry rung
+(4, 21 geometries; fixed angle) and largest where validation geometries
+recur (35, 210, 1,260 cases), which the remaining ladder rungs can
+falsify. Reference ladder so far (float32, vs the constant-gauge prior):
+DrivAerML 435 cars −0.9%, 4 geometries +1.0%, 35 cases +11.0%.
