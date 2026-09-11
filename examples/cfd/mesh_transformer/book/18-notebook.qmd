@@ -14257,3 +14257,85 @@ cells, and the same test on HiLiftAeroML where the two conventions differ
 by orders of magnitude in local density, are the two follow-ups that would
 sharpen this into a deployment rule; neither proposes an architecture
 change.
+
+## 2026-09-11 — Verdict, RELFRAME (interim: HiLift sampler lanes and FRAME-FULL pending): with no frame at all ISLA keeps the constant gauge's accuracy on DrivAerML at the 1.2x density floor, and pays 11% at 35 HiLift cases — the same price as the measure-centred frame, so the HiLift price is not frame variance {#sec-nb-relframe-verdict}
+
+RELFRAME (@sec-nb-relframe-prereg) removes every centroid-dependent
+quantity from ISLA: the four positional seed features (|r|, log|r|,
+r̂·d̂, r̂·n̂; the seed reduces to n̂·d̂ and the measure) and the two
+centroid-referenced relational invariants (|z_s|, ẑ_s·d̂; the relational
+set reduces to its six anchor-relative members plus the second-moment
+terms), with the vector head's radial basis taken from the token's
+measure-weighted soft anchor rather than the centroid; positions enter only
+through anchor-relative differences, scaled by the stated reference length
+(arm "ref") or by the square root of the total surface measure (arm
+"meas"). Translation invariance holds to 10⁻¹² with no centering, and the
+sampling-consistency contract holds in the unit tests. Eight lanes (two
+arms, two datasets, two seeds; unit drive, lr 1e-3, 500 epochs, snapshot
+code_frame), float32 evaluation under code_eval_frame (identity-checked to
+7e-8 on a legacy checkpoint; no loader warnings). Artifacts:
+results/relframe_reduction_2026-09-11.json,
+results/consistency_bench/consistency_bench_rf_2026-09-11.json.
+
+| arm | DrivAerML pressure (seeds → mean) | vs 0.0557 | density 10:1, sample frame (seeds → mean) | HiLift 35 pressure (seeds → mean) | vs 0.1377 |
+|---|---|---|---|---|---|
+| relative, reference length | 0.0564 / 0.0567 → **0.0566** | +1.5% | 1.20 / 1.22 → **1.21x** | 0.1568 / 0.1491 → **0.1530** | **+11.1%** |
+| relative, √(total measure) | 0.0547 / 0.0557 → **0.0552** | −0.9% | 1.20 / 1.27 → **1.235x** | 0.1567 / 0.1490 → **0.1529** | **+11.0%** |
+
+BENCH samplers on the DrivAerML checkpoints (reference-length arm): D_area
++41% → +3.4% and D_biased +19% → +2.5% from 10,000 to 40,000 cells; the
+total-measure arm +60% → +5.9% and +24% → +3.3%; both converge toward the
+uniform answer as the measure-centred arm did (@sec-nb-bench-mcenter).
+
+**Against the bars.** DrivAerML: the joint pass it nearly is. Both arms are
+within 3% of the constant gauge, and the total-measure arm is 0.9% *more*
+accurate (0.0552 against 0.0557); the density factor sits at the 1.2x bar
+(1.20 / 1.22 → 1.21x) for the reference-length arm and just over it for the
+total-measure arm (1.20 / 1.27 → 1.235x, with one seed at 1.20), and both
+converge under all three samplers. On the cars the frame-free model is the
+principled configuration at no accuracy cost. That 1.2x is the same floor the
+similarity gauge (1.21x) and the measure-centred frame (1.17x) show, and a
+model with no frame statistic cannot owe it to a frame: it is the variance
+of the measure-weighted routing integral itself under a 10:1 sample (the
+effective sample size in the sparse half falls tenfold), which is what the
+convergence with count removes. HiLift 35 cases: **the accuracy bar fails on
+both arms, by 11%.** The preregistered falsifier therefore fires: a model
+with no frame and no frame-estimate variance pays the same price the
+measure-centred frame paid (10.4%) and more than the similarity gauge
+(7.6%), so the HiLift price of leaving the plain-mean frame is not the
+variance of a frame statistic. The joint pass is not met on both datasets
+and RELFRAME does not become the flagship by the preregistered rule; the
+reference stays under decision.
+
+**What the frame tables say the plain mean was reading.** The full-geometry
+frame tables computed for FRAME-FULL (@sec-nb-frame-full-prereg; float64
+over every cell of every training and validation surface) put the number on
+it: on HiLiftAeroML the plain mean of the surface cells sits **0.131 body
+lengths** (2.4–4.7% was DrivAerML's figure; here the range is 0.11–0.15)
+from the geometric centroid ∫x dA / ∫dA, and the plain mean of *all* cells
+gives the same displacement as the plain mean of a 10,000-cell uniform
+sample (0.131 against 0.131), so the displacement is mesh-density bias, not
+sampling noise; the Horvitz–Thompson estimate of the geometric centroid from
+10,000 cells has a noise of 0.0065 body lengths (maximum 0.046). On
+DrivAerML the displacement is 0.034 body lengths. The constant gauge's frame
+therefore encodes, on a wing, where the mesher put its cells, to a tenth of
+a chord.
+
+**Two readings, one discriminator, thresholds stated now.** Either the 11%
+is the positional information that the four dropped seed features carried
+(a model whose seeds know only n̂·d̂ must reconstruct a point's location
+from its anchors), or it is the mesh-density content of the plain-mean
+frame, an in-distribution advantage of a non-physical input. FRAME-FULL
+(exact geometric frame from the full mesh as global data, positional terms
+kept, zero variance; @sec-nb-frame-full-prereg) separates them, with the
+readings fixed before it lands: *recovers* if its 35-case error is within
+3% of 0.1377 at a density ratio ≤ 1.2x; *pays* if it is ≥ 7% worse. If it
+recovers, the exact geometric frame carries information the relative
+construction lacks, which is legitimate (the frame is a property of the
+geometry, available for any shape at inference) and makes FRAME-FULL, not
+RELFRAME, the reference candidate under the ruling; the follow-up is then
+a relative-position encoding that restores the positional information
+without a frame. If it pays, the price is the mesher's pattern, the stated
+cost of the principle, and not a reason to reinstate a sample statistic. The
+HiLift sampler lanes of the RELFRAME checkpoints complete the consistency
+half of the row.

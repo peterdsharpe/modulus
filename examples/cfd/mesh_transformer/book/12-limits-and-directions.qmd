@@ -823,9 +823,16 @@ cells, ISLA with measure weights 1.5–1.9x and the baselines 3–7x, and every
 architecture trained on both conventions handles both at no cost
 (@sec-nb-mix-verdict): mesher transfer is a property of the training data
 at this resolution, and of the measure-consistent estimator only in the
-fine-mesh limit. Which frame ISLA stands on is decided by RELFRAME
-(#sec-nb-relframe-prereg); the reference is under decision until it reads
-out. Its learning-rate robustness is
+fine-mesh limit. Which frame ISLA stands on is not yet decided: the frame-free
+construction (RELFRAME, no centroid anywhere) keeps the constant gauge's
+accuracy on DrivAerML at the same 1.2x density floor as the other
+measure-consistent frames, which is therefore the routing integral's own
+variance and not a frame effect, but pays 11% at 35 HiLift cases exactly
+as the measure-centred frame did, so that price is not frame variance
+either (@sec-nb-relframe-verdict); whether it is positional information
+lost with the seeds or the mesh-density content of the plain-mean frame
+(0.13 body lengths on the wings) is what the full-geometry-frame
+diagnostic decides, and the reference stays under decision until then. Its learning-rate robustness is
 measured against a physical-drive GeoTransolver and is not claimed as an
 advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on velocity
