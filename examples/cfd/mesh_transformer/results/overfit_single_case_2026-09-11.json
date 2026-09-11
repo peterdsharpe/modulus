@@ -255,26 +255,56 @@
   "isla_qtsdf": {
    "run": "ovf_v0_isla_qtsdf_seed42_v1",
    "train": {
-    "last_epoch": 7105,
-    "last_loss": 1.1e-05,
-    "tail20_mean_loss": 1.015e-05,
-    "completed": false
+    "last_epoch": 19999,
+    "last_loss": 0.006789,
+    "tail20_mean_loss": 0.00678615,
+    "completed": true
    },
-   "eval_r10000": null,
-   "eval_r40000": null,
-   "eval_r10000_bf16": null
+   "eval_r10000": {
+    "pressure_l2": 0.3404969274997711,
+    "velocity_l2": 0.40919235348701477,
+    "nut_l2": 0.5832838416099548,
+    "n_cases": 1
+   },
+   "eval_r40000": {
+    "pressure_l2": 0.25458818674087524,
+    "velocity_l2": 0.4246549606323242,
+    "nut_l2": 0.6068954467773438,
+    "n_cases": 1
+   },
+   "eval_r10000_bf16": {
+    "pressure_l2": 0.340824693441391,
+    "velocity_l2": 0.40832632780075073,
+    "nut_l2": 0.5786584615707397,
+    "n_cases": 1
+   }
   },
   "gt_vol_unit": {
    "run": "ovf_v0_gt_vol_unit_seed42_v1",
    "train": {
-    "last_epoch": 8453,
-    "last_loss": 8e-06,
-    "tail20_mean_loss": 8.7e-06,
-    "completed": false
+    "last_epoch": 19999,
+    "last_loss": 0.02672,
+    "tail20_mean_loss": 0.0267305,
+    "completed": true
    },
-   "eval_r10000": null,
-   "eval_r40000": null,
-   "eval_r10000_bf16": null
+   "eval_r10000": {
+    "pressure_l2": 0.3579353988170624,
+    "velocity_l2": 0.43559348583221436,
+    "nut_l2": 0.6832259893417358,
+    "n_cases": 1
+   },
+   "eval_r40000": {
+    "pressure_l2": 0.4226619005203247,
+    "velocity_l2": 0.5051224231719971,
+    "nut_l2": 0.6920632123947144,
+    "n_cases": 1
+   },
+   "eval_r10000_bf16": {
+    "pressure_l2": 0.35708820819854736,
+    "velocity_l2": 0.4373849928379059,
+    "nut_l2": 0.685433030128479,
+    "n_cases": 1
+   }
   }
  },
  "v64:hl": {
@@ -533,26 +563,56 @@
   "isla_qtsdf": {
    "run": "ovf_v0_isla_qtsdf_seed42_v64",
    "train": {
-    "last_epoch": 8162,
-    "last_loss": 0.000517,
-    "tail20_mean_loss": 0.0007158,
-    "completed": false
+    "last_epoch": 19999,
+    "last_loss": 0.001627,
+    "tail20_mean_loss": 0.00184675,
+    "completed": true
    },
-   "eval_r10000": null,
-   "eval_r40000": null,
-   "eval_r10000_bf16": null
+   "eval_r10000": {
+    "pressure_l2": 0.08008544892072678,
+    "velocity_l2": 0.0925864428281784,
+    "nut_l2": 0.150685116648674,
+    "n_cases": 1
+   },
+   "eval_r40000": {
+    "pressure_l2": 0.05985219031572342,
+    "velocity_l2": 0.08256703615188599,
+    "nut_l2": 0.24191205203533173,
+    "n_cases": 1
+   },
+   "eval_r10000_bf16": {
+    "pressure_l2": 0.08212333917617798,
+    "velocity_l2": 0.09626500308513641,
+    "nut_l2": 0.16557471454143524,
+    "n_cases": 1
+   }
   },
   "gt_vol_unit": {
    "run": "ovf_v0_gt_vol_unit_seed42_v64",
    "train": {
-    "last_epoch": 8450,
-    "last_loss": 0.000765,
-    "tail20_mean_loss": 0.00086155,
-    "completed": false
+    "last_epoch": 19999,
+    "last_loss": 0.002192,
+    "tail20_mean_loss": 0.0023723,
+    "completed": true
    },
-   "eval_r10000": null,
-   "eval_r40000": null,
-   "eval_r10000_bf16": null
+   "eval_r10000": {
+    "pressure_l2": 0.06415703147649765,
+    "velocity_l2": 0.13928531110286713,
+    "nut_l2": 0.09164354205131531,
+    "n_cases": 1
+   },
+   "eval_r40000": {
+    "pressure_l2": 0.07205770909786224,
+    "velocity_l2": 0.1463983952999115,
+    "nut_l2": 0.12001164257526398,
+    "n_cases": 1
+   },
+   "eval_r10000_bf16": {
+    "pressure_l2": 0.07969172298908234,
+    "velocity_l2": 0.16595874726772308,
+    "nut_l2": 0.11721599847078323,
+    "n_cases": 1
+   }
   }
  }
 }

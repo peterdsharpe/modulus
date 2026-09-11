@@ -15677,3 +15677,97 @@ what RELFRAME-LADDER measures (@sec-nb-relframe-ladder-prereg); the
 fixed-angle pair there also carries the scale discriminator. The gauge
 remains a sample-statistic frame and a matrix row, not the reference.
 Remaining gauge rungs: 1,260 cases and deflection (training, ~2.5 days).
+
+## 2026-09-11 — OVERFIT-1 interior addendum: on one car ISLA's velocity lead is a capacity lead (0.67x), its eddy-viscosity deficit is capacity-limited (1.64x), and its full-data pressure lead is not (1.25x behind) {#sec-nb-overfit-interior}
+
+**Setting.** The interior half of OVERFIT-1 (@sec-nb-overfit-prereg) trains
+the two interior architectures on a single DrivAerML car (`run_112`) for
+20,000 single-sample steps: ISLA with query tokens and the signed-distance
+inputs (the interior configuration that kept its lead under the unit-drive
+control, @sec-nb-udrv-verdict) against GeoTransolver-volume with the unit
+drive, about 365 surface cells and 10,000 interior queries per step, in the
+same two forms as the surface arms (one fixed cached sample, `_v1`; 64 cycled
+views of the car, `_v64`). Each lane took four 4-hour links (2.4 s per step
+with the pin-memory workaround), resumed from checkpoints by the automation.
+Readout as before: the recipe's relative L2 on the same car resampled with
+seed 7, at 10,000 and 40,000 interior queries, float32 with bf16 alongside;
+the preregistered bars apply to the 64-view float32 readout at 10,000: ISLA is
+*capacity-limited on ν_t* if its floor is ≥ 1.25x GeoTransolver-volume's, not
+if within 1.10x.
+
+**What we saw.** Float32, 64-view form, pressure / velocity / eddy viscosity
+on the training car, fresh sampling; the fixed-sample form below it.
+
+| Arm (seed 42, 20,000 steps) | p 10k | u 10k | ν_t 10k | p 40k | u 40k | ν_t 40k | loss |
+|---|---|---|---|---|---|---|---|
+| ISLA query tokens + SDF, 64 views | 0.0801 | 0.0926 | 0.1507 | 0.0599 | 0.0826 | 0.2419 | 0.0016 |
+| GeoTransolver-volume, unit drive, 64 views | 0.0642 | 0.1393 | 0.0916 | 0.0721 | 0.1464 | 0.1200 | 0.0022 |
+| ratio ISLA / GeoTransolver-volume | **1.25** | **0.67** | **1.64** | 0.83 | 0.56 | 2.02 | |
+| ISLA query tokens + SDF, fixed sample | 0.3405 | 0.4092 | 0.5833 | 0.2546 | 0.4247 | 0.6069 | 0.0068 |
+| GeoTransolver-volume, unit drive, fixed sample | 0.3579 | 0.4356 | 0.6832 | 0.4227 | 0.5051 | 0.6921 | 0.0267 |
+
+For reference, the full-data interior ratios ISLA / GeoTransolver-volume
+(unit drive, @sec-nb-udrv-verdict) are 0.92 / 0.65 / 1.30 for p / u / ν_t.
+
+**Verdict.** Three different answers for the three fields, and each one is
+informative against the full-data numbers. (1) **Velocity: a capacity lead.**
+With the data fixed to one car ISLA's velocity floor is 0.67x
+GeoTransolver-volume's, the same ratio as at full data (0.65x). The
+interior velocity lead is what the architecture can represent, not what it
+generalizes; it does not depend on the training-set size at all. (2) **Eddy
+viscosity: capacity-limited.** ISLA's ν_t floor is 1.64x GeoTransolver-volume's
+on one car, over the 1.25x bar and wider than the full-data 1.30x. The ν_t
+deficit that FARWAKE and the interior density work have been probing is a
+representational limit of the query-token construction for this field, and
+more cars will not close it. (3) **Pressure: the full-data lead is not a
+capacity lead.** ISLA leads GeoTransolver-volume on interior pressure at full
+data (0.92x) but trails it on one car (1.25x). The pressure lead therefore
+comes from generalization across cars, which is the reading the surface test
+gave for none of ISLA's surface comparisons; on the interior it holds for one
+field. The single-case floors themselves (0.06–0.15 for ISLA, 0.06–0.14 for
+GeoTransolver-volume) sit at the full-data error level (0.057–0.13), as on the
+surface: 64 views of one car teach as much about that car as the full
+training set does about a validation car.
+
+**Fixed sample.** Neither interior arm memorizes its one sample in bf16 (loss
+floors 0.0068 and 0.0267 against 3.6e-4–0 for the surface arms; the interior
+sample is 365 surface cells plus 10,000 queries, and the loss covers three
+fields with ν_t hardest), and both are near-useless on a resampling of the same
+car (0.34–0.68 relative L2, ISLA 0.85–0.95x GeoTransolver-volume's). The
+64-view form lowers those numbers 4–5x, the same optimization teaching as on
+the surface: a single point set is fitted as points, the field is learned from
+views.
+
+**Convergence check, 10,000 to 40,000 queries (two points, not a limit).**
+Both arms were trained at 10,000 queries. GeoTransolver-volume moves 5–31%
+between the counts (p +12%, u +5%, ν_t +31%); ISLA moves −25% on pressure,
+−11% on velocity and **+61% on eddy viscosity**, so the ν_t ratio reads 1.64
+at 10,000 and 2.02 at 40,000. This is the query-count dependence of the
+query-token construction that QCOUNT measured and reduced by about 40% without
+removing it (@sec-nb-qcount-verdict); on a single fitted car it is at its most
+visible, and it is largest on the field where ISLA is capacity-limited. Two
+counts cannot say whether either arm converges to a single field in the
+fine-mesh limit; the bars are applied at the preregistered 10,000.
+
+**bf16 evaluation offsets** (bf16 minus float32, 10,000 queries): ISLA
++2.5% / +4% / +10% on p / u / ν_t; GeoTransolver-volume +24% / +19% / +28%.
+The interior baseline carries the largest rounding offsets measured in this
+program, another reason the interior bars are read in float32.
+
+**What it changes.** The interior lead is now decomposed by field with the
+data held fixed: velocity is a representational advantage of the query-token
+construction, pressure an advantage in generalization across cars, and eddy
+viscosity a representational deficit that also carries the query-count
+dependence. Together with the surface verdict (@sec-nb-overfit-verdict): ISLA's
+surface deficits and its interior ν_t deficit are capacity, its interior
+velocity lead is capacity, and its interior pressure lead is generalization.
+No recipe or model change is proposed here; where the ν_t capacity is missing
+(far wake, near wall, or the query-count coupling) is the FARWAKE and QCOUNT
+sessions' question, and any construction change must pass the
+physically-principled and discretization-consistency tests. OVERFIT-1 is
+complete.
+
+**Artifacts.** `results/overfit_single_case_2026-09-11.json` now carries the
+interior arms (keys `v1:v0`, `v64:v0`); evaluations under
+`$T/ovf_evals/ovf_v0_*`; training runs `$T/runs/ovf_v0_*` (jobs
+697148/697149 → 709128/709130 → 711244/711277 → the fourth links).
