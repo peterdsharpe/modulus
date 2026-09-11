@@ -137,5 +137,36 @@
   "baseline_ahead_if_at_most": 0.0579,
   "source": "#sec-nb-udrvl-prereg"
  },
- "verdict": "GeoTransolver BASELINE AHEAD (0.829x, lower on 162/180); Transolver BETWEEN, baseline direction (0.905x, 145/180). The physical-drive 2.2x at 210 cases was the input scale: unit vs physical GT 3.4x (178/180), Transolver 1.5x (170/180)."
+ "verdict": "GeoTransolver BASELINE AHEAD (0.829x, lower on 162/180); Transolver BETWEEN, baseline direction (0.905x, 145/180). The physical-drive 2.2x at 210 cases was the input scale: unit vs physical GT 3.4x (178/180), Transolver 1.5x (170/180).",
+ "three_seed_addendum_fp32": {
+  "date": "2026-09-10",
+  "gt_unit_lr1e3": {
+   "pressure_l2": 0.0539,
+   "velocity_l2": 0.0796,
+   "tau_wall_l2": 0.122,
+   "seed_pressure": [
+    0.0532,
+    0.0535,
+    0.055
+   ],
+   "lower_than_isla_on": 161,
+   "median_ratio": 0.778
+  },
+  "transolver_unit_lr3e3": {
+   "pressure_l2": 0.0578,
+   "velocity_l2": 0.0844,
+   "tau_wall_l2": 0.1303,
+   "seed_pressure": [
+    0.0582,
+    0.0582,
+    0.0569
+   ],
+   "lower_than_isla_on": 149,
+   "median_ratio": 0.843
+  },
+  "isla": {
+   "pressure_l2": 0.0643
+  },
+  "verdict": "GT 0.838x (baseline ahead); Transolver 0.899x (at the 0.0579 baseline-ahead bar edge; between/ahead boundary). Two-seed verdict unchanged in kind."
+ }
 }
