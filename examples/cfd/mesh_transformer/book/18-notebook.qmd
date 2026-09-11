@@ -15479,10 +15479,16 @@ relative frame, total-measure scale), every accuracy number in chapters 5
 and 6 on the rungs other than 35 HiLift cases and DrivAerML 435 is the
 prior configuration's record, and the WAVE-4 preregistration's clause
 requires the price of the reference to be stated beside each. This ladder
-trains it there. First rungs, launched now (snapshot code_frame, recipe
-copy recipe_frame with the standard per-split dataset yamls, unit drive, lr
-1e-3, 500 epochs, two seeds, launcher frame/rf_hl_aga.sbatch, lane table
-frame/rf_lanes.tsv rows 4–9): the fixed angle (`single_aoa_12`, 126
+trains it there. First rungs, launched now (training snapshot code_frame,
+which carries the relative-frame code path, and evaluation snapshot
+code_eval_frame, identity-checked to 7e-8 against code_eval on a legacy
+checkpoint; recipe copy recipe_frame with the standard per-split dataset
+yamls; unit drive, lr 1e-3, 500 epochs, two seeds, launcher
+frame/rf_hl_aga.sbatch, lane table frame/rf_lanes.tsv rows 4–9, jobs
+712017–712022, all six accepted at 0.13–0.14 s per step with
+`frame_mode: relative` resolved in their configs; the recipe's
+`isla_surface_reference.yaml` is the same configuration as a named model
+config): the fixed angle (`single_aoa_12`, 126
 geometries at 12°, 18 never seen) in **both** scales, reference length
 (rf_hl_mt2_ref_single_aoa_12_seed{42,43}) and total measure
 (rf_hl_mt2_meas_single_aoa_12_seed{42,43}), and the 4-training-geometry
