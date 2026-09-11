@@ -1,0 +1,245 @@
+{
+  "study": "MIX (training across meshing conventions), DrivAerML, float32 eval on 48 val cars",
+  "metric": "pressure_l2",
+  "bars": {
+    "free": 1.03,
+    "pays": 1.1
+  },
+  "architectures": {
+    "isla_gauge": {
+      "per_seed": {
+        "42": {
+          "err": {
+            "unif": {
+              "unif": 0.06276095410188039,
+              "area": 0.13617876172065735
+            },
+            "area": {
+              "unif": 0.09569257497787476,
+              "area": 0.05878286063671112
+            },
+            "mixed": {
+              "unif": 0.05857177575429281,
+              "area": 0.055352628231048584
+            }
+          },
+          "S_unif_to_area": 2.1698006932717626,
+          "S_area_to_unif": 1.6278992539895676,
+          "C_unif": 0.9332518377463279,
+          "C_area": 0.941645704742714,
+          "verdict": {
+            "S_unif_to_area": "pays",
+            "S_area_to_unif": "pays",
+            "C_unif": "within_3pct",
+            "C_area": "within_3pct"
+          }
+        },
+        "43": {
+          "err": {
+            "unif": {
+              "unif": 0.060365711649258934,
+              "area": 0.10093975067138672
+            },
+            "area": {
+              "unif": 0.0779113620519638,
+              "area": 0.059954767425855
+            },
+            "mixed": {
+              "unif": 0.055295070012410484,
+              "area": 0.05288518965244293
+            }
+          },
+          "S_unif_to_area": 1.672137177109315,
+          "S_area_to_unif": 1.2995023648172,
+          "C_unif": 0.9160012944714336,
+          "C_area": 0.8820848103171296,
+          "verdict": {
+            "S_unif_to_area": "pays",
+            "S_area_to_unif": "pays",
+            "C_unif": "within_3pct",
+            "C_area": "within_3pct"
+          }
+        }
+      },
+      "seed_mean": {
+        "S_unif_to_area": {
+          "mean": 1.9209689351905388,
+          "n_seeds": 2,
+          "verdict": "pays"
+        },
+        "S_area_to_unif": {
+          "mean": 1.4637008094033837,
+          "n_seeds": 2,
+          "verdict": "pays"
+        },
+        "C_unif": {
+          "mean": 0.9246265661088808,
+          "n_seeds": 2,
+          "verdict": "within_3pct"
+        },
+        "C_area": {
+          "mean": 0.9118652575299218,
+          "n_seeds": 2,
+          "verdict": "within_3pct"
+        }
+      }
+    },
+    "gt_unit": {
+      "per_seed": {
+        "42": {
+          "err": {
+            "unif": {
+              "unif": 0.05028907457987467,
+              "area": 0.29804033041000366
+            },
+            "area": {
+              "unif": 0.4172583818435669,
+              "area": 0.052107403675715126
+            },
+            "mixed": {
+              "unif": 0.046945800383885704,
+              "area": 0.0472239355246226
+            }
+          },
+          "S_unif_to_area": 5.926542353381807,
+          "S_area_to_unif": 8.007660186646987,
+          "C_unif": 0.9335188761392137,
+          "C_area": 0.9062807239162352,
+          "verdict": {
+            "S_unif_to_area": "pays",
+            "S_area_to_unif": "pays",
+            "C_unif": "within_3pct",
+            "C_area": "within_3pct"
+          }
+        },
+        "43": {
+          "err": {
+            "unif": {
+              "unif": 0.05066023270289103,
+              "area": 0.3513880968093872
+            },
+            "area": {
+              "unif": 0.3398730357487996,
+              "area": 0.051422119140625
+            },
+            "mixed": {
+              "unif": 0.046041508515675865,
+              "area": 0.04638031621774038
+            }
+          },
+          "S_unif_to_area": 6.936172182038447,
+          "S_area_to_unif": 6.60947159371909,
+          "C_unif": 0.908829392586829,
+          "C_area": 0.9019526420314046,
+          "verdict": {
+            "S_unif_to_area": "pays",
+            "S_area_to_unif": "pays",
+            "C_unif": "within_3pct",
+            "C_area": "within_3pct"
+          }
+        }
+      },
+      "seed_mean": {
+        "S_unif_to_area": {
+          "mean": 6.431357267710127,
+          "n_seeds": 2,
+          "verdict": "pays"
+        },
+        "S_area_to_unif": {
+          "mean": 7.308565890183038,
+          "n_seeds": 2,
+          "verdict": "pays"
+        },
+        "C_unif": {
+          "mean": 0.9211741343630213,
+          "n_seeds": 2,
+          "verdict": "within_3pct"
+        },
+        "C_area": {
+          "mean": 0.9041166829738199,
+          "n_seeds": 2,
+          "verdict": "within_3pct"
+        }
+      }
+    },
+    "transolver_unit": {
+      "per_seed": {
+        "42": {
+          "err": {
+            "unif": {
+              "unif": 0.05171548823515574,
+              "area": 0.14455081025759378
+            },
+            "area": {
+              "unif": 0.2968391180038452,
+              "area": 0.05367625753084818
+            },
+            "mixed": {
+              "unif": 0.04922549923261007,
+              "area": 0.04978784918785095
+            }
+          },
+          "S_unif_to_area": 2.7951164185148194,
+          "S_area_to_unif": 5.530175382164998,
+          "C_unif": 0.9518521609769315,
+          "C_area": 0.9275581323686263,
+          "verdict": {
+            "S_unif_to_area": "pays",
+            "S_area_to_unif": "pays",
+            "C_unif": "within_3pct",
+            "C_area": "within_3pct"
+          }
+        },
+        "43": {
+          "err": {
+            "unif": {
+              "unif": 0.052311395605405174,
+              "area": 0.19583062330881754
+            },
+            "area": {
+              "unif": 0.36090580622355145,
+              "area": 0.05428101619084676
+            },
+            "mixed": {
+              "unif": 0.04940838615099589,
+              "area": 0.05022025108337402
+            }
+          },
+          "S_unif_to_area": 3.7435557022031154,
+          "S_area_to_unif": 6.648840267740048,
+          "C_unif": 0.9445052187804883,
+          "C_area": 0.9251899578814905,
+          "verdict": {
+            "S_unif_to_area": "pays",
+            "S_area_to_unif": "pays",
+            "C_unif": "within_3pct",
+            "C_area": "within_3pct"
+          }
+        }
+      },
+      "seed_mean": {
+        "S_unif_to_area": {
+          "mean": 3.2693360603589676,
+          "n_seeds": 2,
+          "verdict": "pays"
+        },
+        "S_area_to_unif": {
+          "mean": 6.089507824952523,
+          "n_seeds": 2,
+          "verdict": "pays"
+        },
+        "C_unif": {
+          "mean": 0.9481786898787099,
+          "n_seeds": 2,
+          "verdict": "within_3pct"
+        },
+        "C_area": {
+          "mean": 0.9263740451250584,
+          "n_seeds": 2,
+          "verdict": "within_3pct"
+        }
+      }
+    }
+  },
+  "problems": []
+}

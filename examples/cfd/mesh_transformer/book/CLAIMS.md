@@ -1422,3 +1422,10 @@ interior control @sec-nb-udrv-int-prereg.
   (GT ÷ off 1.03, GT lower 78/180; Transolver ÷ off 1.04, 71/180). Write "the ablation prices the measure semantics at
   11% at 21 geometries"; never a configuration. Ablation tally: persists 35 / 210 / geo4 / geo21 / fixed angle; fades
   DrivAerML; pending 1,260, deflection.
+- **MIX verdict (2026-09-11, fp32, 48 cars, 10k; results/mix_conventions_2026-09-10.json).** Swap penalties (other convention ÷ own):
+  ISLA gauge 1.92x / 1.46x, Transolver 3.27x / 6.09x,
+  GeoTransolver 6.43x / 7.31x — ALL pay (ISLA least). Mixing costs C 0.92/0.91, 0.95/0.93,
+  0.92/0.90 — ALL mix for free (mixed lanes had 2x steps; state it). Write "no architecture transfers
+  across sampling conventions at 10k; data diversity removes the dependence for all; the measure-consistent
+  model pays a fifth to a quarter of the baselines' swap penalty and converges with count"; never
+  "density-reading models cannot mix conventions".

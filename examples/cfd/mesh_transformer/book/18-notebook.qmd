@@ -14165,3 +14165,78 @@ mesher's sampling density (19x under a 10:1 bias in the sample frame) and
 the parity it reaches with the baselines here is parity among three
 configurations that all read the sampling distribution. Chapter 5, the
 index and the status chapter are updated.
+
+## 2026-09-11 — Verdict, MIX: every architecture pays to swap sampling conventions (ISLA 1.5–1.9x, the baselines 3–7x), and every architecture absorbs both conventions for free when trained on both {#sec-nb-mix-verdict}
+
+The MIX study (@sec-nb-mix-prereg) trained the three architectures on the
+same 435 DrivAerML cars presented under two meshing conventions of the same
+surfaces, uniform over cells (`unif`, the training convention of every
+checkpoint in the book) and area-proportional (`area`, the law a uniform
+point-cloud generator or a different mesher would produce, with exact
+Horvitz–Thompson weights), in three conditions: `unif` only (the existing
+reference lanes), `area` only, and `mixed` (both, each case seen under each
+convention per epoch, 500 epochs, so twice the optimizer steps). Twelve new
+lanes, two seeds, unit drive, learning rates matched to the references (ISLA
+similarity gauge at 3e-3 to match iw_mt2_gauge, GeoTransolver 1e-3,
+Transolver 3e-3), snapshot code, recipe copy recipe_bench; float32
+evaluation of every model on the 48 validation cars under both conventions
+at 10,000 cells (snapshot code_eval; no loader warnings). Artifact: `results/mix_conventions_2026-09-10.json`.
+
+| architecture | trained on | evaluated on unif | evaluated on area |
+|---|---|---|---|
+| ISLA, similarity gauge (3e-3) | unif | 0.0616 | 0.1186 |
+| ISLA, similarity gauge (3e-3) | area | 0.0868 | 0.0594 |
+| ISLA, similarity gauge (3e-3) | mixed | 0.0569 | 0.0541 |
+| GeoTransolver, unit drive | unif | 0.0505 | 0.3247 |
+| GeoTransolver, unit drive | area | 0.3786 | 0.0518 |
+| GeoTransolver, unit drive | mixed | 0.0465 | 0.0468 |
+| Transolver, unit drive | unif | 0.0520 | 0.1702 |
+| Transolver, unit drive | area | 0.3289 | 0.0540 |
+| Transolver, unit drive | mixed | 0.0493 | 0.0500 |
+
+Seed means of two seeds. Swap penalties S (error on the other convention ÷
+error on the training convention) and mixing costs C (mixed model ÷
+specialist on the specialist's own convention):
+
+| architecture | S unif → area | S area → unif | C on unif | C on area |
+|---|---|---|---|---|
+| ISLA, similarity gauge (3e-3) | 1.92x | 1.46x | 0.92 | 0.91 |
+| GeoTransolver, unit drive | 6.43x | 7.31x | 0.92 | 0.90 |
+| Transolver, unit drive | 3.27x | 6.09x | 0.95 | 0.93 |
+
+**Against the bars.** Swap: every architecture pays (bar ≥ 1.10x), the
+similarity-gauge ISLA least by a wide margin (1.9x and 1.5x) and
+GeoTransolver most (6.4x and 7.3x); the prediction that ISLA would be
+convention-independent (≤ 1.03x) is falsified, in the same direction and
+size as the consistency benchmark's area-sampler reading at 10,000 cells
+(@sec-nb-bench-verdict: D_area +122% for the gauge, +260% and +612% for the
+baselines), so the two instruments agree. Mixing: every architecture mixes
+for free (bar ≤ 1.03; the mixed models are in fact 5–10% *better* than
+either specialist on the specialist's own convention), so the prediction
+that the baselines would pay for mixing is falsified too; the caveat
+preregistered with the design applies, that the mixed lanes took twice the
+optimizer steps, and part of the gain is that.
+
+**Reading.** Two facts and their consequence. First, a model trained on one
+sampling convention does not transfer to another at 10,000 cells, and the
+size of the failure orders the architectures by how much of the
+sampling law they read: ISLA with measure weights 1.5–1.9x, Transolver
+3–6x, GeoTransolver 6–7x. Second, a model trained on both conventions
+handles both, for every architecture, at no in-distribution cost: the
+baselines' dependence on the convention is a training-distribution effect
+that data diversity removes, not an architectural incapacity. The
+consequence for the long-game claim of @sec-nb-mix-prereg is that
+"train on several meshers, deploy on another" is not yet a property any
+architecture has at 10,000 cells; it is a property of the training data.
+What the measure-consistent estimator buys is a smaller penalty on the
+*unseen* convention (a fifth to a quarter of the baselines'), which is the
+same convergence advantage the benchmark measured. The mechanism that
+separates the two readings is the count: the benchmark shows the
+measure-weighted ISLA's swap penalty falling toward zero as the sample
+grows while the baselines' stays flat, so at fine enough sampling the
+measure-consistent model transfers across conventions without having seen
+them and the baselines never do. A mixed-convention training run at 40,000
+cells, and the same test on HiLiftAeroML where the two conventions differ
+by orders of magnitude in local density, are the two follow-ups that would
+sharpen this into a deployment rule; neither proposes an architecture
+change.
