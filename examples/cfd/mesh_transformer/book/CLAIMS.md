@@ -1536,3 +1536,11 @@ interior control @sec-nb-udrv-int-prereg.
   0.75/0.5/0.25 — consistency exact only at alpha=1 (do not adopt alpha<1 as flagship). PREDICTION (falsifiable, no new code): under the BENCH
   area-proportional sampler weights are constant, on/off coincide, weights-off advantage must vanish. Principled target: sampler or
   variance-reduced consistent quadrature, not weights-off. Never write "saturation" or "starvation" as the mechanism.
+- **BENCH on/off under area sampling (2026-09-11, Generalization fork, from results/consistency_bench/consistency_bench_2026-09-10.json; fp32,
+  two seeds, uniform-trained checkpoints, 2.5k→40k).** Weights-off ÷ weights-on ISLA pressure: uniform sampler DrivAerML 0.89→0.98, HiLift 35
+  0.88, fixed angle 0.87 (known off advantage); AREA-PROPORTIONAL sampler 2.9→6.6 / 2.1→2.3 / 2.5→3.4 — the off advantage INVERTS 2–7x;
+  weights-off absolute errors 0.66–1.29 (worse than predicting zero) vs weights-on 0.10–0.51; weights-on falls with count (0.27→0.10 DrivAerML),
+  off flat. Biased 10:1: 1.54 / 1.29 / 1.04. Caveats: both scored off their training sampler; HT weights under the area sampler are not exactly
+  constant (clamp holds ~1/3 of kept wing cells). Reading: uniform advantage = estimator variance + mesh-pattern content; mesh-pattern dominates
+  what weights-off learned → stays an ablation. Clean separation pending: MIX area-trained ISLA-on vs uniform on/off on one sampler at 40k
+  (variance predicts area-on ≈ uniform-off ≈ 0.88x uniform-on). Do NOT launch a weights-off area-trained pair (tests the clamp only).
