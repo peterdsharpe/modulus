@@ -1561,3 +1561,8 @@ interior control @sec-nb-udrv-int-prereg.
   ISLA's convention swap costs 5% at 40k (fine-mesh limit), 45% at 10k, 190% at 2.5k". Triple under uniform at 40k: uniform-on
   gauge 0.0579, area-on gauge 0.0591, constant off 0.0518 (constant on 0.0530) → area-on at the ON level, not the OFF
   level; confounds: off is constant gauge lr 1e-3; area-trained under uniform is off its law. One-line check, not a headline.
+- **FRAME-FULL DrivAerML (2026-09-11, fp32; results/frame_reduction_2026-09-11.json).** centre-only 0.0565 (+1.5%) at 1.20x; centre+scale
+  0.0544 (-2.3%) at 1.13x (both seeds 1.13) → both PASS the DrivAerML joint bar. 1.13x = routing variance with
+  the frame variance removed exactly (lowest ISLA ratio measured); write "the frame-estimate variance was ~0.07 of the 1.2x floor, the rest
+  is the routing integral". Reference decision UNCHANGED until the HiLift ff lanes (within 3% of 0.1377 at ≤1.2x). Never call FRAME-FULL
+  the reference before the HiLift readout.
