@@ -1608,3 +1608,8 @@ interior control @sec-nb-udrv-int-prereg.
 - **RELFRAME-LADDER amendment (2026-09-11).** Lanes rf_hl_mt2_meas_{geometry_scarce,scarce}_seed{42,43} (jobs 714206–714209). PREDICTIONS:
   recurrence reading → 21 geo ≤ 3%, 210 cases 8–12%; data-quantity reading → both ≤ 3%. Discriminating cell = 210 cases (≥ 8% confirms
   recurrence; ≤ 3% refutes → 35-case price is data quantity). Priors: 21 geo 0.1014; 210 cases 0.0643. Do not grade before both land.
+- **RULING 2026-09-11 (Peter): no back-porting to released baselines.** GeoTransolver and Transolver are stable, released, in use, published; they
+  will NOT be modified. Measure-weighted pooling (MW), HT-centred datapipe (MWAW), query tokens etc. are RESEARCH VARIANTS used only to locate a
+  property in the comparison; never write them as recommendations, options, or deployable models. Every transferable finding is written as a pro
+  of ISLA, the new architecture. Resolves the open "baselines' frame in the fair comparison" question: released baselines = deployable comparison;
+  MW/MWAW variants = diagnostic, labelled as such wherever they appear.

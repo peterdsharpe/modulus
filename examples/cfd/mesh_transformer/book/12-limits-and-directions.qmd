@@ -907,15 +907,17 @@ centre is the Horvitz–Thompson estimate of the geometric centroid, against
 property of the frame, not of the architecture. So on surface
 pressure at the reference size the measure-weighted GeoTransolver or
 Transolver is the more accurate choice wherever the deployment mesher
-matches the training mesher, and either the measure-weighted baselines
-with a Horvitz–Thompson-centred datapipe or ISLA with a measure-weighted
-frame is the choice wherever the sampling may differ; ISLA remains the
-choice where geometries arrive in
-arbitrary poses, on the interior at matched parameters, or where memory at
-scale binds. Which frame the baselines stand on in the fair comparison
-(the plain mean of cell centres, which reads the mesher, or the
-area-weighted centroid, which is a property of the surface) is at equal
-accuracy a ruling not yet made; the chapters report both until it is. Under
+matches the training mesher, and ISLA is the choice wherever the sampling
+may differ, where geometries arrive in arbitrary poses, on the interior at
+matched parameters, or where memory at scale binds. The measure-weighted,
+Horvitz–Thompson-centred GeoTransolver and Transolver that match ISLA on
+consistency are research variants built for this comparison, to locate the
+property in the frame rather than in the architecture; the released
+GeoTransolver and Transolver are stable, in use and published, and will
+not be modified (ruling of 2026-09-11), so measure weighting and the
+geometric frame reach users through ISLA. The fair comparison therefore
+reports the released baselines as the deployable comparison and their
+measure-consistent variants as the diagnostic. Under
 refinement and across sampling laws no configuration is yet consistent at
 10,000 cells; only the measure-weighted ISLA arms converge toward the
 uniform answer under the area-proportional sampler while the unweighted

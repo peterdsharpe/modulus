@@ -635,7 +635,10 @@ DrivAerML at full data and 4 training geometries, where it matches the
 prior within 1%); the fixed-angle pair of the ladder is in progress, and
 until it lands the remaining ISLA numbers are the prior configuration's
 record. The baselines' consistency has been shown with a Horvitz–Thompson
-centroid on DrivAerML only. And the far-wake deficit that carries ISLA's
+centroid on DrivAerML only, and only as a research variant: the released
+GeoTransolver and Transolver keep their plain-mean frame and will not be
+modified, so the "HT-centred datapipe" rows locate a property, they do not
+describe a deployable model. And the far-wake deficit that carries ISLA's
 interior eddy-viscosity gap remains open: the one remedy tested,
 oversampling the far field in the interior training queries with exact
 measure weights, is closed as a negative. Trained that way and scored on

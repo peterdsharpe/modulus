@@ -555,7 +555,9 @@ limit is a property of the measure-weighted estimator standing on a
 measure-consistent frame: on this evidence ISLA with measure weights shows
 it, and so do the measure-weighted baselines once their datapipe centre is
 the Horvitz–Thompson estimate of the geometric centroid
-(@sec-nb-mwaw-verdict). One ISLA configuration reaches it outright: the constant-gauge ISLA with the
+(@sec-nb-mwaw-verdict); those baselines are research variants built to
+locate the property, since the released GeoTransolver and Transolver are
+not modified. One ISLA configuration reaches it outright: the constant-gauge ISLA with the
 measure-weighted centroid gives the same field under all three samplers on
 DrivAerML at 40,000 cells (+3% / +3%) and on the HiLift 35-case rung
 already at 10,000 cells (−2% / +4%), where every other arm reads the
