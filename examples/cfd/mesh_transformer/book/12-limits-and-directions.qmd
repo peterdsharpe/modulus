@@ -946,7 +946,14 @@ seed, ISLA pays 14–16% on the wings, so the price is the mesh-density
 content of the plain-mean frame (0.13 body lengths), and by the
 preregistered rule the reference configuration is the relative frame with
 the total-measure scale, which pays that 11% for carrying no mesher
-information (@sec-nb-frame-full-verdict). Its learning-rate robustness is
+information (@sec-nb-frame-full-verdict). The first rung of the ladder
+that trains the reference on the remaining splits supports the reading
+that the mesher pattern pays only where validation geometries recur in
+training: on 4 training geometries, validated on 18 never-seen geometries,
+the reference scores 0.2520 against the constant-gauge prior's 0.2496,
+parity inside the seed spread where the preregistration had predicted a
+5–10% price (@sec-nb-relframe-ladder-geo4); the fixed-angle pair tests the
+same reading from the other side. Its learning-rate robustness is
 measured against a physical-drive GeoTransolver and is not claimed as an
 advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on velocity
