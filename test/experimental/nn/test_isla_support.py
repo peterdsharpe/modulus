@@ -24,6 +24,14 @@ import torch
 
 from physicsnemo.experimental.nn.isla import ISLA
 
+# The contract tests below were written for the centered construction (plain-mean
+# centre, constant reference_length), which was the class default until 2026-09-11.
+# The class default is now the relative frame with the total-measure scale (the
+# reference configuration); these tests pin the centered construction explicitly so
+# they keep verifying it, and test_default_is_relative_total_measure covers the default.
+_CENTERED = dict(frame_mode="centered", scale_mode="reference_length")
+
+
 D = torch.float64
 
 
@@ -46,7 +54,7 @@ def _interior(n, seed=1):
 def _model(**kw):
     torch.manual_seed(0)
     return ISLA(hidden=64, n_layers=2, n_slices=16, query_independent=True, n_decoder_layers=3,
-                support_tokens=True, n_query_scalars=1, query_mass="source_total", **kw).double().eval()
+                support_tokens=True, n_query_scalars=1, query_mass="source_total", **{**_CENTERED, **kw}).double().eval()
 
 
 @pytest.fixture
@@ -141,7 +149,7 @@ def test_similarity_gauge_scale_equivariance():
 def test_geo_checkpoint_is_exact_with_support(setup):
     m, pts, nrm, drv, w, S, Q = setup
     torch.manual_seed(0)
-    m2 = ISLA(hidden=64, n_layers=2, n_slices=16, query_independent=True, n_decoder_layers=3,
+    m2 = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, query_independent=True, n_decoder_layers=3,
               support_tokens=True, n_query_scalars=1, query_mass="source_total", geo_checkpoint=True).double().eval()
     m2.load_state_dict(m.state_dict())
     with torch.no_grad():
@@ -161,7 +169,7 @@ def test_all_parameters_receive_gradients(setup):
 
 def test_decoder_depth_is_configurable():
     torch.manual_seed(0)
-    m12 = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=12,
+    m12 = ISLA(**_CENTERED, hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=12,
                support_tokens=True, n_query_scalars=1, query_mass="source_total")
     assert len(m12.read_blocks) == 12
     n_read = sum(p.numel() for p in m12.read_blocks.parameters())
@@ -171,9 +179,9 @@ def test_decoder_depth_is_configurable():
 
 def test_option_validation():
     with pytest.raises(ValueError):
-        ISLA(hidden=32, n_layers=1, n_slices=8, support_tokens=True)  # needs query_independent
+        ISLA(**_CENTERED, hidden=32, n_layers=1, n_slices=8, support_tokens=True)  # needs query_independent
     with pytest.raises(ValueError):
-        ISLA(hidden=32, n_layers=1, n_slices=8, support_tokens=True, query_independent=True, query_tokens=True)
+        ISLA(**_CENTERED, hidden=32, n_layers=1, n_slices=8, support_tokens=True, query_independent=True, query_tokens=True)
     m = _model()
     pts, nrm, w = _cloud(50)
     drv = torch.tensor([[0.0, 0.0, 1.0]], dtype=D)
@@ -187,7 +195,7 @@ def test_passive_queries_take_scalars_without_support():
     """The read path accepts the query SDF scalar on its own (n_query_scalars with
     query_independent=True), which the earlier passive arm could not."""
     torch.manual_seed(0)
-    m = ISLA(hidden=64, n_layers=2, n_slices=16, query_independent=True, n_decoder_layers=2, n_query_scalars=1).double().eval()
+    m = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, query_independent=True, n_decoder_layers=2, n_query_scalars=1).double().eval()
     pts, nrm, w = _cloud(200)
     drv = torch.tensor([[0.0, 0.0, 1.0]], dtype=D)
     q, qn, qs = _interior(30, 2)

@@ -27,10 +27,11 @@
 # length is needed. Translation invariance is exact without centering; the
 # frame carries no information about where the mesher put its cells.
 #
-# The class defaults (frame_mode=centered, scale_mode=reference_length,
-# center_mode=plain) are unchanged so that legacy checkpoints load bitwise;
-# this file is the configuration behind the book's reference numbers from
-# 2026-09-11 on. The constant-gauge isla_surface.yaml is the prior reference.
+# Since 2026-09-11 these are also the class defaults (frame_mode=relative,
+# scale_mode=total_measure); they are stated here explicitly. Checkpoints store
+# their constructor arguments, so models saved under the earlier defaults load
+# unchanged. This file is the configuration behind the book's reference numbers
+# from 2026-09-11 on; the constant-gauge isla_surface.yaml is the prior reference.
 input_type: tensors
 output_type: tensors
 

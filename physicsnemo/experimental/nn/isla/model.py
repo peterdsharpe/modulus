@@ -21,10 +21,19 @@ surrogates. Surface points (position, unit normal, cell area) and a global
 unit drive direction go in; fields at the surface (and, in the interior mode,
 at arbitrary query points) come out. The name states the design principle:
 the attention operates only on invariants of the per-point vector set
-:math:`\{r_i, n_i, d\}` (centered/scaled relative position, unit normal,
-unit drive direction), and the frame is re-attached only at the vector
-heads, so exact rotation and translation covariance is paid once at the
-network's edges instead of in every layer.
+:math:`\{r_i, n_i, d\}` (scaled position, unit normal, unit drive
+direction), and the frame is re-attached only at the vector heads, so exact
+rotation and translation covariance is paid once at the network's edges
+instead of in every layer. By default (``frame_mode="relative"``,
+``scale_mode="total_measure"``, the reference configuration) positions
+enter only as point-to-anchor differences and the length scale is the
+square root of the total quadrature measure of the sample, so no centroid,
+no sample statistic and no per-dataset reference length appears anywhere in
+the forward pass and the frame carries no information about where the
+mesher placed its cells. ``frame_mode="centered"`` restores the earlier
+construction (plain-mean centering, constant ``reference_length``), which
+the similarity gauge, ``odd_head``, ``seed_mode="raw"`` and
+``scale_conditioning`` require.
 
 Contracts, all by construction rather than per-layer enforcement:
 
@@ -41,7 +50,7 @@ Contracts, all by construction rather than per-layer enforcement:
   queries are decoded by passive read blocks and a prediction at one point
   does not depend on which other points are queried.
 
-``ISLA`` is retained as a backward-compatible alias of
+``MeshTransformer2`` is retained as a backward-compatible alias of
 :class:`ISLA`.
 """
 
@@ -448,13 +457,17 @@ class ISLA(Module):
         query_neighbor_features: bool = False,
         query_neighbor_k: int = 16,
         center_mode: str = "plain",
-        frame_mode: str = "centered",
-        scale_mode: str = "reference_length",
+        frame_mode: str = "relative",
+        scale_mode: str = "total_measure",
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
         ### RELFRAME (2026-09-10, ruling: no sample statistic may enter the
-        ### flagship's frame). frame_mode="relative" removes the frame origin
+        ### flagship's frame; 2026-09-11: frame_mode="relative" and
+        ### scale_mode="total_measure" became the class defaults, the
+        ### reference configuration; checkpoints store their constructor
+        ### arguments, so models saved under the old defaults load unchanged).
+        ### frame_mode="relative" removes the frame origin
         ### altogether: r = points / L with no centering. The six scalars that
         ### referred to the centroid are gone -- the four seed features |r|,
         ### log|r|, rhat.d, rhat.n (seeds reduce to n.d; the measure enters the
@@ -481,11 +494,14 @@ class ISLA(Module):
             raise ValueError("similarity_gauge sets its own scale; use scale_mode='reference_length'")
         if self.relative_frame:
             if center_mode != "plain":
-                raise ValueError("frame_mode='relative' has no center; leave center_mode at its default")
+                raise ValueError(
+                    "frame_mode='relative' (the default) has no center; pass frame_mode='centered' to use center_mode"
+                )
             if similarity_gauge or odd_head or seed_mode != "invariant" or scale_conditioning:
                 raise ValueError(
-                    "frame_mode='relative' excludes similarity_gauge, odd_head, seed_mode='raw' "
-                    "and scale_conditioning (each reads a position relative to a frame origin)"
+                    "frame_mode='relative' (the default) excludes similarity_gauge, odd_head, seed_mode='raw' "
+                    "and scale_conditioning (each reads a position relative to a frame origin); "
+                    "pass frame_mode='centered' (and scale_mode='reference_length') to use them"
                 )
         ### CENTER (2026-09-10): the constant gauge (similarity_gauge=False,
         ### the reference configuration) centers by the PLAIN mean of the

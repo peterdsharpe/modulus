@@ -25,6 +25,14 @@ import torch
 from physicsnemo.experimental.nn.isla import ISLA
 from physicsnemo.experimental.nn.isla.model import _softmax_over_points
 
+# The contract tests below were written for the centered construction (plain-mean
+# centre, constant reference_length), which was the class default until 2026-09-11.
+# The class default is now the relative frame with the total-measure scale (the
+# reference configuration); these tests pin the centered construction explicitly so
+# they keep verifying it, and test_default_is_relative_total_measure covers the default.
+_CENTERED = dict(frame_mode="centered", scale_mode="reference_length")
+
+
 
 def _cloud(n=300, seed=0, dtype=torch.float64):
     g = torch.Generator().manual_seed(seed)
@@ -60,9 +68,9 @@ def test_fast_point_softmax_is_exact_in_float64(kw):
     in float64 with identical weights and inputs."""
     pts, nrm, drv, w = _cloud()
     torch.manual_seed(0)
-    fast = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=True, **kw).double().eval()
+    fast = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=True, **{**_CENTERED, **kw}).double().eval()
     torch.manual_seed(0)
-    native = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=False, **kw).double().eval()
+    native = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=False, **{**_CENTERED, **kw}).double().eval()
     native.load_state_dict(fast.state_dict())
     extra = {}
     if kw.get("query_tokens"):
@@ -78,9 +86,9 @@ def test_fast_point_softmax_is_exact_in_float64(kw):
 def test_fast_point_softmax_float32_difference_is_roundoff():
     pts, nrm, drv, w = _cloud(dtype=torch.float32)
     torch.manual_seed(0)
-    fast = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=True).eval()
+    fast = ISLA(**_CENTERED, hidden=64, n_layers=3, n_slices=32, fast_point_softmax=True).eval()
     torch.manual_seed(0)
-    native = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=False).eval()
+    native = ISLA(**_CENTERED, hidden=64, n_layers=3, n_slices=32, fast_point_softmax=False).eval()
     native.load_state_dict(fast.state_dict())
     with torch.no_grad():
         a, b = fast(pts, nrm, drv, w), native(pts, nrm, drv, w)
@@ -91,7 +99,7 @@ def test_fast_point_softmax_keeps_contracts():
     """SE(3) covariance and measure-scale invariance hold on the fast path."""
     pts, nrm, drv, w = _cloud()
     torch.manual_seed(0)
-    m = ISLA(hidden=64, n_layers=3, n_slices=32, fast_point_softmax=True).double().eval()
+    m = ISLA(**_CENTERED, hidden=64, n_layers=3, n_slices=32, fast_point_softmax=True).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]

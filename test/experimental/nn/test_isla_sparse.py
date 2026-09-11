@@ -21,6 +21,14 @@ import torch
 
 from physicsnemo.experimental.nn.isla import ISLA
 
+# The contract tests below were written for the centered construction (plain-mean
+# centre, constant reference_length), which was the class default until 2026-09-11.
+# The class default is now the relative frame with the total-measure scale (the
+# reference configuration); these tests pin the centered construction explicitly so
+# they keep verifying it, and test_default_is_relative_total_measure covers the default.
+_CENTERED = dict(frame_mode="centered", scale_mode="reference_length")
+
+
 
 def _cloud(n=300, seed=1):
     g = torch.Generator().manual_seed(seed)
@@ -45,8 +53,8 @@ def test_anchor_topk_full_is_exact(extra):
     """At k = n_slices the sparse routing reproduces the dense model to roundoff."""
     pts, nrm, drv, w = _cloud()
     torch.manual_seed(0)
-    dense = ISLA(hidden=64, n_layers=3, n_slices=32, **extra).double().eval()
-    sparse = ISLA(hidden=64, n_layers=3, n_slices=32, anchor_topk=32, **extra).double().eval()
+    dense = ISLA(hidden=64, n_layers=3, n_slices=32, **{**_CENTERED, **extra}).double().eval()
+    sparse = ISLA(hidden=64, n_layers=3, n_slices=32, anchor_topk=32, **{**_CENTERED, **extra}).double().eval()
     sparse.load_state_dict(dense.state_dict())
     with torch.no_grad():
         a, b = dense(pts, nrm, drv, w), sparse(pts, nrm, drv, w)
@@ -59,7 +67,7 @@ def test_anchor_topk_contracts(extra):
     gauge scale equivariance; the routing is genuinely sparse and gradients flow."""
     pts, nrm, drv, w = _cloud()
     torch.manual_seed(0)
-    m = ISLA(hidden=64, n_layers=3, n_slices=32, anchor_topk=8, **extra).double().eval()
+    m = ISLA(hidden=64, n_layers=3, n_slices=32, anchor_topk=8, **{**_CENTERED, **extra}).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
@@ -78,7 +86,7 @@ def test_anchor_topk_contracts(extra):
             scaled = m(2.7 * pts, nrm, drv, 2.7**2 * w)
         assert torch.allclose(scaled, base, atol=1e-10)
     torch.manual_seed(0)
-    dense = ISLA(hidden=64, n_layers=3, n_slices=32, **extra).double().eval()
+    dense = ISLA(hidden=64, n_layers=3, n_slices=32, **{**_CENTERED, **extra}).double().eval()
     with torch.no_grad():
         ref = dense(pts, nrm, drv, w)
     assert not torch.allclose(ref, base, atol=1e-6)  # k = 8 of 32 anchors changes the output
@@ -90,4 +98,4 @@ def test_anchor_topk_contracts(extra):
 
 def test_anchor_topk_validation():
     with pytest.raises(ValueError):
-        ISLA(hidden=32, n_layers=1, n_slices=16, anchor_topk=17)
+        ISLA(**_CENTERED, hidden=32, n_layers=1, n_slices=16, anchor_topk=17)

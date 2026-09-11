@@ -21,11 +21,19 @@ import torch
 
 from physicsnemo.experimental.nn.isla import ISLA
 
+# The contract tests below were written for the centered construction (plain-mean
+# centre, constant reference_length), which was the class default until 2026-09-11.
+# The class default is now the relative frame with the total-measure scale (the
+# reference configuration); these tests pin the centered construction explicitly so
+# they keep verifying it, and test_default_is_relative_total_measure covers the default.
+_CENTERED = dict(frame_mode="centered", scale_mode="reference_length")
+
+
 
 @pytest.fixture
 def setup():
     torch.manual_seed(0)
-    m = ISLA(hidden=64, n_layers=3, n_slices=32).double().eval()
+    m = ISLA(**_CENTERED, hidden=64, n_layers=3, n_slices=32).double().eval()
     n = 500
     ### Anisotropic cloud: the principal-axis frame is exactly covariant
     ### only where the covariance spectrum is non-degenerate (generic for
@@ -94,7 +102,7 @@ def test_collated_input_shapes(setup):
 def setup_local():
     torch.manual_seed(0)
     m = (
-        ISLA(
+        ISLA(**_CENTERED, 
             hidden=64, n_layers=2, n_slices=16,
             use_local_features=True, local_radii=(0.5, 1.5),
         )
@@ -139,7 +147,7 @@ def test_local_drive_degree_one(setup_local):
 def setup_qi():
     torch.manual_seed(0)
     m = (
-        ISLA(
+        ISLA(**_CENTERED, 
             hidden=64, n_layers=2, n_slices=16,
             query_independent=True, n_decoder_layers=2,
         )
@@ -199,7 +207,7 @@ def test_qi_drive_degree_one(setup_qi):
 def test_boundary_scalar_channel_contracts():
     torch.manual_seed(0)
     m = (
-        ISLA(
+        ISLA(**_CENTERED, 
             hidden=64, n_layers=2, n_slices=16, n_boundary_scalars=2
         )
         .double()
@@ -231,7 +239,7 @@ def test_scale_conditioning_rotation_equivariance():
     must leave rotation equivariance and translation invariance exact."""
     torch.manual_seed(0)
     m = (
-        ISLA(hidden=64, n_layers=2, n_slices=16, scale_conditioning=True)
+        ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, scale_conditioning=True)
         .double()
         .eval()
     )
@@ -266,7 +274,7 @@ def test_anchor_conditioned_decode_query_independence():
     must not depend on the companion query set."""
     torch.manual_seed(0)
     m = (
-        ISLA(
+        ISLA(**_CENTERED, 
             hidden=64, n_layers=2, n_slices=16,
             query_independent=True, n_decoder_layers=2, n_anchors=100,
         )
@@ -322,12 +330,12 @@ def test_parity_fix_reflection_equivariance():
     M = torch.diag(torch.tensor([1.0, -1.0, 1.0], dtype=torch.float64))  # mirror
 
     torch.manual_seed(1)
-    fixed = ISLA(
+    fixed = ISLA(**_CENTERED, 
         hidden=64, n_layers=2, n_slices=16, parity_fix=True, parity_gate_scale=0.1
     )
     fixed = fixed.double().eval()
     torch.manual_seed(1)
-    broken = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    broken = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16).double().eval()
 
     with torch.no_grad():
         base = fixed(pts, nrm, drv, w)
@@ -358,7 +366,7 @@ def test_true_vector_basis_reflection_and_rotation(basis):
     )
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
-    m = ISLA(hidden=64, n_layers=2, n_slices=16, vector_basis=basis)
+    m = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, vector_basis=basis)
     m = m.double().eval()
     M = torch.diag(torch.tensor([1.0, -1.0, 1.0], dtype=torch.float64))
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
@@ -388,7 +396,7 @@ def test_odd_head_reflection_rotation_and_translation():
     )
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
-    m = ISLA(hidden=64, n_layers=2, n_slices=16, odd_head=True).double().eval()
+    m = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, odd_head=True).double().eval()
     M = torch.diag(torch.tensor([1.0, -1.0, 1.0], dtype=torch.float64))
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
@@ -420,7 +428,7 @@ def test_head_variants_run_under_bf16_autocast(kw):
     """Mixed-precision smoke: every head variant must survive bf16 autocast
     (the odd-coefficient head once failed with a dtype mismatch at step 0)."""
     torch.manual_seed(0)
-    m = ISLA(hidden=32, n_layers=1, n_slices=8, **kw)
+    m = ISLA(hidden=32, n_layers=1, n_slices=8, **{**_CENTERED, **kw})
     pts = torch.randn(1, 128, 3)
     nrm = torch.nn.functional.normalize(torch.randn(1, 128, 3), dim=-1)
     drv = torch.nn.functional.normalize(torch.randn(1, 3), dim=-1)
@@ -446,9 +454,9 @@ def test_similarity_gauge_geometric_scale_equivariance():
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     torch.manual_seed(1)
-    mg = ISLA(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True).double().eval()
+    mg = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, similarity_gauge=True).double().eval()
     torch.manual_seed(1)
-    m0 = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    m0 = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16).double().eval()
     k = 2.7
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     with torch.no_grad():
@@ -469,7 +477,7 @@ def test_raw_coord_channel_breaks_equivariance_by_design():
     nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
-    m = ISLA(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True,
+    m = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, similarity_gauge=True,
                          raw_coord_channel=True).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
@@ -494,7 +502,7 @@ def test_interior_queries_contracts():
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     qpts = torch.randn(1, nq, 3, dtype=torch.float64) * 4.0  # interior/exterior points, no normals
-    m = ISLA(hidden=64, n_layers=2, n_slices=16, query_independent=True,
+    m = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, query_independent=True,
                          n_decoder_layers=2, interior_queries=True, similarity_gauge=True,
                          out_scalars=1, out_vectors=1).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
@@ -526,9 +534,9 @@ def test_latent_volume_tokens_contracts():
     kw = dict(hidden=64, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2,
               interior_queries=True, similarity_gauge=True, out_scalars=1, out_vectors=1)
     torch.manual_seed(1)
-    m = ISLA(latent_volume_tokens=True, **kw).double().eval()
+    m = ISLA(latent_volume_tokens=True, **{**_CENTERED, **kw}).double().eval()
     torch.manual_seed(1)
-    m0 = ISLA(latent_volume_tokens=False, **kw).double().eval()
+    m0 = ISLA(latent_volume_tokens=False, **{**_CENTERED, **kw}).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
@@ -574,9 +582,9 @@ def test_context_tokens_with_query_tokens_contracts(flag):
     kw = dict(hidden=64, n_layers=2, n_slices=16, query_tokens=True, similarity_gauge=True,
               query_mass="source_total", out_scalars=1, out_vectors=1)
     torch.manual_seed(1)
-    m = ISLA(**{flag: True}, **kw).double().eval()
+    m = ISLA(**{flag: True}, **{**_CENTERED, **kw}).double().eval()
     torch.manual_seed(1)
-    m0 = ISLA(**kw).double().eval()
+    m0 = ISLA(**{**_CENTERED, **kw}).double().eval()
     with torch.no_grad():
         base = m(pts, nrm, drv, w, query_points=qpts, query_normals=qnrm)
         rot = m(pts @ q.T + shift, nrm @ q.T, drv @ q.T, w, query_points=qpts @ q.T + shift, query_normals=qnrm @ q.T)
@@ -597,7 +605,7 @@ def test_context_tokens_with_query_tokens_contracts(flag):
     missing = [k for k, p in m.named_parameters() if p.grad is None]
     assert not missing, missing
     with pytest.raises(ValueError):
-        ISLA(hidden=32, n_layers=1, n_slices=8, **{flag: True})
+        ISLA(**_CENTERED, hidden=32, n_layers=1, n_slices=8, **{flag: True})
 
 
 def test_wake_tokens_extent_is_sampling_invariant():
@@ -615,7 +623,7 @@ def test_wake_tokens_extent_is_sampling_invariant():
     qpts = torch.randn(1, 60, 3, dtype=torch.float64) * 4.0 + torch.tensor([6.0, 0.0, 0.0], dtype=torch.float64)
     qnrm = torch.nn.functional.normalize(torch.randn(1, 60, 3, dtype=torch.float64), dim=-1)
     torch.manual_seed(1)
-    m = ISLA(hidden=64, n_layers=2, n_slices=16, query_tokens=True, similarity_gauge=True, wake_tokens=True,
+    m = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, query_tokens=True, similarity_gauge=True, wake_tokens=True,
              query_mass="source_total", out_scalars=1, out_vectors=1).double().eval()
     front = pts[0, :, 0] < pts[0, :, 0].median()
     pi = torch.where(front, torch.full((n,), 0.5, dtype=torch.float64), torch.full((n,), 0.05, dtype=torch.float64))
@@ -645,10 +653,10 @@ def test_a35b_ablation_flags_run_and_differ():
     if torch.det(q) < 0:
         q[:, 0] = -q[:, 0]
     torch.manual_seed(1)
-    ref = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    ref = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16).double().eval()
     torch.manual_seed(1)
-    nogeo = ISLA(hidden=64, n_layers=2, n_slices=16, use_relational_geo=False).double().eval()
-    raw = ISLA(hidden=64, n_layers=2, n_slices=16, seed_mode="raw").double().eval()
+    nogeo = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, use_relational_geo=False).double().eval()
+    raw = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, seed_mode="raw").double().eval()
     with torch.no_grad():
         o_ref = ref(pts, nrm, drv, w)
         o_ng = nogeo(pts, nrm, drv, w)
@@ -672,7 +680,7 @@ def test_all_parameters_receive_gradients(kw):
     """DDP requires every parameter to take part in the loss; a module built
     but skipped in forward crashes distributed training (A35b nogeo incident)."""
     torch.manual_seed(0)
-    m = ISLA(hidden=32, n_layers=2, n_slices=8, **kw)
+    m = ISLA(hidden=32, n_layers=2, n_slices=8, **{**_CENTERED, **kw})
     pts = torch.randn(1, 128, 3)
     nrm = torch.nn.functional.normalize(torch.randn(1, 128, 3), dim=-1)
     drv = torch.nn.functional.normalize(torch.randn(1, 3), dim=-1)
@@ -707,8 +715,8 @@ def test_geo_checkpoint_is_exact(extra):
     for the encoder blocks and the passive decoder blocks."""
     torch.manual_seed(0)
     kw = dict(out_scalars=1, out_vectors=1, hidden=32, n_layers=2, n_slices=8, **extra)
-    ref = ISLA(**kw).double()
-    ckp = ISLA(geo_checkpoint=True, **kw).double()
+    ref = ISLA(**{**_CENTERED, **kw}).double()
+    ckp = ISLA(geo_checkpoint=True, **{**_CENTERED, **kw}).double()
     ckp.load_state_dict(ref.state_dict())
     pts = torch.randn(1, 40, 3, dtype=torch.float64)
     nrm = torch.nn.functional.normalize(torch.randn(1, 40, 3, dtype=torch.float64), dim=-1)
@@ -737,7 +745,7 @@ def test_query_scalars_contracts():
     torch.manual_seed(0)
     kw = dict(out_scalars=1, out_vectors=1, hidden=32, n_layers=2, n_slices=8,
               query_tokens=True, similarity_gauge=True, n_query_scalars=1)
-    m = ISLA(**kw).double()
+    m = ISLA(**{**_CENTERED, **kw}).double()
     pts = torch.randn(1, 40, 3, dtype=torch.float64)
     nrm = torch.nn.functional.normalize(torch.randn(1, 40, 3, dtype=torch.float64), dim=-1)
     drive = torch.tensor([[1.0, 0.3, 0.0]], dtype=torch.float64)
@@ -770,7 +778,7 @@ def test_query_scalars_contracts():
     with pytest.raises(ValueError):
         m(pts, nrm, drive, measure_weights=w, query_points=q, query_normals=qn)
     with pytest.raises(ValueError):
-        ISLA(out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, n_query_scalars=1)
+        ISLA(**_CENTERED, out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, n_query_scalars=1)
 
 
 def test_query_local_features_contracts():
@@ -782,8 +790,8 @@ def test_query_local_features_contracts():
     kw = dict(out_scalars=1, out_vectors=1, hidden=32, n_layers=2, n_slices=8,
               query_tokens=True, similarity_gauge=True, n_query_scalars=1,
               query_local_features=True, query_local_radii=(0.1, 0.3))
-    m = ISLA(**kw).double()
-    m0 = ISLA(**{**kw, "query_local_features": False}).double()
+    m = ISLA(**{**_CENTERED, **kw}).double()
+    m0 = ISLA(**{**_CENTERED, **kw, "query_local_features": False}).double()
     pts = torch.randn(1, 60, 3, dtype=torch.float64)
     nrm = torch.nn.functional.normalize(torch.randn(1, 60, 3, dtype=torch.float64), dim=-1)
     drive = torch.tensor([[1.0, 0.3, 0.0]], dtype=torch.float64)
@@ -812,7 +820,7 @@ def test_query_local_features_contracts():
     m0.load_state_dict({k: v for k, v in m.state_dict().items() if not k.startswith("qt_local_embed")})
     assert not torch.allclose(m0(pts, nrm, drive, **args), out)
     with pytest.raises(ValueError):
-        ISLA(out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, query_local_features=True)
+        ISLA(**_CENTERED, out_scalars=1, out_vectors=1, hidden=32, n_layers=1, n_slices=8, query_local_features=True)
 
 
 def test_legacy_name_is_an_alias():
@@ -835,7 +843,7 @@ def test_query_tokens_contracts():
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     qpts = torch.randn(1, nq, 3, dtype=torch.float64) * 4.0
     qnrm = torch.nn.functional.normalize(torch.randn(1, nq, 3, dtype=torch.float64), dim=-1)
-    m = ISLA(hidden=64, n_layers=2, n_slices=16, query_tokens=True, similarity_gauge=True,
+    m = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, query_tokens=True, similarity_gauge=True,
              out_scalars=1, out_vectors=1).double().eval()
     q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
     if torch.det(q) < 0:
@@ -859,7 +867,7 @@ def test_query_tokens_contracts():
     missing = [k for k, p in m.named_parameters() if p.grad is None]
     assert not missing, missing
     with pytest.raises(ValueError):
-        ISLA(hidden=32, n_layers=1, n_slices=8, query_tokens=True, query_independent=True)
+        ISLA(**_CENTERED, hidden=32, n_layers=1, n_slices=8, query_tokens=True, query_independent=True)
 
 
 @pytest.mark.parametrize("extra", [{}, {"n_query_scalars": 1, "query_scalar_scale": "length"}])
@@ -882,9 +890,9 @@ def test_query_mass_source_total_refinement_invariance(extra):
         fk["query_scalars"] = q.norm(dim=-1)
     kw = dict(hidden=32, n_layers=2, n_slices=8, similarity_gauge=True, query_tokens=True, **extra)
     torch.manual_seed(0)
-    total = ISLA(query_mass="source_total", **kw).double().eval()
+    total = ISLA(query_mass="source_total", **{**_CENTERED, **kw}).double().eval()
     torch.manual_seed(0)
-    default = ISLA(**kw).double().eval()
+    default = ISLA(**{**_CENTERED, **kw}).double().eval()
     refined = (pts.repeat_interleave(2, 1), nrm.repeat_interleave(2, 1), drv, w.repeat_interleave(2, 1) / 2)
     s = 3.7
     scaled_fk = {**fk, "query_points": q * s}
@@ -903,9 +911,9 @@ def test_query_mass_source_total_refinement_invariance(extra):
     assert not torch.allclose(b0, a0, atol=1e-3)
     assert not torch.allclose(a0, a, atol=1e-6)
     with pytest.raises(ValueError):
-        ISLA(hidden=32, n_layers=1, n_slices=8, query_mass="source_total")
+        ISLA(**_CENTERED, hidden=32, n_layers=1, n_slices=8, query_mass="source_total")
     with pytest.raises(ValueError):
-        ISLA(hidden=32, n_layers=1, n_slices=8, query_tokens=True, query_mass="mean")
+        ISLA(**_CENTERED, hidden=32, n_layers=1, n_slices=8, query_tokens=True, query_mass="mean")
 
 
 @pytest.mark.parametrize("extra", [{}, {"query_independent": True, "n_decoder_layers": 2}])
@@ -922,7 +930,7 @@ def test_similarity_gauge_local_features_scale_equivariance(extra):
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     m = ISLA(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True,
-             use_local_features=True, local_radii=(0.5, 1.5), **extra).double().eval()
+             use_local_features=True, local_radii=(0.5, 1.5), **{**_CENTERED, **extra}).double().eval()
     k = 2.7
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     fk = dict(query_points=pts[:, :50], query_normals=nrm[:, :50]) if extra else {}
@@ -951,7 +959,7 @@ def test_passive_decode_seed_and_head_options(kw):
     w = torch.rand(1, 60, dtype=torch.float64) + 0.5
     q = torch.randn(1, 17, 3, dtype=torch.float64) * 2.0
     qn = torch.nn.functional.normalize(torch.randn_like(q), dim=-1)
-    m = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2, **kw)
+    m = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2, **{**_CENTERED, **kw})
     m = m.double().eval()
     if kw.get("odd_head"):
         with torch.no_grad():
@@ -974,7 +982,7 @@ def test_passive_decode_boundary_scalars():
     drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
     w = torch.rand(1, 60, dtype=torch.float64) + 0.5
     bs = torch.randn(1, 60, 2, dtype=torch.float64)
-    m = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2,
+    m = ISLA(**_CENTERED, hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=2,
              n_boundary_scalars=2).double().eval()
     with torch.no_grad():
         out = m(pts, nrm, drv, w, boundary_scalars=bs)
@@ -1019,7 +1027,7 @@ def test_second_moment_features_contracts(extra):
     """MOM2 channel: exact SE(3) covariance, drive degree one, measure-scale
     invariance, and (with the gauge) geometric-scale equivariance."""
     torch.manual_seed(0)
-    m = ISLA(hidden=64, n_layers=3, n_slices=32, second_moment_features=True, **extra).double().eval()
+    m = ISLA(hidden=64, n_layers=3, n_slices=32, second_moment_features=True, **{**_CENTERED, **extra}).double().eval()
     n = 300
     pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
     nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
@@ -1044,7 +1052,7 @@ def test_second_moment_features_contracts(extra):
         assert torch.allclose(scaled, base, atol=1e-10)
     # the channel is live: outputs differ from the eight-invariant model with the same seed
     torch.manual_seed(0)
-    m8 = ISLA(hidden=64, n_layers=3, n_slices=32, **extra).double().eval()
+    m8 = ISLA(hidden=64, n_layers=3, n_slices=32, **{**_CENTERED, **extra}).double().eval()
     assert m8.blocks[0].geo_logit.in_features == 8 and m.blocks[0].geo_logit.in_features == 10
 
 
@@ -1053,9 +1061,9 @@ def test_second_moment_features_separate_first_moment_collision():
     component, separated once the second-moment channel is on."""
     p1, n1, p2, n2, d, w = _collision_pair([0, 120, 240, 27, 207], [0, 120, 240, 43, 223])
     torch.manual_seed(0)
-    base = ISLA(hidden=64, n_layers=4, n_slices=32).double().eval()
+    base = ISLA(**_CENTERED, hidden=64, n_layers=4, n_slices=32).double().eval()
     torch.manual_seed(0)
-    mom2 = ISLA(hidden=64, n_layers=4, n_slices=32, second_moment_features=True).double().eval()
+    mom2 = ISLA(**_CENTERED, hidden=64, n_layers=4, n_slices=32, second_moment_features=True).double().eval()
     with torch.no_grad():
         a0, b0 = base(p1, n1, d, w), base(p2, n2, d, w)
         a2, b2 = mom2(p1, n1, d, w), mom2(p2, n2, d, w)
@@ -1073,11 +1081,11 @@ def test_measure_weight_power_contracts(alpha):
     """Tempered routing measure w^alpha: alpha=0 equals use_measure_weights=False exactly,
     alpha=1 is the default, every alpha keeps SE(3) covariance and measure-scale invariance."""
     torch.manual_seed(0)
-    m = ISLA(hidden=64, n_layers=3, n_slices=32, measure_weight_power=alpha).double().eval()
+    m = ISLA(**_CENTERED, hidden=64, n_layers=3, n_slices=32, measure_weight_power=alpha).double().eval()
     torch.manual_seed(0)
-    m_off = ISLA(hidden=64, n_layers=3, n_slices=32, use_measure_weights=False).double().eval()
+    m_off = ISLA(**_CENTERED, hidden=64, n_layers=3, n_slices=32, use_measure_weights=False).double().eval()
     torch.manual_seed(0)
-    m_ref = ISLA(hidden=64, n_layers=3, n_slices=32).double().eval()
+    m_ref = ISLA(**_CENTERED, hidden=64, n_layers=3, n_slices=32).double().eval()
     n = 300
     pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
     nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
@@ -1108,9 +1116,9 @@ def test_query_cloud_channels_contracts(kw):
     covariance, drive degree one, measure-scale invariance, gauge scale equivariance, and
     a live channel (outputs differ from the plain query-token model with the same seed)."""
     torch.manual_seed(0)
-    m = ISLA(hidden=32, n_layers=2, n_slices=8, query_tokens=True, similarity_gauge=True, **kw).double().eval()
+    m = ISLA(hidden=32, n_layers=2, n_slices=8, query_tokens=True, similarity_gauge=True, **{**_CENTERED, **kw}).double().eval()
     torch.manual_seed(0)
-    m0 = ISLA(hidden=32, n_layers=2, n_slices=8, query_tokens=True, similarity_gauge=True,
+    m0 = ISLA(**_CENTERED, hidden=32, n_layers=2, n_slices=8, query_tokens=True, similarity_gauge=True,
               n_query_scalars=kw.get("n_query_scalars", 0)).double().eval()
     torch.manual_seed(1)
     p = torch.randn(1, 80, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
@@ -1164,11 +1172,11 @@ def test_center_mode_contracts():
     w = torch.rand(1, n, dtype=torch.float64) + 0.5
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     torch.manual_seed(1)
-    m_default = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    m_default = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16).double().eval()
     torch.manual_seed(1)
-    m_plain = ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="plain").double().eval()
+    m_plain = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, center_mode="plain").double().eval()
     torch.manual_seed(1)
-    m_meas = ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="measure").double().eval()
+    m_meas = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, center_mode="measure").double().eval()
     with torch.no_grad():
         a = m_default(pts, nrm, drv, w)
         a_plain = m_plain(pts, nrm, drv, w)
@@ -1185,7 +1193,7 @@ def test_center_mode_contracts():
         assert torch.allclose(m_plain(pts + shift, nrm, drv, w), a_plain, atol=1e-10)
         assert torch.allclose(m_meas(pts + shift, nrm, drv, w), a_meas, atol=1e-10)
     with pytest.raises(ValueError):
-        ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="weighted")
+        ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, center_mode="weighted")
 
 
 def test_center_mode_measure_is_sampling_bias_robust():
@@ -1207,9 +1215,9 @@ def test_center_mode_measure_is_sampling_bias_robust():
     q = pts[:, :40]
     qn = nrm[:, :40]
     torch.manual_seed(1)
-    m_plain = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=1).double().eval()
+    m_plain = ISLA(**_CENTERED, hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=1).double().eval()
     torch.manual_seed(1)
-    m_meas = ISLA(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=1,
+    m_meas = ISLA(**_CENTERED, hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=1,
                   center_mode="measure").double().eval()
     n_sub = 10000  # the probe's token budget; ~900 tokens land in the 10x-undersampled half
     wins = 0
@@ -1255,11 +1263,11 @@ def test_global_frame_contracts():
     pts, nrm, drv, w = _frame_cloud()
     shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
     torch.manual_seed(1)
-    m_plain = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    m_plain = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16).double().eval()
     torch.manual_seed(1)
-    m_c = ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="global").double().eval()
+    m_c = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16, center_mode="global").double().eval()
     torch.manual_seed(1)
-    m_cs = ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="global", scale_mode="global").double().eval()
+    m_cs = ISLA(frame_mode="centered", hidden=64, n_layers=2, n_slices=16, center_mode="global", scale_mode="global").double().eval()
     c = pts.mean(dim=1)  # (1, 3)
     s = torch.full((1,), 8.0, dtype=torch.float64)
     with torch.no_grad():
@@ -1280,9 +1288,9 @@ def test_global_frame_contracts():
         ### the supplied frame is a live input, not ignored
         assert not torch.allclose(m_cs(pts, nrm, drv, w, frame_center=c2, frame_scale=s), base, atol=1e-6)
     with pytest.raises(ValueError):
-        ISLA(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True, scale_mode="global")
+        ISLA(frame_mode="centered", hidden=64, n_layers=2, n_slices=16, similarity_gauge=True, scale_mode="global")
     with pytest.raises(ValueError):
-        ISLA(hidden=64, n_layers=2, n_slices=16, scale_mode="rms")
+        ISLA(frame_mode="centered", hidden=64, n_layers=2, n_slices=16, scale_mode="rms")
 
 
 def test_relative_frame_contracts():
@@ -1299,7 +1307,7 @@ def test_relative_frame_contracts():
     torch.manual_seed(1)
     m_tm = ISLA(hidden=64, n_layers=2, n_slices=16, frame_mode="relative", scale_mode="total_measure").double().eval()
     torch.manual_seed(1)
-    m_def = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    m_def = ISLA(**_CENTERED, hidden=64, n_layers=2, n_slices=16).double().eval()
     assert m.embed[0].in_features == 1 and m_def.embed[0].in_features == 5
     assert m.blocks[0].geo_logit.in_features == 6 and m_def.blocks[0].geo_logit.in_features == 8
     assert m.read_blocks[0].geo_logit.in_features == 6
@@ -1353,9 +1361,9 @@ def test_frame_modes_are_sampling_consistent(kw):
     common = dict(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=1,
                   reference_length=1.0, local_readout_rho=1.0)
     torch.manual_seed(1)
-    m_plain = ISLA(**common).double().eval()
+    m_plain = ISLA(**{**_CENTERED, **common}).double().eval()
     torch.manual_seed(1)
-    m = ISLA(**common, **kw).double().eval()
+    m = ISLA(**{**_CENTERED, **common, **kw}).double().eval()
     n_sub = 10000
     d_bias, d_noise, d_plain, d_plain_noise = [], [], [], []
     for seed in range(4):
@@ -1382,3 +1390,18 @@ def test_frame_modes_are_sampling_consistent(kw):
     ratio = sum(d_bias) / sum(d_noise)
     ratio_plain = sum(d_plain) / sum(d_plain_noise)
     assert ratio < 4.0 < ratio_plain, (ratio, ratio_plain)
+
+
+def test_default_is_relative_total_measure():
+    """The class default is the reference configuration decided on 2026-09-11:
+    the relative frame (no centroid anywhere; one seed invariant n.d and six
+    relational invariants) with the total-measure scale (positions divided by
+    the square root of the total quadrature measure). Checkpoints store their
+    constructor arguments, so models saved under the earlier defaults are
+    unaffected; this test pins the default itself."""
+    m = ISLA(hidden=32, n_layers=2, n_slices=8)
+    assert m.frame_mode == "relative" and m.scale_mode == "total_measure" and m.relative_frame
+    assert m.embed[0].in_features == 1
+    assert m.blocks[0].geo_logit.in_features == 6
+    m_c = ISLA(**_CENTERED, hidden=32, n_layers=2, n_slices=8)
+    assert m_c.embed[0].in_features == 5 and m_c.blocks[0].geo_logit.in_features == 8

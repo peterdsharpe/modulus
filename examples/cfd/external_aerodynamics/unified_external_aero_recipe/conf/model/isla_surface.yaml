@@ -43,6 +43,11 @@ model:
   # Constant scale gauge, identical to the MeshTransformer flagship's
   # (see drivaer_ml_surface.yaml for the calibration rationale).
   reference_length: 8.0
+  # Prior (constant-gauge) frame, pinned explicitly: since 2026-09-11 the class
+  # defaults are frame_mode=relative and scale_mode=total_measure (the
+  # reference configuration, conf/model/isla_surface_reference.yaml).
+  frame_mode: centered
+  scale_mode: reference_length
   # Rebuild the per-slice geometric invariants inside backward instead of
   # storing them: forward and gradients bitwise identical, peak training
   # memory 2.3x lower (1.5 GB vs 3.5 GB at 10k tokens, RTX 4090 bf16) for a
