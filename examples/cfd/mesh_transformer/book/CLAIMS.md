@@ -1575,3 +1575,7 @@ interior control @sec-nb-udrv-int-prereg.
   (state beside each). Write "the reference configuration pays 11% at 35 HiLift cases for carrying no mesher information"; never
   "the constant gauge is the reference" after 2026-09-11 without "prior". Wing/car difference = plain-mean displacement 0.131 vs 0.034.
   Routing-variance floor 1.13x (exact frame); estimated/absent frames add ≤0.1. Follow-up ladder: RELFRAME-LADDER (fixed angle first).
+- **RELFRAME-LADDER prereg (2026-09-11).** Lanes rf_hl_mt2_{ref,meas}_single_aoa_12_seed{42,43}, rf_hl_mt2_meas_geometry_super_scarce_seed{42,43}
+  (code_frame, recipe_frame, lr 1e-3, 500 ep). Bars vs constant-gauge prior (fixed angle 0.0348; 4 geo 0.2496): ≤5% / 5–15% / >15%.
+  Scale discriminator at fixed angle: meas ≥5% worse than ref → scale normalization cost real (revisit scale choice); within 3% → frame's price.
+  Predictions: both 10–15% at fixed angle, within 3% of each other; 4 geo 5–10%. Nothing on these rungs is a RELFRAME number until then.
