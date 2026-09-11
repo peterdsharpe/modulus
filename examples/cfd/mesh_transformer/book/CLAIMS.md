@@ -1434,3 +1434,13 @@ interior control @sec-nb-udrv-int-prereg.
   the code: far queries' eight relational invariants stop discriminating slices; the seed features are blind to
   azimuth about the drive axis (GT reads raw position). Candidate = second_moment_features (MOM2) at hidden 344,
   after a distance-shell / azimuth decomposition of saved predictions (transfer session). Flags stay gated.
+- **Far-wake diagnostics (2026-09-10, transfer session; research/transfer_program/studies/computational_support/far_field_shells_2026-09-10.json; routing_mass/*.json).** ν_t ISLA h344 vs GT-volume by shell:
+  0.05–0.1 L 0.047 vs 0.067; 0.1–0.2 L 0.042 vs 0.053; 0.2–0.4 L 0.038 vs 0.038; ≥0.4 L 0.108 vs 0.071 (2.2% of points);
+  downstream x>0.5 L 0.102 vs 0.070; around 0.034 vs 0.050; upstream 0.046 vs 0.108; azimuth worst beside (0.091 vs
+  0.064). Pressure: uniform 15–25% deficit in far shells (<2% of squared error). Routing mass: query tokens dominate
+  224–256/256 slices; 48–86% of anchors off-surface (0–13% >0.2 L_b) → 'anchors all on the surface' premise FALSE;
+  wake tokens took 7–71 slice-units, moved anchors downstream (60–89), far wake −6%. DROPPED candidates: second-moment
+  interior arm, azimuth-blind-seed reading, radius scaling. WRITE: "at matched parameters ISLA leads GT-volume on
+  pressure, velocity and ν_t everywhere except the far wake beyond 0.4 L, which carries the whole 18%". Surviving
+  hypothesis (not launched): far-wake under-sampling → measure-consistent far-field oversampling at training (HT
+  weights) — Peter's call.
