@@ -536,9 +536,24 @@ print(": Consistency at the benchmark's largest count. The preregistered bars ar
       "results/consistency_bench/consistency_bench_2026-09-10.json and the _mcenter, _mw and _rf companions. {#tbl-consistency-40k}")
 ```
 
+The same convergence appears when the training law itself changes. A
+measure-weighted ISLA trained on the area-proportional convention and
+evaluated on the uniform-over-cells one pays 2.9x at 2,500 cells, 1.45x
+at 10,000 and 1.05x at 40,000 (the reverse swap 2.7x to 1.21x;
+@sec-nb-mix-refinement), while at 10,000 cells the baselines pay 3–7x
+with no count to appeal to (@sec-nb-mix-verdict). This is the consistency
+criterion of @sec-principle observed on a convention swap: the two
+conventions are two quadratures of the same surface integral, and the
+estimator that treats them as such gives the same answer in the fine-mesh
+limit. Two seeds, float32, snapshot code; data:
+`results/consistency_bench/consistency_bench_mixarea_2026-09-11.json`.
+
 Three readings, in order of weight. First, consistency in the fine-mesh
-limit is a property only ISLA with measure weights shows on this evidence,
-and one configuration reaches it outright: the constant-gauge ISLA with the
+limit is a property of the measure-weighted estimator standing on a
+measure-consistent frame: on this evidence ISLA with measure weights shows
+it, and so do the measure-weighted baselines once their datapipe centre is
+the Horvitz–Thompson estimate of the geometric centroid
+(@sec-nb-mwaw-verdict). One ISLA configuration reaches it outright: the constant-gauge ISLA with the
 measure-weighted centroid gives the same field under all three samplers on
 DrivAerML at 40,000 cells (+3% / +3%) and on the HiLift 35-case rung
 already at 10,000 cells (−2% / +4%), where every other arm reads the
