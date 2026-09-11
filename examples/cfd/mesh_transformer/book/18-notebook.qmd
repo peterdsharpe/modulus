@@ -14440,7 +14440,7 @@ dependence is entirely the datapipe frame.
 leads GeoTransolver-volume on pressure, velocity and eddy viscosity
 everywhere except the far wake beyond 0.4 body lengths downstream, which
 holds 2.2% of a uniform interior sample and carries the whole 18%
-eddy-viscosity deficit (@sec-nb-far-wake in the companion; chapter 8).
+eddy-viscosity deficit (companion notebook entry #sec-nb-far-wake; chapter 8).
 Anchor-geometry explanations were closed: anchors follow the query mass, the
 wake tokens moved anchors into the far wake and improved it 6%, and the
 query seed's azimuth blindness did not survive the routing-mass probe. The
