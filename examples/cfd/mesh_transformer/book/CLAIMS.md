@@ -1590,3 +1590,7 @@ interior control @sec-nb-udrv-int-prereg.
 - **WAVE-4 21-geometry rung (2026-09-11, fp32, rate-matched).** Gauge 0.1048/0.1038 → 0.1043 vs constant prior 0.1014 → **+2.9%** (cheap band);
   vs unit GT 0.0933 → 1.12x, Transolver 0.0941 → 1.11x. Gauge ladder prices by rung: DrivAerML −2.5%, 21 geo +2.9%, 4 geo +7.4%, 35 +7.6%,
   fixed angle +14.4%. Price does NOT track training-set size. Gauge ≠ reference (sample-statistic frame).
+- **WAVE-4 210-case rung (2026-09-11, fp32, rate-matched).** Gauge 0.0663/0.0648 → 0.0656 vs constant prior 0.0643 (3 seeds) → **+2.0%**
+  (cheap; inside the prior's seed spread); vs unit GT 0.0539 → 1.22x, Transolver 0.0578 → 1.13x. CORRECTION to the geo210 line: the gauge
+  price DOES fall with training-set size along each HiLift ladder (35→210 cases: 7.6→2.0%; 4→21 geometries: 7.4→2.9%); the fixed angle
+  (+14.4% at 126 cases) is the outlier. Write it that way; never "does not track size" after 2026-09-11.

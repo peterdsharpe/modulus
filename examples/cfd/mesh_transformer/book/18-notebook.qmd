@@ -15635,3 +15635,42 @@ two scales on that rung (@sec-nb-relframe-ladder-prereg). The gauge is a
 sample-statistic frame and not the reference; this is its matrix row for
 the rung. Remaining gauge rungs: 210 cases (evaluating), 1,260 cases and
 deflection (training, days).
+
+## 2026-09-11 — WAVE-4, 210-case rung: the similarity gauge costs 2.0% (0.0656 against 0.0643, float32, rate-matched); on the angle-varying rungs the gauge's price falls with training-set size, and the fixed angle is the outlier {#sec-nb-wave4-scarce210}
+
+The 210-case rung of the HiLiftAeroML ladder (`scarce`: 210 training cases
+drawn across geometries and angles, 180 validation cases) is the fifth
+HiLift rung of the similarity-gauge ladder (@sec-nb-wave4-prereg) to read
+out. Two lanes (w4_hl_mt2_gauge_scarce_seed{42,43}; lr 1e-3, unit drive,
+500 epochs, snapshot code), evaluated in float32 under the same snapshot
+(job 713001; bf16 twins 713000; no loader warnings). Constant-gauge prior
+on the rung: 0.0643 (three seeds 0.0617 / 0.0661 / 0.0652;
+results/udrvl_210_reduction_2026-09-10.json); unit-drive GeoTransolver
+0.0539 and Transolver 0.0578 (three seeds each).
+
+| 210 cases (180 val, float32) | pressure rel-L2 (42 / 43 → mean) | vs constant-gauge prior | vs unit GeoTransolver | vs unit Transolver |
+|---|---|---|---|---|
+| ISLA, similarity gauge | 0.0663 / 0.0648 → **0.0656** | **+2.0%** | 1.22x | 1.13x |
+| ISLA, constant gauge (prior reference) | 0.0617 / 0.0661 / 0.0652 → 0.0643 | 1 | 1.19x | 1.11x |
+
+The bf16 evaluation reads 0.0668 / 0.0652, within 0.6% of float32.
+
+**Against the bars.** +2.0% is the "cheap" band and inside the constant
+gauge's own three-seed spread (0.0617–0.0661). **The ladder, read as a
+whole.** By rung, all rate-matched and float32: DrivAerML 435 cars −2.5%;
+210 cases +2.0%; 21 geometries (210 cases) +2.9%; 4 geometries (40 cases)
++7.4%; 35 cases +7.6%; fixed angle (126 cases) +14.4%. Along each of the
+two HiLift ladders the price falls with training-set size, from 7–8% at
+35–40 cases to 2–3% at 210, which corrects the reading of
+@sec-nb-wave4-geo210 that it does not track size: it does, and the
+fixed-angle rung is the one outlier, paying twice the 35-case price with
+three times the cases. That pattern fits the frame story of
+@sec-nb-frame-full-verdict: what the plain-mean frame supplies is the
+mesher's density pattern, which is most valuable when there is little data
+to learn the geometry from and on the rung whose whole task is geometry at
+a fixed drive direction; with 210 cases the network learns most of what
+the pattern told it. The reference configuration's price on these rungs is
+what RELFRAME-LADDER measures (@sec-nb-relframe-ladder-prereg); the
+fixed-angle pair there also carries the scale discriminator. The gauge
+remains a sample-statistic frame and a matrix row, not the reference.
+Remaining gauge rungs: 1,260 cases and deflection (training, ~2.5 days).
