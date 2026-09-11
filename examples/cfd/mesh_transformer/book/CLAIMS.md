@@ -1484,3 +1484,10 @@ interior control @sec-nb-udrv-int-prereg.
   far-band ν_t ≤ 0.085 supported / ≥ 0.095 falsified; near-wall + recipe p/v within 3%. Never write it as adopted before
   its uniform-sampler consistency check. Status: the older PLANNED QCOUNT node/row (duplicate id) removed in favour of
   the running one.
+- **Campaign A, 210-case rung (2026-09-10, transfer session, fp32, 3 draws × 3 seeds; research/transfer_program/studies/campaign_a_draws/campaign_a_n210_fp32_2026-09-10.json).** Per draw (d1/d2/d3/curated):
+  GT unit 0.0542/0.0603/0.0580/0.0539; Transolver unit 0.0557/0.0623/0.0606/0.0578; ISLA 0.0624/0.0665/0.0689/0.0643;
+  weights-off 0.0581/0.0612/0.0621/0.0589. Ratios (mean, 90% t-interval): GT÷ISLA 0.873 [0.818, 0.927]; T÷ISLA 0.903
+  [0.854, 0.952]; off÷ISLA 0.918 [0.893, 0.943] ('between' by the letter; 8% stable on every draw). Between-draw ÷ seed SD:
+  GT 3.1, Transolver 7.6, ISLA 2.7, off 1.8. Curated draw typical except GT (easiest). Baselines trade places vs 35:
+  GT 0.91→0.87, T 0.87→0.90. Quote 210-case ratios WITH these intervals. Campaign A CLOSED; transfer session has nothing
+  running.

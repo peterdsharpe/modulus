@@ -165,7 +165,21 @@ times its between-seed standard deviation, and the hardest draw is 24% harder
 than the easiest for GeoTransolver. A two-seed number at this rung therefore
 understates its uncertainty by a factor of 3–11; read the 35-case ratios in
 this book with the intervals above, not with their seed spreads, and expect
-future rungs to be run over draws rather than seeds.
+future rungs to be run over draws rather than seeds. The 210-case rung was
+then run the same way (three geometry-stratified draws, three seeds each,
+float32; `research/transfer_program/studies/campaign_a_draws/campaign_a_n210_fp32_2026-09-10.json`): GeoTransolver ÷ ISLA is 0.869, 0.907 and 0.843
+across the draws (curated 0.838; mean 0.873, 90% interval 0.82–0.93),
+Transolver ÷ ISLA 0.893, 0.936 and 0.880 (curated 0.898; mean 0.903,
+0.85–0.95), and the weights-off ablation ÷ ISLA 0.932, 0.920 and 0.902
+(mean 0.918, 0.89–0.94), so both "ISLA behind" orderings stand with
+intervals about half as wide as at 35 cases, the measure semantics cost a
+stable 8% on every draw where the cost was draw-dependent at 35, and the two
+baselines trade places with data: GeoTransolver's lead grows from 35 to 210
+cases (0.91 to 0.87) while Transolver's shrinks (0.87 to 0.90). The
+between-draw to within-draw spread ratio falls to 1.8–3.1 for ISLA and
+GeoTransolver (7.6 for Transolver, whose seeds nearly coincide), and the
+curated draw is typical for every arm but GeoTransolver, for which it is
+the easiest of the four.
 
 ## The result under the physical-drive protocol {#sec-de-result}
 
