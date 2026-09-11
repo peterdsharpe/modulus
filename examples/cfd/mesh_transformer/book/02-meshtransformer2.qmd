@@ -554,9 +554,10 @@ integral and moves about twice as much when the surface is resampled
 is nearly gone at 40,000 cells on DrivAerML; the part that does not
 shrink, on the wings, is mesh-pattern content the ablation learned from
 the mesher, and it is exactly what collapses when the sampler changes
-(@sec-consistency-bench). The cure consistent with the requirement is a
-lower-variance draw (area-proportional sampling makes the weights
-constant), not dropping the weights. The constant-gauge
+(@sec-consistency-bench). The cure consistent with the requirement is
+more cells at evaluation, not dropping the weights; retraining under an
+area-proportional draw, which makes the weights constant, does not buy
+the advantage back (@sec-limits-mechanism). The constant-gauge
 configuration behind the accuracy results fails the sampling-density probe
 for a different and now identified reason: it centers the point cloud by
 the plain mean of the sampled points, the one quantity in its forward pass

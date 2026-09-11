@@ -443,10 +443,14 @@ HiLiftAeroML at 35 cases (0.88) and on the fixed-angle split (0.87) the
 ratio is flat across the same sixteen-fold range, which variance cannot
 produce. On the wings, then, the ablation's advantage is mesh-pattern
 content, and the wings are where its collapse under area sampling is
-worst. The area-trained ISLA of the mixed-sampling study is being run
-through the same benchmark as a further check, read under the uniform
-sampler at 40,000 cells where both models' off-law penalties are
-smallest. This is the program's rule in @sec-principle read from the data:
+worst. The area-trained ISLA of the mixed-sampling study, run through
+the same benchmark and read under the uniform sampler at 40,000 cells,
+lands at the weights-on level (0.0591 against 0.0579 for its
+uniform-trained twin; the weights-off arm scores 0.0518 against its own
+twin's 0.0530), so training under the constant-weight law does not buy
+back the advantage: the variance that matters on the cars is the
+evaluation-time variance of the slice means, and it is removed by
+drawing more cells, not by retraining (@sec-nb-mix-refinement). This is the program's rule in @sec-principle read from the data:
 accuracy is to be recovered by capacity and principled construction, not
 by tuning to a dataset, and the single-case floor is the instrument that
 separates the two. The interior pair of the same study is pending.
@@ -907,9 +911,16 @@ baselines converge too is being measured. Trained on one sampling
 convention and deployed on another, every architecture pays at 10,000
 cells, ISLA with measure weights 1.5–1.9x and the baselines 3–7x, and every
 architecture trained on both conventions handles both at no cost
-(@sec-nb-mix-verdict): mesher transfer is a property of the training data
-at this resolution, and of the measure-consistent estimator only in the
-fine-mesh limit. Which frame ISLA stands on is not yet decided: the frame-free
+(@sec-nb-mix-verdict). For the measure-weighted ISLA that penalty is a
+finite-sample effect and it converges: trained under one convention and
+scored under the other, the ratio falls from 2.9x at 2,500 cells to 1.45x
+at 10,000 and 1.05x at 40,000 (the reverse direction 2.7x to 1.21x),
+while the unweighted baselines' 3–7x does not move
+(@sec-nb-mix-refinement;
+`results/consistency_bench/consistency_bench_mixarea_2026-09-11.json`).
+Mesher transfer is a property of the training data at this resolution,
+and of the measure-consistent estimator in the fine-mesh limit, which at
+40,000 cells is within 5% of reached. Which frame ISLA stands on is not yet decided: the frame-free
 construction (RELFRAME, no centroid anywhere) keeps the constant gauge's
 accuracy on DrivAerML at the same 1.2x density floor as the other
 measure-consistent frames, which is therefore the routing integral's own
