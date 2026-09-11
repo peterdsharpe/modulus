@@ -13647,7 +13647,11 @@ prediction. A dataset-dependent reference would itself be a warning sign,
 which is a second reason to let FRAME-FULL decide. The HiLift density ratio
 of the measure-centered checkpoints is being measured under the BENCH
 samplers and will complete their row (the density column above is empty for
-that reason, not because the test was skipped).
+that reason, not because the test was skipped). *Ruling applied
+2026-09-11:* at equal accuracy the frame-free construction is preferred
+(@sec-nb-relframe-verdict), so the measure-centred frame is not adopted;
+the reference is RELFRAME with the total-measure scale unless FRAME-FULL
+passes its joint bar.
 
 ## 2026-09-10 — Preregistered: FRAME-FULL, the frame from the full geometry as global data (sampling-independent by construction) {#sec-nb-frame-full-prereg}
 
@@ -14340,6 +14344,23 @@ cost of the principle, and not a reason to reinstate a sample statistic. The
 HiLift sampler lanes of the RELFRAME checkpoints complete the consistency
 half of the row.
 
+**Peter's ruling and the decision rule (2026-09-11).** The Horvitz–Thompson
+centroid is acceptable if it buys significant accuracy; at equal accuracy
+the frame-free construction is preferred. On the numbers on file the
+frame-free total-measure arm equals the measure-centred frame and the
+constant gauge on DrivAerML (0.0552, 0.0548, 0.0557) and equals the
+measure-centred frame at 35 HiLift cases (0.1530 against 0.1520), so at
+equal accuracy RELFRAME with the total-measure scale is the reference
+candidate on both datasets and the measure-centred frame is not adopted.
+**Rule: the reference is RELFRAME (total-measure scale) unless FRAME-FULL
+passes its joint bar** (within 3% of 0.1377 at 35 HiLift cases at a density
+ratio ≤ 1.2x), in which case the exact geometric frame has bought
+significant accuracy with a property of the geometry and FRAME-FULL becomes
+the reference candidate instead. The chapters stay "under decision" until
+FRAME-FULL lands; the same ruling governs the repaired baselines' datapipe
+frame (an area-weighted `CenterMesh` is acceptable for them only if it buys
+accuracy over the plain mean), which the MWAW lanes test.
+
 ## 2026-09-11 — BENCH addendum: with the frame held by the pipeline, the measure-weighted baselines are the most sampler-consistent arms measured (|D| ≤ 0.9% at 40,000 cells on both datasets, ≤ 0.8% at 10,000 on HiLift); the aggregation defect is fixed, the frame defect is the datapipe's {#sec-nb-bench-mw}
 
 The ten measure-weighted baseline checkpoints of @sec-nb-mw-verdict went
@@ -14382,3 +14403,33 @@ built. The accuracy price of measure awareness on uniform sampling is
 against 0.1100; 0.1207 against 0.1145), against +11% for the
 measure-centred ISLA on the same rung; the two rows of @tbl-consistency-40k
 that carry these arms are added.
+
+## 2026-09-11 — Preregistered: MWAW, the repaired baselines with an area-weighted datapipe frame (acceptable only if it buys accuracy) {#sec-nb-mwaw-prereg}
+
+Peter's ruling on frames applies to the measure-weighted baselines' datapipe
+frame as well: `CenterMesh` on the plain mean of the pool is a sample
+statistic that reads the mesher (0.034 body lengths off the geometric
+centroid on DrivAerML, 0.131 on HiLift); its area-weighted mode
+(`use_area_weighting: true`) is the Horvitz–Thompson estimate of the
+geometric centroid, acceptable for the baselines only if it buys accuracy
+over the plain mean. Eval-only is not possible (the mw checkpoints were
+trained in the plain frame), so four lanes: GeoTransolver and Transolver
+with measure-weighted pooling, unit drive, reference learning rates, on
+DrivAerML 435 cars with the training and validation datapipe centring by the
+area-weighted mean (seeds 42/43; run ids mwaw_dr_gt_unit_lr1e3_seed{42,43},
+mwaw_dr_transolver_unit_lr3e3_seed{42,43}; snapshot code_mw; recipe copy
+recipe_mw with `drivaer_ml_surface_aw.yaml`). **Readouts.** Float32
+in-family error against the plain-frame mw twins (0.0498 / 0.0522) and the
+density probe with the centring applied after the draw in the area-weighted
+mode (sample frame, the frame a biased mesher delivers, now estimated with
+HT weights). **Bars.** *Buys accuracy* if ≥ 3% better than the plain-frame
+twin; *equal* within ±3% (then the plain-mean frame stays for the baselines
+by the ruling, with its sample-frame collapse stated); *costs* if ≥ 3% worse.
+Density: ≤ 1.5x under the sample frame is the expected floor for an
+HT-estimated frame (ISLA's measure-centred frame gives 1.17x); a value near
+the plain-frame collapse (12–16x) would mean the baselines' sensitivity is
+not only the centroid. **Prediction.** Equal accuracy (the frame shift is
+0.034 body lengths on cars) and density ≈ 1.2x: the area-weighted frame
+removes the collapse at no accuracy cost, which under the ruling does not
+adopt it for the baselines but does establish that their density
+dependence is entirely the datapipe frame.

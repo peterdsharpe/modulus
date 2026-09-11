@@ -1469,3 +1469,11 @@ interior control @sec-nb-udrv-int-prereg.
   consistent (|D| < 1% at 40k); the frame defect remains in the datapipe (CenterMesh plain mean)"; never
   "the measure-weighted baselines are sampling-consistent" without the frame convention. CenterMesh has
   use_area_weighting (HT-centroid frame) — same question as Peter's HT-centroid ruling.
+- **PETER'S FRAME RULING, applied (2026-09-11).** HT centroid acceptable only if it buys significant accuracy;
+  at equal accuracy the frame-free construction is preferred. Numbers on file: frame-free (RELFRAME
+  total-measure) 0.0552 = measure-centred 0.0548 = constant 0.0557 on DrivAerML; 0.1530 = 0.1520 on HiLift
+  35. RULE: "reference = RELFRAME (total-measure scale) unless FRAME-FULL passes its joint bar (within 3% of
+  0.1377 at ≤ 1.2x)". Measure-centred frame NOT adopted. Chapters stay "under decision until FRAME-FULL";
+  then apply the rule in chapters 2, 6, 12 and the index reference rows (announce first). Baselines'
+  datapipe frame: area-weighted CenterMesh acceptable only if it buys accuracy over the plain mean
+  (MWAW lanes, #sec-nb-mwaw-prereg).
