@@ -779,12 +779,23 @@ anchors already sit off the surface, and they follow the query mass, which
 is why few reach a wake that holds 2% of the sample; the wake tokens did
 take routing mass (up to 53 slices) and did move anchors into the far wake,
 and the far-wake error improved 6% for it (`research/transfer_program/studies/computational_support/far_field_shells_2026-09-10.json`).
-What survives is a hypothesis, recorded and not launched: the far wake is
-under-sampled at training time, and a measure-consistent oversampling of the
-far field (inclusion probability rising with the signed distance, exact
-importance weights in the query measure, the same construction as the
-density probes) would raise ISLA's far-wake accuracy more than
-GeoTransolver-volume's if that is the cause. The sharper interior statement
+The last sampling explanation was then tested and closed: the far wake
+might be under-sampled at training time, so a measure-consistent
+oversampling of the far field (inclusion probability rising with the signed
+distance, exact importance weights recorded, the same construction as the
+density probes; far band raised from 10% to 32% of the training queries)
+was trained on two seeds and scored in float32 on the standard uniform
+sample. It made every field worse in every band: far-shell eddy viscosity
+0.193 against the reference's 0.118, recipe pressure +36%, velocity +22%,
+eddy viscosity +48% (@sec-nb-farwake-verdict;
+`results/farwake_far_field_shells_2026-09-11.json`). The arm trains the
+interacting decode on one query distribution and scores it on another, so
+part of that cost is a query-distribution swap penalty
+(@sec-interior-companion) and the arm cannot separate "not under-sampled"
+from "swamped by the swap"; what it settles is that a training-time
+sampling law is not a deployable remedy. The remaining candidate is
+representational (the downstream coordinate enters the seed only implicitly)
+and is not scheduled. The sharper interior statement
 is therefore: at matched parameters ISLA leads GeoTransolver-volume on
 pressure, velocity and eddy viscosity everywhere except the far wake beyond
 0.4 body lengths, which carries the whole 18% eddy-viscosity deficit. ISLA's

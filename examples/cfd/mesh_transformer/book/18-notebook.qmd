@@ -15520,3 +15520,83 @@ fixed-angle checkpoints: the BENCH samplers at five counts (lane table to
 be built as bench_lanes_rf.tsv was), where the prior collapses 10.6x /
 14.9x at 40,000 cells and the gauge is consistent; the reference is
 predicted consistent (|D| ≤ 3% at 40,000) as it was at 35 cases.
+
+## 2026-09-11 — Verdict, FARWAKE: far-field oversampling of the training queries makes every interior field worse (ν_t far shell 0.193 against 0.118; recipe pressure +36%); falsified as a remedy, with the query-distribution swap stated as the confound {#sec-nb-farwake-verdict}
+
+*Setting.* ISLA's interior configuration (surface tokens plus interior
+query tokens carrying the signed distance to the wall) leads
+GeoTransolver-volume on interior velocity and trails it on eddy viscosity,
+and the whole eddy-viscosity deficit sits in the far wake beyond 0.4 body
+lengths downstream, a region holding about 2% of a uniform interior sample
+(@sec-interior-task). The preregistered FARWAKE arm (@sec-nb-farwake-prereg)
+asked whether that deficit is an under-sampling effect: the training loss is a
+mean over the sampled queries, so the far wake receives about 2% of the
+gradient signal. The arm drew a 40,000-point uniform interior pool per case,
+kept points with probability proportional to a step function of the signed
+distance (weights 1 below 0.05 body lengths, 3 to 0.4, 8 beyond), normalized
+to an expected 10,000 kept points, and recorded the exact inclusion
+probabilities so the objective's reweighting is known. Two seeds, the
+reference query-token configuration otherwise frozen, 500 epochs
+(`v0_isla_qtsdfval_farwake_seed42/43`, recipe copy `recipe_farwake`,
+transform `SdfBiasedSubsampleInteriorPoints`). Peter approved the arm as a
+cause-elimination experiment: "either we get the right answer, or we rule
+out one more cause."
+
+*Instruments.* Float32 inference under the guarded evaluation snapshot on the
+standard uniform 10,000-point interior validation sample of the 48 DrivAerML
+validation cars (job 712231; 48 predictions per seed, zero skipped loads),
+then the wall-distance band decomposition of the saved predictions
+(`transfer/far_field_shells_farwake.py`, the companion's far-field
+instrument with the FARWAKE arm added) against the reference two seeds and
+the unit-drive GeoTransolver-volume. Artifacts:
+`results/farwake_reduction_2026-09-11.json` (recipe metrics) and
+`results/farwake_far_field_shells_2026-09-11.json` (bands).
+
+*Bars (written in advance).* Supported if the far-band (≥ 0.05 L)
+eddy-viscosity error is ≤ 0.085 with the near-wall band and the recipe
+pressure and velocity within 3% of the reference; falsified if ≥ 0.095;
+reference about 0.101, GeoTransolver-volume 0.068.
+
+*What we saw.* **Every band of every field is worse than the reference.**
+Recipe metrics, two-seed means: pressure 0.0754 against 0.0553 (+36%),
+velocity 0.0984 against 0.0804 (+22%), eddy viscosity 0.164 against 0.111
+(+48%). In the far shell beyond 0.4 body lengths the eddy-viscosity error is
+0.193 against the reference's 0.118 and GeoTransolver-volume's 0.071; the
+region the arm was built to help is the region it hurt most. The cost is not
+confined to the far field: in the near-wall band (0.05–0.1 L) eddy viscosity
+is 0.080 against 0.048 (+67%) and pressure 0.156 against 0.066. The two seeds
+agree (pressure 0.0773 / 0.0736, eddy viscosity 0.171 / 0.157).
+
+| Region (share of a uniform sample) | ν_t reference | ν_t FARWAKE | ν_t GeoTransolver-volume | p reference | p FARWAKE |
+|---|---|---|---|---|---|
+| 0.05–0.1 L (2.7%) | 0.048 | 0.080 | 0.067 | 0.066 | 0.156 |
+| 0.1–0.2 L (2.6%) | 0.042 | 0.083 | 0.053 | 0.106 | 0.226 |
+| 0.2–0.4 L (2.5%) | 0.039 | 0.084 | 0.038 | 0.125 | 0.192 |
+| ≥ 0.4 L (2.2%) | 0.118 | 0.193 | 0.071 | 0.270 | 0.316 |
+
+*Verdict.* **Falsified as a remedy**: under the deployment query
+distribution, oversampling the far wake in training does not close the
+eddy-viscosity deficit and degrades every field, so the far-wake deficit is
+not something a training-time sampling law fixes. The pre-written reading
+applies with one qualification. The arm trains the interacting decode on
+one query distribution and scores it on another, and this book has measured
+that the interacting decode's prediction at a point depends on the joint
+set of queries (@sec-nb-qcount-verdict: at half the training count the error
+rises 24%); the surface analogue, a model trained on one sampling convention
+and scored on another, pays 1.5–1.9x at 10,000 cells
+(@sec-nb-mix-verdict). So the whole-field degradation is at least in part a
+query-distribution swap penalty, and this arm cannot separate "the far wake
+is not under-sampled" from "the swap penalty swamps any gain". What it
+does settle is the deployable question: with evaluation on the uniform
+sample that every interior number in this book uses, far-wake oversampling
+is not a remedy. The candidate that remains for the far-wake deficit is
+representational, that the downstream coordinate enters ISLA's seed only
+implicitly through the freestream direction and the signed distance, and it
+is not scheduled: the interior configuration's standing (ahead on velocity,
+behind on pressure and eddy viscosity at matched parameters) is stated as
+measured in @sec-interior-task and @sec-limits-mechanism.
+
+*What changes.* FARWAKE node closed as STOPPED (falsified); chapter 8's
+far-wake paragraph names the arm as a closed negative; the
+`SdfBiasedSubsampleInteriorPoints` transform and its tests stay in the
+recipe as a measured instrument. Owner: this session.

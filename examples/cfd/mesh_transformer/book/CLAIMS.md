@@ -1579,3 +1579,11 @@ interior control @sec-nb-udrv-int-prereg.
   (code_frame, recipe_frame, lr 1e-3, 500 ep). Bars vs constant-gauge prior (fixed angle 0.0348; 4 geo 0.2496): ≤5% / 5–15% / >15%.
   Scale discriminator at fixed angle: meas ≥5% worse than ref → scale normalization cost real (revisit scale choice); within 3% → frame's price.
   Predictions: both 10–15% at fixed angle, within 3% of each other; 4 geo 5–10%. Nothing on these rungs is a RELFRAME number until then.
+- **FARWAKE verdict (2026-09-11, this session; fp32, code_eval, 48 cars, uniform 10k validation; results/farwake_reduction_2026-09-11.json,
+  results/farwake_far_field_shells_2026-09-11.json).** FALSIFIED as a remedy for the far-wake eddy-viscosity deficit. Two-seed means p 0.0754 /
+  v 0.0984 / nut 0.1638 vs three-seed reference 0.0553 / 0.0804 / 0.1109 (+36% / +22% / +48%). Far shell (>=0.4 L) nut 0.193 vs reference 0.118
+  vs GT-volume 0.071 (bar: <=0.085 supported, >=0.095 falsified); every band and every field worse, near-wall nut +67%. CONFOUND to state
+  every time: trained on the SDF-biased query law and scored on the uniform one = query-distribution swap for the interacting decode, so the
+  deployment question (no help under uniform deployment) is answered and the mechanism question (is the deficit under-sampling?) is NOT
+  separable by this arm. Pre-written reading applies: neither anchor geometry nor (deployable) sampling; representational conjecture (downstream
+  coordinate implicit in the seed) remains. Never write "far-wake deficit is not under-sampling" without the swap confound.

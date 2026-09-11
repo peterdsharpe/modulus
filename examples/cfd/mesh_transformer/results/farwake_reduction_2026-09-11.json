@@ -1,0 +1,45 @@
+{
+ "study": "FARWAKE: far-field oversampling of interior training queries (SdfBiasedSubsampleInteriorPoints, band edges 0.05/0.4 L, weights 1/3/8, expected 10,000 kept from a 40,000 uniform pool)",
+ "date": "2026-09-11",
+ "eval": "float32, guarded code_eval snapshot, standard uniform 10,000-point interior validation sample, 48 DrivAerML validation cars; job 712231; zero skipped loads",
+ "runs": {
+  "v0_isla_qtsdfval_farwake_seed42": {
+   "nut_l2": 0.171047,
+   "pressure_l2": 0.077286,
+   "velocity_l2": 0.09713,
+   "velocity_x_l2": 0.076265,
+   "velocity_y_l2": 0.158959,
+   "velocity_z_l2": 0.177352
+  },
+  "v0_isla_qtsdfval_farwake_seed43": {
+   "nut_l2": 0.156508,
+   "pressure_l2": 0.073572,
+   "velocity_l2": 0.099749,
+   "velocity_x_l2": 0.079435,
+   "velocity_y_l2": 0.163595,
+   "velocity_z_l2": 0.174644
+  }
+ },
+ "reference_three_seed_fp32": {
+  "arm": "v0_isla_qtsdfval_seed42/43/44 (query tokens + signed distance, hidden 192)",
+  "pressure_l2": 0.0553,
+  "velocity_l2": 0.0804,
+  "nut_l2": 0.1109
+ },
+ "bars": {
+  "far_band_nut_supported_le": 0.085,
+  "far_band_nut_falsified_ge": 0.095,
+  "near_wall_and_recipe_pv_within": 0.03,
+  "reference_far_band_nut_about": 0.101,
+  "gt_volume_far_band_nut": 0.068
+ },
+ "band_artifact": "results/farwake_far_field_shells_2026-09-11.json (arms isla_ref = v0_isla_qtsdfval_seed42/43, isla_farwake, gt_unit = udrv_gt_vol_seed42/43)",
+ "verdict": "FALSIFIED as a remedy: every band, every field worse than the reference; far shell (>=0.4 L) nut 0.193 vs 0.118 (reference) vs 0.071 (GeoTransolver-volume); recipe pressure +36%, velocity +22%, nut +48% vs the three-seed reference; near-wall (0.05-0.1 L) nut +67%. Confound stated: the interacting decode evaluated on the uniform query distribution after training on the biased one is a query-distribution swap; the deployment question (does oversampling help under uniform deployment) is answered no; the mechanism question is not separable from the swap penalty by this arm.",
+ "prereg": "#sec-nb-farwake-prereg",
+ "verdict_entry": "#sec-nb-farwake-verdict",
+ "two_seed_mean": {
+  "pressure_l2": 0.0754,
+  "velocity_l2": 0.0984,
+  "nut_l2": 0.1638
+ }
+}
