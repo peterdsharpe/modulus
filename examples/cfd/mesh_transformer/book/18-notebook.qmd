@@ -15281,3 +15281,55 @@ recommendation put to Peter through ISLA Main: adopt the HT-weighted
 the fair comparison, state it beside every baseline consistency number,
 and keep the plain-mean numbers as the record of the published datapipe.
 Until he rules, the chapters report both frames.
+
+## 2026-09-11 — MIX follow-up under refinement: the area-trained measure-weighted ISLA's swap penalty falls from 2.9x at 2,500 cells to 1.05x at 40,000, and under uniform sampling it lands at the uniform-trained model's level (+2%), not at the weights-off level {#sec-nb-mix-refinement}
+
+The MIX verdict (@sec-nb-mix-verdict) measured mesher transfer at 10,000
+cells only, where every architecture pays to swap sampling conventions,
+and predicted from the consistency benchmark that the measure-weighted
+ISLA's penalty would vanish with the count. The two area-trained
+similarity-gauge ISLA checkpoints (mix_dr_isla_gauge_area_seed{42,43}; lr
+3e-3, the rate of the uniform-trained iw_mt2_gauge reference) went through
+the benchmark's three samplers at five counts (thirty lanes, job 711297,
+float32 under snapshot code, no loader warnings; artifact `results/consistency_bench/consistency_bench_mixarea_2026-09-11.json`). The
+table sets them beside the uniform-trained gauge and the uniform-trained
+constant-gauge weights-on / weights-off pair from the original benchmark.
+
+| DrivAerML, 48 cars, float32 | 2,500 | 5,000 | 10,000 | 20,000 | 40,000 cells |
+|---|---|---|---|---|---|
+| area-trained gauge ISLA, evaluated under uniform-over-cells | 0.2243 | 0.1435 | 0.0874 | 0.0665 | 0.0591 |
+| area-trained gauge ISLA, evaluated under area-proportional | 0.0780 | 0.0650 | 0.0601 | 0.0579 | 0.0564 |
+| swap penalty, uniform ÷ area (its own law) | 2.88x | 2.21x | 1.46x | 1.15x | 1.05x |
+| uniform-trained gauge ISLA under uniform (iw_mt2_gauge) | 0.0878 | 0.0692 | 0.0618 | 0.0591 | 0.0579 |
+| area-trained ÷ uniform-trained gauge, both under uniform | 2.55x | 2.07x | 1.42x | 1.13x | 1.02x |
+| uniform-trained gauge ISLA under area (iw_mt2_gauge) | 0.2389 | 0.1887 | 0.1370 | 0.0993 | 0.0683 |
+| uniform-trained ÷ area-trained gauge, both under area | 3.06x | 2.90x | 2.28x | 1.72x | 1.21x |
+| uniform-trained constant gauge, weights on (iw_mt2_lr1e3), under uniform | 0.0796 | 0.0625 | 0.0561 | 0.0540 | 0.0530 |
+| uniform-trained constant gauge, weights off (now_mt2_lr1e3), under uniform | 0.0708 | 0.0593 | 0.0544 | 0.0527 | 0.0518 |
+
+**Two readings.** First, the MIX prediction holds: a measure-weighted ISLA
+trained on one sampling law and deployed on the other pays 2.9x at 2,500
+cells, 1.45x at 10,000 (the MIX study read 1.63x at its 10,000-cell
+evaluation on a different draw) and **1.05x at 40,000**, so at the
+benchmark's largest count the convention swap costs the measure-consistent
+model 5%, against the flat 3–7x the baselines showed at 10,000 cells;
+"train on one mesher, deploy on another" is a property the measure-weighted
+estimator acquires in the fine-mesh limit, as @sec-principle requires and
+@sec-nb-mix-verdict predicted. The reverse swap converges the same way
+(uniform-trained under area: 2.72x → 1.21x from 2,500 to 40,000 cells).
+Second, the triple ISLA Main asked for
+(#sec-nb-overfit-routing-probe in the program notebook): read under the
+uniform sampler at 40,000 cells, the area-trained weights-on model (0.0591)
+sits at the uniform-trained weights-on level (0.0579, +2%), not at the
+weights-off level (0.0518, which would be 0.88x of the weights-on 0.0530 at
+the constant gauge); training under the constant-weight law does not
+recover the weights-off advantage, so the operative part of that advantage
+on the cars is not the training-time variance of the weights. The
+uniform-sampler off-advantage on the cars does shrink with count (0.89 →
+0.98 from 2,500 to 40,000, @sec-nb-bench-verdict data), which is the
+evaluation-time variance signature; on the wings it is flat at 12–13% and
+is mesh-pattern content. Confounds stated: the weights-off arm is the
+constant gauge at lr 1e-3 while both weights-on gauge arms are at 3e-3, and
+the area-trained model under uniform sampling is off its training law, so
+its +2% may be residual swap penalty rather than a floor; the triple is a
+one-line check, not a headline.

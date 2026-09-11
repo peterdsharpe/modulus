@@ -1556,3 +1556,8 @@ interior control @sec-nb-udrv-int-prereg.
   repaired baselines' density dependence is entirely the datapipe centroid; with an HT-consistent centroid they hold at
   1.03–1.04x, below ISLA's 1.2x floor". RULING QUESTION OPEN: adopt HT CenterMesh as the baselines' frame in the fair
   comparison (recommended) vs prereg "equal → plain frame stays". Chapters report BOTH frames until Peter rules.
+- **MIX refinement (2026-09-11, fp32; results/consistency_bench/consistency_bench_mixarea_2026-09-11.json).** Area-trained gauge ISLA: swap penalty unif÷area 2.88x → 1.05x
+  (2.5k→40k); reverse (uniform-trained under area ÷ area-trained) 3.06x → 1.21x. Write "the measure-weighted
+  ISLA's convention swap costs 5% at 40k (fine-mesh limit), 45% at 10k, 190% at 2.5k". Triple under uniform at 40k: uniform-on
+  gauge 0.0579, area-on gauge 0.0591, constant off 0.0518 (constant on 0.0530) → area-on at the ON level, not the OFF
+  level; confounds: off is constant gauge lr 1e-3; area-trained under uniform is off its law. One-line check, not a headline.
