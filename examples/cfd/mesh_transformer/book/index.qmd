@@ -52,8 +52,12 @@ instrument, ISLA is 10% behind the unit-drive GeoTransolver (0.0558 against
 0.0503) and 8% behind Transolver (0.0517); below full data GeoTransolver's 1.2–1.3x lead
 stands. At 512 width and 80,000 cells the three are within 3% (0.0419 /
 0.0428 / 0.0431 in float32), so the full-data deficit is a statement about
-the reference size and resolution, and none of those configurations is
-density-invariant (@sec-full-data). The fixed-angle
+the reference size and resolution; there the similarity-gauge ISLA reaches
+the same 0.0431 at the same cost while degrading 1.08x under a 10:1
+sampling-density bias against 4–17x for every other scaled configuration;
+the frame class, not this instance, is what that demonstrates, and the
+single reference configuration is decided by the relative-position frame
+(@sec-full-data). The fixed-angle
 split has been re-measured: the unit-drive GeoTransolver and Transolver
 beat ISLA there too (0.029 and 0.032 against 0.036, on 18 of 18 held-out
 geometries), so the 5.0x figure is gone as a comparison. The HiLift rungs
@@ -94,20 +98,20 @@ peaked at 9.3 GiB, and ISLA's step is 3.7x slower (@sec-cost).
 
 | Setting | Standing | Measured | Consistency (float32) |
 |---|---|---|---|
-| HiLift surface, 35 cases, unit-drive baselines | ISLA behind | GeoTransolver 0.111 (best rate; 0.124 at 1e-3) and Transolver 0.115 vs ISLA 0.138: 0.80–0.83x (0.90–0.93x of the weights-off ablation, 0.123, not adopted); three seeds each, spreads under 2%; float32-confirmed | sampling-distribution test pending (@sec-nb-bench-prereg) |
+|  HiLift surface, 35 cases, unit-drive baselines | ISLA behind | GeoTransolver 0.111 (best rate; 0.124 at 1e-3) and Transolver 0.115 vs ISLA 0.138: 0.80–0.83x (0.90–0.93x of the weights-off ablation, 0.123, not adopted); three seeds each, spreads under 2%; float32-confirmed; with measure-weighted slice pooling the baselines score 0.117 and 0.122 (0.85x, 0.88x of ISLA) | measure-weighted baselines pay 6.5% here for the surface measure (a third of their lead was the sampling density); sampling-distribution consistency under the BENCH samplers pending for them |
 | HiLift surface, 35 cases, physical-drive baselines | Protocol artifact | 2.8x "advantage"; baselines 3.4–3.8x worse than their unit-drive selves on 180/180 cases | — |
 | HiLift surface, fixed angle (126 geometries at 12°, 18 never-seen) | ISLA behind | unit-drive GeoTransolver 0.81x, Transolver 0.89x (0.78x and 0.86x in float32); 18 of 18 geometries; 0.87x and 0.96x against ISLA with measure weights off | pending (@sec-nb-bench-prereg) |
 | HiLift, 4 never-seen training geometries (18 held out) | ISLA behind by the mean; even by geometry | unit-drive GeoTransolver 0.76x by the mean; 9 of 18 geometries each way | not measured |
-| HiLift surface, 21 training geometries (18 never-seen) | ISLA behind, small | unit-drive GeoTransolver 0.92x of ISLA in float32 (0.093 vs 0.101), lower on 136 of 180 cases; the 1.4x was against the physical drive | not measured |
+| HiLift surface, 21 training geometries (18 never-seen) | ISLA behind, small | unit-drive GeoTransolver 0.92x and Transolver 0.93x of ISLA in float32 (0.093 and 0.094 vs 0.101), lower on 136 and 135 of 180 cases; the 1.4x was against the physical drive; the weights-off ablation (0.091, not adopted) reaches parity with both | not measured |
 | HiLift surface, 210 cases | ISLA behind | unit-drive GeoTransolver 0.83x of ISLA in float32 (0.053 vs 0.064), lower on 162 of 180 cases; Transolver 0.91x, 145 of 180; the 2.2x was against the physical drive (3.4x worse than its unit-drive self) | not measured |
 | HiLift surface, 1,260 cases | Not yet compared | parity against the physical-drive GeoTransolver; unit-drive rerun at epochs 80–90 of 500 (I/O-throttled) | not measured |
-| DrivAerML surface, 435 cars | ISLA behind | float32: unit-drive GeoTransolver 0.90x and Transolver 0.93x of ISLA (0.0503, 0.0517 vs 0.0558); 0.93x and 0.95x of the weights-off ablation (0.0542, not adopted); at 512 × 80k cells 0.98x / 1.01x (0.0419 / 0.0428 / 0.0431), none density-invariant | under 10:1 density bias: GeoTransolver 9.5x, Transolver 3.9x, ISLA constant gauge 12.1x, ISLA similarity gauge 1.21x (@tbl-consistency-matrix) |
+|  DrivAerML surface, 435 cars | ISLA behind | float32: unit-drive GeoTransolver 0.90x and Transolver 0.93x of ISLA (0.0503, 0.0517 vs 0.0558); 0.93x and 0.95x of the weights-off ablation (0.0542, not adopted); at 512 × 80k cells 0.98x / 1.01x (0.0419 / 0.0428 / 0.0431); similarity-gauge ISLA 0.0431 at equal cost with density sensitivity 1.09x against 10.5x / 16.6x / 14.9x (sample frame; the pool-frame 4.2x / 4.6x are superseded); measure-weighted GeoTransolver 0.0498 and Transolver 0.0522 keep the lead | under 10:1 density bias with the frame centred on the biased sample: GeoTransolver 12x and Transolver 12x unweighted, 14–16x measure-weighted (the pooling fix does not touch the frame); ISLA constant gauge 12.1x, measure-centred 1.17x, similarity gauge 1.20–1.21x (@tbl-consistency-matrix, @sec-nb-mw-postcenter) |
 | DrivAerML surface, 27–218 cars | ISLA behind | GeoTransolver 1.2–1.3x ahead (physical drive, which is not a handicap on this dataset) | not measured |
 | DrivAerML interior, 435 cars | ISLA ahead on velocity; behind on pressure and eddy viscosity | float32, three seeds: 1.08x / 0.75x / 1.27x of GeoTransolver-volume at a third of the parameters (pressure / velocity / eddy viscosity); at matched parameters (27.6M) 0.97x / 0.68x / 1.18x, so the pressure ordering is a parameter-budget statement; only at ≥10,000 queries together; 365 or 10,000 surface tokens alike | not measured |
 | DrivAerML interior, 54–109 cars | ISLA behind on pressure, ahead on velocity from 109 cars, behind on eddy viscosity | float32: pressure 1.18–1.19x behind, velocity 0.94x (54) and 0.83x (109), eddy viscosity 1.5x behind | not measured |
 | Regime extrapolation | Nobody wins | both lose about 10x | — |
 | DrivAerML surface, 435 cars, every case in an arbitrary SO(3) pose | ISLA ahead | float32: ISLA 0.0566 (1.01x its canonical error) vs GeoTransolver with SO(3) augmentation 0.0602 (1.20x its canonical) and Transolver with augmentation 0.0676 (1.31x): ISLA 6% and 19% ahead | pose is the test: ISLA 1.01x, augmented baselines 1.20x / 1.31x |
-| Contracts and cost | Contracts earn accuracy where pose varies; cost mixed | SE(3) covariance by construction; learning-rate robust; one instrument at 10k cells: step 1.09x GeoTransolver's and 2.2x Transolver's at 0.83x GeoTransolver's incremental memory (1.5x step at 0.36x memory with exact recompute), with the fast softmax kernel; the earlier 3.7x was the reference kernel | cross-family: zero-shot fastback ISLA 0.79 vs GeoTransolver 0.61; few-shot gain 6% vs 31% |
+|  Contracts and cost | Contracts earn accuracy where pose varies; cost mixed | SE(3) covariance by construction; learning-rate robust; one instrument at 10k cells: step 1.09x GeoTransolver's and 2.2x Transolver's at 0.83x GeoTransolver's incremental memory (1.5x step at 0.36x memory with exact recompute), with the fast softmax kernel; the earlier 3.7x was the reference kernel | under area-proportional resampling only the measure-weighted ISLA arms converge toward the uniform answer with count; the unweighted baselines and the weights-off ablation are flat (@sec-consistency-bench); cross-family: zero-shot fastback ISLA 0.79 vs GeoTransolver 0.61, no single ISLA ingredient carries it; few-shot gain 6% vs 31% |
 
 : The standing of ISLA against GeoTransolver in every setting measured, as
 baseline error divided by ISLA error where a ratio is given (above one

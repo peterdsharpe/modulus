@@ -545,7 +545,13 @@ than a random initialization's (0.194 against 0.477) and the pretrained
 GeoTransolver's 1.6x lower (0.176 against 0.278), so the two architectures'
 DrivAerML knowledge is worth about the same at step zero; after 1,000
 matched-rate steps ISLA's head start has shrunk to 6% while GeoTransolver's
-has grown to 31%. Diversity at a fixed label budget is a trade, not a free
+has grown to 31%. No single ISLA ingredient carries that deficit: retraining
+with 128 or 512 anchors, with raw seeds in place of the drive-relative
+invariants, with the similarity gauge at either rate or with the measure weights off
+moves the zero-shot fastback error nowhere near GeoTransolver's (best arm
+0.767 against 0.788 and 0.612; three seeds each, spreads up to 0.30;
+@sec-nb-xfam-verdict), so the cross-family question is a data question,
+which is where campaign C's diversity results place it. Diversity at a fixed label budget is a trade, not a free
 lunch: with 435 training cases split 218 DrivAerML and 217 estate instead of
 all DrivAerML, ISLA's zero-shot fastback error falls from 0.788 to 0.128 and
 GeoTransolver's from 0.612 to 0.115 (drag error from above 150% to 16% and
@@ -563,7 +569,19 @@ itself costs 4–8% at a 50% share, and ISLA pays more on both factors, in the
 same direction as the few-shot result (#tbl-campc-t2-decomp). At a fixed
 label budget, half the labels on the target's sibling family buy the target
 family almost entirely and cost the source about what halving its data
-costs, plus 4–8% for the mixing. With the zero-shot force error
+costs, plus 4–8% for the mixing. Two further facts from the same campaign
+bound the trade. The mixing cost grows with the foreign share for ISLA and
+not for GeoTransolver: with all 435 DrivAerML cars kept and 794 estate cars
+added (a 65% foreign share, source not halved) ISLA's in-family error rises
+17% (0.0557 to 0.0652) and GeoTransolver's 4% (0.0504 to 0.0525), against 8%
+and 4% at the 50% share; and the extra 577 estate cars buy the fastback
+cases only 6% (ISLA) and 9% (GeoTransolver) over the 217-car mix, so
+coverage of a sibling family saturates within a few hundred cars. A per-case
+family flag (a boundary scalar for ISLA, a seventh functional channel for
+GeoTransolver) changes nothing on the held-out family or in-family (within
+the seed spread), so the mismatch is coverage, not identification
+(`research/transfer_program/studies/campaign_c_transfer/campaign_c_t1_2026-09-10.json`,
+companion #sec-campaigns-conditioning). With the zero-shot force error
 of 1.6x and the constant-gauge density collapse, this is the third
 independent sign that ISLA's learned representation is family-specific. The similarity
 gauge, which fixes the constant-gauge configuration's sampling-density
@@ -779,14 +797,29 @@ query-independent configuration at a measured 3.0–3.7x accuracy cost
 to sampling density at inference: 1.21x under a 10:1 bias in float32 against
 9.5x for the unit-drive GeoTransolver and 3.9x for Transolver
 (@tbl-consistency-matrix, @sec-robustness-density). That last column is the
-one the recommendation has to be read with (@sec-principle): the baselines'
-in-distribution lead of 8–10% on DrivAerML is a lead on the training
-mesher's sampling, and it inverts to a collapse when the sampling changes,
-while the constant-gauge ISLA behind the accuracy numbers collapses too
-(12.1x) and only the similarity gauge, at its 8–10% in-distribution price,
-holds. Which configuration the program stands on is being decided by the
-consistency benchmark and the gauge ladder (#sec-nb-bench-prereg,
-#sec-nb-wave4-prereg). Its learning-rate robustness is
+one the recommendation has to be read with (@sec-principle), and it splits
+the recommendation. On accuracy the baselines lead: with the surface
+measure in their slice pooling GeoTransolver and Transolver keep their
+in-distribution lead on both datasets (0.0498 and 0.0522 on DrivAerML;
+0.85x and 0.88x of ISLA at 35 HiLift cases; @sec-nb-mw-verdict). On
+consistency the frame decides, not the pooling: every architecture that
+centres its coordinates on a plain sample mean collapses under the 10:1
+bias when the frame is taken from the biased sample (weighted baselines
+14–16x, unweighted 12x, constant-gauge ISLA 12x; @sec-nb-mw-postcenter),
+and only ISLA's measure-weighted frames hold (1.17–1.21x). So on surface
+pressure at the reference size the measure-weighted GeoTransolver or
+Transolver is the more accurate choice wherever the deployment mesher
+matches the training mesher, and ISLA with a measure-weighted frame is the
+choice wherever the sampling may differ, where geometries arrive in
+arbitrary poses, on the interior at matched parameters, or where memory at
+scale binds. Under
+refinement and across sampling laws no configuration is yet consistent at
+10,000 cells; only the measure-weighted ISLA arms converge toward the
+uniform answer under the area-proportional sampler while the unweighted
+baselines are flat (@sec-consistency-bench), and whether the weighted
+baselines converge too is being measured. Which frame ISLA stands on is
+decided by RELFRAME (#sec-nb-relframe-prereg); the reference is under
+decision until it reads out. Its learning-rate robustness is
 measured against a physical-drive GeoTransolver and is not claimed as an
 advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on velocity

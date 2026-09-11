@@ -3,7 +3,7 @@
  "instrument": "float32 inference; unit-drive baselines; DrivAerML surface pressure rel-L2, 48 validation cars, 10,000 cells; seed means",
  "columns": {
   "in_family": "pressure rel-L2 on the 48 validation cars (sampling uniform over cells, 10k)",
-  "density_factor": "pressure rel-L2 under 10:1 front/back Poisson-biased sampling (exact HT measure weights) \u00f7 uniform, 10k cells (campaign E, research/transfer_program/studies/campaign_e_evalonly/campaign_e_density_fp32_2026-09-09.json)",
+  "density_factor": "pressure rel-L2 under 10:1 front/back Poisson-biased sampling (exact HT measure weights) \u00f7 uniform, 10k cells, float32; SAMPLE FRAME for every row (the input frame centred on the drawn points, as a biased mesher delivers it; probes drivaer_probe_{unif2,biased3}_sf); pool-frame values (pipeline centring on the uniform reader pool before the draw) are kept per row where they differ",
   "pose_factor": "pressure rel-L2 with every training and validation case in its own random SO(3) pose \u00f7 canonical-pose error of the same architecture (POSE-BENCH, research/transfer_program/studies/campaign_b_pose/campaign_b_fp32_2026-09-10.json); baselines trained with SO(3) augmentation",
   "zero_shot_fastback": "pressure rel-L2 on the 99 SHIFT-SUV fastback validation cases, no fastback training data (1.0 = predicting the mean; transfer session float32 evaluations under snapshot code)",
   "few_shot_gain": "fine-tuned on 20 fastback cases for 1,000 steps at matched learning rate: error from scratch \u00f7 error fine-tuned \u2212 1 (campaign C T3, #sec-nb-campc-t3-verdict)"
@@ -13,7 +13,7 @@
    "label": "ISLA, constant gauge (reference, lr 1e-3)",
    "runs": "iw_mt2_lr1e3_seed{42,43}",
    "in_family": 0.0558,
-   "density_factor": 12.1,
+   "density_factor": 12.0,
    "density_seeds": [
     12.5,
     11.7
@@ -24,7 +24,8 @@
     0.7824,
     0.794
    ],
-   "few_shot_gain": 0.06
+   "few_shot_gain": 0.06,
+   "density_note": "ISLA centres in the model on the sampled points, so pool-frame and sample-frame probes agree within 1% (sample-frame rerun: constant 11.99, gauge 1.207, weights-off 19.23)"
   },
   "isla_similarity_gauge": {
    "label": "ISLA, similarity gauge (lr 3e-3; other rows 1e-3 except Transolver)",
@@ -42,13 +43,14 @@
     0.8514
    ],
    "few_shot_gain": null,
-   "lr_note": "trained at 3e-3; rate-matched constant gauge mt2_v3c_seed42 scores 0.0620 fp32, so no in-distribution price is established on DrivAerML (#sec-nb-gauge-lr-confound)"
+   "lr_note": "trained at 3e-3; rate-matched constant gauge mt2_v3c_seed42 scores 0.0620 fp32, so no in-distribution price is established on DrivAerML (#sec-nb-gauge-lr-confound)",
+   "density_note": "ISLA centres in the model on the sampled points, so pool-frame and sample-frame probes agree within 1% (sample-frame rerun: constant 11.99, gauge 1.207, weights-off 19.23)"
   },
   "isla_weights_off_ablation": {
    "label": "ISLA, measure weights off (ablation, not adopted; lr 1e-3)",
    "runs": "now_mt2_lr1e3_seed{42,43}",
    "in_family": 0.0544,
-   "density_factor": 19.1,
+   "density_factor": 19.2,
    "density_seeds": [
     23.1,
     15.2
@@ -59,17 +61,18 @@
     0.8018,
     0.8105
    ],
-   "few_shot_gain": null
+   "few_shot_gain": null,
+   "density_note": "ISLA centres in the model on the sampled points, so pool-frame and sample-frame probes agree within 1% (sample-frame rerun: constant 11.99, gauge 1.207, weights-off 19.23)"
   },
   "geotransolver_unit": {
    "label": "GeoTransolver, unit drive (lr 1e-3)",
    "runs": "uw_gt_unit_lr1e3_seed{42,43,44}",
    "in_family": 0.0503,
-   "density_factor": 9.5,
+   "density_factor": 12.1,
    "density_seeds": [
-    11.8,
-    7.9,
-    8.8
+    12.0,
+    11.9,
+    12.5
    ],
    "pose_factor": 1.2,
    "pose_note": "with SO(3) augmentation; unaugmented degrades far more",
@@ -78,13 +81,15 @@
     0.6086,
     0.6153
    ],
-   "few_shot_gain": 0.31
+   "few_shot_gain": 0.31,
+   "density_factor_pipeline_frame": 9.5,
+   "density_note": "sample frame, three seeds (campaign E sample-frame rerun, research/transfer_program/studies/campaign_e_evalonly/campaign_e_density_fp32_sampleframe_2026-09-10.json); pool-frame 9.5x"
   },
   "transolver_unit": {
    "label": "Transolver, unit drive (lr 3e-3)",
    "runs": "uw_transolver_unit_lr3e3_seed{42,43}",
    "in_family": 0.0517,
-   "density_factor": 3.9,
+   "density_factor": 11.6,
    "density_seeds": [
     2.2,
     5.5
@@ -92,7 +97,85 @@
    "pose_factor": 1.31,
    "pose_note": "with SO(3) augmentation",
    "zero_shot_fastback": null,
-   "few_shot_gain": null
+   "few_shot_gain": null,
+   "density_factor_pipeline_frame": 3.9,
+   "density_note": "sample frame, two seeds 10.2 / 13.0 (mw post-centre probe); pool-frame 3.9x"
+  },
+  "geotransolver_unit_mw": {
+   "label": "GeoTransolver, unit drive, measure-weighted pooling (lr 1e-3)",
+   "runs": "mw_dr_gt_unit_lr1e3_seed{42,43}",
+   "in_family": 0.0498,
+   "in_family_seeds": [
+    0.0492,
+    0.0505
+   ],
+   "density_factor": 14.4,
+   "density_seeds": [
+    1.03,
+    1.01
+   ],
+   "pose_factor": null,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "MW steel-man (#sec-nb-mw-verdict); probe frame from the pipeline pool mean",
+   "density_factor_pipeline_frame": 1.02,
+   "density_note": "headline = frame from the biased sample (like-for-like with ISLA); with the pipeline's unbiased pool frame the factor is 1.02x (#sec-nb-mw-postcenter)"
+  },
+  "transolver_unit_mw": {
+   "label": "Transolver, unit drive, measure-weighted pooling (lr 3e-3)",
+   "runs": "mw_dr_transolver_unit_lr3e3_seed{42,43}",
+   "in_family": 0.0522,
+   "in_family_seeds": [
+    0.0519,
+    0.0525
+   ],
+   "density_factor": 15.6,
+   "density_seeds": [
+    1.02,
+    1.03
+   ],
+   "pose_factor": null,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "MW steel-man",
+   "density_factor_pipeline_frame": 1.025,
+   "density_note": "headline = frame from the biased sample (like-for-like with ISLA); with the pipeline's unbiased pool frame the factor is 1.02x (#sec-nb-mw-postcenter)"
+  },
+  "isla_similarity_gauge_lr1e3": {
+   "label": "ISLA, similarity gauge (lr 1e-3, rate-matched)",
+   "runs": "w4_dr_mt2_gauge_lr1e3_seed{42,43}",
+   "in_family": 0.0543,
+   "in_family_seeds": [
+    0.0552,
+    0.0534
+   ],
+   "density_factor": 1.2,
+   "density_seeds": [
+    1.18,
+    1.22
+   ],
+   "pose_factor": 1.01,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "#sec-nb-wave4-drivaer-note; zero-shot fastback pending"
+  },
+  "isla_constant_gauge_mcenter": {
+   "label": "ISLA, constant gauge, measure-weighted centring (lr 1e-3)",
+   "runs": "cg_dr_mt2_mcenter_seed{42,43}",
+   "in_family": 0.0548,
+   "in_family_seeds": [
+    0.055,
+    0.0545
+   ],
+   "density_factor": 1.17,
+   "density_seeds": [
+    1.17,
+    1.18
+   ],
+   "pose_factor": 1.01,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "#sec-nb-center-lanes-verdict; sample-statistic frame, not a flagship candidate under the ruling"
   }
  },
  "hilift_pending": "HiLift density and area-resampling factors come from the consistency benchmark (#sec-nb-bench-prereg); until it lands the HiLift rows carry accuracy only",
@@ -101,33 +184,57 @@
   "Few-shot gain: GeoTransolver 0.186 \u2192 0.128 (31%); ISLA 0.198 \u2192 0.187 (6%)."
  ],
  "scale_corner": {
-  "description": "the 512-wide, 80,000-cell corner of the scaling study (SCALE), float32, unit drive, DrivAerML 48 cars evaluated at 80,000 cells; density factor = biased \u00f7 uniform at the corner's own cell count (results/scaling/*_scale_reduction_2026-09-09.json, scaling synthesis a6c8a6058)",
+  "description": "the 512-wide, 80,000-cell corner of the scaling study (SCALE), float32, unit drive, DrivAerML 48 cars evaluated at 80,000 cells; density factor = biased \u00f7 uniform at the corner's own cell count (results/scaling/*_scale_reduction_2026-09-09.json, scaling synthesis a6c8a6058); density factors are sample-frame values at the corner's own count (scaling synthesis #sec-nb-scale-drivaer-synthesis; ISLA translation invariance checked, results/scaling/isla_translation_check_2026-09-10.json)",
   "rows": {
    "geotransolver_unit_512x80k": {
     "label": "GeoTransolver, unit drive, 512 \u00d7 80k",
     "in_family": 0.0419,
-    "density_factor": 4.2,
+    "density_factor": 10.5,
     "gpu_hours": 12.7,
     "step_s": 0.211,
     "peak_memory_gb": 41.5,
     "density_seeds": [
-     6.5,
-     1.9
-    ]
+     9.3,
+     11.6
+    ],
+    "density_frame": "sample frame (headline; probe drivaer_probe_*_sf_80k, float32, code_eval); pool-frame value kept as density_factor_pipeline_frame",
+    "density_factor_pipeline_frame": 4.2
    },
    "isla_constant_gauge_512x80k": {
     "label": "ISLA, constant gauge, 512 \u00d7 80k (fast kernel)",
     "in_family": 0.0428,
-    "density_factor": 16.7,
-    "gpu_hours": 22.5
+    "density_factor": 16.6,
+    "gpu_hours": 22.5,
+    "density_frame": "sample frame (headline; probe drivaer_probe_*_sf_80k, float32, code_eval); pool-frame value kept as density_factor_pipeline_frame",
+    "density_factor_pipeline_frame": 16.7
    },
    "transolver_unit_512x80k": {
     "label": "Transolver, unit drive, 512 \u00d7 80k",
     "in_family": 0.0431,
-    "density_factor": 4.6,
-    "gpu_hours": 6.6
+    "density_factor": 14.9,
+    "gpu_hours": 6.6,
+    "density_frame": "sample frame (headline; probe drivaer_probe_*_sf_80k, float32, code_eval); pool-frame value kept as density_factor_pipeline_frame",
+    "density_factor_pipeline_frame": 4.6,
+    "density_seeds": [
+     13.0,
+     16.8
+    ]
+   },
+   "isla_similarity_gauge_512x80k": {
+    "label": "ISLA, similarity gauge, 512 \u00d7 80k (fast kernel)",
+    "in_family": 0.0431,
+    "in_family_seeds": [
+     0.0425,
+     0.0437
+    ],
+    "density_factor": 1.09,
+    "gpu_hours": 20.2,
+    "step_s": 0.281,
+    "peak_memory_gb": 22.9,
+    "note": "the only scaled configuration whose accuracy survives the density bias; adopted at scale under the principle (scaling synthesis, psharpe/mesh-transformer 15ee3df40)",
+    "density_frame": "sample frame (headline; probe drivaer_probe_*_sf_80k, float32, code_eval); pool-frame value kept as density_factor_pipeline_frame",
+    "density_factor_pipeline_frame": 1.08
    }
-  },
-  "pending": "ISLA similarity gauge at 512 \u00d7 80k (scale_isla_dr_g512x80k_seed{42,43}) \u2014 decisive for whether any corner configuration is density-invariant"
+  }
  }
 }

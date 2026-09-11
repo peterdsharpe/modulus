@@ -159,6 +159,35 @@ def probe(run):
 
 
 out = {"instrument": "float32 inference headline; bf16 alongside; shift = (fp32 - bf16)/bf16 on per-case pressure; density-bias probe biased/unif in fp32 where run", "runs": {}, "arms": {}, "references": {}, "probe": {}}
+# Sample-frame density probe (program ruling 2026-09-10): the *_sf datasets centre the mesh AFTER the biased draw,
+# so absolute-coordinate models see the sample's own mean, as a biased mesher would deliver. Track-private outputs
+# under hl_evals_probe_fp32/gt_sf/<run>/r<res>/{unif,biased}; the pool-frame ratio is carried alongside.
+SF_UNITS = [("scale_gt_dr_c512x80k_seed42", 80000), ("scale_gt_dr_c512x80k_seed43", 80000), ("scale_gt_dr_c512x80k_seed42", 10000),
+            ("scale_gt_dr_c512x80k_seed43", 10000), ("uw_gt_unit_lr1e3_seed42", 10000), ("uw_gt_unit_lr1e3_seed43", 10000), ("uw_gt_unit_lr1e3_seed44", 10000)]
+
+
+def probe_sf(run, res):
+    vals = {}
+    for k in ("unif", "biased"):
+        ps = glob.glob(f"{T}/hl_evals_probe_fp32/gt_sf/{run}/r{res}/{k}/**/metrics.jsonl", recursive=True)
+        if not ps:
+            return None
+        pc = per_case(ps[0]); vals[k] = st.mean(v["pressure_l2"] for v in pc.values())
+    rec = {"resolution": res, "unif_pressure_l2": vals["unif"], "biased_pressure_l2": vals["biased"], "biased_over_unif_sample_frame": vals["biased"] / vals["unif"]}
+    pf = probe(run)
+    if pf and (res == 80000) == run.startswith("scale_gt_dr_c512x80k"):
+        rec["biased_over_unif_pool_frame"] = pf["biased_over_unif"]
+    bad = load_failed(run)
+    if bad:
+        rec["INVALID_EVAL_skipping_load"] = bad
+    return rec
+
+
+out["density_probe_sf"] = {}
+for r, res in SF_UNITS:
+    pr = probe_sf(r, res)
+    if pr:
+        out["density_probe_sf"][f"{r}_r{res}"] = pr
 for r in PROBE:
     pr = probe(r)
     if pr:
@@ -209,6 +238,8 @@ out["provenance"] = {"eval_logs_checked_for_skipped_load": LOG_CHECK["checked"],
                      "evaluation_snapshot": "the ten DrivAerML lanes and the references were evaluated under the training snapshot code; from 2026-09-10 the eval, fp32 and probe launchers import the program-wide evaluation snapshot code_eval, identity-checked by the main session (uw_gt_unit_lr1e3_seed42 under code vs code_eval: bitwise identical in float32, zero skipped loads), so both sets are the same function"}
 json.dump(out, open(f"{T}/hl_evals/scale_gt_reduction.json", "w"), indent=1)
 print("PROVENANCE", out["provenance"])
+for k, v in out.get("density_probe_sf", {}).items():
+    print("PROBE_SF", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items()})
 for k, v in out["references"].items():
     print("REF", k, {kk: (round(x, 4) if isinstance(x, float) else x) for kk, x in v.items() if kk not in ("runs", "per_run")})
 for k, v in out["arms"].items():

@@ -1,0 +1,73 @@
+{
+ "date": "2026-09-10",
+ "rung": "highlift_surface_scarce (210 cases); 180 validation cases",
+ "instrument": "float32 (hl_evals_fp32, zero skipped loads) with bf16 alongside; seed means; paired per case on seed-mean pressure",
+ "arms_fp32": {
+  "isla_weights_off": {
+   "runs": [
+    "a35_hl_mt2_noweights_scarce_seed42",
+    "a35_hl_mt2_noweights_scarce_seed43"
+   ],
+   "pressure_l2": 0.0589,
+   "velocity_l2": 0.0873,
+   "tau_wall_l2": 0.1329,
+   "seed_pressure": [
+    0.0581,
+    0.0598
+   ]
+  },
+  "isla_weights_on": {
+   "runs": [
+    "lad_hl_mt2_scarce_seed42",
+    "lad_hl_mt2_scarce_seed43",
+    "lad_hl_mt2_scarce_seed44"
+   ],
+   "pressure_l2": 0.0643,
+   "velocity_l2": 0.0937,
+   "tau_wall_l2": 0.1441,
+   "seed_pressure": [
+    0.0617,
+    0.0661,
+    0.0652
+   ]
+  },
+  "gt_unit": {
+   "pressure_l2": 0.0533
+  },
+  "transolver_unit_lr3e3": {
+   "pressure_l2": 0.0582
+  }
+ },
+ "arms_bf16": {
+  "isla_weights_off": {
+   "pressure_l2": 0.0593
+  },
+  "isla_weights_on": {
+   "pressure_l2": 0.0648
+  }
+ },
+ "paired_fp32_vs_weights_off": {
+  "isla_weights_on": {
+   "off_lower_on": 150,
+   "n": 180,
+   "median_other_over_off": 1.075
+  },
+  "gt_unit": {
+   "off_lower_on": 31,
+   "n": 180,
+   "median_other_over_off": 0.834
+  },
+  "transolver_unit": {
+   "off_lower_on": 52,
+   "n": 180,
+   "median_other_over_off": 0.914
+  }
+ },
+ "bars": {
+  "reference_weighted_fp32": 0.0643,
+  "persists_if_at_most": 0.0611,
+  "fades_if_at_least": 0.0624,
+  "source": "#sec-nb-noweights-prereg (ablation only; reference-configuration rule retired 2026-09-10)"
+ },
+ "verdict": "ABLATION PERSISTS: weights off 0.0589 = 0.916x weighted (8.4% better), lower on 150/180; still behind unit-drive GeoTransolver (0.905x of weights-off, GT lower on 149/180) and at parity with unit-drive Transolver (0.988x, Transolver lower on 128/180). Ablation tally: persists at 35 (12%), 210 (8.4%), 4 geometries (17%), fixed angle (10.6%); fades on DrivAerML (2.9%); pending 21 geometries, 1,260, deflection."
+}

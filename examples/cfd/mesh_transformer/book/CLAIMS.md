@@ -1299,3 +1299,126 @@ interior control @sec-nb-udrv-int-prereg.
   queries provide computation at the requested points, not geometric context; the passive route is closed
   for ISLA at matched depth and inputs; the deployment repair for query-set dependence is query-count
   augmentation (QCOUNT), not architecture". PASSIVE2 closed by this result.
+- **Campaign C T1, conditioning (2026-09-10, fp32, code_eval, 99 fastback + 48 DrivAerML cars, two seeds; research/transfer_program/studies/campaign_c_transfer/campaign_c_t1_2026-09-10.json).** NULL: per-case
+  family flag (0 DrivAerML / 1 estate; boundary scalar for ISLA, 7th functional channel for GT) — fastback ISLA 0.1197 → 0.1211,
+  GT 0.1052 → 0.1107; in-family 0.0652 → 0.0662, 0.0525 → 0.0529 (1.5% / 0.8%, inside the 5% clause); seed spreads 0.007 / 0.003
+  cover the differences. Write "the estate family buys coverage, not identification". Mixing at 65% share (source not halved):
+  ISLA 0.0557 → 0.0652 (1.171), GT 0.0504 → 0.0525 (1.042) vs 1.078 / 1.043 at 50%: ISLA's mixing cost grows with the foreign
+  share, GT's does not. Extra 577 estate cars buy fastback 6% (ISLA) / 9% (GT) over the 217-car mix → coverage saturates within
+  a few hundred sibling cars. Campaign C CLOSED (T1 null, T2 trade, T3 GT-only).
+- **Similarity-gauge corner g512x80k (2026-09-10, scaling session, fp32, code_eval, two seeds).** 0.0431
+  (0.0425 / 0.0437; bf16 0.0441) vs bar ≤ 0.0449 → PASS; biased ÷ uniform 1.08 at 80k vs bar ≤ 1.5 → PASS
+  (constant-gauge corner 16.7x, GT corner 4.2x, Transolver 4.6x). Cost equal to the constant-gauge corner
+  (60.2M params, 22.9 vs 22.8 GB, 0.281 vs 0.285 s, 20.2 vs 22.5 GPU-h): the gauge's 10% reference-size
+  cost vanishes at scale. Down-transfer: 0.0727 at 10k (1.69x native; constant corner 1.55x) → deploy at
+  the training count. Bar 3 with the gauge row: GT ÷ ISLA 0.972, Transolver ÷ ISLA 1.000. WRITE: "at 512 ×
+  80k the three architectures reach 0.042–0.043; GeoTransolver and Transolver at density sensitivities of
+  4x and 5x, ISLA's constant gauge at 17x, ISLA's similarity gauge at 1.08x at the same cost — the only
+  scaled configuration whose accuracy survives a 10:1 sampling-density bias; under the principle the
+  configuration the program adopts at scale". The reference-size switch (similarity gauge vs constant
+  length + measure centering) is decided by the centering lanes and Peter.
+- **Measure-centering lanes (2026-09-10, fp32; results/center_lanes_2026-09-10.json).** DrivAerML: constant
+  gauge + center_mode="measure" 0.0548 (0.0550/0.0545) vs plain 0.0557 → 0.98x; density 1.17x (1.168/1.184)
+  → JOINT PASS; adopted as the DrivAerML reference configuration. HiLift reference: UNDER DECISION (Peter), not
+  "stays constant gauge" — a configuration failing the consistency test is not kept as flagship for 10% accuracy. HiLift 35:
+  0.1520 (0.1519/0.1521) vs 0.1377 → 1.10x, accuracy bar FAILED ("invariant but costly"); similarity gauge
+  pays 7.6% on the same rung (0.1482, three seeds). Write "on heterogeneous meshes the price of a
+  sampling-consistent frame is the variance of the frame estimate, not the length scale"; never "measure
+  centering is free" without "on DrivAerML". Next prereg: FRAME-FULL (frame from the full geometry as
+  global data). HiLift density of the cg_hl checkpoints: pending BENCH samplers.
+- **BENCH verdict (2026-09-10; results/consistency_bench/consistency_bench_2026-09-10.json).** At 40,000
+  cells only the similarity-gauge ISLA under the 10:1 bias on DrivAerML passes the ≤ 3% consistency bar
+  (+2.8%); every other arm × sampler reads the sampling distribution (D_area at 40k: gauge +18%, constant
+  +90%, Transolver +213%, GT +562%, weights-off +1176% on DrivAerML; HiLift arms +147% to +4119%). Under
+  the area sampler only the measure-weighted ISLA arms on DrivAerML CONVERGE toward the uniform answer
+  (2.63x / 3.50x fall from 2.5k to 40k); all other area curves are flat. RULES: never write "consistent"
+  or "mesher-transferable" for any configuration at 10,000 cells; write convergence rates; the area
+  sampler is a thousands-fold distribution change (HT max/min 1,000–37,000; 21–33% of kept cells at the
+  clamp at 40k) and starves refined regions, so its fixed-count failures are information/variance
+  statements, not shortcut statements; the bias probe (factor 10) understates distance from consistency.
+- **Peter's frame ruling (2026-09-10).** ONE flagship configuration, never dataset-dependent. No sample
+  statistic in the frame: no centering by plain or weighted mean, no scaling by sample RMS radius.
+  Translation invariance from relative positions only (RELFRAME); length scale = stated reference length
+  or √(total surface measure). FRAME-FULL is a diagnostic of the variance mechanism, not a candidate.
+  Write "reference under decision until RELFRAME reads out"; never "DrivAerML adopts measure centering".
+- **Peter's rulings on the frame (2026-09-10).** (1) ONE flagship configuration across datasets; never a
+  per-dataset reference (the DrivAerML-adopts / HiLift-stays proposal is withdrawn). (2) Sample-statistic
+  frames (mean / weighted-mean centering, RMS-radius scaling) inject the point distribution; the reference
+  frame is to be relative-position translation invariance (drop the six centroid-dependent scalars: seeds
+  r_mag, log r_mag, r̂·d̂, r̂·n̂ and relational z_mag, ẑ·d̂) with an integral length scale (√ of the total
+  surface measure Σw, or a stated physical reference length) — the RELFRAME arm, run by the generalization
+  session at 35 HiLift / DrivAerML and by the scaling session at 512×80k. (3) Gauge corner (0.0431, 1.08x)
+  demonstrates the FRAME CLASS (density-blind frame costs nothing at scale), not an adopted configuration;
+  write "the frame class" and "under decision", never "adopted at scale". (4) Area-proportional / shortcut
+  study greenlit (fork). (5) HiLift reader slowdown accepted, no read fix now.
+- **MW verdict (2026-09-10, fp32; results/mw_w4dr_xfam_reduction_2026-09-10.json).** Measure-weighted
+  pooling: GT-mw DrivAerML 0.0498 (0.0492/0.0505; unweighted 0.0503), density 1.02x (1.03/1.01); Transolver-mw
+  0.0522 (0.0519/0.0525; 0.0517), 1.025x. HiLift 35: GT-mw 0.1173 (0.1127/0.1220/0.1173; unweighted 0.1102,
+  +6.5%) = 0.85x ISLA; Transolver-mw 0.1217 (+6.6%) = 0.88x ISLA. Both "lead survives". Write "the
+  principled baselines keep their lead and are the most density-consistent configurations measured
+  (1.02x)"; ALWAYS add: the probe's CenterMesh centres all inputs by the 40k uniform pool's plain mean
+  BEFORE the biased draw, so the baselines' frame is unbiased from the pipeline while ISLA re-centres
+  on the biased sample — the baselines' pool-mean centring is a sample-statistic frame too (Peter's
+  ruling). HiLift consistency of MW: pending BENCH samplers. Never write "measure semantics transferred"
+  until the area-sampler trend is measured for the MW checkpoints.
+- **Gauge at lr 1e-3 on DrivAerML (2026-09-10).** 0.0543 (0.0552/0.0534) vs constant 0.0557 → 0.975x;
+  density 1.20x (1.18/1.22). Confirms the lr confound; the gauge is free on DrivAerML at matched rate.
+- **XFAM interim verdict (2026-09-10).** Zero-shot fastback (ref 0.788): n_slices 128 → 0.98, 512 → 0.87,
+  raw seeds 0.767 (0.822/0.825/0.654), gauge (3e-3) 0.945, weights-off 0.806, v5a4 0.850. No arm ≤ 0.70;
+  deficit DISTRIBUTED (H5). Write "no single ISLA ingredient carries the cross-family deficit"; never name
+  a carrier. Seed spreads 0.17–0.26 on this readout: three seeds minimum, quote spreads. H1 closes when
+  the lr 1e-3 gauge pair's zero-shot lands.
+- **MW POST-CENTRE CORRECTION (2026-09-10; $T/transfer/mw_postcenter_density.json).** With CenterMesh
+  moved after the biased draw (frame from the biased sample), mw GT 14.3/14.6x, mw Transolver 15.9/15.4x,
+  unweighted GT 12.0/11.9x, unweighted Transolver 10.2/13.0x (fp32, 10k). RETIRE "measure-weighted
+  baselines are the most density-consistent configurations measured (1.02x)"; the 1.02x was the
+  pipeline's unbiased 40k-pool frame. Write "measure weighting fixes the aggregation, not the frame;
+  under a like-for-like frame the baselines collapse 12–16x, ISLA's measure-weighted frames hold at
+  1.17–1.21x". The published 9.5x / 3.9x baseline collapses were pipeline-frame numbers (under-estimates;
+  12x with the sample frame). Accuracy half of MW STANDS (lead survives). Matrix mw rows carry both
+  factors with the sample-frame one as headline.
+- **Frame convention for density probes (2026-09-10).** Every density-probe ratio must state its frame
+  convention: "pool frame" (pipeline CenterMesh on the uniform reader pool before the biased draw; what
+  the baselines received in campaign E, the scaling corners and BENCH) or "sample frame" (centring after
+  the draw; what a biased mesher delivers; what ISLA computes in-model). The SAMPLE frame is the default
+  for all future probes and for headline comparisons. Pool-frame numbers on file: GT 9.5x, Transolver
+  3.9x (campaign E); GT 4.2x, Transolver 4.6x (512×80k corner); the BENCH biased/area columns for the
+  baselines. Sample-frame: GT 12.0x, Transolver 10–13x, mw GT 14.4x, mw Transolver 15.6x (10k, DrivAerML).
+  Lead sentence to reuse: "with like-for-like frames every configuration that centres on a sample statistic
+  collapses 10–17x; only frames that do not read the sample survive; measure weighting repairs the
+  aggregation, the frame is a separate defect, both must be fixed".
+- **BENCH mcenter addendum (2026-09-10; results/consistency_bench/consistency_bench_mcenter_2026-09-10.json).**
+  Measure-centred constant-gauge ISLA: DrivAerML D_area +18% → +3%, D_biased +18% → +3%;
+  HiLift 35 D_area -2% → -0%, D_biased +4% → +1%. First configuration consistent under all three
+  samplers (both datasets at 40k; HiLift already at 10k). Write "the constant gauge's sampler dependence was
+  entirely its plain-mean centroid". Caution to carry: the metric is evaluated on the sampled points, so the
+  samplers also move the metric's point distribution (common to all arms). Frame-ruling question for Peter:
+  the measure-weighted centroid is the HT estimate of ∫x dA / ∫dA (an integral property); whether the ruling
+  excludes it is his call; RELFRAME stays the cleanest construction.
+- **Weights-off ablation, 210 cases (2026-09-10, fp32, two seeds; results/nowl_210_reduction_2026-09-10.json).** 0.0589 (0.0581/0.0598) vs weighted
+  0.0643 → 0.916x, lower on 150/180: PERSISTS (bar ≤ 0.0611). vs unit GT 0.0533: 0.905x of weights-off (GT lower
+  149/180); vs unit Transolver 0.0582: 0.988x (parity; Transolver lower 128/180). Ablation tally: persists 35 (12%),
+  210 (8.4%), geo4 (17%), fixed (10.6%); fades DrivAerML (2.9%); pending geo21, 1,260, deflection. ABLATION ONLY —
+  write "prices the measure semantics at 8% at 210 cases"; never a configuration. NOW-L node DONE.
+- **Corner density probes, SAMPLE FRAME (2026-09-10, scaling session, fp32, code_eval, two seeds; supersedes the pool-frame
+  4.2x / 4.6x).** At 512×80k, biased ÷ uniform at 80k (10k design point): GeoTransolver 10.5 (10.2), Transolver 14.9
+  (13.7), ISLA constant gauge 16.6 (10.8), ISLA similarity gauge 1.09 (1.56). References at 10k: GT 12.1 (12.0/11.9/12.5),
+  Transolver 11.6 (10.2/13.0), ISLA constant 12.0, ISLA gauge 1.21. Pool frame under-reported the baselines 2.5–3x and
+  manufactured GT's apparent corner improvement and seed asymmetry. WRITE: "density sensitivities in the sample frame
+  10.5x (GeoTransolver), 14.9x (Transolver), 16.6x (ISLA constant gauge) against 1.09x for ISLA's similarity gauge at
+  the same cost; the earlier 4.2x / 4.6x were pool-frame readings and are superseded". No baseline configuration is less
+  sensitive than its reference; Transolver's corner is more so. SCALE DrivAerML half COMPLETE; HiLift half 1–2 weeks.
+- **Campaign E re-evaluated in the SAMPLE FRAME (2026-09-10, transfer session, fp32, code_eval, 10k, val; canonical _sf
+  yamls; artifact studies/campaign_e_evalonly/campaign_e_density_fp32_sampleframe_2026-09-10.json).** Biased ÷ uniform
+  [pool frame]: unit GT 12.14 (12.00/11.93/12.50) [9.5]; Transolver 3e-3 11.61 (10.18/13.04) [3.9]; constant-gauge ISLA
+  11.99 (12.39/11.58) [12.1]; gauge ISLA 1.207 (1.195/1.218) [1.21]; weights-off ISLA 19.23 (23.40/15.06) [19.1]. Uniform
+  levels agree between frames to 0.0002; ISLA rows move ≤ 1% (internal centring). SUPERSEDED: "Transolver degrades more
+  gracefully" (3.9x) was a frame artifact. Quote 12.1x / 11.6x / 12.0x / 1.21x / 19.2x as the reference-size density
+  sensitivities.
+- **XFAM H1 closed (2026-09-10).** Rate-matched gauge (lr 1e-3) zero-shot fastback 1.068 / 0.768 → 0.918 (spread 0.30). No arm ≤ 0.70; XFAM final: distributed. Ops: AGA `sacct --starttime` parses cluster-local time (UTC−7); a future local time makes it fail silently.
+- **21-geometry rung, all arms (2026-09-10, fp32, two seeds; results/geo210_all_arms_2026-09-10.json).** Unit Transolver 3e-3 0.0941 (0.0922/0.0960) vs
+  ISLA 0.1014 → 0.928x, lower on 135/180: BETWEEN (baseline direction), beside unit GT 0.920x. Weights-off ablation
+  0.0905 (0.0909/0.0901) → 0.892x of weighted, 146/180: PERSISTS (bar ≤ 0.0963); at parity with both unit-drive baselines
+  (GT ÷ off 1.03, GT lower 78/180; Transolver ÷ off 1.04, 71/180). Write "the ablation prices the measure semantics at
+  11% at 21 geometries"; never a configuration. Ablation tally: persists 35 / 210 / geo4 / geo21 / fixed angle; fades
+  DrivAerML; pending 1,260, deflection.
