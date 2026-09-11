@@ -1416,3 +1416,9 @@ interior control @sec-nb-udrv-int-prereg.
   gracefully" (3.9x) was a frame artifact. Quote 12.1x / 11.6x / 12.0x / 1.21x / 19.2x as the reference-size density
   sensitivities.
 - **XFAM H1 closed (2026-09-10).** Rate-matched gauge (lr 1e-3) zero-shot fastback 1.068 / 0.768 → 0.918 (spread 0.30). No arm ≤ 0.70; XFAM final: distributed. Ops: AGA `sacct --starttime` parses cluster-local time (UTC−7); a future local time makes it fail silently.
+- **21-geometry rung, all arms (2026-09-10, fp32, two seeds; results/geo210_all_arms_2026-09-10.json).** Unit Transolver 3e-3 0.0941 (0.0922/0.0960) vs
+  ISLA 0.1014 → 0.928x, lower on 135/180: BETWEEN (baseline direction), beside unit GT 0.920x. Weights-off ablation
+  0.0905 (0.0909/0.0901) → 0.892x of weighted, 146/180: PERSISTS (bar ≤ 0.0963); at parity with both unit-drive baselines
+  (GT ÷ off 1.03, GT lower 78/180; Transolver ÷ off 1.04, 71/180). Write "the ablation prices the measure semantics at
+  11% at 21 geometries"; never a configuration. Ablation tally: persists 35 / 210 / geo4 / geo21 / fixed angle; fades
+  DrivAerML; pending 1,260, deflection.

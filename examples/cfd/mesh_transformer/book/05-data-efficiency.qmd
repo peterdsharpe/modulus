@@ -596,6 +596,12 @@ validation cases, inside the preregistered band between parity and
 scores 0.142 in float32 on the same cases, 1.48x behind ISLA by the median
 case, so the 1.40x was the input scale
 (`results/udrvl_geo210_reduction_2026-09-10.json`, @sec-nb-udrvl-geo210-verdict).
+Transolver fed the unit direction scores 0.0941 at this rung (0.93x of ISLA,
+lower on 135 of 180 cases, the same band as GeoTransolver), and the
+weights-off ablation of ISLA 0.0905 (0.89x of the weighted model, lower on
+146 of 180), which prices the measure semantics at 11% here and puts the
+ablation at parity with both unit-drive baselines; it is not adopted
+(@sec-principle, `results/geo210_all_arms_2026-09-10.json`, @sec-nb-geo210-arms-verdict).
 What stands about ISLA alone is that its error responds to the number of
 training geometries (0.138 → 0.250 and 0.065 → 0.102, with the
 evaluation-population caveat above); that the physical-drive

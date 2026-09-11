@@ -14131,3 +14131,37 @@ bias, and flat rather than convergent under the area-proportional sampler in
 estimator variance or the loss of a density signal, is the area-proportional
 sampling arm the generalization session is running. NOW-L closes as a node;
 its 21-geometry, 1,260-case and deflection lanes report under WAVE-3.
+
+## 2026-09-10 — 21-geometry rung completed: unit-drive Transolver 0.93x of ISLA (between, beside GeoTransolver's 0.92x); the weights-off ablation persists (0.89x) and reaches parity with both baselines {#sec-nb-geo210-arms-verdict}
+
+Two arms of the 21-geometry rung (210 cases from 21 wing geometries, 180
+validation cases from 18 geometries never seen) landed after the
+GeoTransolver verdict of @sec-nb-udrvl-geo210-verdict: Transolver fed the
+unit direction at its better rate (WAVE-3, two seeds) and ISLA with the
+routing measure weights off (the ablation ladder, two seeds). Float32 with
+bfloat16 alongside; zero skipped loads. Artifact: `results/geo210_all_arms_2026-09-10.json`.
+
+**Transolver scores 0.0941 (seeds 0.0922 / 0.0960) against ISLA's 0.1014:
+0.93x, lower on 135 of 180 cases**, the same band between parity and
+"baseline ahead" that GeoTransolver occupies (0.0933, 0.92x), so both
+unit-drive baselines sit 7–8% ahead of the weighted ISLA at this rung.
+**The weights-off ablation scores 0.0905 (0.0909 / 0.0901), 0.89x of the
+weighted model and lower on 146 of 180 cases; it persists (bar 0.0963 or
+below) and prices the measure semantics at 11% here.** Against the
+baselines the ablation reaches parity: GeoTransolver ÷ ablation 1.03 with
+GeoTransolver lower on 78 of 180, Transolver ÷ ablation 1.04 with Transolver
+lower on 71 of 180. Velocity and wall shear follow the same ordering
+(Transolver 0.110 / 0.175, GeoTransolver 0.108 / 0.172, ablation 0.111 /
+0.172, weighted ISLA 0.119 / 0.190). Bfloat16 agrees on every ordering.
+
+Two readings. First, the unit-drive ladder now has both baselines at five
+rungs (35, 210, 4 geometries, 21 geometries, fixed angle) and they match or
+beat the weighted ISLA at every one, as preregistered; the 1,260-case rerun
+is the last. Second, the ablation tally is five rungs persisting (12%, 8%,
+17%, 11%, 10.6%) and DrivAerML fading (2.9%), with 1,260 cases and the
+deflection split pending; under @sec-principle these are prices of the
+measure semantics, not a configuration, since the ablation reads the
+mesher's sampling density (19x under a 10:1 bias in the sample frame) and
+the parity it reaches with the baselines here is parity among three
+configurations that all read the sampling distribution. Chapter 5, the
+index and the status chapter are updated.

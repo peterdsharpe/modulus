@@ -134,7 +134,7 @@ flowchart TB
     QCOUNT["QCOUNT: query-count robustness (source_total mass + count augmentation)<br/>PLANNED - robust if error spread over 1k-40k queries <= 1.05"]:::planned
     SPARSE["SPARSE: sparse anchor routing (k nearest anchors per point)<br/>DONE - not worth it: 0.84-0.92x step time at every k (GB300, 10k tokens); memory gain only without the exact recompute; 21-46% output change at init"]:::done
     ABUPT["ABUPT: independent baselines under this protocol<br/>(AB-UPT; AB-GATr; family adaptation; Transolver++ flag)<br/>PLANNED - after UDRV-L; every model at unit drive"]:::planned
-    UDRVL["UDRV-L: the HiLift ladder with unit-drive baselines<br/>(GT + Transolver at 210; GT at 4 and 21 geometries; GT at 1,260 queued)<br/>RUNNING - 210 cases DONE (GT 0.83x baseline ahead, 162/180; Transolver 0.91x between); 4 geometries DONE (0.76x / 0.77x); fixed angle DONE (0.78x / 0.86x); 21 geometries DONE (0.92x, between);<br/>prediction held at 5 of 6 rungs; 1,260, 510, deflection at epochs 80-90 (I/O-throttled)"]:::running
+    UDRVL["UDRV-L: the HiLift ladder with unit-drive baselines<br/>(GT + Transolver at 210; GT at 4 and 21 geometries; GT at 1,260 queued)<br/>RUNNING - 210 cases DONE (GT 0.83x baseline ahead, 162/180; Transolver 0.91x between); 4 geometries DONE (0.76x / 0.77x); fixed angle DONE (0.78x / 0.86x); 21 geometries DONE (GT 0.92x, Transolver 0.93x, between);<br/>prediction held at 5 of 6 rungs; 1,260, 510, deflection at epochs 80-90 (I/O-throttled)"]:::running
 
     NSTAR --> G1G2
     NSTAR --> G3
