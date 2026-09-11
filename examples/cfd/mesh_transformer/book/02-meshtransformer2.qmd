@@ -599,7 +599,10 @@ channels, are listed once here so the results chapters can name them.
 
 | flag (default) | what it changes |
 |---|---|
-| `similarity_gauge` (off) | measure-weighted centroid and RMS-radius reference length in place of the plain mean and constant `reference_length` |
+| `similarity_gauge` (off) | measure-weighted centroid and RMS-radius reference length in place of the plain mean and constant `reference_length`; a sample-statistic frame, not the reference |
+| `frame_mode` (`"centered"`) | `"relative"` drops the four centroid-referenced seed invariants ($\lvert r_i\rvert$, $\log\lvert r_i\rvert$, $\hat r_i\cdot\hat d$, $\hat r_i\cdot\hat n_i$; the seed reduces to $\hat n_i\cdot\hat d$ and the measure) and the two centroid-referenced relational invariants ($\lvert z_s\rvert$, $\hat z_s\cdot\hat d$), so positions enter only as point-to-anchor differences and no centering is performed; the reference configuration from 2026-09-11 (@sec-nb-frame-full-verdict) |
+| `scale_mode` (`"reference_length"`) | `"total_measure"` divides positions by the square root of the total quadrature measure of the sample instead of the constant `reference_length`; `"global"` reads a supplied `frame_scale` (the full-geometry-frame diagnostic); the reference configuration uses `"total_measure"` |
+| `center_mode` (`"plain"`) | `"measure"` centres on the Horvitz–Thompson mean of the sample (the measure-centred lanes); `"global"` reads a supplied `frame_center` (the full-geometry-frame diagnostic); under `frame_mode="relative"` no centering is performed and the constructor requires the default |
 | `use_measure_weights` (on) | log-measure bias in the routing softmax |
 | `use_relational_geo` (on) | anchor-relational invariants in routing and read-back |
 | `seed_mode` (`"invariant"`) | `"raw"` feeds $[r_i, \hat n_i, \hat d]$ instead of the five invariants |
