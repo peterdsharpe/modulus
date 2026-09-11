@@ -1444,3 +1444,6 @@ interior control @sec-nb-udrv-int-prereg.
   pressure, velocity and ν_t everywhere except the far wake beyond 0.4 L, which carries the whole 18%". Surviving
   hypothesis (not launched): far-wake under-sampling → measure-consistent far-field oversampling at training (HT
   weights) — Peter's call.
+- **210-case rung, third seeds (2026-09-10, fp32; results/udrvl_210_reduction_2026-09-10.json three_seed_addendum).** Unit GT 0.0539 (0.0532/0.0535/0.0550)
+  → 0.838x, lower on 161/180 (baseline ahead); unit Transolver 0.0578 (0.0582/0.0582/0.0569) → 0.899x, 149/180 (at
+  the 0.0579 baseline-ahead bar). Write "0.84x / 0.90x on three seeds each"; supersedes the two-seed 0.83x / 0.91x.

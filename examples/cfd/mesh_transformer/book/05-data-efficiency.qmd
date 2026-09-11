@@ -130,9 +130,10 @@ corrected. The unit-drive baselines were then run at 210 cases, at 4 and 21
 training geometries and at the fixed angle under the same control
 (@sec-nb-udrvl-prereg), with the prediction, written first, that they match
 or beat ISLA at every rung. They do. At 210 cases GeoTransolver fed the unit
-direction scores 0.0533 in float32 (seeds 0.0532 / 0.0535) against ISLA's
-0.0643 on three seeds, 0.83x and lower on 162 of 180 validation cases, and
-Transolver at its better rate 0.0582, 0.91x and lower on 145 of 180; the
+direction scores 0.0539 in float32 on three seeds (0.0532 / 0.0535 / 0.0550)
+against ISLA's 0.0643 on three seeds, 0.84x and lower on 161 of 180
+validation cases, and Transolver at its better rate 0.0578 (0.0582 / 0.0582 /
+0.0569), 0.90x and lower on 149 of 180; the
 physical-drive GeoTransolver's 0.141 on the same cases, the 2.2x of the
 ladder, is 3.4x worse than its unit-drive self on 178 of 180 cases
 (`results/udrvl_210_reduction_2026-09-10.json`, @sec-nb-udrvl-210-verdict). The weights-off

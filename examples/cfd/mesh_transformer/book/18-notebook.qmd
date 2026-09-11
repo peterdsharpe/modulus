@@ -14165,3 +14165,20 @@ mesher's sampling density (19x under a 10:1 bias in the sample frame) and
 the parity it reaches with the baselines here is parity among three
 configurations that all read the sampling distribution. Chapter 5, the
 index and the status chapter are updated.
+
+## 2026-09-10 — 210-case rung, third seeds: GeoTransolver 0.84x and Transolver 0.90x of ISLA on three seeds each; the verdict is unchanged in kind {#sec-nb-udrvl-210-seed44}
+
+The seed-44 lanes of the unit-drive GeoTransolver and Transolver at 210
+cases (WAVE-3 third seeds) finished and were evaluated in float32 (zero
+skipped loads). GeoTransolver: 0.0550 for the third seed, three-seed mean
+0.0539 (0.0532 / 0.0535 / 0.0550) against ISLA's three-seed 0.0643, 0.84x
+and lower on 161 of 180 cases, inside the "baseline ahead" band as before.
+Transolver: 0.0569 for the third seed, three-seed mean 0.0578 (0.0582 /
+0.0582 / 0.0569), 0.90x and lower on 149 of 180, which moves it from the
+"between" band to the edge of "baseline ahead" (bar 0.0579). Velocity and
+wall shear follow (GeoTransolver 0.080 / 0.122, Transolver 0.084 / 0.130,
+ISLA 0.094 / 0.144). The two-seed verdict of @sec-nb-udrvl-210-verdict is
+unchanged in kind; chapter 5, the index row and CLAIMS now quote the
+three-seed numbers. Seed spreads at this rung: GeoTransolver 3%, Transolver
+2%, ISLA 7%; the training-draw uncertainty of @sec-nb-campa-35-merged is not
+included, and campaign A's 210-case draws (companion, landing) will bound it.
