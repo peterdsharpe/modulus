@@ -214,6 +214,14 @@ class CenterMesh(MeshTransform):
     use_area_weighting : bool, default ``True``
         Weight cell centroids by cell area when computing the center. If
         ``False``, use the arithmetic mean of the mesh points.
+    use_measure_weighting : bool, default ``False``
+        With ``use_area_weighting``, weight by the effective cell measure
+        (:func:`~physicsnemo.mesh.calculus.measure.cell_measures`: cell area
+        times the composed subsampling weights) instead of the raw cell area.
+        On a subsampled mesh this is the Horvitz-Thompson estimate of the
+        full mesh's area-weighted centroid, so a density-biased draw is
+        centered where the full mesh would be; raw areas keep the draw's
+        count bias. Ignored without ``use_area_weighting``.
     store_center_as : str or None, default ``None``
         Optional ``global_data`` key under which to store the center that was
         subtracted. For a :class:`DomainMesh`, the center is stored in the
@@ -225,15 +233,20 @@ class CenterMesh(MeshTransform):
         self,
         use_area_weighting: bool = True,
         store_center_as: str | None = None,
+        use_measure_weighting: bool = False,
     ) -> None:
         super().__init__()
         self.use_area_weighting = use_area_weighting
+        self.use_measure_weighting = use_measure_weighting
         self.store_center_as = store_center_as
 
     def _compute_com(self, mesh: Mesh) -> Float[torch.Tensor, " spatial_dims"]:
         """Compute center of mass for a single mesh."""
         if self.use_area_weighting and mesh.n_cells > 0:
-            areas = mesh.cell_areas  # (n_cells,)
+            if self.use_measure_weighting:
+                areas = cell_measures(mesh)  # (n_cells,)
+            else:
+                areas = mesh.cell_areas  # (n_cells,)
             centroids = mesh.cell_centroids  # (n_cells, n_spatial_dims)
             total_area = areas.sum()
             return (centroids * areas.unsqueeze(-1)).sum(dim=0) / total_area
@@ -274,6 +287,8 @@ class CenterMesh(MeshTransform):
 
     def extra_repr(self) -> str:
         parts = [f"use_area_weighting={self.use_area_weighting}"]
+        if self.use_measure_weighting:
+            parts.append("use_measure_weighting=True")
         if self.store_center_as is not None:
             parts.append(f"store_center_as={self.store_center_as!r}")
         return ", ".join(parts)
