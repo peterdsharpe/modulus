@@ -1566,3 +1566,12 @@ interior control @sec-nb-udrv-int-prereg.
   the frame variance removed exactly (lowest ISLA ratio measured); write "the frame-estimate variance was ~0.07 of the 1.2x floor, the rest
   is the routing integral". Reference decision UNCHANGED until the HiLift ff lanes (within 3% of 0.1377 at ≤1.2x). Never call FRAME-FULL
   the reference before the HiLift readout.
+- **FRAME-FULL HiLift VERDICT + REFERENCE DECISION (2026-09-11, fp32, 180 val; results/frame_reduction_2026-09-11.json).** ff centre 0.1584/0.1617 → 0.1600
+  (+16.2%); ff centre+scale 0.1590/0.1552 → 0.1571 (+14.1%) vs 0.1377 → both PAY (≥7%), worse than RELFRAME +11%.
+  Reading: the HiLift price of leaving the plain mean is the MESHER PATTERN (0.131 body lengths), NOT positional information lost with the
+  seeds (FRAME-FULL keeps the seeds and pays more). RULE FIRES → **ISLA REFERENCE CONFIGURATION = RELFRAME, total-measure scale**
+  (frame_mode=relative, scale_mode=total_measure; rf_*_meas_*): DrivAerML 0.0552, density 1.235x (1.20/1.27), BENCH-consistent both
+  datasets; HiLift 35 0.1529 (+11%). Constant-gauge numbers = "prior configuration's record" on every rung RELFRAME has not been trained on
+  (state beside each). Write "the reference configuration pays 11% at 35 HiLift cases for carrying no mesher information"; never
+  "the constant gauge is the reference" after 2026-09-11 without "prior". Wing/car difference = plain-mean displacement 0.131 vs 0.034.
+  Routing-variance floor 1.13x (exact frame); estimated/absent frames add ≤0.1. Follow-up ladder: RELFRAME-LADDER (fixed angle first).

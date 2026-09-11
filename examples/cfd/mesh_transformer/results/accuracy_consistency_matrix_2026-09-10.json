@@ -10,7 +10,7 @@
  },
  "rows": {
   "isla_reference_constant_gauge": {
-   "label": "ISLA, constant gauge (reference, lr 1e-3)",
+   "label": "ISLA, constant gauge, prior reference until 2026-09-11 (lr 1e-3)",
    "runs": "iw_mt2_lr1e3_seed{42,43}",
    "in_family": 0.0558,
    "density_factor": 12.0,
@@ -190,13 +190,13 @@
     1.2,
     1.22
    ],
-   "pose_factor": 1.01,
+   "pose_factor": null,
    "zero_shot_fastback": null,
    "few_shot_gain": null,
-   "note": "#sec-nb-relframe-verdict; sample frame is moot (no frame); HiLift 35: 0.1530 (+11%); BENCH HiLift 35 D_area -1.3%\u2192-0.1%, D_biased +4.6%\u2192+0.9% (10k\u219240k)"
+   "note": "#sec-nb-relframe-verdict; sample frame is moot (no frame); HiLift 35: 0.1530 (+11%); BENCH HiLift 35 D_area -1.3%\u2192-0.1%, D_biased +4.6%\u2192+0.9% (10k\u219240k); pose factor not measured (translation invariance exact by construction, rotation equivariance by the invariants; the 1.01 previously listed was the constant gauge's value, removed 2026-09-11)"
   },
   "isla_relative_frame_meas": {
-   "label": "ISLA, relative frame (no centroid), \u221a(total measure) scale (lr 1e-3)",
+   "label": "ISLA, REFERENCE CONFIGURATION (2026-09-11): relative frame (no centroid), \u221a(total measure) scale (lr 1e-3)",
    "runs": "rf_dr_mt2_meas_seed{42,43}",
    "in_family": 0.0552,
    "in_family_seeds": [
@@ -208,10 +208,10 @@
     1.2,
     1.27
    ],
-   "pose_factor": 1.01,
+   "pose_factor": null,
    "zero_shot_fastback": null,
    "few_shot_gain": null,
-   "note": "#sec-nb-relframe-verdict; HiLift 35: 0.1529 (+11%); BENCH HiLift 35 D_area -1.4%\u2192-0.4%, D_biased +5.3%\u2192+1.2% (10k\u219240k)"
+   "note": "#sec-nb-relframe-verdict; HiLift 35: 0.1529 (+11%); BENCH HiLift 35 D_area -1.4%\u2192-0.4%, D_biased +5.3%\u2192+1.2% (10k\u219240k); REFERENCE by the rule of #sec-nb-relframe-verdict after FRAME-FULL paid 14\u201316% on HiLift (#sec-nb-frame-full-verdict); pose factor not measured (translation invariance exact by construction, rotation equivariance by the invariants; the 1.01 previously listed was the constant gauge's value, removed 2026-09-11)"
   },
   "isla_frame_full_center": {
    "label": "ISLA, exact full-geometry centroid, constant reference length (lr 1e-3)",
@@ -229,7 +229,7 @@
    "pose_factor": null,
    "zero_shot_fastback": null,
    "few_shot_gain": null,
-   "note": "#sec-nb-frame-full-drivaer; frame from the full mesh (zero sampling variance); HiLift pending"
+   "note": "#sec-nb-frame-full-drivaer; frame from the full mesh (zero sampling variance); HiLift 35: 0.1600 (+16.2%), pays (#sec-nb-frame-full-verdict)"
   },
   "isla_frame_full_frame": {
    "label": "ISLA, exact full-geometry centroid and RMS-radius scale (lr 1e-3)",
@@ -247,7 +247,7 @@
    "pose_factor": null,
    "zero_shot_fastback": null,
    "few_shot_gain": null,
-   "note": "#sec-nb-frame-full-drivaer; lowest ISLA density ratio measured; HiLift pending (decides the reference)"
+   "note": "#sec-nb-frame-full-drivaer; lowest ISLA density ratio measured; HiLift 35: 0.1571 (+14.1%), pays; rule fires for RELFRAME (#sec-nb-frame-full-verdict)"
   }
  },
  "hilift_pending": "HiLift density and area-resampling factors come from the consistency benchmark (#sec-nb-bench-prereg); until it lands the HiLift rows carry accuracy only",
@@ -308,5 +308,11 @@
     "density_factor_pipeline_frame": 1.08
    }
   }
+ },
+ "reference_configuration": {
+  "decided": "2026-09-11",
+  "row": "isla_relative_frame_meas",
+  "rule": "reference = RELFRAME (total-measure scale) unless FRAME-FULL passes within 3% of 0.1377 at density <= 1.2x; FRAME-FULL paid 14-16%",
+  "prior": "isla_reference_constant_gauge"
  }
 }

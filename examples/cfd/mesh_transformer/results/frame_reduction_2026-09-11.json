@@ -268,9 +268,61 @@
    "tau_wall_z_l2": 0.29678351995017793,
    "tau_wall_l2": 0.2668564555545648
   },
-  "ff_hl_mt2_center_super_scarce_seed42": null,
-  "ff_hl_mt2_center_super_scarce_seed43": null,
-  "ff_hl_mt2_frame_super_scarce_seed42": null,
-  "ff_hl_mt2_frame_super_scarce_seed43": null
+  "ff_hl_mt2_center_super_scarce_seed42": {
+   "n": 180,
+   "pressure_l2": 0.15839959958361255,
+   "temperature_l2": 0.13382596727460622,
+   "density_l2": 0.20964819006621838,
+   "velocity_x_l2": 0.1389801136735413,
+   "velocity_y_l2": 0.4763097392188178,
+   "velocity_z_l2": 0.2575622171163559,
+   "velocity_l2": 0.17787934127781127,
+   "tau_wall_x_l2": 0.22313498763574494,
+   "tau_wall_y_l2": 0.5109062530928188,
+   "tau_wall_z_l2": 0.3069847631785605,
+   "tau_wall_l2": 0.27367951944470403
+  },
+  "ff_hl_mt2_center_super_scarce_seed43": {
+   "n": 180,
+   "pressure_l2": 0.16169583950605657,
+   "temperature_l2": 0.13664331020166476,
+   "density_l2": 0.21385432887408468,
+   "velocity_x_l2": 0.14134190765519936,
+   "velocity_y_l2": 0.4824769291612837,
+   "velocity_z_l2": 0.2605335392885738,
+   "velocity_l2": 0.18055820821060076,
+   "tau_wall_x_l2": 0.22962818671431806,
+   "tau_wall_y_l2": 0.5180281150672171,
+   "tau_wall_z_l2": 0.31095564886927607,
+   "tau_wall_l2": 0.2795672957268026
+  },
+  "ff_hl_mt2_frame_super_scarce_seed42": {
+   "n": 180,
+   "pressure_l2": 0.15904070792926683,
+   "temperature_l2": 0.1342132842996054,
+   "density_l2": 0.21066868748101925,
+   "velocity_x_l2": 0.13939406217800246,
+   "velocity_y_l2": 0.4781687958372964,
+   "velocity_z_l2": 0.2599671439992057,
+   "velocity_l2": 0.178683355740375,
+   "tau_wall_x_l2": 0.2234394532110956,
+   "tau_wall_y_l2": 0.5123520538210868,
+   "tau_wall_z_l2": 0.30786661952733996,
+   "tau_wall_l2": 0.27433297062913575
+  },
+  "ff_hl_mt2_frame_super_scarce_seed43": {
+   "n": 180,
+   "pressure_l2": 0.15520035372012192,
+   "temperature_l2": 0.13318010549992323,
+   "density_l2": 0.20478617995977402,
+   "velocity_x_l2": 0.13895791417194736,
+   "velocity_y_l2": 0.47939893123176364,
+   "velocity_z_l2": 0.2592026722100046,
+   "velocity_l2": 0.17833958938717842,
+   "tau_wall_x_l2": 0.22371532002256977,
+   "tau_wall_y_l2": 0.5143653061654833,
+   "tau_wall_z_l2": 0.3056321168939273,
+   "tau_wall_l2": 0.27425214697917305
+  }
  }
 }

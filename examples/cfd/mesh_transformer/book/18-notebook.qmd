@@ -15383,3 +15383,91 @@ density ratio ≤ 1.2x, where the frame-free construction paid 11%. The four
 HiLift lanes are on their second links; until they read out the reference
 stays RELFRAME with the total-measure scale by the rule, and the chapters
 stay "under decision".
+
+## 2026-09-11 — Verdict, FRAME-FULL: the exact full-geometry frame pays 14–16% at 35 HiLift cases, more than the frame-free construction's 11%; the HiLift price of leaving the plain mean is the mesher's pattern, and by the preregistered rule the reference configuration is RELFRAME with the total-measure scale {#sec-nb-frame-full-verdict}
+
+FRAME-FULL (@sec-nb-frame-full-prereg; @sec-nb-frame-full-drivaer for the
+DrivAerML half) was the diagnostic that separated the two readings of the
+11% the frame-free ISLA pays at 35 HiLift cases (@sec-nb-relframe-verdict):
+either positional information lost with the four dropped seed features, or
+the mesh-density content of the plain-mean frame. It keeps every positional
+seed and relational invariant of the constant-gauge reference and replaces
+only the frame: the geometric centroid ∫x dA / ∫dA (arm "center", constant
+reference length kept) or the centroid and the root-mean-square radius
+(arm "frame"), both computed in float64 over every cell of the full surface
+mesh (6.0 × 10¹⁰ cells for the 215 HiLift cases) and passed as global data,
+so the frame has zero sampling variance and no mesher dependence. Four
+HiLift lanes (ff_hl_mt2_{center,frame}_super_scarce_seed{42,43}; 35
+training cases, unit drive, lr 1e-3, 500 epochs, snapshot code_frame,
+recipe_frame), float32 evaluation on the 180 validation cases under
+code_eval_frame (job 711878, no loader warnings). Artifact `results/frame_reduction_2026-09-11.json`.
+
+| ISLA frame at 35 HiLift cases (180 val, float32) | pressure rel-L2 (42 / 43 → mean) | vs constant gauge 0.1377 | what the frame is |
+|---|---|---|---|
+| constant gauge (reference until today) | 0.1349 / 0.1408 / 0.1375 → **0.1377** | 1 | plain mean of the sampled cell centres: a mesher statistic, displaced 0.131 body lengths from the geometric centroid |
+| similarity gauge (@sec-nb-wave4-prereg) | three seeds → 0.1482 | +7.6% | measure-weighted mean and RMS radius of the sample: HT estimates, sample-variant |
+| constant length, measure-weighted centring (@sec-nb-center-lanes-verdict) | 0.1519 / 0.1521 → 0.1520 | +10.4% | HT estimate of the geometric centroid from the sample |
+| RELFRAME, reference length (@sec-nb-relframe-verdict) | 0.1568 / 0.1491 → 0.1530 | +11.1% | no frame: anchor-relative positions only |
+| RELFRAME, √(total measure) | 0.1567 / 0.1490 → 0.1529 | +11.0% | no frame; scale from the integrated surface measure |
+| **FRAME-FULL, exact centroid** | 0.1584 / 0.1617 → **0.1600** | **+16.2%** | exact geometric centroid from the full mesh, zero variance |
+| **FRAME-FULL, exact centroid and scale** | 0.1590 / 0.1552 → **0.1571** | **+14.1%** | exact centroid and RMS radius from the full mesh, zero variance |
+
+**Against the preregistered readings.** *Recovers* was within 3% of 0.1377
+at density ≤ 1.2x; *pays* was ≥ 7% worse. Both FRAME-FULL arms **pay**, by
+16% and 14%, more than the frame-free construction (11%) and more
+than every estimated frame (7.6–10.4%). A model that keeps all of the
+constant gauge's positional features and is given the exact geometric
+frame, with no variance to blame, is the least accurate ISLA on this rung.
+So the 11% is not positional information lost with the seeds: putting the
+seeds back with a correct frame makes it worse, not better. It is the
+mesh-density content of the plain-mean frame. On the 35-case wing rung the
+plain mean of the cell centres sits 0.131 body lengths from the geometric
+centroid, the same displacement whether computed from a 10,000-cell sample
+or from all 6 × 10¹⁰ cells, so it is a deterministic function of where the
+mesher refined; on an in-distribution validation set drawn from the same
+mesher that displacement is an informative input (it says where the
+leading edges, flaps and slats are, because that is where the cells are),
+and every frame that does not carry it pays for its absence. That is the
+stated cost of the principle on this rung, and not a reason to reinstate a
+sample statistic; under a different mesher the same input is what
+collapses 12x (@sec-nb-bench-verdict, @sec-nb-mw-postcenter).
+
+**The rule fires.** The decision rule written with Peter's ruling
+(@sec-nb-relframe-verdict): *the reference is RELFRAME with the
+total-measure scale unless FRAME-FULL passes its joint bar.* FRAME-FULL
+fails it on the wings (it passes on the cars, 0.0544 at 1.13x). **ISLA's
+reference configuration is therefore the relative frame with the
+total-measure scale** (`frame_mode=relative`, `scale_mode=total_measure`;
+runs rf_*_meas_*): no centroid, no sample scale, no per-dataset reference
+length; translation invariance from anchor-relative positions alone.
+Its standing numbers, float32: DrivAerML 435 cars 0.0552 (constant gauge
+0.0557), density 10:1 in the sample frame 1.235x (seeds 1.20 / 1.27),
+consistent under all three benchmark samplers on both datasets
+(@sec-nb-relframe-hl-bench); 35 HiLift cases 0.1529 (+11% against the
+constant gauge). The two RELFRAME scales are indistinguishable on every
+readout (accuracy, density, samplers, both datasets), and the total-measure
+scale is the one with no dataset-dependent constant, which the ruling
+("one flagship, never dataset-dependent") requires. Per the WAVE-4
+preregistration's decision clause, the price is stated beside every number
+and the constant-gauge results are kept as the prior configuration's
+record: the accuracy tables of chapters 5 and 6 were measured with the
+constant gauge, which remains on the ladder rungs the relative frame has
+not been trained on (fixed angle, 4 and 21 geometries, 210 and 1,260 cases,
+deflection, interior, poses). Training the reference configuration on those
+rungs is the follow-up ladder (RELFRAME-LADDER), the first rung the fixed
+angle, where the discriminator of @sec-nb-wave4-fixed-angle also lives.
+
+**Consequences for the frame story, in one paragraph.** Five frames were
+trained at 35 HiLift cases and on DrivAerML. On the cars every consistent
+frame is at parity with the plain mean (0.0543–0.0566 against 0.0557) and
+the exact frame is best; on the wings every consistent frame pays 8–16% and
+the plain mean is cheapest. The difference between the datasets is the
+displacement of the plain mean from the geometric centroid, 0.034 body
+lengths on the cars and 0.131 on the wings: the mesher's information is
+worth what the mesher's pattern is worth, and the wing meshes carry far
+more of it. The density floor of the consistent frames on the cars is 1.13x
+with the exact frame and 1.17–1.24x with estimated or absent frames, so the
+routing integral's own variance is 1.13x and the frame estimate adds up to
+0.1. The code path for the exact frame (global_data `frame_center` and
+`frame_scale`, `SetGlobalFieldsFromTable`) stays in the repository as the
+diagnostic it was built to be.
