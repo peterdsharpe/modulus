@@ -12,12 +12,12 @@ of a sibling family buy the target family almost entirely, a convention
 flag buys nothing, and fine-tuning from DrivAerML on 20 fastback labels is
 worth 31% for GeoTransolver and nothing for ISLA. In the interior, width
 closes ISLA's pressure gap to GeoTransolver-volume at matched parameters
-and leaves an eddy-viscosity deficit that lives entirely in the far
-field.** This chapter collects the verdicts of the node-budget campaigns
-(@sec-nb-campaign) as they close; each section states the question, the
-preregistered bar, the float32 readout and what it changes. Campaign A's
-210-case rung and the far-field context arms for the interior are still
-training and are absent here by design.
+and leaves an eddy-viscosity deficit that lives entirely in the far field
+and is not repaired by far-field context tokens.** This chapter collects
+the verdicts of the node-budget campaigns (@sec-nb-campaign) as they
+close; each section states the question, the preregistered bar, the
+float32 readout and what it changes. Campaign A's 210-case rung is still
+training and is absent here by design.
 
 ## Data-draw variance of the HiLift comparisons (campaign A, 35-case rung) {#sec-campaigns-draws}
 
@@ -168,13 +168,51 @@ where ISLA's eddy-viscosity error is 0.093 against 0.068 and which carries
 far-field pattern holds for pressure and velocity but is invisible in
 their totals, which are 90–94% near-wall. So at matched parameters ISLA
 wins wherever the surface is close and GeoTransolver wins where it is far,
-which points at geometry rather than a closure input: far from the body
-every surface anchor looks alike, so ISLA's anchor-relative invariants lose
-resolution where a per-point network on raw position keeps it. The
-principled candidate is far-field anchors organized by the flow, for which
-ISLA already has a construction (latent volume tokens at downstream
-offsets along the drive); its preregistered readout would be the far-band
-eddy-viscosity error (bars in @sec-nb-bands).
+which pointed at geometry rather than a closure input: far from the body
+every surface anchor looks alike, so ISLA's anchor-relative invariants
+might lose resolution where a per-point network on raw position keeps it.
+
+That reading was tested and falsified (@sec-nb-wake-verdict; preregistration
+`studies/computational_support/PREREG_WAKE.md`). Two kinds of far-field
+context tokens were added to the hidden-344 configuration, each in two
+seeds: wake tokens, three interacting anchors on the drive axis at one,
+two and four body half-extents downstream (over the rear deck, in the near
+wake, and 0.7 body lengths behind the car), and latent volume tokens,
+off-surface anchors along each slice anchor's normal, as the control for
+"any off-surface context". Both constructions are covariant and invariant
+to how the surface was sampled.
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/computational_support/band_decomposition_wake_2026-09-10.json").read_text())["arms"]
+rows = [("ISLA hidden 344 (reference)", "isla_h344"), ("ISLA hidden 344 + wake tokens", "isla_h344_wake"),
+        ("ISLA hidden 344 + latent volume tokens", "isla_h344_lvt"), ("GeoTransolver-volume, unit drive", "gt_unit")]
+ref = d["isla_h344"]["mean"]["nut"]["sdf>=0.05L"]["rel_l2"]; gt = d["gt_unit"]["mean"]["nut"]["sdf>=0.05L"]["rel_l2"]
+print("| arm | eddy viscosity, near wall (SDF < 0.01 L) | eddy viscosity, 0.01–0.05 L | eddy viscosity, far field (≥ 0.05 L) | far-field gap closed | pressure, far field | velocity, far field |")
+print("|---|---|---|---|---|---|---|")
+for n, k in rows:
+    m = d[k]["mean"]; far = m["nut"]["sdf>=0.05L"]["rel_l2"]
+    seeds = ", ".join(f"{r['nut']['sdf>=0.05L']['rel_l2']:.3f}" for r in d[k]["runs"].values())
+    closed = "—" if k in ("isla_h344", "gt_unit") else f"{(ref - far) / (ref - gt):+.0%}"
+    print(f"| {n} | {m['nut']['sdf<0.01L']['rel_l2']:.3f} | {m['nut']['0.01-0.05L']['rel_l2']:.3f} | {far:.3f} ({seeds}) | {closed} | {m['pressure']['sdf>=0.05L']['rel_l2']:.3f} | {m['velocity']['sdf>=0.05L']['rel_l2']:.3f} |")
+print()
+print(": Relative L2 by signed-distance band, per-case values averaged over the 48 DrivAerML validation cars, float32, two-seed means (far-field seeds in parentheses). Preregistered bars on the far-field eddy viscosity: ≤ 0.074 supported, ≥ 0.085 falsified. Data: studies/computational_support/band_decomposition_wake_2026-09-10.json. {#tbl-campaigns-wake}")
+```
+
+Wake tokens close a fifth of the far-field gap and stop above the
+falsifier; latent volume tokens widen it. Neither touches the near-wall or
+intermediate bands, the far-field pressure and velocity, or the training
+cost (wake tokens: none; latent volume tokens: 6% in step time and
+memory). So the far-field eddy-viscosity deficit is not an
+anchor-resolution effect, and the located cause has no repair in hand. The
+remaining candidate is the readout: ISLA's interior query reads its
+neighbourhood through a kernel whose radius is fixed in gauge units, and
+far from the surface, where the flow varies on the wake's scale, that
+radius may be too small; a radius that scales with signed distance is the
+discriminating test, principled and discretization-invariant, and not
+launched by this program.
 
 ## Convention conditioning on the fastback shift (campaign C, T1) {#sec-campaigns-conditioning}
 
