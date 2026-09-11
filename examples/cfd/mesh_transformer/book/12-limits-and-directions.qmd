@@ -817,9 +817,15 @@ refinement and across sampling laws no configuration is yet consistent at
 10,000 cells; only the measure-weighted ISLA arms converge toward the
 uniform answer under the area-proportional sampler while the unweighted
 baselines are flat (@sec-consistency-bench), and whether the weighted
-baselines converge too is being measured. Which frame ISLA stands on is
-decided by RELFRAME (#sec-nb-relframe-prereg); the reference is under
-decision until it reads out. Its learning-rate robustness is
+baselines converge too is being measured. Trained on one sampling
+convention and deployed on another, every architecture pays at 10,000
+cells, ISLA with measure weights 1.5–1.9x and the baselines 3–7x, and every
+architecture trained on both conventions handles both at no cost
+(@sec-nb-mix-verdict): mesher transfer is a property of the training data
+at this resolution, and of the measure-consistent estimator only in the
+fine-mesh limit. Which frame ISLA stands on is decided by RELFRAME
+(#sec-nb-relframe-prereg); the reference is under decision until it reads
+out. Its learning-rate robustness is
 measured against a physical-drive GeoTransolver and is not claimed as an
 advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on velocity

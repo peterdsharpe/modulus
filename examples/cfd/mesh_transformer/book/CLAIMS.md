@@ -1447,3 +1447,10 @@ interior control @sec-nb-udrv-int-prereg.
 - **210-case rung, third seeds (2026-09-10, fp32; results/udrvl_210_reduction_2026-09-10.json three_seed_addendum).** Unit GT 0.0539 (0.0532/0.0535/0.0550)
   → 0.838x, lower on 161/180 (baseline ahead); unit Transolver 0.0578 (0.0582/0.0582/0.0569) → 0.899x, 149/180 (at
   the 0.0579 baseline-ahead bar). Write "0.84x / 0.90x on three seeds each"; supersedes the two-seed 0.83x / 0.91x.
+- **MIX verdict (2026-09-11, fp32, 48 cars, 10k; results/mix_conventions_2026-09-10.json).** Swap penalties (other convention ÷ own):
+  ISLA gauge 1.92x / 1.46x, Transolver 3.27x / 6.09x,
+  GeoTransolver 6.43x / 7.31x — ALL pay (ISLA least). Mixing costs C 0.92/0.91, 0.95/0.93,
+  0.92/0.90 — ALL mix for free (mixed lanes had 2x steps; state it). Write "no architecture transfers
+  across sampling conventions at 10k; data diversity removes the dependence for all; the measure-consistent
+  model pays a fifth to a quarter of the baselines' swap penalty and converges with count"; never
+  "density-reading models cannot mix conventions".
