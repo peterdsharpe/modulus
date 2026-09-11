@@ -1617,3 +1617,9 @@ interior control @sec-nb-udrv-int-prereg.
   released GeoTransolver/Transolver are not modified (#sec-nb-ruling-released-baselines). MW / MWAW = "research variant, not the
   released model", diagnostic only; never a recommendation. Transferable findings are written as pros of ISLA. No further baseline
   lanes. CenterMesh use_measure_weighting = general library flag (default off), not a recipe change.
+- **ENGINEERING 2026-09-11: ISLA class defaults = frame_mode="relative", scale_mode="total_measure"** (#sec-nb-defaults-relative). center_mode
+  default "plain" applies only under frame_mode="centered". Constant-gauge recipe configs (isla_surface, isla_surface_frame, isla_volume_support)
+  pin frame_mode: centered + scale_mode: reference_length explicitly (bitwise what they trained). Legacy tests pass _CENTERED explicitly;
+  test_default_is_relative_total_measure pins the default. Contract swap: reference is geometric-scale invariant (points x k, areas x k^2), NOT
+  invariant to weight rescale alone; centered construction is the reverse. Interior config still similarity gauge (centered) — no relative-frame
+  interior lane trained yet. Write "the centered construction" / "the prior configuration" for the old default, never "the default gauge".

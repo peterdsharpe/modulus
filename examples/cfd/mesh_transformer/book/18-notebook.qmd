@@ -15870,3 +15870,58 @@ baseline-modification lanes; the reference ladder
 configuration, defaults, kernel speed, recipe integration. The repository's
 `CenterMesh(use_measure_weighting=True)` stays a general library
 improvement (default off), not a change to the released recipes.
+
+## 2026-09-11 — Engineering: the relative frame with the total-measure scale is now ISLA's class default; legacy configs and tests pin the centered construction {#sec-nb-defaults-relative}
+
+*Setting.* The reference configuration decided this morning
+(@sec-nb-frame-full-verdict) is the relative frame with the total-measure
+scale: no centroid anywhere in the forward pass, positions entering only as
+differences against slice anchors, and the length unit taken from the total
+quadrature measure of the sample. Until now it was reachable only through
+`frame_mode="relative"` and `scale_mode="total_measure"`; the class
+defaults were the centered construction with a constant reference length,
+the configuration behind the constant-gauge checkpoints now labelled the
+prior configuration. Peter's ruling this evening that ISLA is to be
+introduced as a new architecture, rather than its findings back-ported to
+the released baselines, makes the class default the thing users will get,
+so it should be the reference.
+
+*What changed.* `ISLA()` now defaults to `frame_mode="relative"` and
+`scale_mode="total_measure"`; `center_mode` keeps its default of `"plain"`
+and is used only under `frame_mode="centered"`. The module docstring
+describes the default construction and names the options that require the
+centered frame (`similarity_gauge`, `odd_head`, `seed_mode="raw"`,
+`scale_conditioning`, any `center_mode`), and the constructor's error
+messages tell a caller who passes one of them to set
+`frame_mode="centered"` (and `scale_mode="reference_length"`). Checkpoints
+store their constructor arguments, so every model saved under the earlier
+defaults loads and evaluates unchanged; the guarded evaluation snapshot on
+the cluster is a copy and is unaffected. In the recipe, the constant-gauge
+configs (`isla_surface.yaml`, `isla_surface_frame.yaml`,
+`isla_volume_support.yaml`, the last of which carries the similarity gauge
+for the interior configuration) now pin `frame_mode: centered` and
+`scale_mode: reference_length` explicitly, so what they train is bitwise
+what they trained before, and `isla_surface_reference.yaml` states the
+defaults it now shares. The legacy contract tests were written for the
+centered construction; each of their constructor calls now passes an
+explicit `_CENTERED` dictionary so they keep verifying that construction,
+and a new test, `test_default_is_relative_total_measure`, pins the default
+(one seed invariant, six relational invariants, relative frame,
+total-measure scale). The five ISLA test files and the checkpoint tests
+pass: 108 passed, 8 skipped (GPU-only).
+
+*What it means for the contracts.* The reference configuration trades one
+invariance for another: it is exactly invariant to a uniform geometric
+rescale (positions by $k$, areas by $k^2$) and *not* to rescaling the
+measure weights alone, since the total measure is its length unit; the
+centered construction had the opposite pair. Chapter 2 now describes the
+relative frame as the forward pass (one seed, six relational invariants,
+the vector head's radial direction taken from the token's soft anchor) with
+the centered construction as the documented prior, and its contract table
+carries the relative-frame test and the default test.
+
+*Open.* The interior configuration (`isla_volume_support.yaml`) still uses
+the similarity gauge, a sample-statistic frame, because no relative-frame
+interior lane has been trained; it is pinned to the centered frame for now
+and a relative-frame interior pair is the natural next lane if the interior
+configuration is to share the reference frame. Owner: this session.
