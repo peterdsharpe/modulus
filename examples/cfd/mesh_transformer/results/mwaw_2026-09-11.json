@@ -1,0 +1,115 @@
+{
+ "study": "MWAW: repaired (measure-weighted) baselines with an area-weighted datapipe frame (CenterMesh use_area_weighting)",
+ "date": "2026-09-11",
+ "precision": "float32",
+ "validation": "DrivAerML 48 cars, 10,000 cells",
+ "jobs": {
+  "infamily": 711207,
+  "probe_sfaw": 711211,
+  "probe_sfht": 711217
+ },
+ "snapshots": {
+  "train": "code_mw",
+  "probe_sfht": "code_mw_ht (CenterMesh weighted by cell_measures = areas x HT weights)"
+ },
+ "frame_conventions": {
+  "infamily": "training datapipe: CenterMesh(use_area_weighting=true) on the uniform reader cut, before the draw",
+  "probe_sfaw": "SAMPLE FRAME: CenterMesh(use_area_weighting=true, raw cell areas) applied AFTER the 10:1 biased draw (count-biased estimate)",
+  "probe_sfht": "SAMPLE FRAME: CenterMesh weighted by cell_measures (areas x HT weights) applied AFTER the draw (HT estimate of the geometric centroid)"
+ },
+ "bars": {
+  "accuracy": "buys >= 3% better than plain-frame mw twin (0.0498 / 0.0522); equal within +-3%; costs >= 3% worse",
+  "density": "<= 1.5x expected floor for an HT-estimated frame"
+ },
+ "runs": {
+  "mwaw_dr_gt_unit_lr1e3": {
+   "label": "GeoTransolver, measure-weighted pooling, unit drive, lr 1e-3, area-weighted datapipe centre",
+   "infamily": [
+    0.050165,
+    0.050738
+   ],
+   "twin_plain_frame": [
+    0.04915,
+    0.05053
+   ],
+   "probe_sfaw": {
+    "unif": [
+     0.050241,
+     0.050869
+    ],
+    "biased": [
+     0.445603,
+     0.487251
+    ],
+    "ratio_seeds": [
+     8.869309926155928,
+     9.578544889815015
+    ],
+    "ratio_mean": 9.223927407985471
+   },
+   "probe_sfht": {
+    "unif": [
+     0.050241,
+     0.050869
+    ],
+    "biased": [
+     0.052354,
+     0.052686
+    ],
+    "ratio_seeds": [
+     1.0420572838916422,
+     1.0357192002988067
+    ],
+    "ratio_mean": 1.0388882420952243
+   },
+   "infamily_mean": 0.050451499999999996,
+   "twin_mean": 0.049839999999999995,
+   "accuracy_ratio_vs_twin": 1.0122692616372393
+  },
+  "mwaw_dr_transolver_unit_lr3e3": {
+   "label": "Transolver, measure-weighted pooling, unit drive, lr 3e-3, area-weighted datapipe centre",
+   "infamily": [
+    0.052264,
+    0.053293
+   ],
+   "twin_plain_frame": [
+    0.05192,
+    0.05249
+   ],
+   "probe_sfaw": {
+    "unif": [
+     0.052444,
+     0.053013
+    ],
+    "biased": [
+     0.339557,
+     0.287949
+    ],
+    "ratio_seeds": [
+     6.474658683548166,
+     5.4316677041480395
+    ],
+    "ratio_mean": 5.953163193848103
+   },
+   "probe_sfht": {
+    "unif": [
+     0.052444,
+     0.053013
+    ],
+    "biased": [
+     0.053991,
+     0.054597
+    ],
+    "ratio_seeds": [
+     1.0294981313400962,
+     1.029879463527814
+    ],
+    "ratio_mean": 1.029688797433955
+   },
+   "infamily_mean": 0.0527785,
+   "twin_mean": 0.052205,
+   "accuracy_ratio_vs_twin": 1.0109855377837371
+  }
+ },
+ "loader_check": "no 'skipping load' in any eval log"
+}

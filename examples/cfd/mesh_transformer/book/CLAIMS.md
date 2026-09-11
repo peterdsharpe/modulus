@@ -1514,3 +1514,9 @@ interior control @sec-nb-udrv-int-prereg.
   WRITE: "count augmentation reduces the request-size dependence by ~40% at a 3.7% cost and does not remove it; the
   dependence is partly intrinsic to the interacting decode; deploy at the training count". Never "count augmentation
   removes the dependence" (retire the D1-era 'deployment repair is augmentation' wording).
+- **MWAW verdict (2026-09-11, fp32, 48 cars, 10k; results/mwaw_2026-09-11.json).** GT-mwaw 0.0505 vs plain-frame twin 0.0498 (+1.2%);
+  T-mwaw 0.0528 vs 0.0522 (+1.1%) → EQUAL. Sample-frame density: HT centre (cell_measures) 1.04x / 1.03x;
+  raw-area centre 9.2x / 6.0x (count bias — never call use_area_weighting alone "HT" under a biased draw). Write "the
+  repaired baselines' density dependence is entirely the datapipe centroid; with an HT-consistent centroid they hold at
+  1.03–1.04x, below ISLA's 1.2x floor". RULING QUESTION OPEN: adopt HT CenterMesh as the baselines' frame in the fair
+  comparison (recommended) vs prereg "equal → plain frame stays". Chapters report BOTH frames until Peter rules.
