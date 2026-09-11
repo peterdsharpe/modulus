@@ -1587,3 +1587,6 @@ interior control @sec-nb-udrv-int-prereg.
   deployment question (no help under uniform deployment) is answered and the mechanism question (is the deficit under-sampling?) is NOT
   separable by this arm. Pre-written reading applies: neither anchor geometry nor (deployable) sampling; representational conjecture (downstream
   coordinate implicit in the seed) remains. Never write "far-wake deficit is not under-sampling" without the swap confound.
+- **WAVE-4 21-geometry rung (2026-09-11, fp32, rate-matched).** Gauge 0.1048/0.1038 → 0.1043 vs constant prior 0.1014 → **+2.9%** (cheap band);
+  vs unit GT 0.0933 → 1.12x, Transolver 0.0941 → 1.11x. Gauge ladder prices by rung: DrivAerML −2.5%, 21 geo +2.9%, 4 geo +7.4%, 35 +7.6%,
+  fixed angle +14.4%. Price does NOT track training-set size. Gauge ≠ reference (sample-statistic frame).
