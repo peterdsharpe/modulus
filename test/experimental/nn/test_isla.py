@@ -664,7 +664,10 @@ def test_a35b_ablation_flags_run_and_differ():
 
 
 @pytest.mark.parametrize("kw", [{}, {"use_relational_geo": False}, {"seed_mode": "raw"},
-                                {"odd_head": True}, {"similarity_gauge": True}])
+                                {"odd_head": True}, {"similarity_gauge": True},
+                                {"frame_mode": "relative"},
+                                {"frame_mode": "relative", "scale_mode": "total_measure",
+                                 "query_independent": True, "n_decoder_layers": 1}])
 def test_all_parameters_receive_gradients(kw):
     """DDP requires every parameter to take part in the loss; a module built
     but skipped in forward crashes distributed training (A35b nogeo incident)."""
@@ -1225,3 +1228,157 @@ def test_center_mode_measure_is_sampling_bias_robust():
             o_mb = m_meas(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn)
         wins += int((o_mb - o_mu).norm() < (o_pb - o_pu).norm())
     assert wins == 4
+
+
+def _frame_cloud(n=300, seed=0):
+    torch.manual_seed(seed)
+    pts = torch.randn(1, n, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64) + 5.0
+    nrm = torch.nn.functional.normalize(torch.randn(1, n, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n, dtype=torch.float64) + 0.5
+    return pts, nrm, drv, w
+
+
+def _rotation():
+    q, _ = torch.linalg.qr(torch.randn(3, 3, dtype=torch.float64))
+    if torch.det(q) < 0:
+        q[:, 0] = -q[:, 0]
+    return q
+
+
+def test_global_frame_contracts():
+    """FRAME-FULL: center_mode='global' / scale_mode='global' read the frame from
+    forward arguments. Supplying the plain mean and the constant reference length
+    reproduces the default model; the frame must be supplied; translation
+    equivariance holds with the supplied center translated along; rotation
+    equivariance with the center rotated along."""
+    pts, nrm, drv, w = _frame_cloud()
+    shift = torch.tensor([3.0, -7.0, 11.0], dtype=torch.float64)
+    torch.manual_seed(1)
+    m_plain = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    torch.manual_seed(1)
+    m_c = ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="global").double().eval()
+    torch.manual_seed(1)
+    m_cs = ISLA(hidden=64, n_layers=2, n_slices=16, center_mode="global", scale_mode="global").double().eval()
+    c = pts.mean(dim=1)  # (1, 3)
+    s = torch.full((1,), 8.0, dtype=torch.float64)
+    with torch.no_grad():
+        base = m_plain(pts, nrm, drv, w)
+        assert torch.allclose(m_c(pts, nrm, drv, w, frame_center=c), base, atol=1e-12)
+        assert torch.allclose(m_cs(pts, nrm, drv, w, frame_center=c, frame_scale=s), base, atol=1e-12)
+        with pytest.raises(ValueError):
+            m_c(pts, nrm, drv, w)
+        with pytest.raises(ValueError):
+            m_cs(pts, nrm, drv, w, frame_center=c)
+        c2 = c + torch.tensor([[0.5, -0.2, 0.1]], dtype=torch.float64)  # any supplied frame
+        a = m_cs(pts, nrm, drv, w, frame_center=c2, frame_scale=s * 1.3)
+        assert torch.allclose(m_cs(pts + shift, nrm, drv, w, frame_center=c2 + shift, frame_scale=s * 1.3), a, atol=1e-10)
+        q = _rotation()
+        rot = m_cs(pts @ q.T, nrm @ q.T, drv @ q.T, w, frame_center=c2 @ q.T, frame_scale=s * 1.3)
+        assert torch.allclose(rot[..., :1], a[..., :1], atol=1e-10)
+        assert torch.allclose(rot[..., 1:4], a[..., 1:4] @ q.T, atol=1e-10)
+        ### the supplied frame is a live input, not ignored
+        assert not torch.allclose(m_cs(pts, nrm, drv, w, frame_center=c2, frame_scale=s), base, atol=1e-6)
+    with pytest.raises(ValueError):
+        ISLA(hidden=64, n_layers=2, n_slices=16, similarity_gauge=True, scale_mode="global")
+    with pytest.raises(ValueError):
+        ISLA(hidden=64, n_layers=2, n_slices=16, scale_mode="rms")
+
+
+def test_relative_frame_contracts():
+    """RELFRAME: no frame origin. Exact translation invariance without centering
+    (1e-12, fp64), rotation equivariance, the reduced feature widths (seeds 5 ->
+    1, relational 8 -> 6 in the slice blocks and the passive read blocks),
+    geometric scale equivariance under scale_mode='total_measure' (points x s,
+    weights x s^2), and the excluded combinations."""
+    pts, nrm, drv, w = _frame_cloud()
+    shift = torch.tensor([300.0, -70.0, 1100.0], dtype=torch.float64)
+    torch.manual_seed(1)
+    m = ISLA(hidden=64, n_layers=2, n_slices=16, frame_mode="relative", query_independent=True,
+             n_decoder_layers=1).double().eval()
+    torch.manual_seed(1)
+    m_tm = ISLA(hidden=64, n_layers=2, n_slices=16, frame_mode="relative", scale_mode="total_measure").double().eval()
+    torch.manual_seed(1)
+    m_def = ISLA(hidden=64, n_layers=2, n_slices=16).double().eval()
+    assert m.embed[0].in_features == 1 and m_def.embed[0].in_features == 5
+    assert m.blocks[0].geo_logit.in_features == 6 and m_def.blocks[0].geo_logit.in_features == 8
+    assert m.read_blocks[0].geo_logit.in_features == 6
+    with torch.no_grad():
+        for model in (m, m_tm):
+            base = model(pts, nrm, drv, w)
+            assert torch.isfinite(base).all()
+            assert torch.allclose(model(pts + shift, nrm, drv, w), base, atol=1e-12)
+            q = _rotation()
+            rot = model(pts @ q.T, nrm @ q.T, drv @ q.T, w)
+            assert torch.allclose(rot[..., :1], base[..., :1], atol=1e-10)
+            assert torch.allclose(rot[..., 1:4], base[..., 1:4] @ q.T, atol=1e-10)
+        base = m_tm(pts, nrm, drv, w)
+        assert torch.allclose(m_tm(pts * 2.5, nrm, drv, w * 2.5**2), base, atol=1e-10)
+        assert not torch.allclose(m_tm(pts * 2.5, nrm, drv, w), base, atol=1e-3)  # the total measure IS the scale
+        with pytest.raises(ValueError):
+            m_tm(pts, nrm, drv, None)
+    for bad in ({"similarity_gauge": True}, {"odd_head": True}, {"seed_mode": "raw"},
+                {"center_mode": "measure"}, {"scale_conditioning": True}):
+        with pytest.raises(ValueError):
+            ISLA(hidden=64, n_layers=2, n_slices=16, frame_mode="relative", **bad)
+    with pytest.raises(ValueError):
+        ISLA(hidden=64, n_layers=2, n_slices=16, frame_mode="absolute")
+
+
+@pytest.mark.parametrize("kw", [{"center_mode": "global", "scale_mode": "global"},
+                                {"frame_mode": "relative"},
+                                {"frame_mode": "relative", "scale_mode": "total_measure"}])
+def test_frame_modes_are_sampling_consistent(kw):
+    """The discriminating contract for both frame programs. Under a 10:1 biased
+    Poisson subsample with exact HT weights, a model whose frame carries no
+    sample statistic (FRAME-FULL: the full-cloud frame supplied; RELFRAME: no
+    frame) moves its predictions at fixed queries between the uniform and the
+    biased draw by no more than the measure noise -- the same order as between two
+    independent uniform draws -- and far less than the plain-centred model."""
+    torch.manual_seed(0)
+    n_full = 100000
+    pts = torch.randn(1, n_full, 3, dtype=torch.float64) * torch.tensor([3.0, 2.0, 1.0], dtype=torch.float64)
+    nrm = torch.nn.functional.normalize(torch.randn(1, n_full, 3, dtype=torch.float64), dim=-1)
+    drv = torch.nn.functional.normalize(torch.randn(1, 3, dtype=torch.float64), dim=-1)
+    w = torch.rand(1, n_full, dtype=torch.float64) + 0.5
+    w_n = w / w.sum()
+    c_full = (w_n[..., None] * pts).sum(dim=1)
+    s_full = (w_n * (pts - c_full[:, None]).square().sum(-1)).sum().sqrt().reshape(1)
+    frame = dict(frame_center=c_full, frame_scale=s_full) if kw.get("center_mode") == "global" else {}
+    q, qn = pts[:, :40], nrm[:, :40]
+    ### reference_length 1 puts r at the cloud's scale (the plain model must feel
+    ### the centroid shift); local_readout_rho 1 keeps the passive readout a smooth
+    ### measure-weighted average on this volumetric toy cloud (its surface default,
+    ### 0.02, underflows to the clamp here and its noise would swamp the frame).
+    common = dict(hidden=32, n_layers=2, n_slices=8, query_independent=True, n_decoder_layers=1,
+                  reference_length=1.0, local_readout_rho=1.0)
+    torch.manual_seed(1)
+    m_plain = ISLA(**common).double().eval()
+    torch.manual_seed(1)
+    m = ISLA(**common, **kw).double().eval()
+    n_sub = 10000
+    d_bias, d_noise, d_plain, d_plain_noise = [], [], [], []
+    for seed in range(4):
+        g = torch.Generator().manual_seed(100 + seed)
+        p_u, w_u, iu = _biased_poisson_subsample(pts, w, n_sub, 1.0, g)
+        p_u2, w_u2, iu2 = _biased_poisson_subsample(pts, w, n_sub, 1.0, g)
+        p_b, w_b, ib = _biased_poisson_subsample(pts, w, n_sub, 10.0, g)
+        with torch.no_grad():
+            o_pu = m_plain(p_u, nrm[:, iu], drv, w_u, query_points=q, query_normals=qn)
+            o_pu2 = m_plain(p_u2, nrm[:, iu2], drv, w_u2, query_points=q, query_normals=qn)
+            o_pb = m_plain(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn)
+            o_u = m(p_u, nrm[:, iu], drv, w_u, query_points=q, query_normals=qn, **frame)
+            o_u2 = m(p_u2, nrm[:, iu2], drv, w_u2, query_points=q, query_normals=qn, **frame)
+            o_b = m(p_b, nrm[:, ib], drv, w_b, query_points=q, query_normals=qn, **frame)
+        d_bias.append(float((o_b - o_u).norm()))
+        d_noise.append(float((o_u2 - o_u).norm()))
+        d_plain.append(float((o_pb - o_pu).norm()))
+        d_plain_noise.append(float((o_pu2 - o_pu).norm()))
+        assert d_bias[-1] < 0.4 * d_plain[-1], (d_bias, d_plain)
+    ### measure-noise level: the biased draw's HT estimates have a larger variance
+    ### than a uniform draw's (10x fewer points in the undersampled half), so the
+    ### bias-vs-uniform difference may exceed the uniform-vs-uniform one by a
+    ### bounded factor -- not the order of magnitude a frame shift produces.
+    ratio = sum(d_bias) / sum(d_noise)
+    ratio_plain = sum(d_plain) / sum(d_plain_noise)
+    assert ratio < 4.0 < ratio_plain, (ratio, ratio_plain)

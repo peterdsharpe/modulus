@@ -59,6 +59,9 @@ YAML configs.  Import this module before Hydra instantiation
 
 from __future__ import annotations
 
+import json
+import zlib
+from collections.abc import Sequence
 from warnings import warn
 
 import torch
@@ -776,3 +779,58 @@ class SetConstantCellField(MeshTransform):
 
     def extra_repr(self) -> str:
         return f"cell_data[{self._field_name!r}] = {self._value}"
+
+
+@register()
+class SetGlobalFieldsFromTable(MeshTransform):
+    r"""Per-case global fields from a JSON table keyed by case name.
+
+    FRAME-FULL (2026-09-10): the frame of a surface (area-weighted centroid,
+    RMS radius) is a property of the geometry, so it is computed once per
+    case from the FULL mesh and passed in as ``global_data`` instead of being
+    estimated from the sampled points: no sampling dependence, no estimator
+    variance. The table is ``{case_name: {field: value, ...}, ...}`` (keys
+    starting with ``_`` are provenance and ignored); the case is identified
+    through ``global_data[key_field]``, the CRC-32 case key
+    :class:`~merge_global_data.MeshReaderWithGlobalData` writes with
+    ``store_case_key: true``, so every listed name is hashed the same way at
+    construction (a hash collision among the listed names is an error).
+    Fields are written in the mesh's dtype; place after
+    ``NonDimensionalizeByMetadata`` and give the table's values in the same
+    coordinates (the frame datasets omit ``CenterMesh``, whose shift is a
+    sample statistic).
+    """
+
+    def __init__(self, table: str, fields: Sequence[str], key_field: str = "case_key") -> None:
+        super().__init__()
+        self._table_path = str(table)
+        self._fields = tuple(fields)
+        self._key_field = key_field
+        with open(self._table_path) as f:
+            raw = json.load(f)
+        self._rows: dict[int, TensorDict] = {}
+        for name, row in raw.items():
+            if name.startswith("_"):
+                continue
+            key = zlib.crc32(name.encode()) & 0x7FFFFFFF
+            if key in self._rows:
+                raise ValueError(f"SetGlobalFieldsFromTable: case-key collision for {name!r} in {table}")
+            self._rows[key] = TensorDict(
+                {k: torch.as_tensor(row[k], dtype=torch.float64) for k in self._fields}, batch_size=[]
+            )
+
+    def __call__(self, mesh: Mesh) -> Mesh:
+        if self._key_field not in mesh.global_data.keys():
+            raise KeyError(
+                f"SetGlobalFieldsFromTable: global_data[{self._key_field!r}] missing; "
+                f"set store_case_key: true on the reader."
+            )
+        key = int(mesh.global_data[self._key_field])
+        if key not in self._rows:
+            raise KeyError(f"SetGlobalFieldsFromTable: case key {key} not in {self._table_path}")
+        new_gd = mesh.global_data.clone()
+        new_gd.update(self._rows[key].to(device=mesh.points.device, dtype=mesh.points.dtype))
+        return mesh.with_data(global_data=new_gd)
+
+    def extra_repr(self) -> str:
+        return f"{list(self._fields)} from {self._table_path} ({len(self._rows)} cases) by {self._key_field}"
