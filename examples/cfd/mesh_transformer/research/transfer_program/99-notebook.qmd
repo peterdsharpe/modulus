@@ -2108,3 +2108,74 @@ priority is the planned scaling and benchmark work, and the interior
 comparison stands as recorded: ISLA at hidden 344 leads
 GeoTransolver-volume on pressure and velocity, and on eddy viscosity
 everywhere except the far wake.
+
+## 2026-09-10 — Verdict, campaign A at 210 cases (float32): both "ISLA behind" orderings stand with tighter intervals (GeoTransolver ÷ ISLA 0.87 [0.82, 0.93], Transolver ÷ ISLA 0.90 [0.85, 0.95]); the weights-off ablation's gain is 8% on every draw ("between" by 0.002); the draw still outweighs the seed for the baselines (3–8x) but not for ISLA without weights (1.8x) {#sec-nb-campa-n210}
+
+**Setting.** The 210-case rung of campaign A
+(`studies/campaign_a_draws/PREREG.md`; the 35-case rung is
+@sec-nb-campa-n35): the same four arms (unit-drive GeoTransolver at lr
+1e-3, unit-drive Transolver at 3e-3, ISLA, and the measure-weights-off
+ISLA ablation at 1e-3; frozen protocol, 500 epochs) retrained on three
+independent geometry-stratified draws of 210 HiLiftAeroML training cases,
+three seeds each (36 lanes), scored on the shared validation set in
+float32 under the program's evaluation snapshot; the curated draw's
+existing runs, re-evaluated in float32 by the main session, are "draw 0".
+Bars as at 35 cases: an ordering stands if the 90% t-interval of baseline
+÷ ISLA over the three draws lies below 1.0; the weights-off gain persists
+if its ratio is ≤ 0.93 on all three draws and fades if any draw is ≥ 0.97;
+the curated draw is typical if each arm's curated mean lies inside its
+three-draw range; a between-draw to within-draw standard-deviation ratio
+above 2 means the two-seed protocol understates uncertainty.
+
+**Readout (validation surface-pressure relative L2; seed means over three
+seeds per draw; artifact
+`studies/campaign_a_draws/campaign_a_n210_fp32_2026-09-10.json`).**
+
+| arm | draw 1 | draw 2 | draw 3 | curated draw | between-draw SD ÷ within-draw SD | 35-case ratio |
+|---|---|---|---|---|---|---|
+| GeoTransolver, unit drive | 0.0542 | 0.0603 | 0.0580 | 0.0539 (atypical: below the range by 0.0003) | 3.1 | 8.8 |
+| Transolver, unit drive | 0.0557 | 0.0623 | 0.0606 | 0.0578 | 7.6 | 10.9 |
+| ISLA | 0.0624 | 0.0665 | 0.0689 | 0.0643 | 2.7 | 3.4 |
+| ISLA, measure weights off (ablation) | 0.0581 | 0.0612 | 0.0621 | 0.0589 | 1.8 | 8.4 |
+
+| ratio | draw 1 | draw 2 | draw 3 | curated | mean over draws | 90% interval (t, n = 3) | verdict | at 35 cases |
+|---|---|---|---|---|---|---|---|---|
+| GeoTransolver ÷ ISLA | 0.869 | 0.907 | 0.843 | 0.838 | 0.873 | [0.818, 0.927] | ISLA behind, stands | 0.910 [0.840, 0.979] |
+| Transolver ÷ ISLA | 0.893 | 0.936 | 0.880 | 0.898 | 0.903 | [0.854, 0.952] | ISLA behind, stands | 0.866 [0.816, 0.916] |
+| ISLA weights off ÷ ISLA | 0.932 | 0.920 | 0.902 | 0.916 | 0.918 | [0.893, 0.943] | between (draw 1 at 0.932 against the 0.93 bar; none ≥ 0.97) | 0.914 [0.865, 0.963] |
+
+: Velocity follows pressure on every draw (GeoTransolver 0.077–0.081, Transolver 0.080–0.085, ISLA 0.092–0.096, weights off 0.085–0.089). Draw 2 is the hardest draw for every arm at 210 cases, as draw 3 was at 35. {#tbl-campa-n210}
+
+**Verdict at the 210-case rung.** Both "ISLA behind" orderings **stand**,
+with intervals about half as wide as at 35 cases and the curated draw's
+ratios inside them (0.838 and 0.898). The two baselines have traded
+places: at 35 cases Transolver was the stronger baseline (0.87 of ISLA's
+error against GeoTransolver's 0.91); at 210 GeoTransolver is (0.87 against
+Transolver's 0.90), so the unit-drive GeoTransolver's advantage over ISLA
+grows with data on HiLift and Transolver's shrinks, in agreement with the
+program's scaling ladder. **The weights-off gain is 8% on every draw**
+(0.902–0.932) and by the letter of the bars "between", because draw 1
+lands at 0.932 against the 0.93 clause; nothing approaches the 0.97 "fades"
+clause, so at 210 cases the ablation's in-distribution gain is as stable
+across draws as it was unstable at 35 (0.896–0.947). Under the 2026-09-10
+ruling this is the measured in-distribution cost of the measure semantics
+on canonical HiLift data, 8% at 210 cases and 5–10% at 35, and not a
+recommendation. **The variance decomposition changes with the rung.**
+Between-draw standard deviation still exceeds the seed standard deviation
+for every arm, but the ratios fall from 3.4–10.9 to 1.8–7.6: 3.1 for
+GeoTransolver, 7.6 for Transolver (its seed noise is tiny, 0.0004), 2.7 for
+ISLA and 1.8 for the weights-off ablation, the one arm for which the
+two-seed protocol is adequate at this rung by the preregistered threshold
+of 2. The curated draw is typical for three arms and marginally atypical
+for GeoTransolver (0.0539 against a three-draw range starting at 0.0542),
+on the easy side, which is why the curated GeoTransolver ÷ ISLA ratio
+(0.838) is the most favourable to GeoTransolver of the four.
+
+**What changes.** Campaign A is complete. The chapter-5 HiLift statements
+may now be quoted with draw intervals at both rungs (GeoTransolver
+0.82–0.93 of ISLA's error at 210 cases, Transolver 0.85–0.95), the
+weights-off ablation's gain is 8% at 210 cases on every draw, and the
+protocol rule from the 35-case rung is confirmed but softened: at 210
+cases, two seeds understate the uncertainty by 2–8x for the baselines and
+ISLA, and by less than 2x for the ablation. Future HiLift rungs still need
+draws.
