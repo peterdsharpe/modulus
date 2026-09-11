@@ -1429,3 +1429,11 @@ interior control @sec-nb-udrv-int-prereg.
   across sampling conventions at 10k; data diversity removes the dependence for all; the measure-consistent
   model pays a fifth to a quarter of the baselines' swap penalty and converges with count"; never
   "density-reading models cannot mix conventions".
+- **RELFRAME verdict (2026-09-11, fp32; results/relframe_reduction_2026-09-11.json).** No-frame ISLA: DrivAerML
+  ref 0.0566 (+1.5%), density 1.21x (sample frame); meas 0.0552 (−0.9%), 1.235x; BENCH D_area +41%→+3.4%,
+  D_biased +19%→+2.5% (10k→40k). HiLift 35: 0.1530 / 0.1529 (+11%) — accuracy bar FAILS; falsifier fired:
+  the HiLift price is NOT frame-estimate variance (no frame, same 10–11% as measure centring). Write "the
+  1.2x floor is the routing integral's variance under a 10:1 sample, not a frame effect"; write "the
+  HiLift price is either positional information lost with the seeds or the plain-mean frame's mesh-density
+  content (0.131 body lengths on HiLift, 0.034 DrivAerML; HT-10k noise 0.0065) — FRAME-FULL decides".
+  Reference configuration: still UNDER DECISION; RELFRAME is not the flagship by the preregistered rule.
