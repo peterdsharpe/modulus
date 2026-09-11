@@ -226,7 +226,11 @@ plt.show()
 Part I defines the problem, the datasets and splits, the metrics and the
 protocol (@sec-problem), then the architecture, ISLA
 (@sec-mt2), and the baselines with the fair-comparison rules
-(@sec-baselines). Part II is the evidence on production aerodynamics: data
+(@sec-baselines). Part II is the evidence on production aerodynamics. It
+opens with the scoreboard (@sec-scoreboard): every cross-architecture
+measurement of the book, surface, interior, pose, consistency and cost, on
+one page with matched inputs and one instrument, for a reader who needs the
+standing and not the derivation. The chapters behind it are data
 efficiency (@sec-data-efficiency); accuracy at full data, the robustness
 contracts and regime extrapolation (@sec-full-data,
 @sec-regime-extrapolation); and boundary-to-interior prediction

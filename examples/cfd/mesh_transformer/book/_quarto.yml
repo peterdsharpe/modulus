@@ -14,6 +14,7 @@ book:
         - 04-baselines-and-fair-comparison.qmd
     - part: "Evidence on production aerodynamics"
       chapters:
+        - 03-benchmarks.qmd
         - 05-data-efficiency.qmd
         - 06-accuracy-and-robustness.qmd
         - 08-boundary-to-interior.qmd
