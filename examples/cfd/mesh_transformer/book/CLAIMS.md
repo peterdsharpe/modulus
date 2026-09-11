@@ -1594,3 +1594,7 @@ interior control @sec-nb-udrv-int-prereg.
   (cheap; inside the prior's seed spread); vs unit GT 0.0539 → 1.22x, Transolver 0.0578 → 1.13x. CORRECTION to the geo210 line: the gauge
   price DOES fall with training-set size along each HiLift ladder (35→210 cases: 7.6→2.0%; 4→21 geometries: 7.4→2.9%); the fixed angle
   (+14.4% at 126 cases) is the outlier. Write it that way; never "does not track size" after 2026-09-11.
+- **RELFRAME-LADDER 4-geometry rung (2026-09-11, fp32; results/frame_reduction_2026-09-11.json hilift_val).** Reference (rf_hl_mt2_meas_geometry_super_scarce_seed{42,43})
+  0.2599/0.2440 → 0.2519 vs constant prior 0.2496 → **+0.9%** (parity, inside seed spread; prediction 5–10% falsified downward); vs gauge
+  0.2680 → 0.940x; vs unit GT 0.1884 → 1.34x, Transolver 0.1928 → 1.31x. Reference ladder: DrivAerML −0.9%, 4 geo +1.0%, 35 cases +11.0%.
+  Hypothesis (stated, not shown): the mesher pattern sells only where validation geometries recur in training. Fixed angle pending.
