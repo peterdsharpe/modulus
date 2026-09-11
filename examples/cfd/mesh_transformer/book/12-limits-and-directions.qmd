@@ -453,7 +453,16 @@ evaluation-time variance of the slice means, and it is removed by
 drawing more cells, not by retraining (@sec-nb-mix-refinement). This is the program's rule in @sec-principle read from the data:
 accuracy is to be recovered by capacity and principled construction, not
 by tuning to a dataset, and the single-case floor is the instrument that
-separates the two. The interior pair of the same study is pending.
+separates the two. The interior pair of the same study sorts ISLA's three
+interior standings the same way (one car, 64 views, float32 at the
+training count of 10,000 queries; @sec-nb-overfit-interior): against
+GeoTransolver-volume the single-car ratios are 1.25 on pressure, 0.67 on
+velocity and 1.64 on eddy viscosity, against 0.92, 0.65 and 1.30 at full
+data. The velocity lead is identical with the data fixed, so it is
+capacity; the eddy-viscosity deficit is wider with the data fixed, so it is
+capacity too and more cars will not close it; and the full-data pressure
+lead disappears on one car, so it is generalization across cars, not
+representation.
 
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 
@@ -549,7 +558,11 @@ query tokens did not close it, and neither did a width increase to hidden
 256 (1.17x in float32, inside the inconclusive band; 1.26x in bfloat16;
 about 15.7M parameters, still
 below GeoTransolver-volume's effective width of 448 and 27.6M parameters,
-so capacity is not ruled out, only that step in width; @sec-interior-query-tokens). Two facts bound
+so capacity is not ruled out, only that step in width;
+@sec-interior-query-tokens). The single-car test then identified it as a
+capacity limit outright: with the data fixed the eddy-viscosity ratio widens
+to 1.64, so more training cars will not close it
+(@sec-nb-overfit-interior). Two facts bound
 the query-token configuration itself: its query weights scale with the
 geometric mean of the surface weights, so refining the surface sample or
 changing the number of queries changes its prediction (4–9% on small random

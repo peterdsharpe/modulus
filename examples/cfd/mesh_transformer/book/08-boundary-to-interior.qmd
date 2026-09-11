@@ -798,7 +798,14 @@ representational (the downstream coordinate enters the seed only implicitly)
 and is not scheduled. The sharper interior statement
 is therefore: at matched parameters ISLA leads GeoTransolver-volume on
 pressure, velocity and eddy viscosity everywhere except the far wake beyond
-0.4 body lengths, which carries the whole 18% eddy-viscosity deficit. ISLA's
+0.4 body lengths, which carries the whole 18% eddy-viscosity deficit. A
+single-car training test locates each standing: with one car presented as
+64 resampled views, ISLA's velocity lead over GeoTransolver-volume is
+unchanged (0.67 against 0.65 at full data) and is therefore capacity, its
+eddy-viscosity deficit widens (1.64 against 1.30) and is capacity too, and
+its full-data pressure lead reverses on one car (1.25 against 0.92), so
+that lead is generalization across cars rather than representation
+(@sec-nb-overfit-interior). ISLA's
 passive decode is the configuration to use when
 interior query independence is contractual, at 9.9M parameters, 4.9 GB
 and a 3.1x price in interior pressure error on DrivAerML (float32).** The parity is

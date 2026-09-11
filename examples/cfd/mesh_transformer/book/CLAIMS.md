@@ -1594,3 +1594,10 @@ interior control @sec-nb-udrv-int-prereg.
   (cheap; inside the prior's seed spread); vs unit GT 0.0539 → 1.22x, Transolver 0.0578 → 1.13x. CORRECTION to the geo210 line: the gauge
   price DOES fall with training-set size along each HiLift ladder (35→210 cases: 7.6→2.0%; 4→21 geometries: 7.4→2.9%); the fixed angle
   (+14.4% at 126 cases) is the outlier. Write it that way; never "does not track size" after 2026-09-11.
+- **OVERFIT-1 interior addendum (2026-09-11, single-sample session; one car run_112, 64 views, 20k steps, fp32 at 10k queries;
+  results/overfit_single_case_2026-09-11.json).** ISLA QT+SDF ÷ GT-volume single-car: p 1.25 / v 0.67 / nut 1.64 vs full data 0.92 / 0.65 / 1.30.
+  Readings: velocity lead = CAPACITY (identical with data fixed); nut deficit = CAPACITY (wider with data fixed; bar 1.25) → more cars will not
+  close it; full-data pressure lead = GENERALIZATION across cars (ISLA trails on one car). 10k→40k queries: GT-volume moves 5–31%, ISLA −25% (p),
+  −11% (u), +61% (nut) → nut ratio 2.02 at 40k (QCOUNT dependence at its most visible). bf16 offsets: GT-volume +19–28% (largest in program),
+  ISLA +2.5–10%. Fixed single sample: no interior arm memorizes in bf16; both near-useless on a resampling (0.34–0.68). Whole OVERFIT-1 picture:
+  surface deficits + interior nut deficit = capacity; interior velocity lead = capacity; interior pressure lead = generalization. OVERFIT node DONE.
