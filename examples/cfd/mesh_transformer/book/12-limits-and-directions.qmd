@@ -879,13 +879,26 @@ consistency the frame decides, not the pooling: every architecture that
 centres its coordinates on a plain sample mean collapses under the 10:1
 bias when the frame is taken from the biased sample (weighted baselines
 14–16x, unweighted 12x, constant-gauge ISLA 12x; @sec-nb-mw-postcenter),
-and only ISLA's measure-weighted frames hold (1.17–1.21x). So on surface
+and only ISLA's measure-weighted frames hold (1.17–1.21x). Given an
+unbiased estimate of the geometric centroid as their datapipe frame, the
+measure-weighted baselines hold too: retrained with an area-weighted
+centre they score 0.0505 and 0.0528 (within 1.2% of their plain-frame
+twins) and their sample-frame density ratio is 1.04x and 1.03x when the
+centre is the Horvitz–Thompson estimate of the geometric centroid, against
+9.2x and 6.0x when it is the raw-area mean (@sec-nb-mwaw-verdict;
+`results/mwaw_2026-09-11.json`). The consistency advantage is therefore a
+property of the frame, not of the architecture. So on surface
 pressure at the reference size the measure-weighted GeoTransolver or
 Transolver is the more accurate choice wherever the deployment mesher
-matches the training mesher, and ISLA with a measure-weighted frame is the
-choice wherever the sampling may differ, where geometries arrive in
+matches the training mesher, and either the measure-weighted baselines
+with a Horvitz–Thompson-centred datapipe or ISLA with a measure-weighted
+frame is the choice wherever the sampling may differ; ISLA remains the
+choice where geometries arrive in
 arbitrary poses, on the interior at matched parameters, or where memory at
-scale binds. Under
+scale binds. Which frame the baselines stand on in the fair comparison
+(the plain mean of cell centres, which reads the mesher, or the
+area-weighted centroid, which is a property of the surface) is at equal
+accuracy a ruling not yet made; the chapters report both until it is. Under
 refinement and across sampling laws no configuration is yet consistent at
 10,000 cells; only the measure-weighted ISLA arms converge toward the
 uniform answer under the area-proportional sampler while the unweighted
