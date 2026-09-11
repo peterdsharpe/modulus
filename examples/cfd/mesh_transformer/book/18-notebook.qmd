@@ -14182,6 +14182,7 @@ unchanged in kind; chapter 5, the index row and CLAIMS now quote the
 three-seed numbers. Seed spreads at this rung: GeoTransolver 3%, Transolver
 2%, ISLA 7%; the training-draw uncertainty of @sec-nb-campa-35-merged is not
 included, and campaign A's 210-case draws (companion, landing) will bound it.
+
 ## 2026-09-11 — Verdict, MIX: every architecture pays to swap sampling conventions (ISLA 1.5–1.9x, the baselines 3–7x), and every architecture absorbs both conventions for free when trained on both {#sec-nb-mix-verdict}
 
 The MIX study (@sec-nb-mix-prereg) trained the three architectures on the
