@@ -14339,3 +14339,46 @@ without a frame. If it pays, the price is the mesher's pattern, the stated
 cost of the principle, and not a reason to reinstate a sample statistic. The
 HiLift sampler lanes of the RELFRAME checkpoints complete the consistency
 half of the row.
+
+## 2026-09-11 — BENCH addendum: with the frame held by the pipeline, the measure-weighted baselines are the most sampler-consistent arms measured (|D| ≤ 0.9% at 40,000 cells on both datasets, ≤ 0.8% at 10,000 on HiLift); the aggregation defect is fixed, the frame defect is the datapipe's {#sec-nb-bench-mw}
+
+The ten measure-weighted baseline checkpoints of @sec-nb-mw-verdict went
+through the benchmark's three samplers at 10,000 and 40,000 cells (snapshot
+code_mw with the *_mw model configs; float32; 60 lanes, one teardown fault
+rerun, no loader warnings; artifact
+results/consistency_bench/consistency_bench_mw_2026-09-10.json). Frame
+convention: the benchmark pipeline, like the campaign-E probes, centres
+every architecture's coordinates on the plain mean of the 320,000-cell
+uniform pool before the samplers, so these are pool-frame values for the
+baselines (their sample-frame collapse is @sec-nb-mw-postcenter); the ISLA
+arms centre in the model and are frame-independent.
+
+| arm | 10k: unif / area / biased | 40k: unif / area / biased | D_area 10k → 40k | D_biased 10k → 40k |
+|---|---|---|---|---|
+| GeoTransolver, measure-weighted pooling, DrivAerML | 0.0504 / 0.0526 / 0.0511 | 0.0511 / 0.0516 / 0.0513 | +4.4% → +0.9% | +1.4% → +0.3% |
+| Transolver, measure-weighted pooling, DrivAerML | 0.0525 / 0.0549 / 0.0532 | 0.0529 / 0.0534 / 0.0530 | +4.7% → +0.9% | +1.4% → +0.2% |
+| GeoTransolver, measure-weighted pooling, HiLift 35 (3 seeds) | 0.1169 / 0.1164 / 0.1175 | 0.1165 / 0.1168 / 0.1168 | -0.4% → +0.3% | +0.5% → +0.3% |
+| Transolver, measure-weighted pooling, HiLift 35 (3 seeds) | 0.1211 / 0.1210 / 0.1220 | 0.1207 / 0.1211 / 0.1211 | -0.0% → +0.3% | +0.8% → +0.4% |
+
+**Reading.** With the frame fixed, giving GeoTransolver and Transolver the
+surface measure in their slice pooling makes their aggregation as
+consistent as an integral should be: the area-proportional draw, whose
+Horvitz–Thompson weights span three to four decades and leave a third of
+the kept cells at the clamp on the wings, changes their answer by under 1%
+at 40,000 cells and by under 5% at 10,000 on the cars, and by under 1% at
+either count on the wings, where the unweighted twins read the distribution
+by 150–260% and the measure-centred ISLA holds at −2% to +4%. This is the
+cleanest separation of the two defects the program has: measure weighting
+repairs the aggregation completely, and what remains for the baselines is
+the frame, which in the surface recipe is a datapipe choice (`CenterMesh`
+on the plain mean of the pool) rather than a model property. The same
+datapipe transform has an area-weighted mode (`use_area_weighting`), which
+would give the baselines the Horvitz–Thompson estimate of the geometric
+centroid as their frame, the datapipe analogue of the question put to Peter
+in @sec-nb-bench-mcenter; a relative-position input encoding is the
+frame-free alternative for a raw-coordinate architecture and has not been
+built. The accuracy price of measure awareness on uniform sampling is
++1–2% on the cars and +6% at 35 HiLift cases for the baselines (0.1165
+against 0.1100; 0.1207 against 0.1145), against +11% for the
+measure-centred ISLA on the same rung; the two rows of @tbl-consistency-40k
+that carry these arms are added.

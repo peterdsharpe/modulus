@@ -1462,3 +1462,10 @@ interior control @sec-nb-udrv-int-prereg.
   HiLift price is either positional information lost with the seeds or the plain-mean frame's mesh-density
   content (0.131 body lengths on HiLift, 0.034 DrivAerML; HT-10k noise 0.0065) — FRAME-FULL decides".
   Reference configuration: still UNDER DECISION; RELFRAME is not the flagship by the preregistered rule.
+- **BENCH mw addendum (2026-09-11; results/consistency_bench/consistency_bench_mw_2026-09-10.json; POOL FRAME).**
+  Measure-weighted baselines: DrivAerML D_area +4.4%→+0.9% (GT), +4.7%→+0.9% (Transolver);
+  D_biased +0.3% / +0.2% at 40k. HiLift 35 D_area -0.4%→+0.3% (GT), -0.0%→+0.3% (T).
+  Write "with the frame held by the pipeline, measure weighting makes the baselines' aggregation fully
+  consistent (|D| < 1% at 40k); the frame defect remains in the datapipe (CenterMesh plain mean)"; never
+  "the measure-weighted baselines are sampling-consistent" without the frame convention. CenterMesh has
+  use_area_weighting (HT-centroid frame) — same question as Peter's HT-centroid ruling.

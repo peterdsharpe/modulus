@@ -391,6 +391,7 @@ def main() -> None:
     ap.add_argument("--walltimes", type=Path, default=None)
     ap.add_argument("--campaign-e-root", type=Path, default=None)
     ap.add_argument("--out", type=Path, default=Path(f"consistency_bench_{date.today().isoformat()}.json"))
+    ap.add_argument("--note", action="append", default=[], help="free-text note recorded under 'notes' (repeatable)")
     args = ap.parse_args()
 
     lane_rows = read_lanes(args.lanes)
@@ -438,6 +439,7 @@ def main() -> None:
         "samplers": list(SAMPLERS),
         "bars": {"consistent_abs_D_le": CONSISTENT_BAR, "reads_abs_D_ge": READS_BAR},
         "preregistered_predictions": PREREGISTERED_PREDICTIONS,
+        "notes": args.note,
         "lanes_total": len(lane_rows),
         "lane_status_counts": dict(status_counts),
         "lanes_failed": failed,
