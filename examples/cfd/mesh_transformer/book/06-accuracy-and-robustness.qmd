@@ -694,7 +694,7 @@ out = ("| configuration | in-family error | density 10:1 (x) | pose, random SO(3
        "| zero-shot fastback | few-shot gain from pretraining |\n|---|---:|---:|---:|---:|---:|\n")
 for key in ("geotransolver_unit", "geotransolver_unit_mw", "transolver_unit", "transolver_unit_mw",
             "isla_reference_constant_gauge", "isla_constant_gauge_mcenter", "isla_similarity_gauge_lr1e3",
-            "isla_relative_frame_ref", "isla_relative_frame_meas",
+            "isla_relative_frame_ref", "isla_relative_frame_meas", "isla_frame_full_center", "isla_frame_full_frame",
             "isla_similarity_gauge", "isla_weights_off_ablation"):
     r = M["rows"][key]
     pose = f(r["pose_factor"], "{:.2f}") + (" (augmented)" if r.get("pose_note") else "")

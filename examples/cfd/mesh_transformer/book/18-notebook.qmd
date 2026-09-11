@@ -15333,3 +15333,53 @@ constant gauge at lr 1e-3 while both weights-on gauge arms are at 3e-3, and
 the area-trained model under uniform sampling is off its training law, so
 its +2% may be residual swap penalty rather than a floor; the triple is a
 one-line check, not a headline.
+
+## 2026-09-11 — FRAME-FULL, DrivAerML half: the exact full-geometry frame passes the joint bar on the cars (centre-and-scale arm 0.0544, −2.4%, density 1.13x; centre-only arm 0.0565, +1.5%, 1.20x); the HiLift half, which decides the reference, is training {#sec-nb-frame-full-drivaer}
+
+FRAME-FULL (@sec-nb-frame-full-prereg) gives ISLA its frame from the full
+surface mesh at data-preparation time: the geometric centroid ∫x dA / ∫dA
+and the root-mean-square radius of every training and validation surface,
+computed in float64 over every cell (8.3 × 10⁹ cells for DrivAerML,
+cross-checked against an independent pyvista computation to 7 × 10⁻¹⁴)
+and handed to the model as global data, so the frame has zero sampling
+variance and no dependence on which cells a mesher produced. Two arms:
+"center" takes only the centroid from the table and keeps the constant
+reference length; "frame" takes both centroid and scale. Four DrivAerML
+lanes (ff_dr_mt2_{center,frame}_seed{42,43}; unit drive, lr 1e-3, 500
+epochs, snapshot code_frame, recipe copy recipe_frame with the frame
+datasets, which apply no `CenterMesh`), float32 evaluation under
+code_eval_frame on the 48 validation cars (job 711592) and the 10:1 density
+probe with the frame taken from the table for both draws (job 711593); no
+loader warnings. Artifact `results/frame_reduction_2026-09-11.json`.
+
+| arm (DrivAerML, 48 cars, 10k, float32) | pressure (42 / 43 → mean) | vs constant gauge 0.0557 | density 10:1 (42 / 43 → mean) | joint bar (within 3%, ≤ 1.2x) |
+|---|---|---|---|---|
+| FRAME-FULL, centre only (constant reference length) | 0.0570 / 0.0560 → **0.0565** | +1.5% | 1.18 / 1.22 → **1.20x** | pass |
+| FRAME-FULL, centre and scale | 0.0543 / 0.0545 → **0.0544** | -2.3% | 1.13 / 1.13 → **1.13x** | pass |
+
+For the record beside them (same instrument): constant gauge 0.0557 at
+12.0x; measure-centred constant length 0.0548 at 1.17x; RELFRAME
+reference-length 0.0566 at 1.21x and total-measure 0.0552 at 1.235x;
+similarity gauge at the reference rate 0.0543 at 1.20x.
+
+**Reading, DrivAerML.** Both arms pass the joint bar. The centre-and-scale
+arm is at parity with the most accurate ISLA configurations on the cars
+(0.0544 against 0.0543 for the rate-matched gauge and 0.0548 for the
+measure-centred frame, all inside seed spread) and has the lowest density
+ratio any ISLA frame has shown, 1.13x with both seeds agreeing. That number
+is the diagnostic the preregistration asked for: with the frame's sampling
+variance removed exactly, what remains under the 10:1 draw is the
+measure-weighted routing's own variance, 1.13x; the frame-estimate variance
+therefore accounted for the difference to the 1.17–1.24x the estimated and
+frame-free constructions show, and the rest is the routing integral. The
+scale matters here as it did not elsewhere: the centre-only arm sits at
+1.20x, the same floor as the measure-centred and relative frames, so on
+the cars the exact scale is worth 0.07 in ratio and 2–4% in accuracy.
+
+**What it does not decide.** The reference rule (@sec-nb-relframe-verdict)
+turns on the wings: the exact geometric frame becomes the reference
+candidate only if it lands within 3% of 0.1377 at 35 HiLift cases at a
+density ratio ≤ 1.2x, where the frame-free construction paid 11%. The four
+HiLift lanes are on their second links; until they read out the reference
+stays RELFRAME with the total-measure scale by the rule, and the chapters
+stay "under decision".

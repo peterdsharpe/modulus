@@ -212,6 +212,42 @@
    "zero_shot_fastback": null,
    "few_shot_gain": null,
    "note": "#sec-nb-relframe-verdict; HiLift 35: 0.1529 (+11%); BENCH HiLift 35 D_area -1.4%\u2192-0.4%, D_biased +5.3%\u2192+1.2% (10k\u219240k)"
+  },
+  "isla_frame_full_center": {
+   "label": "ISLA, exact full-geometry centroid, constant reference length (lr 1e-3)",
+   "runs": "ff_dr_mt2_center_seed{42,43}",
+   "in_family": 0.0565,
+   "in_family_seeds": [
+    0.057,
+    0.056
+   ],
+   "density_factor": 1.2,
+   "density_seeds": [
+    1.18,
+    1.22
+   ],
+   "pose_factor": null,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "#sec-nb-frame-full-drivaer; frame from the full mesh (zero sampling variance); HiLift pending"
+  },
+  "isla_frame_full_frame": {
+   "label": "ISLA, exact full-geometry centroid and RMS-radius scale (lr 1e-3)",
+   "runs": "ff_dr_mt2_frame_seed{42,43}",
+   "in_family": 0.0544,
+   "in_family_seeds": [
+    0.0543,
+    0.0545
+   ],
+   "density_factor": 1.13,
+   "density_seeds": [
+    1.13,
+    1.13
+   ],
+   "pose_factor": null,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "#sec-nb-frame-full-drivaer; lowest ISLA density ratio measured; HiLift pending (decides the reference)"
   }
  },
  "hilift_pending": "HiLift density and area-resampling factors come from the consistency benchmark (#sec-nb-bench-prereg); until it lands the HiLift rows carry accuracy only",
