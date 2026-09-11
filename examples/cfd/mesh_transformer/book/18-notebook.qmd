@@ -15215,3 +15215,69 @@ argument and the discretization-consistency tests belong to the main session.
 (probe 1, per layer, on and off, both datasets, with the measure floors) and
 `results/overfit_slice_state_variance_2026-09-11.json` (probe 2, per layer:
 V_view, V_slice, effective distinct states, anchor jitter and spread).
+
+## 2026-09-11 — Verdict, MWAW: an area-weighted datapipe frame costs the repaired baselines nothing (+1.1–1.2%, "equal") and, estimated with Horvitz–Thompson weights on the drawn sample, takes their density collapse from 14–16x to 1.03–1.04x; the baselines' whole sampler dependence was the plain-mean centroid {#sec-nb-mwaw-verdict}
+
+The MWAW lanes (@sec-nb-mwaw-prereg) retrained the measure-weighted
+GeoTransolver and Transolver (unit drive, reference learning rates, two
+seeds each, 500 epochs, snapshot code_mw) on the 435 DrivAerML cars with
+one datapipe change: `CenterMesh` centres each case on the area-weighted
+mean of the reader's uniform cut instead of the plain mean of its cells
+(run ids mwaw_dr_gt_unit_lr1e3_seed{42,43}, mwaw_dr_transolver_unit_lr3e3_seed{42,43}).
+Float32 evaluation on the 48 validation cars at 10,000 cells (job 711207) and
+two sample-frame density probes, in which the centring is applied *after*
+the 10:1 front/back draw as a biased mesher would deliver it: one with the
+raw-area weighting the lanes trained with (job 711211), which under a biased
+draw is still a count-biased estimate, and one with the cells' full
+measures, areas times Horvitz–Thompson weights, which is the unbiased
+estimate of the geometric centroid ∫x dA / ∫dA (job 711217, snapshot
+code_mw_ht, the probe analogue of the repository's new
+`CenterMesh(use_measure_weighting=True)`). No loader warnings in any log.
+Artifact `results/mwaw_2026-09-11.json`.
+
+| model (DrivAerML, 48 cars, 10k, float32) | in-family (42 / 43 → mean) | plain-frame twin | ratio | density 10:1, sample frame, raw-area centre (seeds → mean) | density 10:1, sample frame, HT centre (seeds → mean) |
+|---|---|---|---|---|---|
+| GeoTransolver, measure-weighted, area-weighted frame | 0.0502 / 0.0507 → **0.0505** | 0.0498 | 1.012x | 8.9 / 9.6 → **9.2x** | 1.042 / 1.036 → **1.04x** |
+| Transolver, measure-weighted, area-weighted frame | 0.0523 / 0.0533 → **0.0528** | 0.0522 | 1.011x | 6.5 / 5.4 → **6.0x** | 1.029 / 1.030 → **1.03x** |
+
+**Against the bars.** Accuracy: both arms are within ±3% of their
+plain-frame twins (+1.2% and +1.1%, inside seed spread), the "equal" band;
+the area-weighted frame does not buy accuracy, as predicted (the frame
+shift on cars is 0.034 body lengths). Density: with the HT centre the
+sample-frame ratio is **1.04x and 1.03x**, under the 1.5x bar and under the
+1.17–1.21x floor ISLA's measure-weighted frames show; with the raw-area
+centre it is 9.2x and 6.0x, which is the count bias of weighting a 10:1
+biased draw by raw areas (the nuance recorded in the preregistration: the
+transform's `use_area_weighting` alone is not Horvitz–Thompson under a
+biased draw; `use_measure_weighting` is). The prediction held in full and
+the readout is sharper than predicted: the repaired baselines' density
+dependence is entirely their datapipe centroid, and with an unbiased
+estimate of the geometric centroid they are as consistent under the 10:1
+bias as any arm the program has measured.
+
+**Reading.** Two defects, two repairs, both now measured on the baselines:
+measure-weighted slice pooling fixes the aggregation (@sec-nb-bench-mw,
+|D| under 1% with the frame held), and an HT-consistent centroid fixes the
+frame (this entry). Neither touches the architecture's attention or its
+learned parameters in kind; both are the two places where GeoTransolver
+and Transolver read the sampling law, and both are quadrature-consistent
+by construction. The 1.03x residual is smaller than ISLA's 1.2x because the
+baselines' slice pooling is a single softmax over tokens whose weights
+enter linearly, while ISLA's routing carries the weights through several
+layers of measure-weighted attention, each with its own sampling variance.
+
+**What this means for the ruling.** For ISLA the ruling's second clause
+applies (a frame-free construction exists, so at equal accuracy it is
+preferred and the HT centroid is not adopted). For the baselines no
+frame-free construction exists: their choice is between two sample
+statistics, the plain mean of cell centres, which reads the mesher and
+collapses 12–16x, and the HT estimate of the geometric centroid, which is
+the estimator of a property of the geometry and holds at 1.03x, at equal
+accuracy. The preregistration's "equal → plain frame stays" was written
+before this distinction was clear, and it would leave the steel-man
+baseline standing on the one frame that is a mesher artifact. The
+recommendation put to Peter through ISLA Main: adopt the HT-weighted
+`CenterMesh` (`use_measure_weighting`) as the baselines' datapipe frame in
+the fair comparison, state it beside every baseline consistency number,
+and keep the plain-mean numbers as the record of the published datapipe.
+Until he rules, the chapters report both frames.

@@ -119,7 +119,7 @@
    "few_shot_gain": null,
    "note": "MW steel-man (#sec-nb-mw-verdict); probe frame from the pipeline pool mean",
    "density_factor_pipeline_frame": 1.02,
-   "density_note": "headline = frame from the biased sample (like-for-like with ISLA); with the pipeline's unbiased pool frame the factor is 1.02x (#sec-nb-mw-postcenter)"
+   "density_note": "headline = frame from the biased sample (like-for-like with ISLA); with the pipeline's unbiased pool frame the factor is 1.02x (#sec-nb-mw-postcenter); MWAW twin (mwaw_dr_gt_unit_lr1e3, area-weighted datapipe frame, equal accuracy 0.0505): sample-frame density 1.04x with the HT centre, 9.2x with the raw-area centre (#sec-nb-mwaw-verdict)"
   },
   "transolver_unit_mw": {
    "label": "Transolver, unit drive, measure-weighted pooling (lr 3e-3)",
@@ -139,7 +139,7 @@
    "few_shot_gain": null,
    "note": "MW steel-man",
    "density_factor_pipeline_frame": 1.025,
-   "density_note": "headline = frame from the biased sample (like-for-like with ISLA); with the pipeline's unbiased pool frame the factor is 1.02x (#sec-nb-mw-postcenter)"
+   "density_note": "headline = frame from the biased sample (like-for-like with ISLA); with the pipeline's unbiased pool frame the factor is 1.02x (#sec-nb-mw-postcenter); MWAW twin (mwaw_dr_transolver_unit_lr3e3, area-weighted datapipe frame, equal accuracy 0.0528): sample-frame density 1.03x with the HT centre, 6.0x with the raw-area centre (#sec-nb-mwaw-verdict)"
   },
   "isla_similarity_gauge_lr1e3": {
    "label": "ISLA, similarity gauge (lr 1e-3, rate-matched)",

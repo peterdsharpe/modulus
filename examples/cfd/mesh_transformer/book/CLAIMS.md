@@ -1550,3 +1550,9 @@ interior control @sec-nb-udrv-int-prereg.
   car off-advantage = estimator variance; wing off-advantage = mesh-pattern content (and collapses under area sampling). Triple confound: the only
   uniform-trained weights-off is constant gauge at lr 1e-3; matched pair is gauge uniform-on (iw_mt2_gauge) vs gauge area-on (MIX); read the
   triple under the UNIFORM sampler at 40k only (area-sampler uniform-off is collapsed 0.66–0.76; area-trained model off-law swap 1.63x at 10k).
+- **MWAW verdict (2026-09-11, fp32, 48 cars, 10k; results/mwaw_2026-09-11.json).** GT-mwaw 0.0505 vs plain-frame twin 0.0498 (+1.2%);
+  T-mwaw 0.0528 vs 0.0522 (+1.1%) → EQUAL. Sample-frame density: HT centre (cell_measures) 1.04x / 1.03x;
+  raw-area centre 9.2x / 6.0x (count bias — never call use_area_weighting alone "HT" under a biased draw). Write "the
+  repaired baselines' density dependence is entirely the datapipe centroid; with an HT-consistent centroid they hold at
+  1.03–1.04x, below ISLA's 1.2x floor". RULING QUESTION OPEN: adopt HT CenterMesh as the baselines' frame in the fair
+  comparison (recommended) vs prereg "equal → plain frame stays". Chapters report BOTH frames until Peter rules.
