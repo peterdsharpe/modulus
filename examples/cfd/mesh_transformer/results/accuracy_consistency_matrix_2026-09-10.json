@@ -176,6 +176,42 @@
    "zero_shot_fastback": null,
    "few_shot_gain": null,
    "note": "#sec-nb-center-lanes-verdict; sample-statistic frame, not a flagship candidate under the ruling"
+  },
+  "isla_relative_frame_ref": {
+   "label": "ISLA, relative frame (no centroid), reference length (lr 1e-3)",
+   "runs": "rf_dr_mt2_ref_seed{42,43}",
+   "in_family": 0.0566,
+   "in_family_seeds": [
+    0.0564,
+    0.0567
+   ],
+   "density_factor": 1.21,
+   "density_seeds": [
+    1.2,
+    1.22
+   ],
+   "pose_factor": 1.01,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "#sec-nb-relframe-verdict; sample frame is moot (no frame); HiLift 35: 0.1530 (+11%)"
+  },
+  "isla_relative_frame_meas": {
+   "label": "ISLA, relative frame (no centroid), \u221a(total measure) scale (lr 1e-3)",
+   "runs": "rf_dr_mt2_meas_seed{42,43}",
+   "in_family": 0.0552,
+   "in_family_seeds": [
+    0.0547,
+    0.0557
+   ],
+   "density_factor": 1.235,
+   "density_seeds": [
+    1.2,
+    1.27
+   ],
+   "pose_factor": 1.01,
+   "zero_shot_fastback": null,
+   "few_shot_gain": null,
+   "note": "#sec-nb-relframe-verdict; HiLift 35: 0.1529 (+11%)"
   }
  },
  "hilift_pending": "HiLift density and area-resampling factors come from the consistency benchmark (#sec-nb-bench-prereg); until it lands the HiLift rows carry accuracy only",

@@ -13647,7 +13647,11 @@ prediction. A dataset-dependent reference would itself be a warning sign,
 which is a second reason to let FRAME-FULL decide. The HiLift density ratio
 of the measure-centered checkpoints is being measured under the BENCH
 samplers and will complete their row (the density column above is empty for
-that reason, not because the test was skipped).
+that reason, not because the test was skipped). *Ruling applied
+2026-09-11:* at equal accuracy the frame-free construction is preferred
+(@sec-nb-relframe-verdict), so the measure-centred frame is not adopted;
+the reference is RELFRAME with the total-measure scale unless FRAME-FULL
+passes its joint bar.
 
 ## 2026-09-10 — Preregistered: FRAME-FULL, the frame from the full geometry as global data (sampling-independent by construction) {#sec-nb-frame-full-prereg}
 
@@ -14165,3 +14169,330 @@ mesher's sampling density (19x under a 10:1 bias in the sample frame) and
 the parity it reaches with the baselines here is parity among three
 configurations that all read the sampling distribution. Chapter 5, the
 index and the status chapter are updated.
+
+## 2026-09-10 — 210-case rung, third seeds: GeoTransolver 0.84x and Transolver 0.90x of ISLA on three seeds each; the verdict is unchanged in kind {#sec-nb-udrvl-210-seed44}
+
+The seed-44 lanes of the unit-drive GeoTransolver and Transolver at 210
+cases (WAVE-3 third seeds) finished and were evaluated in float32 (zero
+skipped loads). GeoTransolver: 0.0550 for the third seed, three-seed mean
+0.0539 (0.0532 / 0.0535 / 0.0550) against ISLA's three-seed 0.0643, 0.84x
+and lower on 161 of 180 cases, inside the "baseline ahead" band as before.
+Transolver: 0.0569 for the third seed, three-seed mean 0.0578 (0.0582 /
+0.0582 / 0.0569), 0.90x and lower on 149 of 180, which moves it from the
+"between" band to the edge of "baseline ahead" (bar 0.0579). Velocity and
+wall shear follow (GeoTransolver 0.080 / 0.122, Transolver 0.084 / 0.130,
+ISLA 0.094 / 0.144). The two-seed verdict of @sec-nb-udrvl-210-verdict is
+unchanged in kind; chapter 5, the index row and CLAIMS now quote the
+three-seed numbers. Seed spreads at this rung: GeoTransolver 3%, Transolver
+2%, ISLA 7%; the training-draw uncertainty of @sec-nb-campa-35-merged is not
+included, and campaign A's 210-case draws (companion, landing) will bound it.
+
+## 2026-09-11 — Verdict, MIX: every architecture pays to swap sampling conventions (ISLA 1.5–1.9x, the baselines 3–7x), and every architecture absorbs both conventions for free when trained on both {#sec-nb-mix-verdict}
+
+The MIX study (@sec-nb-mix-prereg) trained the three architectures on the
+same 435 DrivAerML cars presented under two meshing conventions of the same
+surfaces, uniform over cells (`unif`, the training convention of every
+checkpoint in the book) and area-proportional (`area`, the law a uniform
+point-cloud generator or a different mesher would produce, with exact
+Horvitz–Thompson weights), in three conditions: `unif` only (the existing
+reference lanes), `area` only, and `mixed` (both, each case seen under each
+convention per epoch, 500 epochs, so twice the optimizer steps). Twelve new
+lanes, two seeds, unit drive, learning rates matched to the references (ISLA
+similarity gauge at 3e-3 to match iw_mt2_gauge, GeoTransolver 1e-3,
+Transolver 3e-3), snapshot code, recipe copy recipe_bench; float32
+evaluation of every model on the 48 validation cars under both conventions
+at 10,000 cells (snapshot code_eval; no loader warnings). Artifact: `results/mix_conventions_2026-09-10.json`.
+
+| architecture | trained on | evaluated on unif | evaluated on area |
+|---|---|---|---|
+| ISLA, similarity gauge (3e-3) | unif | 0.0616 | 0.1186 |
+| ISLA, similarity gauge (3e-3) | area | 0.0868 | 0.0594 |
+| ISLA, similarity gauge (3e-3) | mixed | 0.0569 | 0.0541 |
+| GeoTransolver, unit drive | unif | 0.0505 | 0.3247 |
+| GeoTransolver, unit drive | area | 0.3786 | 0.0518 |
+| GeoTransolver, unit drive | mixed | 0.0465 | 0.0468 |
+| Transolver, unit drive | unif | 0.0520 | 0.1702 |
+| Transolver, unit drive | area | 0.3289 | 0.0540 |
+| Transolver, unit drive | mixed | 0.0493 | 0.0500 |
+
+Seed means of two seeds. Swap penalties S (error on the other convention ÷
+error on the training convention) and mixing costs C (mixed model ÷
+specialist on the specialist's own convention):
+
+| architecture | S unif → area | S area → unif | C on unif | C on area |
+|---|---|---|---|---|
+| ISLA, similarity gauge (3e-3) | 1.92x | 1.46x | 0.92 | 0.91 |
+| GeoTransolver, unit drive | 6.43x | 7.31x | 0.92 | 0.90 |
+| Transolver, unit drive | 3.27x | 6.09x | 0.95 | 0.93 |
+
+**Against the bars.** Swap: every architecture pays (bar ≥ 1.10x), the
+similarity-gauge ISLA least by a wide margin (1.9x and 1.5x) and
+GeoTransolver most (6.4x and 7.3x); the prediction that ISLA would be
+convention-independent (≤ 1.03x) is falsified, in the same direction and
+size as the consistency benchmark's area-sampler reading at 10,000 cells
+(@sec-nb-bench-verdict: D_area +122% for the gauge, +260% and +612% for the
+baselines), so the two instruments agree. Mixing: every architecture mixes
+for free (bar ≤ 1.03; the mixed models are in fact 5–10% *better* than
+either specialist on the specialist's own convention), so the prediction
+that the baselines would pay for mixing is falsified too; the caveat
+preregistered with the design applies, that the mixed lanes took twice the
+optimizer steps, and part of the gain is that.
+
+**Reading.** Two facts and their consequence. First, a model trained on one
+sampling convention does not transfer to another at 10,000 cells, and the
+size of the failure orders the architectures by how much of the
+sampling law they read: ISLA with measure weights 1.5–1.9x, Transolver
+3–6x, GeoTransolver 6–7x. Second, a model trained on both conventions
+handles both, for every architecture, at no in-distribution cost: the
+baselines' dependence on the convention is a training-distribution effect
+that data diversity removes, not an architectural incapacity. The
+consequence for the long-game claim of @sec-nb-mix-prereg is that
+"train on several meshers, deploy on another" is not yet a property any
+architecture has at 10,000 cells; it is a property of the training data.
+What the measure-consistent estimator buys is a smaller penalty on the
+*unseen* convention (a fifth to a quarter of the baselines'), which is the
+same convergence advantage the benchmark measured. The mechanism that
+separates the two readings is the count: the benchmark shows the
+measure-weighted ISLA's swap penalty falling toward zero as the sample
+grows while the baselines' stays flat, so at fine enough sampling the
+measure-consistent model transfers across conventions without having seen
+them and the baselines never do. A mixed-convention training run at 40,000
+cells, and the same test on HiLiftAeroML where the two conventions differ
+by orders of magnitude in local density, are the two follow-ups that would
+sharpen this into a deployment rule; neither proposes an architecture
+change.
+
+## 2026-09-11 — Verdict, RELFRAME (interim: HiLift sampler lanes and FRAME-FULL pending): with no frame at all ISLA keeps the constant gauge's accuracy on DrivAerML at the 1.2x density floor, and pays 11% at 35 HiLift cases — the same price as the measure-centred frame, so the HiLift price is not frame variance {#sec-nb-relframe-verdict}
+
+RELFRAME (@sec-nb-relframe-prereg) removes every centroid-dependent
+quantity from ISLA: the four positional seed features (|r|, log|r|,
+r̂·d̂, r̂·n̂; the seed reduces to n̂·d̂ and the measure) and the two
+centroid-referenced relational invariants (|z_s|, ẑ_s·d̂; the relational
+set reduces to its six anchor-relative members plus the second-moment
+terms), with the vector head's radial basis taken from the token's
+measure-weighted soft anchor rather than the centroid; positions enter only
+through anchor-relative differences, scaled by the stated reference length
+(arm "ref") or by the square root of the total surface measure (arm
+"meas"). Translation invariance holds to 10⁻¹² with no centering, and the
+sampling-consistency contract holds in the unit tests. Eight lanes (two
+arms, two datasets, two seeds; unit drive, lr 1e-3, 500 epochs, snapshot
+code_frame), float32 evaluation under code_eval_frame (identity-checked to
+7e-8 on a legacy checkpoint; no loader warnings). Artifacts:
+results/relframe_reduction_2026-09-11.json,
+results/consistency_bench/consistency_bench_rf_2026-09-11.json.
+
+| arm | DrivAerML pressure (seeds → mean) | vs 0.0557 | density 10:1, sample frame (seeds → mean) | HiLift 35 pressure (seeds → mean) | vs 0.1377 |
+|---|---|---|---|---|---|
+| relative, reference length | 0.0564 / 0.0567 → **0.0566** | +1.5% | 1.20 / 1.22 → **1.21x** | 0.1568 / 0.1491 → **0.1530** | **+11.1%** |
+| relative, √(total measure) | 0.0547 / 0.0557 → **0.0552** | −0.9% | 1.20 / 1.27 → **1.235x** | 0.1567 / 0.1490 → **0.1529** | **+11.0%** |
+
+BENCH samplers on the DrivAerML checkpoints (reference-length arm): D_area
++41% → +3.4% and D_biased +19% → +2.5% from 10,000 to 40,000 cells; the
+total-measure arm +60% → +5.9% and +24% → +3.3%; both converge toward the
+uniform answer as the measure-centred arm did (@sec-nb-bench-mcenter).
+
+**Against the bars.** DrivAerML: the joint pass it nearly is. Both arms are
+within 3% of the constant gauge, and the total-measure arm is 0.9% *more*
+accurate (0.0552 against 0.0557); the density factor sits at the 1.2x bar
+(1.20 / 1.22 → 1.21x) for the reference-length arm and just over it for the
+total-measure arm (1.20 / 1.27 → 1.235x, with one seed at 1.20), and both
+converge under all three samplers. On the cars the frame-free model is the
+principled configuration at no accuracy cost. That 1.2x is the same floor the
+similarity gauge (1.21x) and the measure-centred frame (1.17x) show, and a
+model with no frame statistic cannot owe it to a frame: it is the variance
+of the measure-weighted routing integral itself under a 10:1 sample (the
+effective sample size in the sparse half falls tenfold), which is what the
+convergence with count removes. HiLift 35 cases: **the accuracy bar fails on
+both arms, by 11%.** The preregistered falsifier therefore fires: a model
+with no frame and no frame-estimate variance pays the same price the
+measure-centred frame paid (10.4%) and more than the similarity gauge
+(7.6%), so the HiLift price of leaving the plain-mean frame is not the
+variance of a frame statistic. The joint pass is not met on both datasets
+and RELFRAME does not become the flagship by the preregistered rule; the
+reference stays under decision.
+
+**What the frame tables say the plain mean was reading.** The full-geometry
+frame tables computed for FRAME-FULL (@sec-nb-frame-full-prereg; float64
+over every cell of every training and validation surface) put the number on
+it: on HiLiftAeroML the plain mean of the surface cells sits **0.131 body
+lengths** (2.4–4.7% was DrivAerML's figure; here the range is 0.11–0.15)
+from the geometric centroid ∫x dA / ∫dA, and the plain mean of *all* cells
+gives the same displacement as the plain mean of a 10,000-cell uniform
+sample (0.131 against 0.131), so the displacement is mesh-density bias, not
+sampling noise; the Horvitz–Thompson estimate of the geometric centroid from
+10,000 cells has a noise of 0.0065 body lengths (maximum 0.046). On
+DrivAerML the displacement is 0.034 body lengths. The constant gauge's frame
+therefore encodes, on a wing, where the mesher put its cells, to a tenth of
+a chord.
+
+**Two readings, one discriminator, thresholds stated now.** Either the 11%
+is the positional information that the four dropped seed features carried
+(a model whose seeds know only n̂·d̂ must reconstruct a point's location
+from its anchors), or it is the mesh-density content of the plain-mean
+frame, an in-distribution advantage of a non-physical input. FRAME-FULL
+(exact geometric frame from the full mesh as global data, positional terms
+kept, zero variance; @sec-nb-frame-full-prereg) separates them, with the
+readings fixed before it lands: *recovers* if its 35-case error is within
+3% of 0.1377 at a density ratio ≤ 1.2x; *pays* if it is ≥ 7% worse. If it
+recovers, the exact geometric frame carries information the relative
+construction lacks, which is legitimate (the frame is a property of the
+geometry, available for any shape at inference) and makes FRAME-FULL, not
+RELFRAME, the reference candidate under the ruling; the follow-up is then
+a relative-position encoding that restores the positional information
+without a frame. If it pays, the price is the mesher's pattern, the stated
+cost of the principle, and not a reason to reinstate a sample statistic. The
+HiLift sampler lanes of the RELFRAME checkpoints complete the consistency
+half of the row.
+
+**Peter's ruling and the decision rule (2026-09-11).** The Horvitz–Thompson
+centroid is acceptable if it buys significant accuracy; at equal accuracy
+the frame-free construction is preferred. On the numbers on file the
+frame-free total-measure arm equals the measure-centred frame and the
+constant gauge on DrivAerML (0.0552, 0.0548, 0.0557) and equals the
+measure-centred frame at 35 HiLift cases (0.1530 against 0.1520), so at
+equal accuracy RELFRAME with the total-measure scale is the reference
+candidate on both datasets and the measure-centred frame is not adopted.
+**Rule: the reference is RELFRAME (total-measure scale) unless FRAME-FULL
+passes its joint bar** (within 3% of 0.1377 at 35 HiLift cases at a density
+ratio ≤ 1.2x), in which case the exact geometric frame has bought
+significant accuracy with a property of the geometry and FRAME-FULL becomes
+the reference candidate instead. The chapters stay "under decision" until
+FRAME-FULL lands; the same ruling governs the repaired baselines' datapipe
+frame (an area-weighted `CenterMesh` is acceptable for them only if it buys
+accuracy over the plain mean), which the MWAW lanes test.
+
+## 2026-09-11 — BENCH addendum: with the frame held by the pipeline, the measure-weighted baselines are the most sampler-consistent arms measured (|D| ≤ 0.9% at 40,000 cells on both datasets, ≤ 0.8% at 10,000 on HiLift); the aggregation defect is fixed, the frame defect is the datapipe's {#sec-nb-bench-mw}
+
+The ten measure-weighted baseline checkpoints of @sec-nb-mw-verdict went
+through the benchmark's three samplers at 10,000 and 40,000 cells (snapshot
+code_mw with the *_mw model configs; float32; 60 lanes, one teardown fault
+rerun, no loader warnings; artifact
+results/consistency_bench/consistency_bench_mw_2026-09-10.json). Frame
+convention: the benchmark pipeline, like the campaign-E probes, centres
+every architecture's coordinates on the plain mean of the 320,000-cell
+uniform pool before the samplers, so these are pool-frame values for the
+baselines (their sample-frame collapse is @sec-nb-mw-postcenter); the ISLA
+arms centre in the model and are frame-independent.
+
+| arm | 10k: unif / area / biased | 40k: unif / area / biased | D_area 10k → 40k | D_biased 10k → 40k |
+|---|---|---|---|---|
+| GeoTransolver, measure-weighted pooling, DrivAerML | 0.0504 / 0.0526 / 0.0511 | 0.0511 / 0.0516 / 0.0513 | +4.4% → +0.9% | +1.4% → +0.3% |
+| Transolver, measure-weighted pooling, DrivAerML | 0.0525 / 0.0549 / 0.0532 | 0.0529 / 0.0534 / 0.0530 | +4.7% → +0.9% | +1.4% → +0.2% |
+| GeoTransolver, measure-weighted pooling, HiLift 35 (3 seeds) | 0.1169 / 0.1164 / 0.1175 | 0.1165 / 0.1168 / 0.1168 | -0.4% → +0.3% | +0.5% → +0.3% |
+| Transolver, measure-weighted pooling, HiLift 35 (3 seeds) | 0.1211 / 0.1210 / 0.1220 | 0.1207 / 0.1211 / 0.1211 | -0.0% → +0.3% | +0.8% → +0.4% |
+
+**Reading.** With the frame fixed, giving GeoTransolver and Transolver the
+surface measure in their slice pooling makes their aggregation as
+consistent as an integral should be: the area-proportional draw, whose
+Horvitz–Thompson weights span three to four decades and leave a third of
+the kept cells at the clamp on the wings, changes their answer by under 1%
+at 40,000 cells and by under 5% at 10,000 on the cars, and by under 1% at
+either count on the wings, where the unweighted twins read the distribution
+by 150–260% and the measure-centred ISLA holds at −2% to +4%. This is the
+cleanest separation of the two defects the program has: measure weighting
+repairs the aggregation completely, and what remains for the baselines is
+the frame, which in the surface recipe is a datapipe choice (`CenterMesh`
+on the plain mean of the pool) rather than a model property. The same
+datapipe transform has an area-weighted mode (`use_area_weighting`), which
+would give the baselines the Horvitz–Thompson estimate of the geometric
+centroid as their frame, the datapipe analogue of the question put to Peter
+in @sec-nb-bench-mcenter; a relative-position input encoding is the
+frame-free alternative for a raw-coordinate architecture and has not been
+built. The accuracy price of measure awareness on uniform sampling is
++1–2% on the cars and +6% at 35 HiLift cases for the baselines (0.1165
+against 0.1100; 0.1207 against 0.1145), against +11% for the
+measure-centred ISLA on the same rung; the two rows of @tbl-consistency-40k
+that carry these arms are added.
+
+## 2026-09-11 — Preregistered: MWAW, the repaired baselines with an area-weighted datapipe frame (acceptable only if it buys accuracy) {#sec-nb-mwaw-prereg}
+
+Peter's ruling on frames applies to the measure-weighted baselines' datapipe
+frame as well: `CenterMesh` on the plain mean of the pool is a sample
+statistic that reads the mesher (0.034 body lengths off the geometric
+centroid on DrivAerML, 0.131 on HiLift); its area-weighted mode
+(`use_area_weighting: true`) is the Horvitz–Thompson estimate of the
+geometric centroid, acceptable for the baselines only if it buys accuracy
+over the plain mean. Eval-only is not possible (the mw checkpoints were
+trained in the plain frame), so four lanes: GeoTransolver and Transolver
+with measure-weighted pooling, unit drive, reference learning rates, on
+DrivAerML 435 cars with the training and validation datapipe centring by the
+area-weighted mean (seeds 42/43; run ids mwaw_dr_gt_unit_lr1e3_seed{42,43},
+mwaw_dr_transolver_unit_lr3e3_seed{42,43}; snapshot code_mw; recipe copy
+recipe_mw with `drivaer_ml_surface_aw.yaml`). **Readouts.** Float32
+in-family error against the plain-frame mw twins (0.0498 / 0.0522) and the
+density probe with the centring applied after the draw in the area-weighted
+mode (sample frame, the frame a biased mesher delivers, now estimated with
+HT weights). **Bars.** *Buys accuracy* if ≥ 3% better than the plain-frame
+twin; *equal* within ±3% (then the plain-mean frame stays for the baselines
+by the ruling, with its sample-frame collapse stated); *costs* if ≥ 3% worse.
+Density: ≤ 1.5x under the sample frame is the expected floor for an
+HT-estimated frame (ISLA's measure-centred frame gives 1.17x); a value near
+the plain-frame collapse (12–16x) would mean the baselines' sensitivity is
+not only the centroid. **Prediction.** Equal accuracy (the frame shift is
+0.034 body lengths on cars) and density ≈ 1.2x: the area-weighted frame
+removes the collapse at no accuracy cost, which under the ruling does not
+adopt it for the baselines but does establish that their density
+dependence is entirely the datapipe frame.
+
+## 2026-09-10 — Preregistered: FARWAKE, far-field oversampling of the interior training queries (is the far-wake eddy-viscosity deficit an under-sampling effect?) {#sec-nb-farwake-prereg}
+
+*Setting.* At matched parameters ISLA's interior query-token configuration
+leads GeoTransolver-volume on pressure, velocity and eddy viscosity
+everywhere except the far wake beyond 0.4 body lengths downstream, which
+holds 2.2% of a uniform interior sample and carries the whole 18%
+eddy-viscosity deficit (@sec-nb-far-wake in the companion; chapter 8).
+Anchor-geometry explanations were closed: anchors follow the query mass, the
+wake tokens moved anchors into the far wake and improved it 6%, and the
+query seed's azimuth blindness did not survive the routing-mass probe. The
+surviving hypothesis is under-sampling: the network sees few far-wake
+queries in training, so the slices and the readout are shaped by the 98% of
+queries near the body. Peter approved the arm on 2026-09-10 ("either we get
+the right answer, or we rule out one more cause").
+
+*Mechanism (why it should work).* Training queries are drawn from the
+interior; the loss is a plain mean over them, so the spatial weighting of
+the objective is the sampling density. Drawing more queries from the far
+wake raises both the gradient signal and the anchor mass there. This is a
+training-distribution change with no new input and no architecture change,
+of the same kind as query-count augmentation (@sec-nb-qcount-prereg); it
+does not inject a non-physical signal, since the query positions are
+already inputs, and the inclusion probabilities are exact and recorded so
+the objective's reweighting is known.
+
+*Instrument.* Recipe transform `SdfBiasedSubsampleInteriorPoints`
+(`unified_external_aero_recipe/src/domain_transforms.py`, contract-tested:
+expected count, exact inclusion probabilities, Horvitz–Thompson recovery of
+the original band shares, reproducibility, identity on small interiors and
+bare meshes). The reader draws a 40,000-point uniform interior pool
+(`interior_n_points_range=(40000, 40000)`, boundaries untouched), the SDF
+transform runs on it, and the new transform keeps points with probability
+proportional to a step function of the signed distance: weight 1 below
+0.05 body lengths, 3 between 0.05 and 0.4, 8 beyond 0.4, normalized to an
+expected 10,000 kept points. On the measured band fractions (77% / 11% /
+7.8% / 2.2%) this gives training shares of about 60% / 8.5% / 18% / 13.6%,
+so the far band rises from 10% to 32% of the queries and the far wake
+beyond 0.4 L from 2.2% to 14%. Arm: the reference query-token + signed
+distance configuration (`v0_qt2` lanes, hidden 192, similarity gauge,
+otherwise frozen protocol, `code_qcount` snapshot which carries the reader
+option), two seeds (v0_isla_qtsdfval_farwake_seed{42,43}), recipe copy
+`recipe_farwake`. Evaluation in float32 under the guarded snapshot on the
+standard uniform 10,000-point validation sample (so the metric's point
+distribution is unchanged), plus the wall-distance band decomposition of
+the saved predictions.
+
+*Bars (float32, two-seed means, band units of the companion's
+decomposition; reference ISLA hidden 192/256 far band ≥ 0.05 L about 0.101,
+GeoTransolver-volume 0.068).* Supported if the far-band eddy-viscosity
+error is ≤ 0.085 (at least half the gap closed) with the near-wall band
+within 3% of the reference and the recipe-metric pressure and velocity
+within 3%; falsified if ≥ 0.095 (no more than a fifth of the gap); between
+otherwise. Secondary: the ≥ 0.4 L shell (reference 0.108 against 0.071).
+Readings written in advance: supported means the far-wake deficit was a
+training-distribution effect and the principled remedy is a sampling law,
+which then needs its own consistency check (the model must still converge
+to the same field under the uniform sampler); falsified means the far-wake
+deficit is neither anchor geometry nor sampling and the representational
+conjecture (the downstream coordinate is only implicit in ISLA's seed) is
+the remaining candidate; a near-wall or pressure regression beyond 3% is
+the objective-reweighting cost and is reported as such. Owner: this
+session.

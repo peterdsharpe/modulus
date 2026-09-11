@@ -90,6 +90,7 @@ def _relational_invariants(
     m_s: Float[torch.Tensor, "batch slices 3"],
     eps: float,
     c_s: Float[torch.Tensor, "batch slices 3 3"] | None = None,
+    relative: bool = False,
 ) -> Float[torch.Tensor, "batch tokens slices geo"]:
     """The eight point-anchor invariants (v3b set): distance and its log, the
     unit relative vector dotted with the drive, the point normal and the anchor
@@ -97,7 +98,12 @@ def _relational_invariants(
     and the anchor direction dotted with the drive. Shared by the encoder slice
     blocks and the passive decoder blocks. With ``c_s`` (the per-slice
     second-moment tensor about the anchor; MOM2, 2026-09-08) two more
-    invariants are appended: rel_hat^T C_s rel_hat and tr C_s."""
+    invariants are appended: rel_hat^T C_s rel_hat and tr C_s.
+
+    ``relative`` (RELFRAME, 2026-09-10) drops the two invariants that refer to
+    the frame origin, the anchor radius ``|z_s|`` and the anchor direction
+    ``z_hat_s . d``, leaving the six point-anchor terms (plus the second-moment
+    pair), which depend on the anchors' positions relative to the point only."""
     ### Anchors are either shared by all points, z_pos (B, S, 3), or gathered per
     ### point for sparse routing (SPARSE, 2026-09-09), z_pos (B, N, k, 3); the
     ### same arithmetic serves both (the shared case broadcasts over points).
@@ -107,8 +113,6 @@ def _relational_invariants(
     rel = r[:, :, None, :] - z  # (B, N, S|k, 3)
     dist = rel.norm(dim=-1, keepdim=True).clamp_min(eps)
     rel_hat = rel / dist
-    z_mag = z.norm(dim=-1, keepdim=True).clamp_min(eps)
-    z_hat = z / z_mag
     n_exp = n_hat[:, :, None, :]
     d_exp = d_hat[:, :, None, :]
     feats = [
@@ -118,9 +122,14 @@ def _relational_invariants(
         (rel_hat * n_exp).sum(-1, keepdim=True),
         (rel_hat * m).sum(-1, keepdim=True),
         (n_exp * m).sum(-1, keepdim=True),
-        z_mag.expand(rel.shape[0], rel.shape[1], -1, 1),
-        (z_hat * d_exp).sum(-1, keepdim=True),
     ]
+    if not relative:
+        z_mag = z.norm(dim=-1, keepdim=True).clamp_min(eps)
+        z_hat = z / z_mag
+        feats += [
+            z_mag.expand(rel.shape[0], rel.shape[1], -1, 1),
+            (z_hat * d_exp).sum(-1, keepdim=True),
+        ]
     if c_s is not None:
         ### Second-moment channel: the anchor's covariance seen from the point.
         ### Both quantities are invariant (C_s is a rank-2 equivariant tensor
@@ -137,19 +146,21 @@ def _relational_invariants(
     return torch.cat(feats, dim=-1)
 
 
-def _geo_region(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: float, c_s=None):
+def _geo_region(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: float, c_s=None,
+                relative: bool = False):
     """One recompute region per layer: the per-slice routing bias from the
     invariants and the invariants pooled over slices by the resulting
     point->slice mix. Returns (bias (B,N,S), mix (B,N,S), pooled (B,N,8)); the
     (B,N,S,8) invariants and their (B,N,S,3) intermediates never leave the
     region, so under checkpointing they are rebuilt in backward, not stored."""
-    geo = _relational_invariants(r, n_hat, d_hat, z_pos, m_s, eps, c_s)
+    geo = _relational_invariants(r, n_hat, d_hat, z_pos, m_s, eps, c_s, relative)
     bias = lin(geo).squeeze(-1)
     mix = torch.softmax(logits_pre + bias, dim=-1)  # normalized over slices
     return bias, mix, torch.einsum("bns,bnsg->bng", mix, geo)
 
 
-def _geo_region_sparse(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: float, c_s, k: int):
+def _geo_region_sparse(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, eps: float, c_s, k: int,
+                       relative: bool = False):
     """SPARSE (2026-09-09): the recompute region of _geo_region restricted to each
     point's k nearest anchors. Invariants, routing bias and the point->slice mix
     exist only on the (B, N, k) selected anchors; the bias is scattered back into
@@ -166,7 +177,7 @@ def _geo_region_sparse(lin: nn.Linear, logits_pre, r, n_hat, d_hat, z_pos, m_s, 
     z_k = z_pos[bidx, idx]  # (B, N, k, 3)
     m_k = m_s[bidx, idx]
     c_k = c_s[bidx, idx] if c_s is not None else None  # (B, N, k, 3, 3)
-    geo = _relational_invariants(r, n_hat, d_hat, z_k, m_k, eps, c_k)  # (B, N, k, geo)
+    geo = _relational_invariants(r, n_hat, d_hat, z_k, m_k, eps, c_k, relative)  # (B, N, k, geo)
     bias_k = lin(geo).squeeze(-1)  # (B, N, k)
     logits_k = torch.gather(logits_pre, -1, idx) + bias_k
     mix_k = torch.softmax(logits_k, dim=-1)
@@ -185,10 +196,13 @@ class _SliceBlock(nn.Module):
     def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
                  use_relational_geo: bool = True, geo_checkpoint: bool = False,
                  second_moment: bool = False, anchor_topk: int = 0,
-                 fast_point_softmax: bool = True) -> None:
+                 fast_point_softmax: bool = True, relative_frame: bool = False) -> None:
         super().__init__()
         self.use_relational_geo = use_relational_geo
         self.fast_point_softmax = bool(fast_point_softmax)
+        ### RELFRAME (2026-09-10): without a frame origin the two origin-referring
+        ### invariants (|z_s|, zhat_s.d) are gone and the geo width is 6 (+2 MOM2).
+        self.relative_frame = bool(relative_frame)
         ### SPARSE (2026-09-09): route each point to its anchor_topk nearest
         ### anchors only (0 = dense). The (B, N, S, geo) invariants and their
         ### (B, N, S, 3) intermediates, the dominant cost of a slice block,
@@ -200,7 +214,7 @@ class _SliceBlock(nn.Module):
         ### invariants). Restores the transverse arrangement that first-moment
         ### anchors cannot see. Flag-gated; off reproduces the v3b set exactly.
         self.second_moment = bool(second_moment)
-        self.n_geo = self.N_GEO + (2 if self.second_moment else 0)
+        self.n_geo = self.N_GEO - (2 if self.relative_frame else 0) + (2 if self.second_moment else 0)
         ### Activation recompute (2026-09-07 memory attribution): the per-slice
         ### geometry tensors -- rel (B,N,S,3), rel_hat, dist and two bf16 copies
         ### of the (B,N,S,8) invariants -- are 76% of ISLA's saved activations
@@ -268,9 +282,9 @@ class _SliceBlock(nn.Module):
                 c_s = torch.einsum("bns,bnk->bsk", a, rr).reshape(r.shape[0], -1, 3, 3)
                 c_s = c_s - z_pos[:, :, :, None] * z_pos[:, :, None, :]
             if self.anchor_topk and self.anchor_topk < logits.shape[-1]:
-                region, geo_args = _geo_region_sparse, (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps, c_s, self.anchor_topk)
+                region, geo_args = _geo_region_sparse, (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps, c_s, self.anchor_topk, self.relative_frame)
             else:
-                region, geo_args = _geo_region, (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps, c_s)
+                region, geo_args = _geo_region, (self.geo_logit, logits, r, n_hat, d_hat, z_pos, m_s, eps, c_s, self.relative_frame)
             if self.geo_checkpoint:
                 bias, point_mix, pooled = checkpoint(region, *geo_args, use_reentrant=False)
             else:
@@ -301,13 +315,15 @@ class _ReadBlock(nn.Module):
     # pipes collapse training -- measured twice now, v3a and v5a-v1)
 
     def __init__(self, hidden: int, n_slices: int, mlp_ratio: int = 4,
-                 geo_checkpoint: bool = False) -> None:
+                 geo_checkpoint: bool = False, relative_frame: bool = False) -> None:
         super().__init__()
         self.geo_checkpoint = bool(geo_checkpoint)
+        self.relative_frame = bool(relative_frame)
+        n_geo = self.N_GEO - (2 if self.relative_frame else 0)  # RELFRAME: see _SliceBlock
         self.norm = nn.LayerNorm(hidden)
         self.assign = nn.Linear(hidden, n_slices)
-        self.geo_logit = nn.Linear(self.N_GEO, 1)
-        self.geo_feat = nn.Linear(self.N_GEO, hidden // 2)
+        self.geo_logit = nn.Linear(n_geo, 1)
+        self.geo_feat = nn.Linear(n_geo, hidden // 2)
         self.broadcast = nn.Linear(2 * hidden + hidden // 2, hidden)
         self.local_read = nn.Linear(2 * hidden, hidden)
         self.norm_mlp = nn.LayerNorm(hidden)
@@ -320,7 +336,7 @@ class _ReadBlock(nn.Module):
     def forward(self, q_h, q_r, q_n, q_d, z_states, z_pos, m_s, eps,
                 src_r=None, src_h=None, src_w=None, local_rho=None, kernel_logspace=False):
         logits_pre = self.assign(self.norm(q_h))
-        geo_args = (self.geo_logit, logits_pre, q_r, q_n, q_d, z_pos, m_s, eps)
+        geo_args = (self.geo_logit, logits_pre, q_r, q_n, q_d, z_pos, m_s, eps, None, self.relative_frame)
         if self.geo_checkpoint:
             _, mix, pooled = checkpoint(_geo_region, *geo_args, use_reentrant=False)
         else:
@@ -432,9 +448,45 @@ class ISLA(Module):
         query_neighbor_features: bool = False,
         query_neighbor_k: int = 16,
         center_mode: str = "plain",
+        frame_mode: str = "centered",
+        scale_mode: str = "reference_length",
         eps: float = 1e-12,
     ) -> None:
         super().__init__(meta=self.MetaData())
+        ### RELFRAME (2026-09-10, ruling: no sample statistic may enter the
+        ### flagship's frame). frame_mode="relative" removes the frame origin
+        ### altogether: r = points / L with no centering. The six scalars that
+        ### referred to the centroid are gone -- the four seed features |r|,
+        ### log|r|, rhat.d, rhat.n (seeds reduce to n.d; the measure enters the
+        ### routing as before) and the two relational invariants |z_s| and
+        ### zhat_s.d (see _relational_invariants). The vector head's radial
+        ### basis vector rhat becomes the direction from the point's soft slice
+        ### anchor (a measure-weighted mean, the same construction as the
+        ### relational anchors) so the head stays translation covariant.
+        ### Exact translation invariance holds without any centering.
+        ### scale_mode="total_measure" divides positions by sqrt(sum of the
+        ### measure weights) per sample -- the total surface area, an integral
+        ### of the geometry that is consistent under Horvitz-Thompson weights
+        ### -- instead of the constant reference_length.
+        if frame_mode not in ("centered", "relative"):
+            raise ValueError(f"frame_mode must be 'centered' or 'relative', got {frame_mode!r}")
+        self.frame_mode = frame_mode
+        self.relative_frame = frame_mode == "relative"
+        if scale_mode not in ("reference_length", "total_measure", "global"):
+            raise ValueError(
+                f"scale_mode must be 'reference_length', 'total_measure' or 'global', got {scale_mode!r}"
+            )
+        self.scale_mode = scale_mode
+        if similarity_gauge and scale_mode != "reference_length":
+            raise ValueError("similarity_gauge sets its own scale; use scale_mode='reference_length'")
+        if self.relative_frame:
+            if center_mode != "plain":
+                raise ValueError("frame_mode='relative' has no center; leave center_mode at its default")
+            if similarity_gauge or odd_head or seed_mode != "invariant" or scale_conditioning:
+                raise ValueError(
+                    "frame_mode='relative' excludes similarity_gauge, odd_head, seed_mode='raw' "
+                    "and scale_conditioning (each reads a position relative to a frame origin)"
+                )
         ### CENTER (2026-09-10): the constant gauge (similarity_gauge=False,
         ### the reference configuration) centers by the PLAIN mean of the
         ### sampled points. The routing softmax adds raw log-weights (invariant
@@ -447,8 +499,16 @@ class ISLA(Module):
         ### their trained range. "measure" centers by the normalized measure
         ### weights (the similarity-gauge centroid formula; plain mean when no
         ### weights are given) while keeping the constant length scale.
-        if center_mode not in ("plain", "measure"):
-            raise ValueError(f"center_mode must be 'plain' or 'measure', got {center_mode!r}")
+        ### FRAME-FULL (2026-09-10, diagnostic of the frame-variance mechanism):
+        ### "global" reads the center from the forward argument ``frame_center``
+        ### (B, 3), computed once per case from the FULL surface geometry by the
+        ### data pipeline; the frame of a surface is a property of the geometry,
+        ### so supplied this way it has no sampling dependence and zero estimator
+        ### variance (a centroid estimated from 10k area-weighted samples of a
+        ### multi-element mesh whose cell areas span orders of magnitude does
+        ### not). scale_mode="global" likewise divides by ``frame_scale`` (B,).
+        if center_mode not in ("plain", "measure", "global"):
+            raise ValueError(f"center_mode must be 'plain', 'measure' or 'global', got {center_mode!r}")
         self.center_mode = center_mode
         ### Density-factorial knob (prereg 3f4e4af7 follow-up): with False,
         ### the assignment softmax ignores quadrature weights entirely,
@@ -509,7 +569,7 @@ class ISLA(Module):
         if seed_mode not in ("invariant", "raw"):
             raise ValueError(f"unknown seed_mode {seed_mode!r}")
         self.seed_mode = seed_mode
-        n_base = 5 if seed_mode == "invariant" else 9
+        n_base = (1 if self.relative_frame else 5) if seed_mode == "invariant" else 9
         n_seed = (n_base + (7 * len(self.local_radii) if use_local_features else 0)
                   + self.n_boundary_scalars + (1 if scale_conditioning else 0)
                   + (6 if raw_coord_channel else 0))
@@ -532,9 +592,14 @@ class ISLA(Module):
             _SliceBlock(hidden, n_slices, mlp_ratio, use_relational_geo=use_relational_geo,
                         geo_checkpoint=geo_checkpoint, second_moment=self.second_moment_features,
                         anchor_topk=self.anchor_topk,
-                        fast_point_softmax=self.fast_point_softmax)
+                        fast_point_softmax=self.fast_point_softmax,
+                        relative_frame=self.relative_frame)
             for _ in range(n_layers)
         )
+        if self.relative_frame:
+            ### Head frame (RELFRAME): per-point soft slice anchor for the
+            ### radial basis vector, the odd head's construction.
+            self.frame_assign = nn.Linear(hidden, n_slices)
         ### v5a EXPERIMENT (flag-gated, default off): encode/decode split.
         ### Queries decode passively from final encoder slices and anchors:
         ### query-independent by construction given the source sample.
@@ -545,7 +610,8 @@ class ISLA(Module):
                 nn.LayerNorm(hidden), nn.Linear(hidden, n_slices)
             )
             self.read_blocks = nn.ModuleList(
-                _ReadBlock(hidden, n_slices, mlp_ratio, geo_checkpoint=geo_checkpoint)
+                _ReadBlock(hidden, n_slices, mlp_ratio, geo_checkpoint=geo_checkpoint,
+                           relative_frame=self.relative_frame)
                 for _ in range(n_decoder_layers)
             )
         self.norm_out = nn.LayerNorm(hidden)
@@ -781,6 +847,22 @@ class ISLA(Module):
             nn.init.zeros_(self.odd_gate.bias)
 
 
+    def _seed_invariants(self, mag, hat, n_hat, d_hat):
+        """The per-token seed invariants of {r, n, d}: |r|, log|r|, rhat.d, rhat.n,
+        n.d -- or n.d alone in the relative frame, where r has no origin."""
+        if self.relative_frame:
+            return (n_hat * d_hat).sum(-1, keepdim=True)
+        return torch.cat(
+            [
+                mag,
+                torch.log(mag),
+                (hat * d_hat).sum(-1, keepdim=True),
+                (hat * n_hat).sum(-1, keepdim=True),
+                (n_hat * d_hat).sum(-1, keepdim=True),
+            ],
+            dim=-1,
+        )
+
     def _local_invariants_at(self, q_r, q_n, q_d, src_r, src_n, log_w, radii=None,
                              normalize_weights=False):
         """Query-passive variant: patch integrals of the SOURCE sample
@@ -926,6 +1008,8 @@ class ISLA(Module):
         support_points: Float[torch.Tensor, "batch support 3"] | None = None,
         support_normals: Float[torch.Tensor, "batch support 3"] | None = None,
         support_scalars: Float[torch.Tensor, "batch support n_qscalars"] | None = None,
+        frame_center: Float[torch.Tensor, "batch 3"] | None = None,
+        frame_scale: Float[torch.Tensor, " batch"] | None = None,
     ) -> Float[torch.Tensor, "batch tokens out_dim"]:
         if points.ndim == 2:
             points = points[None]
@@ -949,10 +1033,25 @@ class ISLA(Module):
                 else torch.ones(b, n, 1, dtype=points.dtype, device=points.device)
             )
             w_n = w_raw / w_raw.sum(dim=1, keepdim=True).clamp_min(self.eps)
+        if self.relative_frame:
+            center = points.new_zeros(b, 1, 3)  # RELFRAME: no frame origin
+        elif self.center_mode == "global":
+            if frame_center is None:
+                raise ValueError("center_mode='global' needs frame_center (B, 3); the config must supply it")
+            center = frame_center.reshape(b, 1, 3).to(points.dtype)
+        elif self.similarity_gauge or self.center_mode == "measure":
             center = (w_n * points).sum(dim=1, keepdim=True)
         else:
             center = points.mean(dim=1, keepdim=True)
-        if self.similarity_gauge:
+        if self.scale_mode == "global":
+            if frame_scale is None:
+                raise ValueError("scale_mode='global' needs frame_scale (B,); the config must supply it")
+            gauge = frame_scale.reshape(b, 1, 1).to(points.dtype)
+        elif self.scale_mode == "total_measure":
+            if measure_weights is None:
+                raise ValueError("scale_mode='total_measure' needs measure_weights")
+            gauge = measure_weights.reshape(b, n, 1).to(points.dtype).sum(dim=1, keepdim=True).clamp_min(self.eps).sqrt()
+        elif self.similarity_gauge:
             gauge = (
                 (w_n * (points - center).square().sum(-1, keepdim=True)).sum(dim=1, keepdim=True)
             ).sqrt().clamp_min(self.eps)  # (B,1,1) weighted RMS radius
@@ -974,16 +1073,7 @@ class ISLA(Module):
         if self.seed_mode == "raw":
             invariants = torch.cat([r, n_hat, d_hat], dim=-1)
         else:
-            invariants = torch.cat(
-                [
-                    r_mag,
-                    torch.log(r_mag),
-                    (r_hat * d_hat).sum(-1, keepdim=True),
-                    (r_hat * n_hat).sum(-1, keepdim=True),
-                    (n_hat * d_hat).sum(-1, keepdim=True),
-                ],
-                dim=-1,
-            )
+            invariants = self._seed_invariants(r_mag, r_hat, n_hat, d_hat)
         if self.use_local_features:
             invariants = torch.cat(
                 [invariants, self._local_invariants(r, n_hat, d_hat, log_w,
@@ -1109,16 +1199,7 @@ class ISLA(Module):
             s_rhat = s_r / s_mag
             s_nhat = support_normals / support_normals.norm(dim=-1, keepdim=True).clamp_min(self.eps)
             s_d = (drive / drive_mag)[:, None, :].expand(bs_, ns_, 3)
-            s_inv = torch.cat(
-                [
-                    s_mag,
-                    torch.log(s_mag),
-                    (s_rhat * s_d).sum(-1, keepdim=True),
-                    (s_rhat * s_nhat).sum(-1, keepdim=True),
-                    (s_nhat * s_d).sum(-1, keepdim=True),
-                ],
-                dim=-1,
-            )
+            s_inv = self._seed_invariants(s_mag, s_rhat, s_nhat, s_d)
             h_s = self.embed(s_inv) + self.sp_type.to(h.dtype)
             if self.n_query_scalars:
                 if support_scalars is None:
@@ -1153,16 +1234,7 @@ class ISLA(Module):
             q_rhat = q_r / q_mag
             q_nhat = query_normals / query_normals.norm(dim=-1, keepdim=True).clamp_min(self.eps)
             q_d = (drive / drive_mag)[:, None, :].expand(bq, nq, 3)
-            q_inv = torch.cat(
-                [
-                    q_mag,
-                    torch.log(q_mag),
-                    (q_rhat * q_d).sum(-1, keepdim=True),
-                    (q_rhat * q_nhat).sum(-1, keepdim=True),
-                    (q_nhat * q_d).sum(-1, keepdim=True),
-                ],
-                dim=-1,
-            )
+            q_inv = self._seed_invariants(q_mag, q_rhat, q_nhat, q_d)
             h_q = self.embed(q_inv) + self.qt_type.to(h.dtype)
             if self.n_query_scalars:
                 if query_scalars is None:
@@ -1221,10 +1293,12 @@ class ISLA(Module):
         ### the overwritten n_hat and n and failed whenever the query count
         ### differed from the source count).
         src_r, src_n, src_logw = r, n_hat, log_w
+        r_out = r  # positions of the tokens the head reads (RELFRAME radial basis)
         if qt_active:
             ### Heads read the query tokens only (surface tokens were context).
             h_out = h[:, n_surface:]
             r_hat, n_hat, d_hat, b, n = q_rhat, q_nhat, q_d, bq, nq
+            r_out = q_r
         elif self.query_independent:
             if 0 < self.n_anchors < n:
                 ### v5a4: the interacting core is a random anchor subset in
@@ -1276,16 +1350,7 @@ class ISLA(Module):
             if self.seed_mode == "raw":
                 q_inv = torch.cat([q_r, q_nhat, q_d], dim=-1)
             else:
-                q_inv = torch.cat(
-                    [
-                        q_mag,
-                        torch.log(q_mag),
-                        (q_rhat * q_d).sum(-1, keepdim=True),
-                        (q_rhat * q_nhat).sum(-1, keepdim=True),
-                        (q_nhat * q_d).sum(-1, keepdim=True),
-                    ],
-                    dim=-1,
-                )
+                q_inv = self._seed_invariants(q_mag, q_rhat, q_nhat, q_d)
             if self.use_local_features:
                 ### Local integrals read the SOURCE sample -- query-passive.
                 q_inv = torch.cat(
@@ -1335,8 +1400,18 @@ class ISLA(Module):
                     local_rho=self.local_readout_rho, kernel_logspace=logspace,
                 )
             h_out, r_hat, n_hat, d_hat, b, n = q_h, q_rhat, q_nhat, q_d, bq, nq
+            r_out = q_r
         else:
             h_out = h
+        if self.relative_frame:
+            ### RELFRAME head frame: the radial basis vector is the direction from
+            ### the token's soft slice anchor (measure-weighted mean of source
+            ### positions) instead of from a centroid; translation covariant.
+            a_f = _softmax_over_points(self.frame_assign(h) + src_logw, self.fast_point_softmax)
+            z_f = torch.einsum("bns,bnc->bsc", a_f, src_r)
+            b_f = torch.softmax(self.frame_assign(h_out), dim=-1)
+            u = r_out - torch.einsum("bns,bsc->bnc", b_f, z_f).to(r_out.dtype)
+            r_hat = u / u.norm(dim=-1, keepdim=True).clamp_min(self.eps)
         out = self.head(self.norm_out(h_out))
 
         scalars = out[..., : self.out_scalars]

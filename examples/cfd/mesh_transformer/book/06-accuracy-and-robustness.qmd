@@ -490,6 +490,7 @@ from pathlib import Path
 B = json.load(open(Path("..") / "results" / "consistency_bench" / "consistency_bench_2026-09-10.json"))
 A = B["arms"]
 A.update(json.load(open(Path("..") / "results" / "consistency_bench" / "consistency_bench_mcenter_2026-09-10.json"))["arms"])
+A.update(json.load(open(Path("..") / "results" / "consistency_bench" / "consistency_bench_mw_2026-09-10.json"))["arms"])
 def D(arm, sampler, count="40000"):
     return A[arm]["D"][sampler][count]["pressure_l2"]
 def conv(arm, sampler):
@@ -498,10 +499,13 @@ def conv(arm, sampler):
 rows = [("DrivAerML", "ISLA, constant gauge, measure-weighted centring", "cg_dr_mt2_mcenter"),
         ("DrivAerML", "ISLA, similarity gauge", "iw_mt2_gauge"), ("DrivAerML", "ISLA, constant gauge", "iw_mt2_lr1e3"),
         ("DrivAerML", "Transolver, unit drive", "uw_transolver_unit_lr3e3"), ("DrivAerML", "GeoTransolver, unit drive", "uw_gt_unit_lr1e3"),
+        ("DrivAerML", "GeoTransolver, measure-weighted pooling (pool frame)", "mw_dr_gt_unit_lr1e3"), ("DrivAerML", "Transolver, measure-weighted pooling (pool frame)", "mw_dr_transolver_unit_lr3e3"),
         ("DrivAerML", "ISLA, weights off (ablation)", "now_mt2_lr1e3"),
         ("HiLift 35", "ISLA, constant gauge, measure-weighted centring", "cg_hl_mt2_mcenter_super_scarce"),
         ("HiLift 35", "ISLA, constant gauge", "lad_hl_mt2_super_scarce"), ("HiLift 35", "GeoTransolver, unit drive", "udrv_hl_gt_super_scarce_lr3e3"),
-        ("HiLift 35", "Transolver, unit drive", "udrv_hl_transolver_super_scarce_lr3e3"), ("HiLift 35", "ISLA, weights off (ablation)", "a35_hl_mt2_noweights")]
+        ("HiLift 35", "Transolver, unit drive", "udrv_hl_transolver_super_scarce_lr3e3"),
+        ("HiLift 35", "GeoTransolver, measure-weighted pooling (pool frame)", "mw_hl_gt_super_scarce_lr3e3"), ("HiLift 35", "Transolver, measure-weighted pooling (pool frame)", "mw_hl_transolver_super_scarce_lr3e3"),
+        ("HiLift 35", "ISLA, weights off (ablation)", "a35_hl_mt2_noweights")]
 out = "| validation set | configuration | uniform 40k error | area ÷ uniform − 1 at 40k | bias ÷ uniform − 1 at 40k | area-curve fall, 2.5k → 40k |\n|---|---|---:|---:|---:|---:|\n"
 for ds, label, arm in rows:
     u40 = A[arm]["table"]["unif"]["40000"]["pressure_l2"]["mean"]
@@ -511,8 +515,12 @@ print(": Consistency at the benchmark's largest count. The preregistered bars ar
       "|D| at or below 3% for consistent and at or above 10% for reading the sampling "
       "distribution; among the original arms one cell passes (the similarity-gauge ISLA under the bias on "
       "DrivAerML); the measure-centred constant-gauge ISLA, added afterwards, passes both samplers on both "
-      "datasets (its convergence column runs from 10,000 cells, the smallest count it was run at). "
-      "The baselines' area and biased columns are pool-frame values (pipeline centring before the draw). "
+      "datasets (its convergence column runs from 10,000 cells, the smallest count it was run at), and "
+      "the measure-weighted baselines pass both bars at both counts on the wings and at 40,000 cells on "
+      "the cars (|D| under 1%). The baselines' area and biased columns are pool-frame values (pipeline "
+      "centring before the draw): with the frame held, measure weighting makes their aggregation "
+      "consistent; their frame remains a datapipe sample statistic and collapses when centred on the "
+      "drawn sample (@sec-nb-mw-postcenter). "
       "The last column is the factor by which each arm's area-sampler error fell from 2,500 "
       "to 40,000 cells: a value near 1 means the arm's answer under a different sampling law "
       "does not approach its uniform-sampling answer as the sample grows. Float32, seed means "
@@ -678,6 +686,7 @@ out = ("| configuration | in-family error | density 10:1 (x) | pose, random SO(3
        "| zero-shot fastback | few-shot gain from pretraining |\n|---|---:|---:|---:|---:|---:|\n")
 for key in ("geotransolver_unit", "geotransolver_unit_mw", "transolver_unit", "transolver_unit_mw",
             "isla_reference_constant_gauge", "isla_constant_gauge_mcenter", "isla_similarity_gauge_lr1e3",
+            "isla_relative_frame_ref", "isla_relative_frame_meas",
             "isla_similarity_gauge", "isla_weights_off_ablation"):
     r = M["rows"][key]
     pose = f(r["pose_factor"], "{:.2f}") + (" (augmented)" if r.get("pose_note") else "")

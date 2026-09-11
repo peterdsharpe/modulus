@@ -1434,3 +1434,46 @@ interior control @sec-nb-udrv-int-prereg.
   the code: far queries' eight relational invariants stop discriminating slices; the seed features are blind to
   azimuth about the drive axis (GT reads raw position). Candidate = second_moment_features (MOM2) at hidden 344,
   after a distance-shell / azimuth decomposition of saved predictions (transfer session). Flags stay gated.
+- **Far-wake diagnostics (2026-09-10, transfer session; research/transfer_program/studies/computational_support/far_field_shells_2026-09-10.json; routing_mass/*.json).** ν_t ISLA h344 vs GT-volume by shell:
+  0.05–0.1 L 0.047 vs 0.067; 0.1–0.2 L 0.042 vs 0.053; 0.2–0.4 L 0.038 vs 0.038; ≥0.4 L 0.108 vs 0.071 (2.2% of points);
+  downstream x>0.5 L 0.102 vs 0.070; around 0.034 vs 0.050; upstream 0.046 vs 0.108; azimuth worst beside (0.091 vs
+  0.064). Pressure: uniform 15–25% deficit in far shells (<2% of squared error). Routing mass: query tokens dominate
+  224–256/256 slices; 48–86% of anchors off-surface (0–13% >0.2 L_b) → 'anchors all on the surface' premise FALSE;
+  wake tokens took 7–71 slice-units, moved anchors downstream (60–89), far wake −6%. DROPPED candidates: second-moment
+  interior arm, azimuth-blind-seed reading, radius scaling. WRITE: "at matched parameters ISLA leads GT-volume on
+  pressure, velocity and ν_t everywhere except the far wake beyond 0.4 L, which carries the whole 18%". Surviving
+  hypothesis (not launched): far-wake under-sampling → measure-consistent far-field oversampling at training (HT
+  weights) — Peter's call.
+- **210-case rung, third seeds (2026-09-10, fp32; results/udrvl_210_reduction_2026-09-10.json three_seed_addendum).** Unit GT 0.0539 (0.0532/0.0535/0.0550)
+  → 0.838x, lower on 161/180 (baseline ahead); unit Transolver 0.0578 (0.0582/0.0582/0.0569) → 0.899x, 149/180 (at
+  the 0.0579 baseline-ahead bar). Write "0.84x / 0.90x on three seeds each"; supersedes the two-seed 0.83x / 0.91x.
+- **MIX verdict (2026-09-11, fp32, 48 cars, 10k; results/mix_conventions_2026-09-10.json).** Swap penalties (other convention ÷ own):
+  ISLA gauge 1.92x / 1.46x, Transolver 3.27x / 6.09x,
+  GeoTransolver 6.43x / 7.31x — ALL pay (ISLA least). Mixing costs C 0.92/0.91, 0.95/0.93,
+  0.92/0.90 — ALL mix for free (mixed lanes had 2x steps; state it). Write "no architecture transfers
+  across sampling conventions at 10k; data diversity removes the dependence for all; the measure-consistent
+  model pays a fifth to a quarter of the baselines' swap penalty and converges with count"; never
+  "density-reading models cannot mix conventions".
+- **RELFRAME verdict (2026-09-11, fp32; results/relframe_reduction_2026-09-11.json).** No-frame ISLA: DrivAerML
+  ref 0.0566 (+1.5%), density 1.21x (sample frame); meas 0.0552 (−0.9%), 1.235x; BENCH D_area +41%→+3.4%,
+  D_biased +19%→+2.5% (10k→40k). HiLift 35: 0.1530 / 0.1529 (+11%) — accuracy bar FAILS; falsifier fired:
+  the HiLift price is NOT frame-estimate variance (no frame, same 10–11% as measure centring). Write "the
+  1.2x floor is the routing integral's variance under a 10:1 sample, not a frame effect"; write "the
+  HiLift price is either positional information lost with the seeds or the plain-mean frame's mesh-density
+  content (0.131 body lengths on HiLift, 0.034 DrivAerML; HT-10k noise 0.0065) — FRAME-FULL decides".
+  Reference configuration: still UNDER DECISION; RELFRAME is not the flagship by the preregistered rule.
+- **BENCH mw addendum (2026-09-11; results/consistency_bench/consistency_bench_mw_2026-09-10.json; POOL FRAME).**
+  Measure-weighted baselines: DrivAerML D_area +4.4%→+0.9% (GT), +4.7%→+0.9% (Transolver);
+  D_biased +0.3% / +0.2% at 40k. HiLift 35 D_area -0.4%→+0.3% (GT), -0.0%→+0.3% (T).
+  Write "with the frame held by the pipeline, measure weighting makes the baselines' aggregation fully
+  consistent (|D| < 1% at 40k); the frame defect remains in the datapipe (CenterMesh plain mean)"; never
+  "the measure-weighted baselines are sampling-consistent" without the frame convention. CenterMesh has
+  use_area_weighting (HT-centroid frame) — same question as Peter's HT-centroid ruling.
+- **PETER'S FRAME RULING, applied (2026-09-11).** HT centroid acceptable only if it buys significant accuracy;
+  at equal accuracy the frame-free construction is preferred. Numbers on file: frame-free (RELFRAME
+  total-measure) 0.0552 = measure-centred 0.0548 = constant 0.0557 on DrivAerML; 0.1530 = 0.1520 on HiLift
+  35. RULE: "reference = RELFRAME (total-measure scale) unless FRAME-FULL passes its joint bar (within 3% of
+  0.1377 at ≤ 1.2x)". Measure-centred frame NOT adopted. Chapters stay "under decision until FRAME-FULL";
+  then apply the rule in chapters 2, 6, 12 and the index reference rows (announce first). Baselines'
+  datapipe frame: area-weighted CenterMesh acceptable only if it buys accuracy over the plain mean
+  (MWAW lanes, #sec-nb-mwaw-prereg).

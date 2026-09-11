@@ -59,6 +59,9 @@ YAML configs.  Import this module before Hydra instantiation
 
 from __future__ import annotations
 
+import json
+import zlib
+from collections.abc import Sequence
 from warnings import warn
 
 import torch
@@ -776,3 +779,154 @@ class SetConstantCellField(MeshTransform):
 
     def extra_repr(self) -> str:
         return f"cell_data[{self._field_name!r}] = {self._value}"
+
+
+@register()
+class SetGlobalFieldsFromTable(MeshTransform):
+    r"""Per-case global fields from a JSON table keyed by case name.
+
+    FRAME-FULL (2026-09-10): the frame of a surface (area-weighted centroid,
+    RMS radius) is a property of the geometry, so it is computed once per
+    case from the FULL mesh and passed in as ``global_data`` instead of being
+    estimated from the sampled points: no sampling dependence, no estimator
+    variance. The table is ``{case_name: {field: value, ...}, ...}`` (keys
+    starting with ``_`` are provenance and ignored); the case is identified
+    through ``global_data[key_field]``, the CRC-32 case key
+    :class:`~merge_global_data.MeshReaderWithGlobalData` writes with
+    ``store_case_key: true``, so every listed name is hashed the same way at
+    construction (a hash collision among the listed names is an error).
+    Fields are written in the mesh's dtype; place after
+    ``NonDimensionalizeByMetadata`` and give the table's values in the same
+    coordinates (the frame datasets omit ``CenterMesh``, whose shift is a
+    sample statistic).
+    """
+
+    def __init__(self, table: str, fields: Sequence[str], key_field: str = "case_key") -> None:
+        super().__init__()
+        self._table_path = str(table)
+        self._fields = tuple(fields)
+        self._key_field = key_field
+        with open(self._table_path) as f:
+            raw = json.load(f)
+        self._rows: dict[int, TensorDict] = {}
+        for name, row in raw.items():
+            if name.startswith("_"):
+                continue
+            key = zlib.crc32(name.encode()) & 0x7FFFFFFF
+            if key in self._rows:
+                raise ValueError(f"SetGlobalFieldsFromTable: case-key collision for {name!r} in {table}")
+            self._rows[key] = TensorDict(
+                {k: torch.as_tensor(row[k], dtype=torch.float64) for k in self._fields}, batch_size=[]
+            )
+
+    def __call__(self, mesh: Mesh) -> Mesh:
+        if self._key_field not in mesh.global_data.keys():
+            raise KeyError(
+                f"SetGlobalFieldsFromTable: global_data[{self._key_field!r}] missing; "
+                f"set store_case_key: true on the reader."
+            )
+        key = int(mesh.global_data[self._key_field])
+        if key not in self._rows:
+            raise KeyError(f"SetGlobalFieldsFromTable: case key {key} not in {self._table_path}")
+        new_gd = mesh.global_data.clone()
+        new_gd.update(self._rows[key].to(device=mesh.points.device, dtype=mesh.points.dtype))
+        return mesh.with_data(global_data=new_gd)
+
+    def extra_repr(self) -> str:
+        return f"{list(self._fields)} from {self._table_path} ({len(self._rows)} cases) by {self._key_field}"
+
+
+@register()
+class SdfBiasedSubsampleInteriorPoints(MeshTransform):
+    r"""Poisson-subsample the *interior point cloud* with an inclusion
+    probability that rises with the signed distance to the wall (far-wake
+    oversampling arm, 2026-09-10).
+
+    Motivation: on DrivAerML the interior query-token model's one remaining
+    eddy-viscosity deficit against GeoTransolver-volume sits in the far wake
+    beyond 0.4 body lengths, which holds about 2% of a uniform interior
+    sample, and slice anchors follow the query mass. This transform draws
+    the training queries from a larger uniform pool with per-point inclusion
+    probability ``pi_i = min(1, c * w(sdf_i))``, where ``w`` is a step
+    function of the signed distance over ``band_edges`` with values
+    ``band_weights`` and ``c`` sets the expected kept count to
+    ``n_points_expected`` (one renormalization pass restores the count lost
+    to clamping, as in :class:`PoissonBiasedSubsampleMesh`). Inclusion
+    probabilities are exact and stored per kept point as
+    ``point_data[pi_field]`` for provenance, so an importance-weighted loss
+    can be built from them; this transform does not itself reweight the loss
+    (the recipe loss is a plain mean over queries), so the objective's
+    spatial weighting shifts toward the far field by construction. Run it
+    after the SDF transform. Bare ``Mesh`` inputs pass through unchanged.
+    """
+
+    def __init__(self, n_points_expected: int, band_edges: Sequence[float] = (0.05, 0.4),
+                 band_weights: Sequence[float] = (1.0, 3.0, 8.0), sdf_field: str = "sdf",
+                 pi_field: str = "inclusion_pi") -> None:
+        super().__init__()
+        if n_points_expected <= 0:
+            raise ValueError("n_points_expected must be positive")
+        edges = [float(e) for e in band_edges]
+        weights = [float(w) for w in band_weights]
+        if len(weights) != len(edges) + 1:
+            raise ValueError("band_weights must have one more entry than band_edges")
+        if any(e2 <= e1 for e1, e2 in zip(edges, edges[1:])) or any(w <= 0 for w in weights):
+            raise ValueError("band_edges must increase and band_weights must be positive")
+        self.n_points_expected = int(n_points_expected)
+        self.band_edges = tuple(edges)
+        self.band_weights = tuple(weights)
+        self.sdf_field = sdf_field
+        self.pi_field = pi_field
+        self._generator: torch.Generator | None = None
+
+    def set_generator(self, generator: torch.Generator) -> None:
+        self._generator = generator
+
+    def _weights(self, sdf: torch.Tensor) -> torch.Tensor:
+        edges = torch.tensor(self.band_edges, dtype=sdf.dtype, device=sdf.device)
+        band = torch.bucketize(sdf.abs(), edges)  # 0 .. len(edges)
+        w = torch.tensor(self.band_weights, dtype=sdf.dtype, device=sdf.device)[band]
+        return torch.where(torch.isfinite(sdf), w, torch.zeros_like(w))
+
+    def _inclusion(self, sdf: torch.Tensor) -> torch.Tensor:
+        w = self._weights(sdf)
+        c = self.n_points_expected / w.sum()
+        pi = (c * w).clamp(max=1.0)
+        deficit = self.n_points_expected - pi.sum()
+        if deficit > 0:
+            free = pi < 1.0
+            if bool(free.any()):
+                pi[free] = (pi[free] * (1 + deficit / pi[free].sum())).clamp(max=1.0)
+        return pi
+
+    def __call__(self, mesh: Mesh) -> Mesh:  # bare Mesh: identity (needs the DomainMesh interior)
+        return mesh
+
+    def apply_to_domain(self, domain: DomainMesh) -> DomainMesh:
+        interior = domain.interior
+        n = interior.points.shape[0]
+        if n <= self.n_points_expected:
+            return domain
+        if self.sdf_field not in interior.point_data.keys():
+            raise KeyError(
+                f"SdfBiasedSubsampleInteriorPoints: interior point_data lacks {self.sdf_field!r}; "
+                "run the SDF transform first"
+            )
+        sdf = interior.point_data[self.sdf_field].reshape(n).to(torch.float32)
+        pi = self._inclusion(sdf)
+        generator = self._generator
+        if generator is not None and generator.device != pi.device:
+            generator = None
+        keep = torch.rand(n, device=pi.device, generator=generator) < pi
+        idx = keep.nonzero(as_tuple=True)[0]
+        kept = interior.slice_points(idx)
+        pd = kept.point_data.clone()
+        pd[self.pi_field] = pi[idx].to(kept.points.dtype)[:, None]
+        new_interior = Mesh(points=kept.points, cells=kept.cells, point_data=pd,
+                            global_data=interior.global_data)
+        return DomainMesh(interior=new_interior, boundaries=domain.boundaries,
+                          global_data=domain.global_data)
+
+    def extra_repr(self) -> str:
+        return (f"n_points_expected={self.n_points_expected}, band_edges={self.band_edges}, "
+                f"band_weights={self.band_weights}, sdf_field={self.sdf_field!r}")
