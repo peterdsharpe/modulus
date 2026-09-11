@@ -14612,3 +14612,45 @@ reference-length and total-measure scales are indistinguishable on every
 readout (accuracy, density, samplers), so the scale choice is free and the
 ruling's preference for the frame-free construction picks the
 total-measure arm, which needs no per-dataset constant.
+
+## 2026-09-11 — WAVE-4 fixed-angle rung, consistency half: the similarity gauge passes both sampler bars at 40,000 cells (area −0.1%, bias +2.4%) and converges monotonically where the constant gauge reads the samplers by 960–1,385% {#sec-nb-wave4-fixed-angle-bench}
+
+The fixed-angle similarity-gauge checkpoints of @sec-nb-wave4-fixed-angle
+went through the consistency benchmark (three samplers, five counts, two
+seeds, float32 under snapshot code; thirty lanes, jobs 708692 / 708718 /
+708892, all completed, no loader warnings; lane table
+bench/bench_lanes_w4fa.tsv; artifact `results/consistency_bench/consistency_bench_w4fa_2026-09-11.json`), beside the constant-gauge
+twin's rows from the original benchmark.
+
+| fixed angle, 18 never-seen geometries | 2,500 | 5,000 | 10,000 | 20,000 | 40,000 cells |
+|---|---|---|---|---|---|
+| ISLA, similarity gauge, uniform | 0.0577 | 0.0483 | 0.0430 | 0.0403 | 0.0389 |
+| ISLA, similarity gauge, area ÷ uniform − 1 | +25.7% | +12.0% | +7.3% | +4.3% | -0.1% |
+| ISLA, similarity gauge, bias ÷ uniform − 1 | +66.1% | +37.4% | +16.4% | +7.9% | +2.4% |
+| ISLA, constant gauge, uniform | 0.0465 | 0.0401 | 0.0361 | 0.0347 | 0.0338 |
+| ISLA, constant gauge, area ÷ uniform − 1 | +989.9% | +1162.0% | +1245.1% | +1205.8% | +960.3% |
+| ISLA, constant gauge, bias ÷ uniform − 1 | +990.4% | +1145.4% | +1291.9% | +1339.3% | +1385.4% |
+
+**Against the bars** (|D| ≤ 3% consistent, ≥ 10% reads the distribution).
+At 40,000 cells the gauge is consistent under both samplers (−0.1% and
++2.4%), and its deviations fall monotonically with the count from +25.7% /
++66.1% at 2,500 cells; its uniform error also falls monotonically (1.48x
+from 2,500 to 40,000 cells). The constant gauge on the same rung is the
+benchmark's worst trained arm, reading the samplers by 960% and 1,385% at
+40,000 cells with no convergence. So on this rung the preregistered
+condition of @sec-nb-wave4-prereg holds as it did at 35 cases and on
+DrivAerML: the gauge passes the consistency bars exactly where the constant
+gauge fails them, at a stated in-distribution price, here 14%.
+
+**What this settles and what it does not.** The gauge's consistency is now
+measured on three rungs (35 cases, fixed angle, DrivAerML) and holds on
+each; the rung-by-rung table of the ladder is accuracy price 7.6% / 14.4% /
+−2.5% against consistency at 40,000 cells of +2.8% (bias, DrivAerML),
++2.4% / −0.1% (fixed angle). Under the WAVE-4 rule alone the reference
+would move to the gauge; under Peter's frame ruling
+(@sec-nb-relframe-verdict) the gauge's frame is a sample statistic and the
+reference candidate is the frame-free construction, whose own consistency
+is measured at 35 cases and on DrivAerML (@sec-nb-relframe-hl-bench) and
+not yet at the fixed angle. The gauge row of the matrix carries these
+numbers; the fixed-angle frame-free pair remains the first follow-up after
+the reference is settled.

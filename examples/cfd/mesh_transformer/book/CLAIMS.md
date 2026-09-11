@@ -1503,3 +1503,7 @@ interior control @sec-nb-udrv-int-prereg.
   converges). Write "the whole sampler dependence of the constant gauge was the plain-mean centroid; removing it by
   either route leaves only the routing integral's variance". Scale choice (ref vs total-measure) indistinguishable on
   every readout → ruling picks total-measure (no per-dataset constant). Reference still UNDER DECISION (FRAME-FULL).
+- **WAVE-4 fixed-angle BENCH (2026-09-11, fp32; results/consistency_bench/consistency_bench_w4fa_2026-09-11.json).** Gauge D_area +25.7%→-0.1%, D_biased
+  +66.1%→+2.4% (2.5k→40k), monotone; unif 2.5k/40k = 1.48. Constant twin at 40k +960% / +1385%.
+  Gauge passes BENCH where constant fails on all three rungs measured (35, fixed angle, DrivAerML) at prices 7.6% / 14.4% / −2.5%.
+  Reference decision is governed by the FRAME RULING, not the WAVE-4 rule; gauge = matrix row. Frame-free fixed-angle pair NOT run.
