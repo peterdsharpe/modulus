@@ -1514,3 +1514,15 @@ interior control @sec-nb-udrv-int-prereg.
   WRITE: "count augmentation reduces the request-size dependence by ~40% at a 3.7% cost and does not remove it; the
   dependence is partly intrinsic to the interacting decode; deploy at the training count". Never "count augmentation
   removes the dependence" (retire the D1-era 'deployment repair is augmentation' wording).
+- **OVERFIT-1 surface verdict (2026-09-11, single-sample session, fp32 at 10k cells, 64-view form; results/overfit_single_case_2026-09-11.json
+  + overfit_hlreg_*_2026-09-11.json).** Single-case floors: HiLift ISLA 1.37x unit Transolver / 1.27x GT (bf16-trained arms),
+  1.55x in the fp32-trained pair; DrivAerML 1.31x / 1.39x → "between" band (bf16 arms), over the 1.5x capacity bar (fp32 pair);
+  no comparison within 1.15x. Single-case gap WIDER than the 35-case gap (1.20x / 1.11x) → the deficit is not a data limit; it
+  is representational, visible in training losses on ISLA's own views (0.0062 vs 0.0034–0.0036). Weights off beats on by 17%
+  with data fixed → measure-weight cost is representational, not a few-sample effect (ablation only). Facing-distance split:
+  deficit on mid/far open surfaces (baseline÷ISLA 0.64–0.83), smallest at the gaps (0.88) → missing capacity is on smooth
+  large-cell regions, not gap physics. INSTRUMENT NOTE for every chapter: the recipe's pressure_l2 is CELL-AREA WEIGHTED (a
+  surface integral); per-point RMS ratios differ (T÷ISLA 0.87 per point vs 0.73 per unit area, verified to 3 digits) — say
+  "per unit surface area" when quoting the metric. Fixed single sample = memorization test (rel-L2 0.12–0.36 on a resampling
+  even at zero training loss); 64 views → 0.03–0.11. 10k→40k: car baselines insensitive, ISLA arms −19–20%; wing all arms
+  −5–28% (convergence check, not a defect). Interior pair pending (~6 h).
