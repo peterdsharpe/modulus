@@ -3,9 +3,12 @@
 **With every architecture fed the same inputs and scored on the same
 float32 instrument, GeoTransolver and plain Transolver are at least as
 accurate as ISLA on every in-distribution surface benchmark this program has
-measured, from parity at the 512-wide, 80,000-cell corner to 28% at 35
-HiLift cases; ISLA is ahead where geometries arrive in arbitrary
-poses (6% and 19%), on interior velocity (26%), and on consistency under a
+measured, from parity at the 512-wide, 80,000-cell corner (against the
+prior constant-gauge ISLA, the only one trained there) to 28% at 35
+HiLift cases (against ISLA's reference configuration, the relative frame);
+ISLA is ahead where geometries arrive in arbitrary poses (6% and 19%,
+prior configuration), on interior velocity (26%, query-token
+configuration), and on consistency under a
 change of surface sampling, where its reference frame degrades 1.2x against
 10 to 16x for every configuration that centres its coordinates on the
 sampled points.** This chapter is the scoreboard. It collects every
@@ -617,8 +620,11 @@ both are reported here.
 
 Four measurements would change or complete this page and are running or
 queued (@sec-program-status). The 1,260-case HiLift rung has no unit-drive
-baseline yet; against the physical-drive GeoTransolver the two are at
-parity there, which is a protocol measurement, not a comparison. ISLA's
+baseline yet (its rerun is the last open lane of the unit-drive ladder,
+ledger row UDRV-L in @sec-program-status); against the physical-drive
+GeoTransolver the two are at parity there, which is a measurement of the
+mis-scaled protocol and not a comparison, and it is quoted nowhere in this
+chapter as one. ISLA's
 reference configuration has been trained on two rungs; the ladder that
 trains it on the fixed-angle and 4-geometry rungs is in progress, and
 until it lands every other ISLA number is the prior configuration's
