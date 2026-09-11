@@ -1579,3 +1579,6 @@ interior control @sec-nb-udrv-int-prereg.
   (code_frame, recipe_frame, lr 1e-3, 500 ep). Bars vs constant-gauge prior (fixed angle 0.0348; 4 geo 0.2496): ≤5% / 5–15% / >15%.
   Scale discriminator at fixed angle: meas ≥5% worse than ref → scale normalization cost real (revisit scale choice); within 3% → frame's price.
   Predictions: both 10–15% at fixed angle, within 3% of each other; 4 geo 5–10%. Nothing on these rungs is a RELFRAME number until then.
+- **WAVE-4 21-geometry rung (2026-09-11, fp32, rate-matched).** Gauge 0.1048/0.1038 → 0.1043 vs constant prior 0.1014 → **+2.9%** (cheap band);
+  vs unit GT 0.0933 → 1.12x, Transolver 0.0941 → 1.11x. Gauge ladder prices by rung: DrivAerML −2.5%, 21 geo +2.9%, 4 geo +7.4%, 35 +7.6%,
+  fixed angle +14.4%. Price does NOT track training-set size. Gauge ≠ reference (sample-statistic frame).

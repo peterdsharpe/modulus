@@ -15520,3 +15520,38 @@ fixed-angle checkpoints: the BENCH samplers at five counts (lane table to
 be built as bench_lanes_rf.tsv was), where the prior collapses 10.6x /
 14.9x at 40,000 cells and the gauge is consistent; the reference is
 predicted consistent (|D| ≤ 3% at 40,000) as it was at 35 cases.
+
+## 2026-09-11 — WAVE-4, 21-geometry rung: the similarity gauge costs 2.9% (0.1043 against 0.1014, float32, rate-matched), the "cheap" band; the ladder's price now spans −2.5% to +14.4% by rung {#sec-nb-wave4-geo210}
+
+The 21-training-geometry rung of the HiLiftAeroML ladder (`geometry_scarce`:
+210 training cases from 21 geometries, 180 validation cases from 18
+never-seen geometries) is the fourth HiLift rung of the similarity-gauge
+ladder (@sec-nb-wave4-prereg) to read out. Two lanes
+(w4_hl_mt2_gauge_geometry_scarce_seed{42,43}; lr 1e-3, unit drive, 500
+epochs, snapshot code; one lane lost two epochs to a node failure that
+truncated a checkpoint mid-save and resumed from the previous save,
+@sec-nb-wave4-fixed-angle's ops note applies), evaluated in float32 under
+the same snapshot (job 712726; bf16 twins 712725; no loader warnings).
+Constant-gauge prior on the rung: 0.1014 (seeds 0.1002 / 0.1026;
+results/geo210_all_arms_2026-09-10.json); unit-drive GeoTransolver 0.0933,
+Transolver 0.0941.
+
+| 21 geometries (180 val, float32) | pressure rel-L2 (42 / 43 → mean) | vs constant-gauge prior | vs unit GeoTransolver | vs unit Transolver |
+|---|---|---|---|---|
+| ISLA, similarity gauge | 0.1048 / 0.1038 → **0.1043** | **+2.9%** | 1.12x | 1.11x |
+| ISLA, constant gauge (prior reference) | 0.1002 / 0.1026 → 0.1014 | 1 | 1.09x | 1.08x |
+
+The bf16 evaluation reads 0.1049 / 0.1040, within 0.2% of float32.
+
+**Against the bars.** +2.9% is the "cheap" band (≤ 5%). The ladder's
+in-distribution price for the gauge by rung, all rate-matched and float32:
+DrivAerML 435 cars −2.5%, 21 geometries +2.9%, 4 geometries +7.4%, 35
+cases +7.6%, fixed angle +14.4%. The price does not track training-set size
+(210 cases here against 35 at the 35-case rung and 40 at 4 geometries, yet
+cheaper than both) and is largest where the task is geometry at a fixed
+drive direction; the scale-normalization reading of
+@sec-nb-wave4-fixed-angle is being tested by the reference configuration's
+two scales on that rung (@sec-nb-relframe-ladder-prereg). The gauge is a
+sample-statistic frame and not the reference; this is its matrix row for
+the rung. Remaining gauge rungs: 210 cases (evaluating), 1,260 cases and
+deflection (training, days).
