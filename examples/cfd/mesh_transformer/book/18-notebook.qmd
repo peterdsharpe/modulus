@@ -14820,3 +14820,203 @@ preregistered bars apply to the 64-view float32 readouts, with the
 fixed-sample numbers reported alongside. A general note for the recipe: any
 run whose epoch count is not about 500 needs the scheduler rescaled, which
 the per-epoch StepLR makes easy to forget.
+
+## 2026-09-11 — OVERFIT-1 verdict (surface arms): on one case ISLA's floor is 1.3–1.5x the unit-drive baselines', a wider gap than at 35 cases; the missing capacity sits on the coarse open surfaces, not in the gaps {#sec-nb-overfit-verdict}
+
+**Setting.** OVERFIT-1 (@sec-nb-overfit-prereg) trains each architecture on a
+single case for 20,000 single-sample steps, so that the floor it reaches
+measures what the network can *represent* for this data with generalization
+removed from the problem. The arms are ISLA with its measure weights on (the
+reference configuration) and off (an ablation), and the unit-drive
+GeoTransolver and Transolver, on one HiLiftAeroML wing (`geo_LHC020_AoA_12`)
+and one DrivAerML car (`run_112`). Two forms ran side by side from the same
+launcher: the *fixed-sample* form (one cached 10,000-cell sample of the case,
+run ids `_v1`) and the *64-view* form (64 distinct 10,000-cell subsamples of
+the same surface, read once and cycled, run ids `_v64`). Every readout below is
+the recipe's relative L2 on the *same case* drawn with a different sampler seed
+(7 against the training run's 42) at 10,000 and at 40,000 cells, in float32
+(the reporting instrument, @sec-nb-fp32-instrument) with the bf16 evaluation
+alongside. The preregistered bars apply to the 64-view float32 readouts at
+10,000 cells. Attempts 1–4 were instrument faults (input-bound loading,
+manifest deduplication, and a per-epoch StepLR that had driven the learning
+rate to 1e-6 by step 300; all recorded in the amendments above) and are not
+results. Attempt 5's HiLift and interior node jobs (697144–697149) reached the
+4-hour wall at 12,000–14,000 steps and were resubmitted (709127–709130),
+resuming from their 1,000-step checkpoints. The interior pair (ISLA query
+tokens + SDF against GeoTransolver-volume) is at step 7,000–8,500 of 20,000 at
+2.4 s per step and will be read out as an addendum.
+
+**One instrument note first: the recipe's metric is a surface integral.** The
+recipe's `pressure_l2` weights every sampled cell by its area (the
+`target_measure` argument of the metric, fed from the mesh's cell measures),
+so it is the relative L2 of the pressure *field* integrated over the surface,
+not a per-point average. On the HiLift 64-view arms the per-point RMS-error
+ratio Transolver/ISLA is 0.870 while the area-weighted ratio is 0.731; the
+area-weighted RMS ratios reproduce the metric ratios to three digits for all
+three comparisons (0.731, 0.785, 0.826). The difference is itself a finding
+(below): ISLA's excess residual sits preferentially on *large* cells.
+
+**What we saw, 64-view form (the preregistered readout).** Float32 evaluation
+on a fresh 10,000-cell sample of the training case, then at 40,000 cells;
+final training loss (on the cycled views) in the loss columns.
+
+| Arm (seed 42, 20,000 steps) | HiLift p 10k | p 40k | u 10k | τ_w 10k | loss | DrivAerML p 10k | p 40k | loss |
+|---|---|---|---|---|---|---|---|---|
+| ISLA, weights on | 0.0434 | 0.0486 | 0.0716 | 0.1115 | 0.0062 | 0.1064 | 0.0857 | 3.6e-4 |
+| ISLA, weights off (ablation) | 0.0358 | 0.0428 | 0.0645 | 0.0967 | 0.0036 | 0.0879 | 0.0703 | 3.3e-4 |
+| GeoTransolver, unit drive | 0.0340 | 0.0358 | 0.0542 | 0.0905 | 0.0036 | 0.0766 | 0.0780 | 2.0e-4 |
+| Transolver, unit drive | 0.0317 | 0.0356 | 0.0521 | 0.0904 | 0.0034 | 0.0811 | 0.0793 | 3.3e-4 |
+| ISLA, weights on, float32 training | 0.0474 | 0.0425 | 0.0739 | 0.1176 | 0.0046 | — | — | — |
+| Transolver, unit drive, float32 training | 0.0305 | 0.0389 | 0.0553 | 0.0886 | 0.0010 | — | — | — |
+
+The ratios the bars were written for (pressure, 10,000 cells, float32):
+
+| Ratio | HiLift, bf16-trained | HiLift, float32-trained | DrivAerML | Bar |
+|---|---|---|---|---|
+| ISLA / unit-drive Transolver | **1.37** | **1.55** | **1.31** | ≥ 1.5 capacity-limited; ≤ 1.15 not |
+| ISLA / unit-drive GeoTransolver | 1.27 | — | 1.39 | (reported) |
+| ISLA weights off / weights on | **0.83** | — | **0.83** | ≤ 0.95 a representational cost; ≥ 0.98 a few-sample effect |
+| ISLA weights off / unit-drive Transolver | 1.13 | — | 1.08 | (reported) |
+
+**Verdict on the capacity bar: partial to capacity-limited, and never "not
+capacity-limited".** With generalization removed, ISLA's floor on the wing is
+1.37x the unit-drive Transolver's and 1.27x GeoTransolver's (bf16-trained
+arms), and 1.55x in the float32-trained pair; on the car it is 1.31x and
+1.39x. The bf16-trained arms land in the preregistered "between" band
+(1.15–1.5) and the float32-trained pair crosses the capacity bar. No
+comparison comes within 1.15x of the better baseline. **The single-case gap is
+wider than the many-case gap**: at 35 HiLift cases the unit-drive Transolver
+and GeoTransolver stand at 0.115 and 0.124 against ISLA's 0.138 (1.20x and
+1.11x, @sec-nb-udrv-verdict), and at full DrivAerML data GeoTransolver leads by
+about 1.09x. If ISLA's deficit were a few-sample generalization effect, fitting
+one case with unlimited passes would have closed it; instead it grew. The
+training losses say the same thing from the other side: on its own 64 views
+ISLA (weights on) floors at 0.0062 against 0.0034–0.0036 for the other three
+arms, so the gap is present on the training views themselves, before any
+transfer to a fresh sampling. The deficit is therefore representational or
+optimizational for this data, not a data limit.
+
+**It is not numerical.** The float32-trained ISLA twin floors at 0.0474
+against the bf16-trained 0.0434 (both float32-evaluated); float32 training
+does not lower ISLA's floor, while it lowers the Transolver's training loss
+3.4x (0.0034 to 0.0010) without moving its fresh-sample error (0.0317 to
+0.0305). The 9% spread between the two ISLA twins, which differ only in
+training precision and therefore in their optimization path, is also the best
+single-seed noise gauge this test has: larger than the 2% assumed in the
+prereg, but well below the 27–55% ratios above.
+
+**Where the missing capacity is: on the open surfaces, not in the gaps.** The
+facing-distance instrument of @sec-nb-hlreg-amendment splits the HiLift
+surface by the distance to the nearest facing surface (near, 0.7–2% chord:
+3,445 of the 9,983 evaluated cells; mid, 2–10%: 523; far, > 10%: 6,015) and
+reports the per-point RMS-error ratio baseline/ISLA in each band:
+
+| Comparison (HiLift, 64 views, float32) | near (gaps) | mid | far | all | near / rest |
+|---|---|---|---|---|---|
+| Transolver / ISLA | 0.881 | 0.642 | 0.831 | 0.870 | 1.15 |
+| GeoTransolver / ISLA | 0.884 | 0.665 | 0.776 | 0.871 | 1.20 |
+| Transolver / ISLA weights off | 0.958 | 0.911 | 0.914 | 0.955 | 1.05 |
+
+For every arm the near band carries 90–93% of the squared error (residual RMS
+1.4–1.6 Pa there against 0.25–0.32 Pa far from any facing surface, on a field
+whose RMS is 172–177 Pa), so the gap regions are where *everyone's* residual
+lives. But ISLA's *relative* deficit is smallest there (0.88) and largest on
+the mid and far open surfaces (0.64–0.83); the near/rest ratio of 1.15–1.20 is
+below the 1.5 the prereg required to call the missing capacity local. The
+area-weighting result points the same way: the near-gap cells are the small
+ones, and weighting by area moves the Transolver/ISLA ratio from 0.87
+(per point) to 0.73 (per unit area). **On this case ISLA is short of capacity
+on the smooth, coarsely meshed open surfaces, where the field is easy and the
+residual small, not at the slat and flap gaps.** This is the same direction as
+the 35-case HLREG readout (ISLA's advantage smallest at the gaps).
+
+**Verdict on the measure weights: a representational cost, not a few-sample
+effect.** With the data fixed to one case, turning the measure weights off
+lowers ISLA's floor by 17% on the wing and 17% on the car at 10,000 cells
+(12% and 18% at 40,000), well past the 5% bar, and it lowers the training loss
+too (0.0062 to 0.0036 on the wing). The cost that MEAS-METRIC measured under
+either metric and NOW-L saw persist at 210 cases (@sec-nb-nowl-210-verdict) is
+therefore paid in what the network can fit, not in how it generalizes from few
+cases. Weights off is still 1.13x (wing) and 1.08x (car) behind the unit-drive
+Transolver, so the weights account for roughly half of the single-case deficit
+and something else accounts for the rest. Per the program's ruling, the
+weights-off configuration remains an ablation; this entry proposes no change to
+ISLA's reference configuration and no recipe change (a single fitted case can
+locate missing capacity, it cannot license an architecture decision, which
+must be argued mechanically and pass the discretization-consistency tests).
+
+**Fixed sample against 64 views: the model must answer the same on either
+sampling of the same surface, and from one view no architecture does.** In the
+fixed-sample form every float32-trained arm drives its training loss to zero
+(both ISLA and the Transolver memorize 10,000 points exactly), and the bf16
+arms plateau at 0.010–0.013 (bf16 rounding caps the memorization of a fixed
+point set). Asked the same question on a *second* sampling of the same surface,
+the memorized models answer with relative L2 0.12–0.16 on the wing (ISLA 0.159,
+weights off 0.120, GeoTransolver 0.137, Transolver 0.135; float32-trained
+ISLA 0.147 and Transolver 0.140) and 0.29–0.36 on the car (0.323, 0.294, 0.356,
+0.337). Cycling 64 views of the same surface lowers those numbers 3–4x on
+both datasets with no other change. The teaching is about optimization, not
+about any one architecture: a single fixed point set lets every architecture
+here fit the *points* rather than the *field*, and the field is what a
+resampling asks for. The two forms also bracket the many-case numbers: one
+view memorized gives 0.13–0.16 on the wing, about the 35-case validation error
+(0.115–0.138), and 64 views of one case give 0.03–0.05, about the 510-case
+error (0.0495).
+
+**Convergence check, 10,000 to 40,000 cells (two points, not a limit).** Every
+arm was trained at exactly 10,000 cells, so the 40,000-cell reading is an
+off-training-count query of the same surface. On the car the unit-drive
+GeoTransolver and Transolver are insensitive between the two counts (+2% and
+−2%), while both ISLA arms move 19–20% toward lower error (0.106 to 0.086 and
+0.088 to 0.070); on the wing no arm is insensitive: the bf16-trained arms all
+rise (ISLA +12%, weights off +20%, GeoTransolver +5%, Transolver +12%) and the
+float32-trained twins move in opposite directions (ISLA −10%, Transolver
++28%), so the Transolver/ISLA ratio reads 1.37 and 1.55 at 10,000 cells and
+1.37 and 1.09 at 40,000. Two counts cannot say whether any arm converges to a
+single field in the fine-mesh limit; that is the BENCH sampler instrument's
+question and it is not asked here. What this check does say is that the bar
+readouts on the wing carry a sample-count sensitivity of the same order as the
+bf16/float32 twin spread, and the bars are applied at the preregistered
+10,000 cells.
+
+**bf16 evaluation offsets** (bf16 minus float32, 10,000 cells): on the wing
+ISLA 0.0% and weights off 0.0%, GeoTransolver +8%, Transolver +10%; in the
+float32-trained pair ISLA +4% and Transolver +19%; on the car +2% to +6% for
+every arm. The rounding offset falls on the baselines this time, in the
+direction that narrows their lead under bf16, which is one more reason the
+bars are read in float32.
+
+**What it changes.** (1) ISLA's deficit to the unit-drive baselines on the
+surface tasks is not a data-scarcity effect and the ladder should not be
+expected to close it at higher rungs: it is present with unlimited passes over
+one case and larger there than at 35 or 510 cases. (2) The missing capacity is
+on the smooth open surfaces measured per unit area, not at the gaps, which
+rules out "the gap physics is too hard for ISLA" and points at how ISLA
+represents slowly varying pressure over large cells. (3) Half of the
+single-case deficit is the measure semantics (the weights-off ablation), a
+cost now shown to be representational; the other half is unexplained. (4) A
+fixed single sample is a memorization test, not a capacity test, for every
+architecture here; the 64-view form is the one that measures field capacity.
+None of these is a recipe or architecture proposal; the mechanistic question
+of *why* ISLA under-fits large-cell regions goes to the main session under the
+physically-principled-change rule.
+
+**Artifacts.** Reduction
+`examples/cfd/mesh_transformer/results/overfit_single_case_2026-09-11.json`
+(every arm's last loss, and the float32 and bf16 evaluations at 10,000 and
+40,000 cells; interior arms filled in by the addendum); facing-distance splits
+`results/overfit_hlreg_isla_vs_transolver_2026-09-11.json`,
+`results/overfit_hlreg_isla_vs_geotransolver_2026-09-11.json`,
+`results/overfit_hlreg_islaoff_vs_transolver_2026-09-11.json`. On the cluster:
+`$T/ovf_evals/` (predictions and metrics per run, resolution and precision),
+`$T/overfit/metric_recon.py` (the area-weighting reconciliation),
+`$T/overfit/reduce_overfit.py`, `$T/overfit/hlreg_ovf.py`; training runs
+`$T/runs/ovf_*`; archived attempts `runs_ovf_attempt1..4`. Code snapshot
+`code_ovf` (worktree at 55ee54cf3, `cache_host` and `cache_host_views`
+options with unit tests), recipe copy `recipe_ovf`.
+
+**Next.** The interior addendum (bars: ν_t capacity-limited if ISLA's
+single-car floor is ≥ 1.25x GeoTransolver-volume's, not if within 1.10x) when
+the two lanes finish and evaluate; it decides whether the interior lead that
+survived the unit-drive control (@sec-nb-udrv-verdict) is also a capacity
+lead.
