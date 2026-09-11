@@ -1427,5 +1427,10 @@ interior control @sec-nb-udrv-int-prereg.
   0.087 (0.088/0.087) = 21% of the gap to GT-volume's 0.068 closed, within the reference's 14% seed spread; + LVT 0.110
   (0.095/0.125), worse. Near-wall / mid band / far p,v unchanged. Recipe metric ν_t/p/v: ref 0.1033/0.0497/0.0729; wake
   0.1007/0.0504/0.0743; LVT 0.1140/0.0502/0.0762. Cost: wake = reference (0.450 s, 5.05 GB); LVT +6%. Bars ≤0.074 /
-  ≥0.085 → both FALSIFIED. Write "the far-field deficit is not an anchor-resolution effect"; next candidate =
-  interior readout kernel radius scaling with signed distance (preregistered, not launched). Flags stay gated.
+  ≥0.085 → both FALSIFIED. Write "the far-field deficit is not an anchor-resolution effect" (caveat: anchors move
+  only if the added tokens receive routing mass, unverified). RETRACTED same day: "readout kernel radius in gauge
+  units" applies only to the passive query_independent decoder (_ReadBlock, local_readout_rho); the QT+SDF
+  configuration has no kernel or radius — never write it as a candidate for query tokens. Mechanism reading from
+  the code: far queries' eight relational invariants stop discriminating slices; the seed features are blind to
+  azimuth about the drive axis (GT reads raw position). Candidate = second_moment_features (MOM2) at hidden 344,
+  after a distance-shell / azimuth decomposition of saved predictions (transfer session). Flags stay gated.
