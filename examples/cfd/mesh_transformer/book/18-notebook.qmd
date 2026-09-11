@@ -15471,3 +15471,52 @@ routing integral's own variance is 1.13x and the frame estimate adds up to
 0.1. The code path for the exact frame (global_data `frame_center` and
 `frame_scale`, `SetGlobalFieldsFromTable`) stays in the repository as the
 diagnostic it was built to be.
+
+## 2026-09-11 — Preregistered: RELFRAME-LADDER, the reference configuration on the HiLift rungs it has not been trained on, fixed angle first, with the scale-normalization discriminator {#sec-nb-relframe-ladder-prereg}
+
+With the reference configuration decided (@sec-nb-frame-full-verdict:
+relative frame, total-measure scale), every accuracy number in chapters 5
+and 6 on the rungs other than 35 HiLift cases and DrivAerML 435 is the
+prior configuration's record, and the WAVE-4 preregistration's clause
+requires the price of the reference to be stated beside each. This ladder
+trains it there. First rungs, launched now (training snapshot code_frame,
+which carries the relative-frame code path, and evaluation snapshot
+code_eval_frame, identity-checked to 7e-8 against code_eval on a legacy
+checkpoint; recipe copy recipe_frame with the standard per-split dataset
+yamls; unit drive, lr 1e-3, 500 epochs, two seeds, launcher
+frame/rf_hl_aga.sbatch, lane table frame/rf_lanes.tsv rows 4–9, jobs
+712017–712022, all six accepted at 0.13–0.14 s per step with
+`frame_mode: relative` resolved in their configs; the recipe's
+`isla_surface_reference.yaml` is the same configuration as a named model
+config): the fixed angle (`single_aoa_12`, 126
+geometries at 12°, 18 never seen) in **both** scales, reference length
+(rf_hl_mt2_ref_single_aoa_12_seed{42,43}) and total measure
+(rf_hl_mt2_meas_single_aoa_12_seed{42,43}), and the 4-training-geometry
+rung (`geometry_super_scarce`) in the reference scale only
+(rf_hl_mt2_meas_geometry_super_scarce_seed{42,43}). The remaining rungs (21
+geometries, 210 and 1,260 cases, deflection) follow as nodes free.
+
+**Readouts and bars.** Float32 pressure rel-L2 against the constant-gauge
+prior on the same rung (fixed angle 0.0348; 4 geometries 0.2496), graded in
+the WAVE-4 bands: ≤ 5% "cheap", 5–15% "the known price", > 15% "expensive
+at this rung". **The discriminator** (@sec-nb-wave4-fixed-angle): the
+similarity gauge paid 14.4% at the fixed angle, its largest price, and one
+reading was that the gauge's scale normalization discards the absolute
+size of the geometry on the rung whose whole task is geometry. The two
+RELFRAME scales separate this from the frame: the reference-length arm
+keeps absolute size, the total-measure arm normalizes it away, and both
+carry no centroid. *If the total-measure arm pays ≥ 5% more than the
+reference-length arm at the fixed angle*, scale normalization is a real
+cost on geometry-only tasks and the reference configuration's scale choice
+must be revisited (the ruling prefers no dataset constant, but a
+demonstrated accuracy cost is what it said would justify one). *If the two
+arms are within 3% of each other*, the fixed-angle price is the frame's,
+the scale choice stays free, and the total-measure scale stands.
+**Predictions.** Both arms pay 10–15% at the fixed angle (the same meshes
+and the same 0.131 body-length mesher displacement as the 35-case rung,
+where the reference paid 11%), within 3% of each other; the 4-geometry rung
+pays 5–10% (the gauge paid 7.4% there). **Consistency half** for the
+fixed-angle checkpoints: the BENCH samplers at five counts (lane table to
+be built as bench_lanes_rf.tsv was), where the prior collapses 10.6x /
+14.9x at 40,000 cells and the gauge is consistent; the reference is
+predicted consistent (|D| ≤ 3% at 40,000) as it was at 35 cases.
