@@ -16,20 +16,18 @@ and leaves an eddy-viscosity deficit that lives entirely in the far field
 and is not repaired by far-field context tokens.** This chapter collects
 the verdicts of the node-budget campaigns (@sec-nb-campaign) as they
 close; each section states the question, the preregistered bar, the
-float32 readout and what it changes. Campaign A's 210-case rung is still
-training and is absent here by design.
+float32 readout and what it changes. Every campaign has closed.
 
-## Data-draw variance of the HiLift comparisons (campaign A, 35-case rung) {#sec-campaigns-draws}
+## Data-draw variance of the HiLift comparisons (campaign A, 35 and 210 cases) {#sec-campaigns-draws}
 
 Every HiLiftAeroML comparison in the program book rests on one curated
 training draw per rung with two or three seeds. Campaign A retrains the
-four arms of the 35-case rung (unit-drive GeoTransolver, unit-drive
-Transolver, ISLA, ISLA without measure weights) on three independent
-geometry-stratified draws of 35 training cases, three seeds each, and asks
-whether the orderings survive the draw and how much of a number's
-uncertainty the seed protocol was missing (@sec-nb-campa-n35;
-preregistration in `studies/campaign_a_draws/`). The 210-case rung is
-still training.
+four arms of the 35- and 210-case rungs (unit-drive GeoTransolver,
+unit-drive Transolver, ISLA, ISLA without measure weights) on three
+independent geometry-stratified draws of training cases, three seeds
+each, and asks whether the orderings survive the draw and how much of a
+number's uncertainty the seed protocol was missing (@sec-nb-campa-n35,
+@sec-nb-campa-n210; preregistration in `studies/campaign_a_draws/`).
 
 ```{python}
 #| output: asis
@@ -70,6 +68,44 @@ of an arm's error is 3 to 11 times its seed standard deviation, and the
 hardest draw is 24% harder than the easiest for GeoTransolver, so the
 two-seed protocol has been understating the uncertainty of every 35-case
 HiLift number by that factor; future rungs need draws, not seeds.
+
+```{python}
+#| output: asis
+import json
+from pathlib import Path
+d = json.loads(Path("studies/campaign_a_draws/campaign_a_n210_fp32_2026-09-10.json").read_text())
+names = {"gt_n210": "GeoTransolver, unit drive", "transolver_n210": "Transolver, unit drive", "isla_n210": "ISLA", "islanw_n210": "ISLA, measure weights off (ablation)"}
+print("| arm | draw 1 | draw 2 | draw 3 | curated draw | between-draw SD ÷ within-draw SD |")
+print("|---|---|---|---|---|---|")
+for k, n in names.items():
+    a = d["arms"][k]; pd_ = a["per_draw"]; dec = a["pressure_decomposition"]
+    cells = [f"{pd_[str(i)]['seed_mean']['pressure_l2']:.4f}" if str(i) in pd_ else "—" for i in (1, 2, 3, 0)]
+    print(f"| {n} | " + " | ".join(cells) + f" | {dec['ratio_between_over_within']:.1f} |")
+print()
+print(": Validation surface-pressure relative L2 at 210 training cases, float32 inference, seed means (three seeds) per draw; the curated draw is the program book's split, re-evaluated in float32 (marginally outside the three-draw range for GeoTransolver, by 0.0003). Data: studies/campaign_a_draws/campaign_a_n210_fp32_2026-09-10.json. {#tbl-campaigns-draws-210}")
+print()
+rn = {"gt_over_isla_n210": "GeoTransolver ÷ ISLA", "transolver_over_isla_n210": "Transolver ÷ ISLA", "noweights_over_isla_n210": "ISLA weights off ÷ ISLA"}
+print("| ratio | draw 1 | draw 2 | draw 3 | curated | mean | 90% interval | verdict |")
+print("|---|---|---|---|---|---|---|---|")
+for k, n in rn.items():
+    r = d["ratios"][k]; pdr = r["per_draw"]
+    cells = [f"{pdr[str(i)]['ratio']:.3f}" if str(i) in pdr else "—" for i in (1, 2, 3, 0)]
+    print(f"| {n} | " + " | ".join(cells) + f" | {r['mean_over_draws']:.3f} | [{r['ci90'][0]:.3f}, {r['ci90'][1]:.3f}] | {r['verdict']} |")
+print()
+print(": Ratios of seed-mean errors per draw at 210 training cases; the interval is the two-sided 90% t-interval over the three campaign draws. {#tbl-campaigns-draw-ratios-210}")
+```
+
+At 210 cases both orderings stand with intervals about half as wide, and
+the baselines trade places: GeoTransolver, the weaker baseline at 35
+cases, is the stronger at 210 (0.87 of ISLA's error against Transolver's
+0.90), so its advantage over ISLA on HiLift grows with data while
+Transolver's shrinks. The weights-off ablation's gain is 8% on every draw
+(0.90–0.93), stable where it was draw-dependent at 35 cases, and remains
+the measured in-distribution cost of the measure semantics rather than a
+configuration. The draw still outweighs the seed for the two baselines
+and ISLA (2.7–7.6x) but no longer for the ablation (1.8x), so the
+two-seed protocol's understatement of uncertainty shrinks with the rung
+without disappearing.
 
 ## Equivariance under random poses (campaign B) {#sec-campaigns-pose}
 
