@@ -513,9 +513,12 @@ preregistered falsifier of 0.060 on pressure; depth buys 13% and the support
 12% on pressure and neither anything on eddy viscosity. What the interacting
 queries provide is computation at the requested points through every
 encoder layer, not geometric context, so the passive route is closed for
-ISLA at matched depth and inputs, and the deployment repair for query-set
-dependence is query-count augmentation in training, not architecture
+ISLA at matched depth and inputs
 (`research/transfer_program/studies/computational_support/d1_verdict_2026-09-10.json`, companion #sec-computational-support).
+Training over a range of request sizes reduces the dependence by about 40%
+at a 3.7% accuracy cost and does not remove it (@sec-nb-qcount-verdict), so
+the interacting decode's request-size dependence is partly intrinsic, and
+deployment at the training count remains the rule.
 
 ### Cross-family transfer is a data property {#sec-limits-transfer}
 

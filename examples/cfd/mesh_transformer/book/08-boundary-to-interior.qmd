@@ -183,9 +183,20 @@ preregistered pressure falsifier of 0.060. Twelve read blocks against four
 buy 13% on pressure and the support set 12%; neither moves eddy viscosity.
 The interacting queries therefore provide computation at the requested points
 through every encoder layer rather than geometric context, the passive route
-is closed for ISLA at matched depth, and query-set dependence is a training
-question (query-count augmentation), not an architectural one
+is closed for ISLA at matched depth
 (`research/transfer_program/studies/computational_support/d1_verdict_2026-09-10.json`, companion #sec-computational-support).
+Whether the request-size dependence is then a training question was tested
+directly: the same configuration trained with the interior request size
+drawn per sample between 2,000 and 20,000 points (@sec-nb-qcount-prereg)
+reduces the dependence by about 40% (the 2,000-request penalty on pressure
+falls from +38% to +24%, on velocity from +59% to +31%, on eddy viscosity
+from +49% to +31%, and the 2,000-request prediction itself improves from
+0.0753 to 0.0703) at a 3.7% accuracy cost at the training count (0.0567
+against 0.0547), and converges upward at 20,000 as before. The dependence
+is therefore partly a training-distribution artifact and partly intrinsic to
+the interacting decode, so query-count consistency is an architectural
+question after all, with count augmentation as a partial and costly
+mitigation (`results/qcount_reduction_2026-09-11.json`, @sec-nb-qcount-verdict).
 
 ### How each architecture treats an interior point
 

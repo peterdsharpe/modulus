@@ -1507,3 +1507,10 @@ interior control @sec-nb-udrv-int-prereg.
   +66.1%→+2.4% (2.5k→40k), monotone; unif 2.5k/40k = 1.48. Constant twin at 40k +960% / +1385%.
   Gauge passes BENCH where constant fails on all three rungs measured (35, fixed angle, DrivAerML) at prices 7.6% / 14.4% / −2.5%.
   Reference decision is governed by the FRAME RULING, not the WAVE-4 rule; gauge = matrix row. Frame-free fixed-angle pair NOT run.
+- **QCOUNT verdict (2026-09-11, fp32, code_eval, 48 cars, two seeds; results/qcount_reduction_2026-09-11.json).** Augmented [2k,20k]: 2k 0.0703/0.1069/0.1465;
+  10k 0.0567/0.0816/0.1115; 20k 0.0551/0.0794/0.1115 vs reference 0.0753/0.1266/0.1663; 0.0547/0.0796/0.1116;
+  0.0531/0.0771/0.1097. 2k÷10k: p 1.24 (ref 1.38), v 1.31 (1.59), ν_t 1.31 (1.49). Bars: (1) 10k ≤ 0.0563 FAIL (0.0567,
+  +3.7%); (2) BETWEEN (not supported ≤1.10; falsifier ≥1.25 missed by 0.01); (3) 20k ≤ 10k PASS; (4) ISLA÷GT 1.105 PASS.
+  WRITE: "count augmentation reduces the request-size dependence by ~40% at a 3.7% cost and does not remove it; the
+  dependence is partly intrinsic to the interacting decode; deploy at the training count". Never "count augmentation
+  removes the dependence" (retire the D1-era 'deployment repair is augmentation' wording).

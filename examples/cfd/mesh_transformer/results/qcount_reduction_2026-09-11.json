@@ -1,0 +1,86 @@
+{
+ "date": "2026-09-11",
+ "arm": "v0_isla_qtsdfval_qcount_seed{42,43}: reference QT+SDF config trained with interior_n_points_range=[2000,20000] (code_qcount)",
+ "instrument": "float32 under code_eval, 48 cars, dedup by sample_id, two-seed means; controls = reference checkpoints at the same counts",
+ "qcount": {
+  "2k": {
+   "pressure_l2": 0.0703,
+   "velocity_l2": 0.1069,
+   "nut_l2": 0.1465,
+   "seed_pressure": [
+    0.0696,
+    0.0711
+   ]
+  },
+  "10k": {
+   "pressure_l2": 0.0567,
+   "velocity_l2": 0.0816,
+   "nut_l2": 0.1115,
+   "seed_pressure": [
+    0.0566,
+    0.0568
+   ]
+  },
+  "20k": {
+   "pressure_l2": 0.0551,
+   "velocity_l2": 0.0794,
+   "nut_l2": 0.1115,
+   "seed_pressure": [
+    0.0551,
+    0.0551
+   ]
+  }
+ },
+ "reference": {
+  "2k": {
+   "pressure_l2": 0.0753,
+   "velocity_l2": 0.1266,
+   "nut_l2": 0.1663
+  },
+  "10k": {
+   "pressure_l2": 0.0547,
+   "velocity_l2": 0.0796,
+   "nut_l2": 0.1116
+  },
+  "20k": {
+   "pressure_l2": 0.0531,
+   "velocity_l2": 0.0771,
+   "nut_l2": 0.1097
+  }
+ },
+ "ratios_2k_over_10k": {
+  "qcount": {
+   "pressure": 1.24,
+   "velocity": 1.31,
+   "nut": 1.314
+  },
+  "reference": {
+   "pressure": 1.377,
+   "velocity": 1.59,
+   "nut": 1.49
+  }
+ },
+ "bars": {
+  "1_accuracy_10k": {
+   "bar": "pressure <= 0.0563",
+   "value": 0.0567,
+   "result": "FAIL (+3.7% vs 0.0547)"
+  },
+  "2_count_dependence": {
+   "supported": "2k/10k <= 1.10 p and <= 1.15 nut",
+   "falsified": "p >= 1.25",
+   "value": "p 1.24, nut 1.31",
+   "result": "BETWEEN (not supported; falsifier missed by 0.01)"
+  },
+  "3_consistency_up": {
+   "bar": "20k <= 10k all fields",
+   "result": "PASS (0.0551/0.0794/0.1115 vs 0.0567/0.0816/0.1115)"
+  },
+  "4_vs_gt_volume": {
+   "bar": "ISLA/GT at 10k within 0.03 of 1.08",
+   "value": 1.105,
+   "result": "PASS"
+  }
+ },
+ "verdict": "Query-count augmentation over [2k, 20k] reduces the request-size dependence by about 40% (pressure penalty at 2k: +38% -> +24%; velocity +59% -> +31%; nu_t +49% -> +31%) and improves the 2k prediction outright (0.0703 vs 0.0753), at a 3.7% accuracy cost at 10k (bar 1 fails). The dependence is not removed: a substantial intrinsic request-size dependence of the interacting decode remains, so query-count consistency is partly architectural."
+}

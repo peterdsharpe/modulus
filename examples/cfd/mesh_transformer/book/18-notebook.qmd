@@ -14820,3 +14820,43 @@ preregistered bars apply to the 64-view float32 readouts, with the
 fixed-sample numbers reported alongside. A general note for the recipe: any
 run whose epoch count is not about 500 needs the scheduler rescaled, which
 the per-epoch StepLR makes easy to forget.
+
+## 2026-09-11 — Verdict: QCOUNT — training over request sizes 2,000–20,000 reduces the interior query-count dependence by about 40% at a 3.7% accuracy cost and does not remove it {#sec-nb-qcount-verdict}
+
+The preregistration (@sec-nb-qcount-prereg) asked whether the interior
+query-token configuration's dependence on the request size is a
+training-distribution artifact. Two seeds of the reference configuration
+were trained with the interior request size drawn per sample uniformly
+between 2,000 and 20,000 points (`DomainMeshReader.interior_n_points_range`,
+snapshot `code_qcount`), otherwise the frozen protocol, and evaluated in
+float32 under the guarded snapshot on 48 validation cars at 2,000, 10,000
+and 20,000 requests, against the reference checkpoints at the same three
+counts (deduplicated per car; zero skipped loads). Artifact:
+`results/qcount_reduction_2026-09-11.json`.
+
+**At 10,000 requests the augmented model scores 0.0567 / 0.0816 / 0.1115
+(pressure, velocity, eddy viscosity) against the reference's 0.0547 /
+0.0796 / 0.1116: a 3.7% pressure cost, past the 3% bar.** At 2,000 requests
+it scores 0.0703 / 0.1069 / 0.1465 against the reference's 0.0753 / 0.1266 /
+0.1663, so it predicts better than the reference at the count the reference
+was never trained at, and its own 2,000-to-10,000 penalty is 1.24x on
+pressure, 1.31x on velocity and 1.31x on eddy viscosity against the
+reference's 1.38x, 1.59x and 1.49x: the dependence is reduced by about 40%
+and not removed (bar 2: not supported at ≤ 1.10, and the falsifier at ≥ 1.25
+missed by 0.01, so "between" by the letter and negative in substance). At
+20,000 requests the augmented model improves to 0.0551 / 0.0794 / 0.1115,
+so it converges upward as the reference does (bar 3 holds), and its ratio to
+GeoTransolver-volume at 10,000 is 1.105 against the reference's 1.08 (bar 4
+holds). Seeds agree to 0.2% at 10,000 and 2% at 2,000.
+
+Reading, written in advance: the dependence is partly a training-distribution
+artifact, which augmentation halves, and partly intrinsic to the interacting
+decode, whose routing weights and query-query interactions change with the
+number of requests regardless of what the training saw; query-count
+consistency is therefore an architectural question after all, and the
+D1-era statement that the deployment repair is augmentation rather than
+architecture is retired in chapters 8 and 12. The practical rule stands:
+deploy the interacting configuration at its training request count, and
+state the count with every interior number. Count augmentation is recorded
+as a partial mitigation with a measured price, not adopted; the reader
+option stays as the instrument.
