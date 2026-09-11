@@ -1422,3 +1422,10 @@ interior control @sec-nb-udrv-int-prereg.
   (GT ÷ off 1.03, GT lower 78/180; Transolver ÷ off 1.04, 71/180). Write "the ablation prices the measure semantics at
   11% at 21 geometries"; never a configuration. Ablation tally: persists 35 / 210 / geo4 / geo21 / fixed angle; fades
   DrivAerML; pending 1,260, deflection.
+- **Wake / latent-volume tokens FALSIFIED (2026-09-10, transfer session, fp32, code_wake, 2 seeds; research/transfer_program/studies/computational_support/band_decomposition_wake_2026-09-10.json).** Far-band ν_t
+  (≥0.05 L, band units; ref ν_t 0.092 vs recipe 0.1033, ratios agree): reference 0.093 (0.099/0.087); + wake tokens
+  0.087 (0.088/0.087) = 21% of the gap to GT-volume's 0.068 closed, within the reference's 14% seed spread; + LVT 0.110
+  (0.095/0.125), worse. Near-wall / mid band / far p,v unchanged. Recipe metric ν_t/p/v: ref 0.1033/0.0497/0.0729; wake
+  0.1007/0.0504/0.0743; LVT 0.1140/0.0502/0.0762. Cost: wake = reference (0.450 s, 5.05 GB); LVT +6%. Bars ≤0.074 /
+  ≥0.085 → both FALSIFIED. Write "the far-field deficit is not an anchor-resolution effect"; next candidate =
+  interior readout kernel radius scaling with signed distance (preregistered, not launched). Flags stay gated.
