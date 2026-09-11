@@ -14433,3 +14433,66 @@ not only the centroid. **Prediction.** Equal accuracy (the frame shift is
 removes the collapse at no accuracy cost, which under the ruling does not
 adopt it for the baselines but does establish that their density
 dependence is entirely the datapipe frame.
+
+## 2026-09-10 — Preregistered: FARWAKE, far-field oversampling of the interior training queries (is the far-wake eddy-viscosity deficit an under-sampling effect?) {#sec-nb-farwake-prereg}
+
+*Setting.* At matched parameters ISLA's interior query-token configuration
+leads GeoTransolver-volume on pressure, velocity and eddy viscosity
+everywhere except the far wake beyond 0.4 body lengths downstream, which
+holds 2.2% of a uniform interior sample and carries the whole 18%
+eddy-viscosity deficit (@sec-nb-far-wake in the companion; chapter 8).
+Anchor-geometry explanations were closed: anchors follow the query mass, the
+wake tokens moved anchors into the far wake and improved it 6%, and the
+query seed's azimuth blindness did not survive the routing-mass probe. The
+surviving hypothesis is under-sampling: the network sees few far-wake
+queries in training, so the slices and the readout are shaped by the 98% of
+queries near the body. Peter approved the arm on 2026-09-10 ("either we get
+the right answer, or we rule out one more cause").
+
+*Mechanism (why it should work).* Training queries are drawn from the
+interior; the loss is a plain mean over them, so the spatial weighting of
+the objective is the sampling density. Drawing more queries from the far
+wake raises both the gradient signal and the anchor mass there. This is a
+training-distribution change with no new input and no architecture change,
+of the same kind as query-count augmentation (@sec-nb-qcount-prereg); it
+does not inject a non-physical signal, since the query positions are
+already inputs, and the inclusion probabilities are exact and recorded so
+the objective's reweighting is known.
+
+*Instrument.* Recipe transform `SdfBiasedSubsampleInteriorPoints`
+(`unified_external_aero_recipe/src/domain_transforms.py`, contract-tested:
+expected count, exact inclusion probabilities, Horvitz–Thompson recovery of
+the original band shares, reproducibility, identity on small interiors and
+bare meshes). The reader draws a 40,000-point uniform interior pool
+(`interior_n_points_range=(40000, 40000)`, boundaries untouched), the SDF
+transform runs on it, and the new transform keeps points with probability
+proportional to a step function of the signed distance: weight 1 below
+0.05 body lengths, 3 between 0.05 and 0.4, 8 beyond 0.4, normalized to an
+expected 10,000 kept points. On the measured band fractions (77% / 11% /
+7.8% / 2.2%) this gives training shares of about 60% / 8.5% / 18% / 13.6%,
+so the far band rises from 10% to 32% of the queries and the far wake
+beyond 0.4 L from 2.2% to 14%. Arm: the reference query-token + signed
+distance configuration (`v0_qt2` lanes, hidden 192, similarity gauge,
+otherwise frozen protocol, `code_qcount` snapshot which carries the reader
+option), two seeds (v0_isla_qtsdfval_farwake_seed{42,43}), recipe copy
+`recipe_farwake`. Evaluation in float32 under the guarded snapshot on the
+standard uniform 10,000-point validation sample (so the metric's point
+distribution is unchanged), plus the wall-distance band decomposition of
+the saved predictions.
+
+*Bars (float32, two-seed means, band units of the companion's
+decomposition; reference ISLA hidden 192/256 far band ≥ 0.05 L about 0.101,
+GeoTransolver-volume 0.068).* Supported if the far-band eddy-viscosity
+error is ≤ 0.085 (at least half the gap closed) with the near-wall band
+within 3% of the reference and the recipe-metric pressure and velocity
+within 3%; falsified if ≥ 0.095 (no more than a fifth of the gap); between
+otherwise. Secondary: the ≥ 0.4 L shell (reference 0.108 against 0.071).
+Readings written in advance: supported means the far-wake deficit was a
+training-distribution effect and the principled remedy is a sampling law,
+which then needs its own consistency check (the model must still converge
+to the same field under the uniform sampler); falsified means the far-wake
+deficit is neither anchor geometry nor sampling and the representational
+conjecture (the downstream coordinate is only implicit in ISLA's seed) is
+the remaining candidate; a near-wall or pressure regression beyond 3% is
+the objective-reweighting cost and is reported as such. Owner: this
+session.
