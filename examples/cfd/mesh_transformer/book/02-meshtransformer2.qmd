@@ -566,9 +566,15 @@ the similarity gauge centers by the measure-weighted mean. Evaluating the
 trained reference checkpoint with measure-weighted centering, and nothing
 else changed, takes its degradation under a 10:1 biased resampling from
 12.1x to 1.12x (@sec-nb-centroid-derivation, @sec-nb-center-probe-verdict;
-`results/center_probe_2026-09-10.json`); whether a model trained with that
-centering keeps the constant gauge's accuracy is the open lane that decides
-the reference configuration. Under a
+`results/center_probe_2026-09-10.json`). No consistent frame keeps that
+accuracy on the wings: measure-weighted centring pays 10%, the frame-free
+relative construction 11%, and the exact full-geometry frame 14–16%, so
+the plain mean's advantage there is the mesher's pattern (its centroid sits
+0.131 body lengths off the geometric one on the wings, 0.034 on the cars,
+where every consistent frame is at parity), and the reference
+configuration is the relative frame with the total-measure scale (no
+centroid, no sample scale, no per-dataset length) at that stated price
+(@sec-nb-frame-full-verdict). Under a
 10:1 sampling-density bias on DrivAerML, ISLA *with the similarity gauge*
 degrades 1.20x; that configuration is not the one behind any accuracy
 number in this book and costs the 8% just stated. The constant-gauge

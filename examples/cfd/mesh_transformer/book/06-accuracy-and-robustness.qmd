@@ -119,10 +119,12 @@ demonstrates is the frame class rather than this instance of it: a frame
 that does not read the sampling distribution costs nothing at scale and
 removes the sensitivity. The similarity gauge estimates its frame from the
 sample and pays for that on sparse multi-element meshes, so the program's
-single reference configuration across datasets will be decided by the
-relative-position construction of @sec-principle (translation invariance
-from point-to-anchor vectors alone, length scale from the integrated
-surface measure), which is to be run at this same corner. Down-transfer does not
+single reference configuration across datasets is the
+relative-position construction of @sec-principle (RELFRAME, total-measure
+scale: translation invariance from point-to-anchor vectors alone, length
+scale from the integrated surface measure), decided 2026-09-11 after the
+exact-frame diagnostic paid 14–16% on the wings
+(@sec-nb-frame-full-verdict); it has not yet been run at this corner. Down-transfer does not
 improve with the gauge (0.0727 when queried at 10,000 cells, 1.69x its
 native error, against 1.55x for the constant gauge): deploy at the training
 count (@sec-nb-scale-drivaer-synthesis).
@@ -739,8 +741,9 @@ print(": Accuracy beside consistency on DrivAerML at full data, float32, unit-dr
       "(all corner factors are sample-frame values at 80,000 cells; the pool-frame values of the "
       "baselines, 4.2x and 4.6x, are kept in the artifact): "
       "it demonstrates the frame class (a frame that does not read the sampling distribution costs nothing "
-      "at scale and removes the sensitivity); the single reference configuration is decided by the "
-      "relative-position frame (RELFRAME). The last column is training cost in GPU-hours. "
+      "at scale and removes the sensitivity); the single reference configuration is the "
+      "relative-position frame (RELFRAME, total-measure scale; decided 2026-09-11, @sec-nb-frame-full-verdict). "
+      "The last column is training cost in GPU-hours. "
       "Learning rates are stated per row: the similarity-gauge checkpoints at 3e-3 sit beside the "
       "rate-matched constant gauge at 0.0620, and the 1e-3 pair is at parity with the 1e-3 reference. "
       "The measure-weighted rows give GeoTransolver and Transolver the quadrature measure in their "
