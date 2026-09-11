@@ -15925,3 +15925,35 @@ the similarity gauge, a sample-statistic frame, because no relative-frame
 interior lane has been trained; it is pinned to the centered frame for now
 and a relative-frame interior pair is the natural next lane if the interior
 configuration is to share the reference frame. Owner: this session.
+
+## 2026-09-11 — Engineering: every ISLA constructor argument and forward input is keyword-only {#sec-nb-kwargs-only}
+
+*Setting and request.* Peter asked that all inputs for ISLA be keyword
+arguments, so that models can be hot-swapped later without positional
+bookkeeping. The recipe already calls the model as `model(**forward_kwargs)`
+with names resolved from the dataset configuration, and Hydra instantiates
+the class from keywords; only the tests, a handful of result-generating
+scripts and any direct caller used positional order.
+
+*What changed.* `ISLA.__init__` and `ISLA.forward` now take keyword-only
+arguments (a bare `*` after `self`). A positional call raises a `TypeError`
+immediately. Every positional forward call in the repository was rewritten
+to keywords with an ast-based tool that names arguments in the signature's
+order (`points`, `normals`, `drive`, `measure_weights`, then the optional
+inputs): the five ISLA test files and the checkpoint tests, the two recipe
+tests that build the model, and the result-generating scripts
+(`isla_sparse_routing_bench_2026-09-09.py`, `isla_perf_round2_2026-09-09.py`,
+`mom2_second_moment_benchmark_2026-09-08.py`, `isla_profile_2026-09-09.py`,
+`isla_vs_baselines_cost_fastkernel_2026-09-09.py`, `m3_demo.py`,
+`transfer_program/studies/paired_conditions/train_arms.py`). One test that
+passed a tuple of refined inputs by `*refined` now passes a dictionary. A new
+test, `test_constructor_and_forward_are_keyword_only`, asserts that
+positional construction and positional forward calls raise. Checkpoints are
+unaffected (the loader instantiates from a stored keyword dictionary), as
+are the cluster snapshots.
+
+*Verification.* ISLA and checkpoint suites: 109 passed, 8 skipped
+(GPU-only). Recipe test directory: 252 passed, 2 skipped. One recipe test
+needed its Hydra override changed from `+model.scale_mode=global` to
+`model.scale_mode=global`, because the constant-gauge configs now state
+`scale_mode` explicitly (@sec-nb-defaults-relative). Owner: this session.

@@ -111,7 +111,10 @@ flowchart TB
 **Every stage below is either a fixed geometric map or a learned map
 acting on invariants; the two never mix until the output basis.** The
 symbols are tied to the identifiers in
-`physicsnemo/experimental/nn/isla/model.py`.
+`physicsnemo/experimental/nn/isla/model.py`. Every constructor argument
+and every `forward` input is keyword-only, so a call reads as the recipe's
+`forward_kwargs` mapping does and models can be swapped without positional
+bookkeeping.
 
 | symbol | code | meaning |
 |---|---|---|

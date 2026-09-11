@@ -1623,3 +1623,6 @@ interior control @sec-nb-udrv-int-prereg.
   test_default_is_relative_total_measure pins the default. Contract swap: reference is geometric-scale invariant (points x k, areas x k^2), NOT
   invariant to weight rescale alone; centered construction is the reverse. Interior config still similarity gauge (centered) — no relative-frame
   interior lane trained yet. Write "the centered construction" / "the prior configuration" for the old default, never "the default gauge".
+- **ENGINEERING 2026-09-11: ISLA API is keyword-only** (#sec-nb-kwargs-only; Peter's request). `ISLA(*, ...)` and `forward(self, *, points, normals,
+  drive, measure_weights=None, ...)`. Never write positional ISLA calls in scripts, notebooks or chapters; the recipe's `+model.<frame key>=` append
+  overrides must become plain `model.<key>=` now that the configs state frame_mode/scale_mode. Tests: 109 passed (ISLA+checkpoint), 252 passed (recipe).
