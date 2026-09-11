@@ -741,8 +741,34 @@ the outer wake, where every surface anchor looks alike from a distant query
 and the anchor-relative invariants lose the resolution a per-point network
 on raw position keeps, and width helped that band least (0.101 to 0.093;
 `research/transfer_program/studies/computational_support/band_decomposition_2026-09-10.json`). The
-principled remedy is anchors organized by the flow rather than the surface,
-which is a preregistration, not a result. ISLA's passive decode is the configuration to use when
+principled remedy that suggested, anchors organized by the flow rather than
+the surface, was tested and falsified: three interacting wake tokens on the
+drive axis (over the rear deck, in the near wake and 0.7 body lengths behind
+the car) close a fifth of the far-band eddy-viscosity gap (0.093 to 0.087
+against GeoTransolver-volume's 0.068; the two wake seeds agree to 1% while
+the reference's differ by 14%, so the gain is within the reference's seed
+spread), and the latent-volume tokens (anchors offset along the surface
+normals) make the far band worse (0.110); neither moves the near-wall or
+mid band or far-band pressure and velocity, and the wake tokens cost
+nothing in time or memory (`research/transfer_program/studies/computational_support/band_decomposition_wake_2026-09-10.json`,
+companion #sec-campaigns-interior). The far-field deficit is therefore not
+an anchor-resolution effect, with one caveat on the falsification: the
+anchors are measure-weighted means of every token routed to a slice,
+queries included, so the added tokens move an anchor only if the routing
+gives them mass, which was not verified. What the code does say about a far
+query is that its eight relational invariants to every anchor become nearly
+identical, so routing falls back on the query's own seed features, and that
+seed is blind to the azimuth about the freestream axis: two far points at the
+same distance, signed distance and angle to the freestream, one above the car
+and one beside it, differ only through the wall-normal term, while
+GeoTransolver-volume reads raw position and keeps the azimuth. Tokens on the
+symmetry axis cannot supply it. The one implemented, flag-gated,
+measure-consistent channel that does carry far-field azimuth is the
+second-moment channel (@sec-mechanism), whose slice-covariance term seen
+from the query's direction varies with azimuth when distance and direction
+do not; a distance-shell and azimuth decomposition of the saved predictions
+is the mechanism check that precedes preregistering it. ISLA's
+passive decode is the configuration to use when
 interior query independence is contractual, at 9.9M parameters, 4.9 GB
 and a 3.1x price in interior pressure error on DrivAerML (float32).** The parity is
 mostly a full-data statement. Without the signed distance, trained on 54 or
