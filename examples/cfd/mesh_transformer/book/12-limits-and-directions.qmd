@@ -381,6 +381,34 @@ not where the *input* information that produces it lives, and at 35 cases
 there is no error advantage to localize; the instrument is retained for any
 rung at which the unit-drive reruns leave one.
 
+**The remaining deficit is representational, not a shortage of training
+cases.** The cleanest test of a data limit is to remove the data axis:
+train each architecture on a single case, presented as 64 independent
+10,000-cell views of the same surface, until its training loss stops
+falling, and read the floor it reaches on a fresh resampling of that same
+case (companion notebook, single-case study, 2026-09-11; float32; the
+arms carry the unit-drive input, and the fp32-trained pair is the
+like-for-like comparison). If the 35-case gap were a data limit, the gap
+at one case should be smaller or vanish; it is wider. On the HiLiftAeroML
+wing ISLA's single-case floor is 1.27x GeoTransolver's and 1.37x
+Transolver's in the bfloat16-trained arms and 1.55x in the fp32-trained
+pair, against a 35-case gap of 1.11–1.20x; on the DrivAerML car it is
+1.31–1.39x, over the pre-registered 1.5x capacity bar in the fp32 pair.
+The same ordering is visible in the training losses on ISLA's own
+views, so the gap is present before any generalization question arises.
+Two further facts locate it. With the data fixed, the weights-off
+ablation still beats the reference by 17% on both datasets, so the
+measure-weight cost measured on the ladder is a representational cost,
+not a few-sample effect (it remains an ablation, @sec-principle). And
+split by facing distance, the deficit sits on the mid- and far-field
+open surfaces (baseline-to-ISLA ratios 0.64–0.83) and is smallest at the
+gaps (0.88): what ISLA lacks is capacity for the smooth, large-cell
+regions that dominate the area-weighted metric of @sec-metrics, not gap
+physics. This is the program's rule in @sec-principle read from the data:
+accuracy is to be recovered by capacity and principled construction, not
+by tuning to a dataset, and the single-case floor is the instrument that
+separates the two. The interior pair of the same study is pending.
+
 ### Regime extrapolation fails for every architecture tested {#sec-limits-regime}
 
 **Neither architecture generalizes across a flow-regime boundary, and ISLA's
