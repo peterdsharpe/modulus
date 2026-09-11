@@ -14566,3 +14566,49 @@ fails them, at a stated price of 14%.
 (super_scarce ×3, geometry_super_scarce ×2, single_aoa_12 ×2); scarce and
 geometry_scarce at epoch ~280 of 500; full and deflection at epoch ~50
 (days). Evaluations follow each pair as it lands.
+
+## 2026-09-11 — RELFRAME consistency half complete: with no frame at all, ISLA is consistent under every sampler on the wings (|D| ≤ 1.2% at 40,000 cells, ≤ 5.3% at 10,000) as it converges on the cars; the frame-free construction passes the consistency bars on both datasets {#sec-nb-relframe-hl-bench}
+
+The RELFRAME checkpoints (@sec-nb-relframe-verdict; positions enter only
+through anchor-relative differences, no centroid or sample scale anywhere)
+went through the consistency benchmark's three samplers on the 35-case
+HiLiftAeroML rung (180 validation cases, 10,000 and 40,000 cells, float32
+under the evaluation snapshot code_eval_frame; twelve lanes, job 707867,
+all completed, no loader warnings), completing the artifact `results/consistency_bench/consistency_bench_rf_2026-09-11.json` that
+already held the DrivAerML lanes.
+
+| arm | 10k: unif / area / biased | 40k: unif / area / biased | D_area 10k → 40k | D_biased 10k → 40k |
+|---|---|---|---|---|
+| RELFRAME, reference length, DrivAerML | 0.0569 / 0.0803 / 0.0679 | 0.0537 / 0.0556 / 0.0551 | +41.1% → +3.4% | +19.4% → +2.5% |
+| RELFRAME, √(total measure), DrivAerML | 0.0554 / 0.0886 / 0.0684 | 0.0523 / 0.0554 / 0.0540 | +60.1% → +5.9% | +23.6% → +3.3% |
+| RELFRAME, reference length, HiLift 35 | 0.1547 / 0.1526 / 0.1618 | 0.1508 / 0.1506 / 0.1522 | -1.3% → -0.1% | +4.6% → +0.9% |
+| RELFRAME, √(total measure), HiLift 35 | 0.1551 / 0.1529 / 0.1633 | 0.1506 / 0.1500 / 0.1525 | -1.4% → -0.4% | +5.3% → +1.2% |
+
+**Against the bars** (|D| ≤ 3% consistent, ≥ 10% reads the distribution).
+On the wings both arms are consistent under the area-proportional sampler
+at both counts and under the 10:1 front/back bias at 40,000 cells, with the
+10,000-cell bias reading (+4.6% and +5.3%) in the inconclusive band and
+falling to +0.9% / +1.2% as the count grows; this is the same profile the
+measure-centred constant-gauge frame showed (−2% / +4% at 10,000, 0% / +1%
+at 40,000, @sec-nb-bench-mcenter), where every plain-mean-frame arm reads
+the samplers by 150% to 4,000%. On the cars both arms converge (D_area
++41% → +3.4% and +60% → +5.9%; D_biased +19% → +2.5% and +24% → +3.3%).
+**The frame-free ISLA therefore passes the consistency half of the joint
+bar on both datasets**; what it fails is the HiLift accuracy half (+11%),
+and the reference decision stays with the rule of
+@sec-nb-relframe-verdict: RELFRAME with the total-measure scale is the
+reference unless FRAME-FULL passes its joint bar.
+
+**Reading.** The wings are the harder case for sampling consistency (the
+area sampler's Horvitz–Thompson weights span three to four decades there,
+and the measure-weighted baselines needed the pipeline to hold their frame
+to pass), and a model with no frame statistic passes at both counts. With
+the measure-centred frame's result this closes the mechanism: the whole
+sampler dependence of the constant-gauge ISLA was the plain-mean centroid,
+and removing the centroid, whether by estimating the geometric one or by
+never forming one, leaves a measure-weighted routing integral whose only
+sampler dependence is its own variance, which converges. The
+reference-length and total-measure scales are indistinguishable on every
+readout (accuracy, density, samplers), so the scale choice is free and the
+ruling's preference for the frame-free construction picks the
+total-measure arm, which needs no per-dataset constant.

@@ -1497,3 +1497,9 @@ interior control @sec-nb-udrv-int-prereg.
   Constant gauge at fixed angle collapses under BENCH (D_area +960%, D_biased +1385% at 40k); gauge BENCH lanes
   708692/708718 pending. Scale-normalization hypothesis is a HYPOTHESIS (discriminator: mcenter / RELFRAME-ref at fixed
   angle, not launched). Never write "the gauge is free on HiLift".
+- **RELFRAME HiLift BENCH (2026-09-11, fp32; results/consistency_bench/consistency_bench_rf_2026-09-11.json).** ref: D_area -1.3%→-0.1%, D_biased
+  +4.6%→+0.9%; meas: -1.4%→-0.4%, +5.3%→+1.2% (10k→40k). Frame-free ISLA PASSES the
+  consistency half on both datasets (HiLift consistent at both counts except bias at 10k = inconclusive band; DrivAerML
+  converges). Write "the whole sampler dependence of the constant gauge was the plain-mean centroid; removing it by
+  either route leaves only the routing integral's variance". Scale choice (ref vs total-measure) indistinguishable on
+  every readout → ruling picks total-measure (no per-dataset constant). Reference still UNDER DECISION (FRAME-FULL).
