@@ -954,8 +954,19 @@ that the mesher pattern pays only where validation geometries recur in
 training: on 4 training geometries, validated on 18 never-seen geometries,
 the reference scores 0.2520 against the constant-gauge prior's 0.2496,
 parity inside the seed spread where the preregistration had predicted a
-5–10% price (@sec-nb-relframe-ladder-geo4); the fixed-angle pair tests the
-same reading from the other side. Its learning-rate robustness is
+5–10% price (@sec-nb-relframe-ladder-geo4). The fixed-angle rung then
+showed that reading to be incomplete: it is also a never-seen-geometry
+split, yet the reference pays 10% there (0.0384 against 0.0348, 18
+geometries, two seeds; @sec-nb-relframe-ladder-fixed-angle), so on that
+rung the two candidates from 35 cases remain open, the plain mean's mesher
+pattern and the positional seeds at a fixed drive direction, and a
+full-geometry-frame pair on the fixed-angle split is the experiment that
+would separate them. The same rung settled the scale question the other
+way from its hypothesis: the reference with the total-measure scale pays
+less than the relative frame with a constant reference length (10% against
+26%, the latter with a 22% seed spread), so normalizing away absolute size
+is not the fixed-angle cost and the total-measure scale stands without a
+caveat. Its learning-rate robustness is
 measured against a physical-drive GeoTransolver and is not claimed as an
 advantage until re-measured. On the interior, ISLA with query tokens and
 the signed distance leads GeoTransolver's volume configuration on velocity

@@ -50,7 +50,7 @@ spread at 35 cases and is the uncertainty to read.
 the total-measure length scale (@sec-mt2-contracts): no centroid, no sample
 statistic anywhere in the frame, so its output does not depend on how the
 surface was sampled, at a stated price of 11% at 35 HiLift cases and none
-on DrivAerML. It has been trained on those two rungs and on the 4-geometry rung, where it matches the prior configuration within 1% (0.2520 against 0.2496; @sec-nb-relframe-ladder-geo4). On every other rung
+on DrivAerML. It has been trained on those two rungs, on the 4-geometry rung, where it matches the prior configuration within 1% (0.2520 against 0.2496; @sec-nb-relframe-ladder-geo4), and on the fixed-angle split, where it pays 10% (0.0384 against 0.0348; @sec-nb-relframe-ladder-fixed-angle). On every other rung
 the ISLA number is the prior configuration's record, the constant gauge
 that centres on the plain mean of the sampled points, and the tables say
 so; the ladder that trains the reference on the remaining rungs is
@@ -130,9 +130,10 @@ S["fixed"] = dict(
     title="HiLiftAeroML, fixed angle 12° (126 training geometries, 18 held out)",
     gt=fp(fpall, [f"udrv_hl_gt_single_aoa_12_seed{s}" for s in (42, 43)]),
     t=fp(fpall, [f"udrv_hl_transolver_single_aoa_12_lr3e3_seed{s}" for s in (42, 43)]),
-    isla_prior=fp(fpall, [f"mech_hl_mt2_single_aoa_12_seed{s}" for s in (42, 43)]), isla_ref=None,
+    isla_prior=fp(fpall, [f"mech_hl_mt2_single_aoa_12_seed{s}" for s in (42, 43)]),
+    isla_ref=[ff["hilift_val"][f"rf_hl_mt2_meas_single_aoa_12_seed{s}"]["pressure_l2"] for s in (42, 43)],
     paired=("18 of 18 geometries, 18 of 18", "results/udrv_reduction_2026-09-09b.json"),
-    draws=None, src="results/fp32_reeval/fp32_shift_2026-09-09.json")
+    draws=None, src="results/fp32_reeval/fp32_shift_2026-09-09.json; results/frame_reduction_2026-09-11.json (reference configuration, RELFRAME-LADDER)")
 S["dr435"] = dict(
     title="DrivAerML, 435 training cars (48 validation cars)",
     gt=fp(fpdr, [f"uw_gt_unit_lr1e3_seed{s}" for s in (42, 43, 44)]),
@@ -240,7 +241,8 @@ add("HiLift, 210 cases", "hl210", "isla_prior")
 add("HiLift, 4 training geometries — vs reference ISLA", "geo4", "isla_ref")
 add("HiLift, 4 training geometries — vs prior configuration", "geo4", "isla_prior")
 add("HiLift, 21 training geometries", "geo21", "isla_prior")
-add("HiLift, fixed angle 12°", "fixed", "isla_prior")
+add("HiLift, fixed angle 12° — vs reference ISLA", "fixed", "isla_ref")
+add("HiLift, fixed angle 12° — vs prior configuration", "fixed", "isla_prior")
 add("DrivAerML, 435 cars — vs reference ISLA", "dr435", "isla_ref")
 add("DrivAerML, 435 cars — vs prior configuration", "dr435", "isla_prior")
 add("DrivAerML, 512 wide × 80k cells", "corner", "isla_prior")
@@ -630,11 +632,11 @@ ledger row UDRV-L in @sec-program-status); against the physical-drive
 GeoTransolver the two are at parity there, which is a measurement of the
 mis-scaled protocol and not a comparison, and it is quoted nowhere in this
 chapter as one. ISLA's
-reference configuration has been trained on three rungs (35 cases,
-DrivAerML at full data and 4 training geometries, where it matches the
-prior within 1%); the fixed-angle pair of the ladder is in progress, and
-until it lands the remaining ISLA numbers are the prior configuration's
-record. The baselines' consistency has been shown with a Horvitz–Thompson
+reference configuration has been trained on four rungs (35 cases,
+DrivAerML at full data, 4 training geometries, where it matches the prior
+within 1%, and the fixed angle, where it pays 10%); the 21-geometry and
+210-case pairs of the ladder are in progress, and until they land those two
+ISLA numbers are the prior configuration's record. The baselines' consistency has been shown with a Horvitz–Thompson
 centroid on DrivAerML only, and only as a research variant: the released
 GeoTransolver and Transolver keep their plain-mean frame and will not be
 modified, so the "HT-centred datapipe" rows locate a property, they do not
