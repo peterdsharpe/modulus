@@ -69,7 +69,7 @@ on 162 of 180 cases) and Transolver 0.91x, at 4 geometries GeoTransolver is
 0.76x, at 21 geometries 0.92x; the 2.2x and the unseen-geometry factors were
 measurements of a mis-scaled protocol, and the prediction written before the
 rerun, that the baselines match or beat ISLA at every rung, has held at
-every rung measured (five of six; 1,260 cases pending). The regime-extrapolation result stands as it was: across an
+every rung measured (six of seven, the 510-case rung at 0.84x and 0.90x with the baselines lower on 168 of 180 cases; 1,260 cases pending). The regime-extrapolation result stands as it was: across an
 angle-of-attack or stall boundary every architecture tested loses about a
 factor of ten, so coverage, not architecture, governs that axis.
 
