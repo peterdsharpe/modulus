@@ -297,7 +297,7 @@ def rat(b, s, ci):
     return " ‖ ".join(parts)
 out = ("| setting | GeoTransolver | Transolver | ISLA, reference configuration | ISLA, prior configuration | GeoTransolver ÷ ISLA (reference ‖ prior) | Transolver ÷ ISLA (reference ‖ prior) | validation cases where the baseline is lower |\n"
        "|---|---|---|---|---|---:|---:|---|\n")
-for key in ("hl35", "hl210", "geo4", "geo21", "fixed", "dr435", "corner"):
+for key in ("hl35", "hl210", "hl510", "geo4", "geo21", "fixed", "dr435", "corner"):
     s = S[key]
     ref = f"**{fmt(s['isla_ref'])}**" if s["isla_ref"] else "not yet trained on this rung"
     cg, ct = s["draws"] if s["draws"] else (None, None)
@@ -351,7 +351,7 @@ measured (@sec-scoreboard-consistency, @sec-limits-mechanism).
 #|   angle), not architecture. Float32. Data: as @tbl-scoreboard-surface.
 #| code-fold: true
 BLUE2 = "#8fb8e8"
-keys = ["hl35", "hl210", "geo4", "geo21", "fixed", "dr435", "corner"]
+keys = ["hl35", "hl210", "hl510", "geo4", "geo21", "fixed", "dr435", "corner"]
 short = {"hl35": "HiLift, 35 cases", "hl210": "HiLift, 210 cases", "hl510": "HiLift, 510 cases", "geo4": "HiLift, 4 geometries",
          "geo21": "HiLift, 21 geometries", "fixed": "HiLift, fixed angle", "dr435": "DrivAerML, 435 cars",
          "corner": "DrivAerML, 512 × 80k"}
