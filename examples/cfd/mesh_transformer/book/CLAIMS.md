@@ -1626,3 +1626,9 @@ interior control @sec-nb-udrv-int-prereg.
 - **ENGINEERING 2026-09-11: ISLA API is keyword-only** (#sec-nb-kwargs-only; Peter's request). `ISLA(*, ...)` and `forward(self, *, points, normals,
   drive, measure_weights=None, ...)`. Never write positional ISLA calls in scripts, notebooks or chapters; the recipe's `+model.<frame key>=` append
   overrides must become plain `model.<key>=` now that the configs state frame_mode/scale_mode. Tests: 109 passed (ISLA+checkpoint), 252 passed (recipe).
+- **RELFRAME-LADDER fixed-angle rung (2026-09-11, fp32; results/frame_reduction_2026-09-11.json hilift_val).** Reference (meas) 0.0363/0.0405 → 0.0384 vs prior 0.0348 →
+  **+10.3%** (known band); vs gauge 0.0398 → 0.964x; vs unit GT 0.0270 → 1.42x, Transolver 0.0298 → 1.29x. Ref-length arm 0.0389/0.0486 → 0.0437
+  (+26%, 22% seed spread). SCALE DISCRIMINATOR: meas pays LESS than ref → scale normalization is NOT the fixed-angle cost (gauge's 14% was
+  not its scale). Recurrence reading INCOMPLETE (never-seen rung pays 10%). Two candidates remain (mesher pattern vs positional seeds at a
+  fixed drive); fixed-angle FRAME-FULL pair (needs frame table for 126 cases) + third seeds = follow-up. Reference ladder: DrivAerML −0.9%,
+  4 geo +1.0%, fixed angle +10.3%, 35 +11.0%. BENCH lanes 718951 pending.
