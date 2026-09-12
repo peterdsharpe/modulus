@@ -324,10 +324,62 @@
    "tau_wall_z_l2": 0.3056321168939273,
    "tau_wall_l2": 0.27425214697917305
   },
-  "rf_hl_mt2_ref_single_aoa_12_seed42": null,
-  "rf_hl_mt2_ref_single_aoa_12_seed43": null,
-  "rf_hl_mt2_meas_single_aoa_12_seed42": null,
-  "rf_hl_mt2_meas_single_aoa_12_seed43": null,
+  "rf_hl_mt2_ref_single_aoa_12_seed42": {
+   "n": 18,
+   "pressure_l2": 0.038857851901815996,
+   "temperature_l2": 0.05791124660107824,
+   "density_l2": 0.04726986731919977,
+   "velocity_x_l2": 0.05007465535567866,
+   "velocity_y_l2": 0.21580645359224743,
+   "velocity_z_l2": 0.09778801848491032,
+   "velocity_l2": 0.07019554637372494,
+   "tau_wall_x_l2": 0.08786610182788637,
+   "tau_wall_y_l2": 0.2417414817545149,
+   "tau_wall_z_l2": 0.11032208841707972,
+   "tau_wall_l2": 0.11505163957675298
+  },
+  "rf_hl_mt2_ref_single_aoa_12_seed43": {
+   "n": 18,
+   "pressure_l2": 0.04863393596476979,
+   "temperature_l2": 0.06495719589293003,
+   "density_l2": 0.05908153516550859,
+   "velocity_x_l2": 0.06168009485635492,
+   "velocity_y_l2": 0.27086351149612004,
+   "velocity_z_l2": 0.11651555407378408,
+   "velocity_l2": 0.08658722084429529,
+   "tau_wall_x_l2": 0.10406581312417984,
+   "tau_wall_y_l2": 0.29026998662286335,
+   "tau_wall_z_l2": 0.12943526729941368,
+   "tau_wall_l2": 0.13662240405877432
+  },
+  "rf_hl_mt2_meas_single_aoa_12_seed42": {
+   "n": 18,
+   "pressure_l2": 0.03626193633923928,
+   "temperature_l2": 0.05535113335483604,
+   "density_l2": 0.04478079846335782,
+   "velocity_x_l2": 0.04751978421376811,
+   "velocity_y_l2": 0.20532079289356867,
+   "velocity_z_l2": 0.09370118834906155,
+   "velocity_l2": 0.06672622511784236,
+   "tau_wall_x_l2": 0.08382920713888274,
+   "tau_wall_y_l2": 0.23008732911613253,
+   "tau_wall_z_l2": 0.10589355520076221,
+   "tau_wall_l2": 0.10981692994634311
+  },
+  "rf_hl_mt2_meas_single_aoa_12_seed43": {
+   "n": 18,
+   "pressure_l2": 0.040495779986182846,
+   "temperature_l2": 0.058139881326092616,
+   "density_l2": 0.049548236860169306,
+   "velocity_x_l2": 0.05182526012261709,
+   "velocity_y_l2": 0.22671160101890564,
+   "velocity_z_l2": 0.1029558935099178,
+   "velocity_l2": 0.0733078233897686,
+   "tau_wall_x_l2": 0.09077602956030104,
+   "tau_wall_y_l2": 0.25260676940282184,
+   "tau_wall_z_l2": 0.11578042929371198,
+   "tau_wall_l2": 0.11982992167274158
+  },
   "rf_hl_mt2_meas_geometry_super_scarce_seed42": {
    "n": 180,
    "pressure_l2": 0.2599062309910854,
@@ -355,6 +407,10 @@
    "tau_wall_y_l2": 0.5843954905867577,
    "tau_wall_z_l2": 0.42073037624359133,
    "tau_wall_l2": 0.3490988736351331
-  }
+  },
+  "rf_hl_mt2_meas_geometry_scarce_seed42": null,
+  "rf_hl_mt2_meas_geometry_scarce_seed43": null,
+  "rf_hl_mt2_meas_scarce_seed42": null,
+  "rf_hl_mt2_meas_scarce_seed43": null
  }
 }

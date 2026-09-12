@@ -15925,3 +15925,69 @@ the similarity gauge, a sample-statistic frame, because no relative-frame
 interior lane has been trained; it is pinned to the centered frame for now
 and a relative-frame interior pair is the natural next lane if the interior
 configuration is to share the reference frame. Owner: this session.
+
+## 2026-09-11 — RELFRAME-LADDER, fixed-angle rung: the reference configuration pays 10% (0.0384 against 0.0348), less than the similarity gauge's 14%; the reference-length arm pays 26%, so scale normalization is not the fixed-angle cost, and the fixed angle stays the outlier that the recurrence reading does not explain {#sec-nb-relframe-ladder-fixed-angle}
+
+Second rung of the reference-configuration ladder
+(@sec-nb-relframe-ladder-prereg): the fixed angle (`single_aoa_12`, 126
+training geometries at 12°, 18 never-seen geometries for validation), run in
+both scales so that the scale-normalization reading of the gauge's 14.4%
+price (@sec-nb-wave4-fixed-angle) could be tested against the frame.
+Four lanes (rf_hl_mt2_{ref,meas}_single_aoa_12_seed{42,43}; relative
+frame with the constant reference length ("ref") or the total-measure scale
+("meas", the reference configuration); unit drive, lr 1e-3, 500 epochs,
+snapshot code_frame), evaluated in float32 under code_eval_frame (job
+718945, no loader warnings). Artifact `results/frame_reduction_2026-09-11.json` (block hilift_val). Priors on
+the rung, float32: constant gauge 0.0348 (seeds 0.0342 / 0.0353),
+similarity gauge 0.0398 (0.0411 / 0.0385), unit-drive GeoTransolver 0.0270,
+Transolver 0.0298.
+
+| fixed angle (18 never-seen geometries, float32) | pressure rel-L2 (42 / 43 → mean) | vs constant-gauge prior | vs similarity gauge | vs unit GeoTransolver | vs unit Transolver |
+|---|---|---|---|---|---|
+| **ISLA, reference (relative frame, total-measure scale)** | 0.0363 / 0.0405 → **0.0384** | **+10.3%** | 0.964x | 1.42x | 1.29x |
+| ISLA, relative frame, reference-length scale (discriminator arm) | 0.0389 / 0.0486 → **0.0437** | +25.7% | 1.099x | 1.62x | 1.47x |
+| ISLA, similarity gauge | 0.0411 / 0.0385 → 0.0398 | +14.4% | 1 | 1.47x | 1.33x |
+| ISLA, constant gauge (prior) | 0.0342 / 0.0353 → 0.0348 | 1 | 0.874x | 1.29x | 1.17x |
+
+**Against the bars.** The reference pays 10.3%, the "known price" band,
+and is 3.5% more accurate than the similarity gauge on the rung where the
+gauge paid most; the prediction of 10–15% for it held. The reference-length
+arm pays 26%, the "expensive" band, with a 22% seed spread (0.0389 /
+0.0486) against 11% for the total-measure arm and 3% for the constant gauge.
+**The scale discriminator reads the opposite way from the hypothesis.** The
+preregistered trigger was the total-measure arm paying ≥ 5% *more* than the
+reference-length arm; instead it pays 12% *less*. Normalizing away the
+absolute size does not cost accuracy on the geometry-only rung, it helps
+(or, given the seed spread, is at worst neutral), so the gauge's 14.4% here
+was not its scale normalization, and the total-measure scale stands as the
+reference's without a caveat on this rung.
+
+**What the fixed angle does to the recurrence reading.** The 4-geometry
+rung suggested that the plain-mean frame's mesher pattern sells only where
+validation geometries recur in training (@sec-nb-relframe-ladder-geo4).
+The fixed angle is a never-seen-geometry rung, and under that reading the
+reference should have been cheap here; it pays 10%, so recurrence is not
+the whole account. What is specific to this rung is the fixed drive
+direction: with every case at 12°, the reference configuration's seed
+(n̂·d̂ and the measure) varies only with the surface normal, and everything
+else a token knows about its place on the wing comes through anchor-relative
+positions, whereas the constant gauge's positional seeds (|r|, r̂·d̂,
+r̂·n̂ about the plain mean) tell each token directly where it sits along
+the chord and span, which at a fixed angle is most of what determines its
+pressure. The two candidate accounts of the 10% are therefore the same two
+the 35-case rung had, with the balance possibly different here: the mesher
+pattern in the plain mean (0.131 body lengths on these wings), or the
+positional seeds themselves. At 35 cases FRAME-FULL separated them (exact
+frame plus all seeds paid *more*, @sec-nb-frame-full-verdict); at the fixed
+angle that discriminator has not been run and would need the frame table
+extended to the 126 fixed-angle training cases (a CPU job of a few hours)
+before a two-lane pair. It is the next ladder follow-up once the 21-geometry
+and 210-case rungs, which test recurrence from the other side, have read
+out. A third seed on both fixed-angle arms is also warranted by the spreads.
+
+**Consistency half** of this rung (three samplers, five counts, both arms;
+job 718951, 60 lanes) is running; the constant-gauge prior collapses 10.6x
+/ 14.9x at 40,000 cells there and the gauge is consistent
+(@sec-nb-wave4-fixed-angle-bench). Reference ladder so far (float32, vs the
+constant-gauge prior): DrivAerML 435 cars −0.9%, 4 geometries +1.0%, fixed
+angle +10.3%, 35 cases +11.0%.

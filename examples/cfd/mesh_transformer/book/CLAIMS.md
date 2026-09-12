@@ -1623,3 +1623,9 @@ interior control @sec-nb-udrv-int-prereg.
   test_default_is_relative_total_measure pins the default. Contract swap: reference is geometric-scale invariant (points x k, areas x k^2), NOT
   invariant to weight rescale alone; centered construction is the reverse. Interior config still similarity gauge (centered) — no relative-frame
   interior lane trained yet. Write "the centered construction" / "the prior configuration" for the old default, never "the default gauge".
+- **RELFRAME-LADDER fixed-angle rung (2026-09-11, fp32; results/frame_reduction_2026-09-11.json hilift_val).** Reference (meas) 0.0363/0.0405 → 0.0384 vs prior 0.0348 →
+  **+10.3%** (known band); vs gauge 0.0398 → 0.964x; vs unit GT 0.0270 → 1.42x, Transolver 0.0298 → 1.29x. Ref-length arm 0.0389/0.0486 → 0.0437
+  (+26%, 22% seed spread). SCALE DISCRIMINATOR: meas pays LESS than ref → scale normalization is NOT the fixed-angle cost (gauge's 14% was
+  not its scale). Recurrence reading INCOMPLETE (never-seen rung pays 10%). Two candidates remain (mesher pattern vs positional seeds at a
+  fixed drive); fixed-angle FRAME-FULL pair (needs frame table for 126 cases) + third seeds = follow-up. Reference ladder: DrivAerML −0.9%,
+  4 geo +1.0%, fixed angle +10.3%, 35 +11.0%. BENCH lanes 718951 pending.
