@@ -16023,3 +16023,52 @@ job 718951, 60 lanes) is running; the constant-gauge prior collapses 10.6x
 (@sec-nb-wave4-fixed-angle-bench). Reference ladder so far (float32, vs the
 constant-gauge prior): DrivAerML 435 cars −0.9%, 4 geometries +1.0%, fixed
 angle +10.3%, 35 cases +11.0%.
+
+## 2026-09-11 — Fixed-angle rung, consistency half of the reference: converges under both samplers (area +45% → +2.6%, bias +81% → +5.5% from 2,500 to 40,000 cells) and is the most accurate arm at every count; the bias reading at 40,000 is still in the inconclusive band where the similarity gauge has already passed {#sec-nb-relframe-ladder-fixed-angle-bench}
+
+The fixed-angle reference checkpoints (@sec-nb-relframe-ladder-fixed-angle)
+went through the consistency benchmark's three samplers at five counts,
+both scales, two seeds (60 lanes, job 718951, float32 under
+code_eval_frame with the bench recipe copy; no loader warnings, all lanes
+rc 0; lane table bench/bench_lanes_rffa.tsv; artifact `results/consistency_bench/consistency_bench_rffa_2026-09-11.json`), beside the
+gauge and constant-gauge rows from @sec-nb-wave4-fixed-angle-bench and
+@sec-nb-bench-verdict.
+
+| fixed angle, 18 never-seen geometries, float32 | 2,500 | 5,000 | 10,000 | 20,000 | 40,000 cells |
+|---|---|---|---|---|---|
+| reference (relative frame, total-measure scale), uniform error | 0.0540 | 0.0461 | 0.0402 | 0.0375 | 0.0364 |
+| reference (relative frame, total-measure scale), area ÷ uniform − 1 | +44.6% | +16.4% | +12.0% | +7.6% | +2.6% |
+| reference (relative frame, total-measure scale), bias ÷ uniform − 1 | +80.5% | +35.8% | +24.1% | +14.4% | +5.5% |
+| relative frame, reference-length scale, uniform error | 0.0572 | 0.0501 | 0.0444 | 0.0421 | 0.0414 |
+| relative frame, reference-length scale, area ÷ uniform − 1 | +40.3% | +15.8% | +8.7% | +6.0% | +1.1% |
+| relative frame, reference-length scale, bias ÷ uniform − 1 | +126.1% | +42.8% | +23.9% | +11.8% | +4.4% |
+| similarity gauge, uniform error | 0.0577 | 0.0483 | 0.0430 | 0.0403 | 0.0389 |
+| similarity gauge, area ÷ uniform − 1 | +25.7% | +12.0% | +7.3% | +4.3% | -0.1% |
+| similarity gauge, bias ÷ uniform − 1 | +66.1% | +37.4% | +16.4% | +7.9% | +2.4% |
+| constant gauge (prior), uniform error | 0.0465 | 0.0401 | 0.0361 | 0.0347 | 0.0338 |
+| constant gauge (prior), area ÷ uniform − 1 | +989.9% | +1162.0% | +1245.1% | +1205.8% | +960.3% |
+| constant gauge (prior), bias ÷ uniform − 1 | +990.4% | +1145.4% | +1291.9% | +1339.3% | +1385.4% |
+
+**Against the bars** (|D| ≤ 3% consistent, ≥ 10% reads the distribution,
+between inconclusive). The reference is consistent under the
+area-proportional sampler at 40,000 cells (+2.6%) and converging under the
+10:1 bias (+5.5%, from +81% at 2,500), both monotonically, with its
+uniform error falling 1.48x over the same range; the reference-length arm
+behaves the same way (+1.1% and +4.4%). The constant-gauge prior reads
+the samplers by 960% and 1,385% at 40,000 cells with no convergence, so the
+reference passes the consistency test the prior fails, as it did at 35
+cases and on the cars. Two honest qualifications. First, the similarity
+gauge is the more consistent arm at 40,000 cells on this rung (−0.1% and
++2.4%, both inside the bar) while the reference's bias reading is still
+converging; the gauge's frame is a sample statistic that happens to track
+the biased draw's own centroid, and the reference has no frame to track it
+with, so what is left is the routing integral's variance under a 10:1
+sample at a larger relative size on an 18-case validation set than on the
+180-case sets, and 40,000 cells is not yet its fine-mesh limit here.
+Second, the reference is nevertheless the most accurate configuration
+under every sampler at every count (0.0364 at 40,000 uniform against the
+gauge's 0.0389), so the price of its consistency shortfall at 40,000 is
+smaller than the gauge's accuracy price: under the biased sampler at
+40,000 the reference scores 0.0384 and the gauge 0.0399. The consistency
+half of the fixed-angle rung is therefore "converging, not yet at the bar
+under the bias", stated as such beside the accuracy row.

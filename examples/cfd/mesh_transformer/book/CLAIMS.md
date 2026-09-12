@@ -1632,3 +1632,8 @@ interior control @sec-nb-udrv-int-prereg.
   not its scale). Recurrence reading INCOMPLETE (never-seen rung pays 10%). Two candidates remain (mesher pattern vs positional seeds at a
   fixed drive); fixed-angle FRAME-FULL pair (needs frame table for 126 cases) + third seeds = follow-up. Reference ladder: DrivAerML −0.9%,
   4 geo +1.0%, fixed angle +10.3%, 35 +11.0%. BENCH lanes 718951 pending.
+- **Fixed-angle reference BENCH (2026-09-11, fp32; results/consistency_bench/consistency_bench_rffa_2026-09-11.json).** Reference (meas): D_area +44.6%→+2.6% (consistent),
+  D_biased +80.5%→+5.5% (INCONCLUSIVE at 40k, converging); unif 2.5k/40k 1.48. Ref-length arm +1.1% / +4.4%.
+  Gauge −0.1% / +2.4% (more consistent at 40k); constant prior +960% / +1385%. Reference is the MOST ACCURATE arm under every sampler at
+  every count (unif 40k 0.0364 vs gauge 0.0389; biased 40k 0.0384 vs 0.0399). Write "converging, not yet at the bias bar at 40k on this rung";
+  never "the reference is consistent at the fixed angle" without the bias qualification.
